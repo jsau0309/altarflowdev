@@ -1,0 +1,246 @@
+"use client"
+
+import { DialogFooter } from "@/components/ui/dialog"
+
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Loader2, Receipt } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { ReceiptScannerButton } from "@/components/receipt-scanner/receipt-scanner-button"
+
+interface Expense {
+  id: string
+  amount: number
+  date: string
+  vendor: string
+  category: string
+  paymentMethod: string
+  description: string
+  receiptUrl?: string | null
+}
+
+interface NewExpenseModalProps {
+  isOpen: boolean
+  onClose: () => void
+  expenseToEdit?: Expense
+}
+
+export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseModalProps) {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [receiptImage, setReceiptImage] = useState<string | null>(expenseToEdit?.receiptUrl || null)
+  const [formData, setFormData] = useState({
+    amount: expenseToEdit?.amount.toString() || "",
+    date: expenseToEdit?.date || new Date().toISOString().split("T")[0],
+    vendor: expenseToEdit?.vendor || "",
+    category: expenseToEdit?.category || "",
+    paymentMethod: expenseToEdit?.paymentMethod || "",
+    description: expenseToEdit?.description || "",
+  })
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target
+    setFormData((prev) => ({ ...prev, [id]: value }))
+  }
+
+  const handleSelectChange = (id: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [id]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false)
+      onClose()
+      router.push("/expenses")
+    }, 1500)
+  }
+
+  const handleReceiptData = (data: Record<string, any>) => {
+    // Auto-fill form with receipt data
+    if (data) {
+      setFormData((prev) => ({
+        ...prev,
+        amount: data.total || prev.amount,
+        date: data.date || prev.date,
+        vendor: data.vendor || prev.vendor,
+        description: data.description || prev.description,
+      }))
+
+      // Set receipt image if available
+      if (data.receiptImage) {
+        setReceiptImage(data.receiptImage)
+      }
+    }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{expenseToEdit ? "Edit Expense" : "New Expense"}</DialogTitle>
+          <DialogDescription>Add a new expense to the system.</DialogDescription>
+        </DialogHeader>
+
+        <div className="overflow-y-auto pr-1">
+          <form id="expense-form" onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="0.00"
+                    className="pl-8"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input id="date" type="date" required value={formData.date} onChange={handleInputChange} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vendor">Vendor/Payee</Label>
+              <Input
+                id="vendor"
+                placeholder="Enter vendor or payee name"
+                required
+                value={formData.vendor}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                required
+                value={formData.category}
+                onValueChange={(value) => handleSelectChange("category", value)}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="utilities">Utilities</SelectItem>
+                  <SelectItem value="supplies">Supplies</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="salaries">Salaries</SelectItem>
+                  <SelectItem value="events">Events</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Select
+                required
+                value={formData.paymentMethod}
+                onValueChange={(value) => handleSelectChange("paymentMethod", value)}
+              >
+                <SelectTrigger id="paymentMethod">
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="check">Check</SelectItem>
+                  <SelectItem value="credit-card">Credit Card</SelectItem>
+                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe the expense"
+                required
+                value={formData.description}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Receipt (Optional)</Label>
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6">
+                {receiptImage ? (
+                  <div className="w-full">
+                    <div className="relative mb-2">
+                      <img
+                        src={receiptImage || "/placeholder.svg"}
+                        alt="Receipt"
+                        className="max-h-40 mx-auto object-contain rounded-md"
+                      />
+                    </div>
+                    <div className="flex justify-center gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setReceiptImage(null)}>
+                        Remove
+                      </Button>
+                      <ReceiptScannerButton onDataCaptured={handleReceiptData} variant="outline" size="sm">
+                        Replace
+                      </ReceiptScannerButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <Receipt className="h-8 w-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500 mb-4 text-center">
+                      Add a receipt to automatically extract expense details
+                    </p>
+                    <ReceiptScannerButton onDataCaptured={handleReceiptData}>Add Receipt</ReceiptScannerButton>
+                  </div>
+                )}
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <DialogFooter className="mt-2 pt-2 border-t">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            onClick={() => {
+              (document.getElementById("expense-form") as HTMLFormElement)?.requestSubmit()
+            }}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {expenseToEdit ? "Updating..." : "Saving..."}
+              </>
+            ) : expenseToEdit ? (
+              "Update Expense"
+            ) : (
+              "Save Expense"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

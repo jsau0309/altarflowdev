@@ -1,8 +1,6 @@
-"use client"
+import { redirect } from 'next/navigation'
 
-import { Hero } from '@/components/ui/animated-hero'
-import Image from 'next/image'
-
-export default function Home() {
-  return <Hero />
+export default function RootPage() {
+  // Redirect users from the root path to the dashboard
+  redirect('/dashboard')
 }
