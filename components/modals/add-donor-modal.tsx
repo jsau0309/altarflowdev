@@ -4,8 +4,6 @@ import type React from "react"
 
 import { useState } from "react"
 // import { useRouter } from "next/navigation" // Unused
-import { Loader2 } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,7 +36,9 @@ const initialFormState: NewMemberData = {
   city: "",
   state: "",
   zipCode: "",
-  notes: "",
+  language: "spanish" as "english" | "spanish" | "both",
+  smsConsent: false,
+  notes: [],
 }
 
 export function AddDonorModal({ isOpen, onClose }: AddDonorModalProps) {

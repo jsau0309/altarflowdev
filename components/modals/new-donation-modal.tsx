@@ -216,19 +216,23 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     setReceiptImage(null)
   }
 
-  const handleReceiptData = (data: any) => {
-    // Auto-fill form with receipt data
-    if (data) {
+  const handleReceiptData = (data: unknown) => {
+    // Add a basic type check
+    if (typeof data === 'object' && data !== null) {
+      // Type assertion (use carefully, or define a specific ReceiptData type)
+      const receiptData = data as Partial<{ total: string, date: string, description: string, receiptImage: string }>;
+
+      // Auto-fill form with receipt data
       setFormData((prev) => ({
         ...prev,
-        amount: data.total || prev.amount,
-        date: data.date || prev.date,
-        notes: data.description || prev.notes,
+        amount: receiptData.total || prev.amount,
+        date: receiptData.date || prev.date,
+        notes: receiptData.description || prev.notes,
       }))
 
       // Set receipt image if available
-      if (data.receiptImage) {
-        setReceiptImage(data.receiptImage)
+      if (receiptData.receiptImage) {
+        setReceiptImage(receiptData.receiptImage)
       }
     }
   }

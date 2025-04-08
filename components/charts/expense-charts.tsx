@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { format } from "date-fns"
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { useTranslation } from "react-i18next"
 import { Expense } from "@/lib/types"
+import { TrendingUp, TrendingDown, CheckCircle, AlertCircle, DollarSign } from "lucide-react"
 
 interface ExpenseChartsProps {
   expenses: Expense[];

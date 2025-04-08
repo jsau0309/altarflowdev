@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Download, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
-import { format, parseISO } from "date-fns"
+import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
@@ -31,7 +31,6 @@ export function ReportsContent() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [members, setMembers] = useState<Member[]>([])
-  const [isLoading, setIsLoading] = useState(true)
 
   // Add these state variables for pagination
   const [donationsPerPage, setDonationsPerPage] = useState(10)
@@ -45,14 +44,12 @@ export function ReportsContent() {
 
   // TODO: Fetch data from API
   useEffect(() => {
-    setIsLoading(true);
     // Simulate API call
     setTimeout(() => {
       setDonations([]); // Replace with actual data fetching
       setExpenses([]);
       setCampaigns([]);
       setMembers([]);
-      setIsLoading(false);
       console.log("TODO: Fetch report data");
     }, 500);
   }, []);

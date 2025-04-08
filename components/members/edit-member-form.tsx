@@ -11,12 +11,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import type { ExtendedMember } from "@/lib/mock-data-extensions"
+import type { Member } from "@/lib/types"
 
 interface EditMemberFormProps {
-  member: ExtendedMember
+  member: Member
   onCancel: () => void
-  onSave: (updatedMember: ExtendedMember) => void
+  onSave: (updatedMember: Member) => void
 }
 
 export function EditMemberForm({ member, onCancel, onSave }: EditMemberFormProps) {

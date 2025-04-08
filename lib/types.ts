@@ -59,6 +59,10 @@ export interface Member {
   welcomeMessageSent?: boolean;
   welcomeMessageDate?: string; // ISO string date
   welcomeMessageStatus?: 'pending' | 'sent' | 'delivered' | 'failed' | undefined;
+  // Fields from EditMemberForm
+  smsConsentDate?: string; // ISO string date
+  consentMethod?: 'verbal' | 'written' | 'electronic' | 'implied' | 'none' | string; // Allow string for flexibility initially?
+  consentNotes?: string;
   // Update notes to be an array of strings
   notes?: string[];
 } 

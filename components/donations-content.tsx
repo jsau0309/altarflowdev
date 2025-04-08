@@ -1,7 +1,8 @@
 "use client"
 
+
 import { useState, useEffect } from "react"
-import { Search, Filter, Calendar, Plus, Target, Users, X, CreditCard, FileImage, Mail, Phone, DollarSign } from "lucide-react"
+import { Search, Filter, Plus, Target, Users, X, Mail, Phone, DollarSign } from "lucide-react"
 import { format, isAfter, isBefore, parseISO } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -9,8 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { NewDonationModal } from "@/components/modals/new-donation-modal"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { CampaignModal } from "@/components/modals/campaign-modal"
 import { AddDonorModal } from "@/components/modals/add-donor-modal"
 import { EditDonorModal } from "@/components/modals/edit-donor-modal"
@@ -54,6 +54,8 @@ export function DonationsContent() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
+  const [displayedDonations, setDisplayedDonations] = useState<Donation[]>([])
+
   useEffect(() => {
     const timer = setTimeout(() => {
       console.log("TODO: Fetch initial data (donations, members, campaigns)");
@@ -73,58 +75,65 @@ export function DonationsContent() {
     }
   }, [])
 
-  const filteredDonations = donations.filter((donation) => {
-    if (activeTab !== "all-donations" && activeTab !== "campaigns" && activeTab !== "donors") {
-      return true
+  useEffect(() => {
+    if (dateRange || selectedCampaigns.length > 0 || selectedDonationMethods.length > 0 || selectedDonors.length > 0 || selectedDonationTypes.length > 0 || searchTerm) {
+      const filtered = donations.filter((donation) => {
+        if (activeTab !== "all-donations" && activeTab !== "campaigns" && activeTab !== "donors") {
+          return true
+        }
+
+        if (selectedDonationTypes.length > 0) {
+          if (!selectedDonationTypes.includes(donation.isDigital ? "digital" : "traditional")) {
+            return false
+          }
+        }
+
+        if (searchTerm) {
+          const donor = members.find((m) => m.id === donation.donorId)
+          const donorName = donor ? `${donor.firstName} ${donor.lastName}` : ""
+          const campaign = campaigns.find((c) => c.id === donation.campaignId)
+          const campaignName = campaign ? campaign.name : ""
+
+          const matchesSearch =
+            campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            donation.amount.toString().includes(searchTerm) ||
+            donation.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase())
+
+          if (!matchesSearch) return false
+        }
+
+        if (dateRange && dateRange.start && dateRange.end) {
+          const donationDate = parseISO(donation.date)
+          const startDate = parseISO(dateRange.start)
+          const endDate = parseISO(dateRange.end)
+
+          if (isBefore(donationDate, startDate) || isAfter(donationDate, endDate)) {
+            return false
+          }
+        }
+
+        if (selectedCampaigns.length > 0 && !selectedCampaigns.includes(donation.campaignId)) {
+          return false
+        }
+
+        if (selectedDonationMethods.length > 0 && !selectedDonationMethods.includes(donation.paymentMethod)) {
+          return false
+        }
+
+        if (selectedDonors.length > 0 && !selectedDonors.includes(donation.donorId)) {
+          return false
+        }
+
+        return true
+      })
+
+      setDisplayedDonations(filtered)
+      setCurrentPage(1)
     }
+  }, [donations, members, campaigns, dateRange, selectedCampaigns, selectedDonationMethods, selectedDonors, selectedDonationTypes, searchTerm, activeTab])
 
-    if (selectedDonationTypes.length > 0) {
-      if (!selectedDonationTypes.includes(donation.isDigital ? "digital" : "traditional")) {
-        return false
-      }
-    }
-
-    if (searchTerm) {
-      const donor = members.find((m) => m.id === donation.donorId)
-      const donorName = donor ? `${donor.firstName} ${donor.lastName}` : ""
-      const campaign = campaigns.find((c) => c.id === donation.campaignId)
-      const campaignName = campaign ? campaign.name : ""
-
-      const matchesSearch =
-        campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        donation.amount.toString().includes(searchTerm) ||
-        donation.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase())
-
-      if (!matchesSearch) return false
-    }
-
-    if (dateRange && dateRange.start && dateRange.end) {
-      const donationDate = parseISO(donation.date)
-      const startDate = parseISO(dateRange.start)
-      const endDate = parseISO(dateRange.end)
-
-      if (isBefore(donationDate, startDate) || isAfter(donationDate, endDate)) {
-        return false
-      }
-    }
-
-    if (selectedCampaigns.length > 0 && !selectedCampaigns.includes(donation.campaignId)) {
-      return false
-    }
-
-    if (selectedDonationMethods.length > 0 && !selectedDonationMethods.includes(donation.paymentMethod)) {
-      return false
-    }
-
-    if (selectedDonors.length > 0 && !selectedDonors.includes(donation.donorId)) {
-      return false
-    }
-
-    return true
-  })
-
-  const totalItems = filteredDonations.length
+  const totalItems = displayedDonations.length
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
 
   useEffect(() => {
@@ -135,7 +144,7 @@ export function DonationsContent() {
 
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentDonations = filteredDonations.slice(indexOfFirstItem, indexOfLastItem)
+  const currentDonations = displayedDonations.slice(indexOfFirstItem, indexOfLastItem)
 
   const filteredDonors = members.filter((member) => {
     if (!donorSearchTerm) return true
@@ -338,16 +347,6 @@ export function DonationsContent() {
   const handleViewDonorDetails = (id: string) => {
     setSelectedDonorIdForDetails(id)
     setShowDonorDetails(true)
-  }
-
-  const getSelectedDonorDetails = (): Member | undefined => {
-    if (!selectedDonorIdForDetails) return undefined
-    return members.find((m) => m.id === selectedDonorIdForDetails)
-  }
-
-  const getSelectedDonationDetails = (): Donation | undefined => {
-    if (!selectedDonationId) return undefined
-    return donations.find((d) => d.id === selectedDonationId)
   }
 
   return (

@@ -6,9 +6,9 @@ import {
   ToastClose,
   ToastDescription,
   ToastProvider,
-  ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { type ToastProps, type ToastActionElement } from "@/components/ui/toast"
 
 export function Toaster() {
   const { toast, hideToast } = useToast()

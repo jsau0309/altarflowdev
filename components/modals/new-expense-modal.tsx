@@ -67,20 +67,21 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
     }, 1500)
   }
 
-  const handleReceiptData = (data: Record<string, any>) => {
-    // Auto-fill form with receipt data
-    if (data) {
+  const handleReceiptData = (data: unknown) => {
+    if (typeof data === 'object' && data !== null) {
+      const expenseData = data as Partial<{ total: string, date: string, description: string, receiptImage: string, vendor: string, category: string }>;
+
       setFormData((prev) => ({
         ...prev,
-        amount: data.total || prev.amount,
-        date: data.date || prev.date,
-        vendor: data.vendor || prev.vendor,
-        description: data.description || prev.description,
+        amount: expenseData.total || prev.amount,
+        date: expenseData.date || prev.date,
+        description: expenseData.description || prev.description,
+        vendor: expenseData.vendor || prev.vendor,
+        category: expenseData.category || prev.category,
       }))
 
-      // Set receipt image if available
-      if (data.receiptImage) {
-        setReceiptImage(data.receiptImage)
+      if (expenseData.receiptImage) {
+        setReceiptImage(expenseData.receiptImage)
       }
     }
   }

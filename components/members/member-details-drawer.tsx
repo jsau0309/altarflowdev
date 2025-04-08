@@ -15,18 +15,24 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import type { ExtendedMember } from "@/lib/mock-data-extensions"
+import type { Member } from "@/lib/types"
 import { EditMemberForm } from "./edit-member-form"
 
 interface MemberDetailsDrawerProps {
-  member: ExtendedMember
+  member: Member
   open: boolean
   onClose: () => void
-  onSendSms?: () => void
 }
 
-export function MemberDetailsDrawer({ member, open, onClose, onSendSms }: MemberDetailsDrawerProps) {
+export function MemberDetailsDrawer({ member, open, onClose }: MemberDetailsDrawerProps) {
   const [isEditing, setIsEditing] = useState(false)
+
+  const handleSave = () => {
+    // In a real app, this would update the member data
+    setIsEditing(false)
+    // Force a refresh of the drawer
+    onClose()
+  }
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -60,12 +66,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onSendSms }: Member
             <EditMemberForm
               member={member}
               onCancel={() => setIsEditing(false)}
-              onSave={(updatedMember) => {
-                // In a real app, this would update the member data
-                setIsEditing(false)
-                // Force a refresh of the drawer
-                onClose()
-              }}
+              onSave={handleSave}
             />
           </div>
         ) : (

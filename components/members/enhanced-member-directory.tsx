@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { type ExtendedMember, extendedMockDataService } from "@/lib/mock-data-extensions"
+import { type Member } from "@/lib/types"
+import { mockDataService } from "@/lib/mock-data"
 import { MemberDetailsDrawer } from "./member-details-drawer"
 import { AddMemberButton } from "./add-member-button"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
@@ -20,10 +21,10 @@ interface EnhancedMemberDirectoryProps {
 }
 
 export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMemberDirectoryProps) {
-  const [members, setMembers] = useState<ExtendedMember[]>([])
+  const [members, setMembers] = useState<Member[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedMember, setSelectedMember] = useState<ExtendedMember | null>(null)
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [showMemberDetails, setShowMemberDetails] = useState(false)
 
   // Pagination state
@@ -33,7 +34,7 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
   useEffect(() => {
     // Simulate API loading delay
     const timer = setTimeout(() => {
-      setMembers(extendedMockDataService.getExtendedMembers())
+      setMembers(mockDataService.getMembers())
       setIsLoading(false)
     }, 500)
 
@@ -91,14 +92,14 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
   const endIndex = Math.min(startIndex + itemsPerPage - 1, filteredMembers.length - 1)
   const paginatedMembers = filteredMembers.slice(startIndex, endIndex + 1)
 
-  const handleMemberClick = (member: ExtendedMember) => {
+  const handleMemberClick = (member: Member) => {
     setSelectedMember(member)
     setShowMemberDetails(true)
   }
 
   const handleAddMemberSuccess = () => {
     // Refresh the member list
-    setMembers(extendedMockDataService.getExtendedMembers())
+    setMembers(mockDataService.getMembers())
   }
 
   // Generate page numbers to display
@@ -233,7 +234,7 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
                             : ""
                       }
                     >
-                      {member.membershipStatus.charAt(0).toUpperCase() + member.membershipStatus.slice(1)}
+                      {member.membershipStatus ? member.membershipStatus.charAt(0).toUpperCase() + member.membershipStatus.slice(1) : 'Unknown'}
                     </Badge>
                   </TableCell>
                   <TableCell>{format(new Date(member.joinDate), "MMM d, yyyy")}</TableCell>

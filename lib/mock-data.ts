@@ -35,6 +35,8 @@ const generateMockMembers = (count: number): Member[] => {
     const hasPhone = faker.datatype.boolean(0.9);
     const phoneNum = hasPhone ? faker.phone.number() : undefined;
     const welcomeSent = hasSmsConsent && hasPhone && faker.datatype.boolean(0.8);
+    // Add consent method generation
+    const consentMethodValue = hasSmsConsent ? faker.helpers.arrayElement(['verbal', 'written', 'electronic', 'implied']) : 'none';
 
     members.push({
       id: faker.string.uuid(),
@@ -54,6 +56,10 @@ const generateMockMembers = (count: number): Member[] => {
       welcomeMessageSent: welcomeSent,
       welcomeMessageDate: welcomeSent ? faker.date.recent({ days: 30 }).toISOString() : undefined,
       welcomeMessageStatus: welcomeSent ? faker.helpers.arrayElement(['delivered', 'sent', 'failed']) : undefined,
+      // Add mock data for new fields
+      smsConsentDate: hasSmsConsent ? faker.date.recent({ days: 60 }).toISOString() : undefined,
+      consentMethod: consentMethodValue,
+      consentNotes: consentMethodValue !== 'none' && faker.datatype.boolean(0.2) ? faker.lorem.sentence() : undefined,
       notes: hasNotes ? [faker.lorem.paragraph(), faker.lorem.sentence()] : undefined,
     });
   }
@@ -141,7 +147,7 @@ export const mockDataService = {
   getCampaigns: (): Campaign[] => [],
   getDonation: (id: string): Donation | undefined => mockDonations.find(d => d.id === id),
   getMember: (id: string): Member | undefined => mockMembers.find(m => m.id === id),
-  getCampaign: (id: string): Campaign | undefined => mockCampaigns.find(c => c.id === c.id), // Corrected campaign find
+  getCampaign: (id: string): Campaign | undefined => mockCampaigns.find(c => c.id === id),
 };
 
 // NOTE: This requires @faker-js/faker to be installed

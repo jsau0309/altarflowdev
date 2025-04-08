@@ -16,7 +16,7 @@ import {
   RefreshCw,
   Shield,
 } from "lucide-react"
-// import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert" // Unused imports
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function BankingContent() {
   const [activeTab, setActiveTab] = useState("account")

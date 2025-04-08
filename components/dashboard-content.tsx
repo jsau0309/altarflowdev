@@ -9,10 +9,8 @@ import { NewDonationModal } from "@/components/modals/new-donation-modal"
 import { NewExpenseModal } from "@/components/modals/new-expense-modal"
 import { AddMemberModal } from "@/components/members/add-member-modal"
 import { GenerateReportModal } from "@/components/modals/generate-report-modal"
-// Remove the Dashboard Charts section and imports
-// 1. Remove the import for DashboardCharts:
-// Remove this line:
-// import { DashboardCharts } from "./charts/dashboard-charts"
+// Import Member type
+import type { Member } from "@/lib/types"
 
 // Define a basic structure for the dashboard data
 // TODO: Update this with the actual data structure from the API
@@ -43,7 +41,7 @@ interface DashboardData {
 
 export function DashboardContent() {
   const [activeModal, setActiveModal] = useState<string | null>(null)
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [dashboardData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -202,7 +200,7 @@ Remove this code block:
             <div className="mt-6">
               <h3 className="mb-4 text-sm font-medium">Recent Members</h3>
               <div className="space-y-4">
-                {dashboardData?.memberActivity?.recentMembers?.map((member: any) => {
+                {dashboardData?.memberActivity?.recentMembers?.map((member: Member) => {
                   const joinedDays = Math.round(
                     (new Date().getTime() - new Date(member.joinDate).getTime()) / (1000 * 60 * 60 * 24),
                   )
