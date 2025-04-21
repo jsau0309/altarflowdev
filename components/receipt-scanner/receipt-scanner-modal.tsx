@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { MobileScanView } from "./mobile-scan-view"
 import { ProcessingView } from "./processing-view"
 import { ReviewDataView } from "./review-data-view"
+import { useTranslation } from "react-i18next"
 
 interface ReceiptScannerModalProps {
   isOpen: boolean
@@ -20,6 +21,7 @@ interface ReceiptScannerModalProps {
 type ScanningStage = "initial" | "camera" | "upload" | "processing" | "review"
 
 export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: ReceiptScannerModalProps) {
+  const { t } = useTranslation()
   const [scanningStage, setScanningStage] = useState<ScanningStage>("initial")
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
   const [extractedData, setExtractedData] = useState<any>(null)
@@ -29,8 +31,9 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
     if (file) {
       const reader = new FileReader()
       reader.onload = (event) => {
-        if (event.target?.result) {
-          setReceiptImage(event.target.result as string)
+        const readerTarget = event.target as FileReader | null;
+        if (readerTarget && readerTarget.result) {
+          setReceiptImage(readerTarget.result as string)
           setScanningStage("processing")
 
           // Simulate processing delay
@@ -47,7 +50,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
                 { description: "Pens (12 pack)", amount: "13.99" },
               ],
               taxAmount: "10.99",
-              receiptImage: event.target.result,
+              receiptImage: readerTarget.result,
             })
             setScanningStage("review")
           }, 2000)
@@ -102,18 +105,18 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
         {scanningStage === "initial" && (
           <>
             <div className="flex items-center justify-center border-b p-4">
-              <h2 className="text-lg font-semibold">Receipt Upload</h2>
+              <h2 className="text-lg font-semibold">{t('receiptScanner.modal.title')}</h2>
             </div>
 
             <Tabs defaultValue="scan" className="w-full">
               <TabsList className="grid w-full grid-cols-2 rounded-none">
                 <TabsTrigger value="scan" className="rounded-none py-3">
                   <Camera className="mr-2 h-4 w-4" />
-                  Scan Receipt
+                  {t('receiptScanner.modal.scanTab')}
                 </TabsTrigger>
                 <TabsTrigger value="upload" className="rounded-none py-3">
                   <Upload className="mr-2 h-4 w-4" />
-                  Upload File
+                  {t('receiptScanner.modal.uploadTab')}
                 </TabsTrigger>
               </TabsList>
 
@@ -122,12 +125,12 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
                   <div className="rounded-full bg-primary/10 p-6 mb-4">
                     <Camera className="h-10 w-10 text-primary" />
                   </div>
-                  <h3 className="text-xl font-medium mb-2">Scan Your Receipt</h3>
+                  <h3 className="text-xl font-medium mb-2">{t('receiptScanner.modal.scanTitle')}</h3>
                   <p className="text-sm text-muted-foreground text-center mb-6 max-w-xs">
-                    Take a photo of your receipt to automatically extract expense details
+                    {t('receiptScanner.modal.scanDescription')}
                   </p>
                   <Button onClick={() => setScanningStage("camera")} size="lg">
-                    Start Camera
+                    {t('receiptScanner.modal.startCameraButton')}
                   </Button>
                 </div>
               </TabsContent>
@@ -137,9 +140,9 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
                   <div className="rounded-full bg-primary/10 p-6 mb-4">
                     <Upload className="h-10 w-10 text-primary" />
                   </div>
-                  <h3 className="text-xl font-medium mb-2">Upload Receipt</h3>
+                  <h3 className="text-xl font-medium mb-2">{t('receiptScanner.modal.uploadTitle')}</h3>
                   <p className="text-sm text-muted-foreground text-center mb-6 max-w-xs">
-                    Upload an image of your receipt to automatically extract expense details
+                    {t('receiptScanner.modal.uploadDescription')}
                   </p>
                   <input
                     type="file"
@@ -149,7 +152,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
                     onChange={handleFileUpload}
                   />
                   <Button onClick={() => document.getElementById("receipt-file-upload")?.click()} size="lg">
-                    Select File
+                    {t('receiptScanner.modal.selectFileButton')}
                   </Button>
                 </div>
               </TabsContent>

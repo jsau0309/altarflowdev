@@ -1,8 +1,10 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 export function ProcessingView() {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col items-center justify-center p-12">
       <div className="relative mb-6">
@@ -11,10 +13,10 @@ export function ProcessingView() {
           <div className="h-4 w-4 rounded-full bg-primary"></div>
         </div>
       </div>
-      <h3 className="text-lg font-medium mb-2">Processing Receipt</h3>
+      <h3 className="text-lg font-medium mb-2">{t('receiptScanner.processing.title')}</h3>
       <div className="space-y-1 text-center">
-        <p className="text-sm text-muted-foreground">Extracting expense details</p>
-        <p className="text-xs text-muted-foreground">This may take a few moments...</p>
+        <p className="text-sm text-muted-foreground">{t('receiptScanner.processing.extracting')}</p>
+        <p className="text-xs text-muted-foreground">{t('receiptScanner.processing.wait')}</p>
       </div>
     </div>
   )

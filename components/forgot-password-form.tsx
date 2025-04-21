@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export function ForgotPasswordForm() {
+  const { t } = useTranslation('auth')
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [email, setEmail] = useState("")
@@ -30,7 +32,7 @@ export function ForgotPasswordForm() {
     return (
       <Alert>
         <AlertDescription>
-          If an account exists for {email}, you will receive an email with instructions on how to reset your password.
+          {t('auth:forgotPasswordForm.successMessage', 'If an account exists for {email}, you will receive an email with instructions on how to reset your password.', { email })}
         </AlertDescription>
       </Alert>
     )
@@ -39,11 +41,11 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t('auth:forgotPasswordForm.emailLabel', 'Email')}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="name@example.com"
+          placeholder={t('auth:forgotPasswordForm.emailPlaceholder', 'name@example.com')}
           required
           autoComplete="email"
           value={email}
@@ -55,10 +57,10 @@ export function ForgotPasswordForm() {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Sending reset link...
+            {t('auth:forgotPasswordForm.sendingButton', 'Sending reset link...')}
           </>
         ) : (
-          "Send reset link"
+          t('auth:forgotPasswordForm.sendButton', 'Send reset link')
         )}
       </Button>
     </form>

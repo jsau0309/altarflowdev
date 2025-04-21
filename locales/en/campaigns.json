@@ -1,0 +1,79 @@
+{
+  "title": "Campaigns",
+  "newCampaign": "New Campaign",
+  "activeCampaigns": "Active Campaigns",
+  "pastCampaigns": "Past Campaigns",
+  "name": "Name",
+  "description": "Description",
+  "goalAmount": "Goal Amount",
+  "currentAmount": "Current Amount",
+  "startDate": "Start Date",
+  "endDate": "End Date",
+  "status": "Status",
+  "progress": "Progress",
+  "donors": "Donors",
+  "donationCount": "Donation Count",
+  
+  "campaign": {
+    "tithe": "Tithe",
+    "general": "General Offering"
+  },
+  
+  "statuses": {
+    "planned": "Planned",
+    "active": "Active",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "inactive": "Inactive"
+  },
+  
+  "campaignsContent": {
+    "subtitle": "Manage your donation campaigns",
+    "searchPlaceholder": "Search campaigns...",
+    "filterPlaceholder": "Filter by status",
+    "filter": {
+      "all": "All Campaigns",
+      "inactive": "Inactive Campaigns"
+    },
+    "empty": {
+      "title": "No campaigns found",
+      "adjustFilters": "Try adjusting your search or filters.",
+      "addFirst": "Add your first campaign to get started."
+    }
+  },
+  
+  "campaignModal": {
+    "editTitle": "Edit Donation Type",
+    "newTitle": "Configure Donation Type",
+    "editDescription": "Update your donation type settings.",
+    "newDescription": "Configure your donation type settings.",
+    "donationTypeLabel": "Donation Type",
+    "donationTypePlaceholder": "Select donation type",
+    "tithe": "Tithe",
+    "generalOffering": "General Offering",
+    "titheDescription": "Regular tithe collection for church operations.",
+    "generalOfferingDescription": "Regular offering for church operations and ministries.",
+    "allowRecurringLabel": "Allow Recurring Donations",
+    "recurringFrequencyLabel": "Recurring Frequency",
+    "recurringFrequencyDescription": "Select all frequency options that donors can choose from",
+    "frequencyOptions": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "annually": "Annually"
+    },
+    "maxAmountLabel": "Maximum Amount",
+    "setLimitLabel": "Set Limit",
+    "currencySymbol": "$",
+    "maxAmountPlaceholder": "0.00",
+    "unlimited": "Unlimited",
+    "cancelButton": "Cancel",
+    "saving": "Saving...",
+    "updating": "Updating...",
+    "saveButton": "Save Settings",
+    "updateButton": "Update Settings",
+    "errors": {
+      "selectFrequency": "Please select at least one recurring frequency option"
+    }
+  }
+} 

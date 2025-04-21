@@ -5,6 +5,7 @@ export const memberFormSchema = z.object({
   lastName: z.string().min(1, { message: "Last name is required" }),
   email: z.string().email({ message: "Invalid email address" }),
   phone: z.string().optional(),
+  smsConsent: z.boolean().optional(),
   serviceTimes: z.array(z.string()).optional(),
   relationshipStatus: z.enum(["visitor", "regular"] as const),
   lifeStage: z.enum(["teens", "20s", "30s", "40s", "50s", "60s", "70plus"] as const),

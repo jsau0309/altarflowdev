@@ -1,0 +1,215 @@
+{
+  "title": "Donations",
+  "newDonation": "New Donation",
+  "donationHistory": "Donation History",
+  "recurringDonations": "Recurring Donations",
+  "campaigns": "Campaigns",
+  "amount": "Amount",
+  "donor": "Donor",
+  "date": "Date",
+  "method": "Method",
+  "type": "Type",
+  "campaign": "Campaign",
+  "status": "Status",
+  "notes": "Notes",
+  "dateRange": "Date Range",
+  "category": "Category",
+  "frequency": "Frequency",
+  "startDate": "Start Date",
+  "endDate": "End Date",
+  "noEndDate": "No End Date",
+  
+  "methods": {
+    "cash": "Cash",
+    "check": "Check",
+    "card": "Credit/Debit Card",
+    "bankTransfer": "Bank Transfer",
+    "nfc": "NFC Payment"
+  },
+  
+  "types": {
+    "oneTime": "One-time",
+    "recurring": "Recurring"
+  },
+  
+  "frequencies": {
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "annually": "Annually"
+  },
+  
+  "statuses": {
+    "completed": "Completed",
+    "pending": "Pending",
+    "failed": "Failed",
+    "cancelled": "Cancelled"
+  },
+  
+  "donationsContent": {
+    "subtitle": "Track and manage your church donations",
+    "tabs": {
+      "allDonations": "All Donations"
+    },
+    "allDonations": {
+      "subtitle": "View, search, and filter all donations",
+      "searchPlaceholder": "Search donations (donor, campaign, amount...)"
+    },
+    "filter": {
+      "title": "Filter Donations"
+    },
+    "empty": {
+      "title": "No donations found",
+      "adjustFilters": "Try adjusting your search or filters.",
+      "addFirst": "Add your first donation to get started."
+    }
+  },
+  
+  "donationPayment": {
+    "thankYou": "Thank you for your donation!",
+    "donateToLabel": "Donation to:",
+    "recurringLabel": "Recurring {{frequency}} donation",
+    "paymentMethodTitle": "Choose a payment method:",
+    "methodCard": "Credit/Debit Card",
+    "methodBank": "Bank Account",
+    "methodGooglePay": "Google Pay",
+    "methodApplePay": "Apple Pay",
+    "coverFeesLabel": "Add {{fee}} to my gift",
+    "coverFeesDescription": "I want to increase my gift to help cover administrative fees and processing costs.",
+    "submitButton": "Donate now"
+  },
+  
+  "donationInfo": {
+    "anonymousLabel": "Donate anonymously"
+  },
+  
+  "donationDetails": {
+    "amountPrompt": "Enter an amount or make a quick selection below",
+    "selectCampaignLabel": "Select a campaign",
+    "selectCampaignPlaceholder": "Select a campaign"
+  },
+  
+  "newDonationModal": {
+    "title": "New Donation",
+    "description": "Add a new donation to the system.",
+    "amountLabel": "Amount",
+    "currencySymbol": "$",
+    "amountPlaceholder": "0.00",
+    "donorLabel": "Donor",
+    "addingNewDonor": "Adding new donor...",
+    "selectDonor": "Select donor",
+    "addNewDonor": "+ Add New Donor",
+    "newDonorInfo": "New Donor Information",
+    "firstNameLabel": "First Name",
+    "firstNamePlaceholder": "First name",
+    "lastNameLabel": "Last Name",
+    "lastNamePlaceholder": "Last name",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "email@example.com",
+    "phoneLabel": "Phone Number",
+    "phonePlaceholder": "(555) 123-4567",
+    "donationTypeLabel": "Donation Type",
+    "selectDonationType": "Select donation type",
+    "paymentMethodLabel": "Payment Method",
+    "selectPaymentMethod": "Select payment method",
+    "paymentMethodOptions": {
+      "cash": "Cash",
+      "check": "Check",
+      "creditCard": "Credit Card",
+      "bankTransfer": "Bank Transfer"
+    },
+    "receiptLabel": "Receipt (Optional)",
+    "addReceiptButton": "Add Receipt",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Add any additional notes here",
+    "cancelButton": "Cancel",
+    "saving": "Saving...",
+    "saveButton": "Save Donation",
+    "success": "Donation saved successfully.",
+    "errors": {
+      "failedToLoadData": "Failed to load required data. Please try again.",
+      "missingNewDonorName": "Please enter both first and last name for the new donor.",
+      "failedToCreateDonor": "Failed to create new donor. Please try again.",
+      "selectOrAddDonor": "Please select or add a donor.",
+      "invalidAmount": "Please enter a valid donation amount.",
+      "failedToSaveDonation": "Failed to save donation. Please try again."
+    }
+  },
+  
+  "donorsContent": {
+    "subtitle": "Manage your donors",
+    "addDonorButton": "Add Donor",
+    "searchPlaceholder": "Search donors (name, email, phone)...",
+    "empty": {
+      "title": "No donors found",
+      "adjustFilters": "Try adjusting your search.",
+      "addFirst": "Add your first donor to get started."
+    }
+  },
+  
+  "addDonorModal": {
+    "title": "Add New Donor",
+    "description": "Add a new donor to your database. This information will be used for donation tracking.",
+    "firstNameLabel": "First Name *",
+    "firstNamePlaceholder": "John",
+    "lastNameLabel": "Last Name *",
+    "lastNamePlaceholder": "Doe",
+    "emailLabel": "Email",
+    "emailPlaceholder": "john.doe@example.com",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "(555) 123-4567",
+    "addressLabel": "Address",
+    "addressPlaceholder": "123 Main St",
+    "cityLabel": "City",
+    "cityPlaceholder": "Springfield",
+    "stateLabel": "State",
+    "statePlaceholder": "IL",
+    "zipCodeLabel": "ZIP Code",
+    "zipCodePlaceholder": "12345",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Add any notes about this donor",
+    "cancelButton": "Cancel",
+    "addButton": "Add Donor",
+    "adding": "Adding...",
+    "success": "Donor {{firstName}} {{lastName}} added successfully",
+    "error": "Failed to add donor. Please try again.",
+    "errors": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "invalidEmail": "Please enter a valid email address"
+    }
+  },
+  
+  "editDonorModal": {
+    "title": "Edit Donor",
+    "description": "Update donor information in your database.",
+    "firstNameLabel": "First Name",
+    "firstNamePlaceholder": "John",
+    "lastNameLabel": "Last Name",
+    "lastNamePlaceholder": "Doe",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "john.doe@example.com",
+    "phoneLabel": "Phone Number",
+    "phonePlaceholder": "(555) 123-4567",
+    "addressLabel": "Address",
+    "addressPlaceholder": "123 Main St",
+    "cityLabel": "City",
+    "cityPlaceholder": "Springfield",
+    "stateLabel": "State",
+    "statePlaceholder": "IL",
+    "zipCodeLabel": "ZIP Code",
+    "zipCodePlaceholder": "12345",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Add any notes about this donor",
+    "cancelButton": "Cancel",
+    "saving": "Saving...",
+    "saveButton": "Save Changes",
+    "errors": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "invalidEmail": "Please enter a valid email address",
+      "invalidPhone": "Please enter a valid phone number",
+      "invalidZip": "Please enter a valid ZIP code"
+    }
+  }
+} 

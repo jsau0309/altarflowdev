@@ -1,18 +1,20 @@
 "use client"
 
 import { Check } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useOnboarding } from "./onboarding-context"
 import { cn } from "@/lib/utils"
 
-const steps = [
-  { id: 1, name: "Welcome" },
-  { id: 2, name: "Church Details" },
-  { id: 3, name: "Preferences" },
-  { id: 4, name: "Complete" },
-]
-
 export function Stepper() {
+  const { t } = useTranslation()
   const { currentStep, goToStep, isStepComplete } = useOnboarding()
+
+  const steps = [
+    { id: 1, name: t('onboarding.stepper.welcome', "Welcome") },
+    { id: 2, name: t('onboarding.stepper.churchDetails', "Church Details") },
+    { id: 3, name: t('onboarding.stepper.preferences', "Preferences") },
+    { id: 4, name: t('onboarding.stepper.complete', "Complete") },
+  ]
 
   return (
     <div className="px-6 py-4">

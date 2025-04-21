@@ -16,6 +16,7 @@ import { ExpenseCharts } from "./charts/expense-charts"
 import { CampaignCharts } from "./charts/campaign-charts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Donation, Expense, Campaign, Member } from "@/lib/types"
+import { useTranslation } from 'react-i18next'
 
 export function ReportsContent() {
   const [activeTab, setActiveTab] = useState("donations")
@@ -26,31 +27,34 @@ export function ReportsContent() {
   const [exportFormat, setExportFormat] = useState<"pdf" | "csv">("pdf")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
-  // State for data (replace mock data)
+  // State for data
   const [donations, setDonations] = useState<Donation[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [members, setMembers] = useState<Member[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Add these state variables for pagination
+  // Pagination state
   const [donationsPerPage, setDonationsPerPage] = useState(10)
   const [donationsCurrentPage, setDonationsCurrentPage] = useState(1)
-
   const [expensesPerPage, setExpensesPerPage] = useState(10)
   const [expensesCurrentPage, setExpensesCurrentPage] = useState(1)
-
   const [campaignsPerPage, setCampaignsPerPage] = useState(5)
   const [campaignsCurrentPage, setCampaignsCurrentPage] = useState(1)
+  // Load required namespaces
+  const { t, i18n } = useTranslation(['reports', 'common', 'donations', 'expenses', 'campaigns']);
 
-  // TODO: Fetch data from API
+  // Fetch data
   useEffect(() => {
-    // Simulate API call
+    setIsLoading(true)
     setTimeout(() => {
-      setDonations([]); // Replace with actual data fetching
+      // TODO: Replace with actual API calls
+      setDonations([]); 
       setExpenses([]);
       setCampaigns([]);
       setMembers([]);
       console.log("TODO: Fetch report data");
+      setIsLoading(false);
     }, 500);
   }, []);
 
@@ -139,27 +143,39 @@ export function ReportsContent() {
   // Helper function to get donor name
   const getDonorName = (donorId: string) => {
     const donor = members.find((member: Member) => member.id === donorId)
-    return donor ? `${donor.firstName} ${donor.lastName}` : "Unknown"
+    return donor ? `${donor.firstName} ${donor.lastName}` : t('common:unknownDonor', 'Unknown Donor')
   }
 
   // Helper function to get campaign name
   const getCampaignName = (campaignId: string) => {
     const campaign = campaigns.find((campaign: Campaign) => campaign.id === campaignId)
-    return campaign ? campaign.name : "General"
+    // Assuming 'General' is a campaign type in campaigns.json
+    return campaign ? campaign.name : t('campaigns:general', 'General') 
   }
 
-  // Helper function to format currency
+  // Helper function to format currency using i18n locale
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(i18n.language, {
       style: "currency",
-      currency: "USD",
+      currency: "USD", // TODO: Make dynamic
     }).format(amount)
   }
 
-  // Helper function to format date
+  // Helper function to format date using i18n locale
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "MMM d, yyyy")
+    // Use require dynamically for date-fns locales
+    const locale = i18n.language === 'es' ? require('date-fns/locale/es') : require('date-fns/locale/en-US');
+    return format(new Date(dateString), "PPP", { locale })
   }
+
+  // Helper function to format payment method/category
+  const formatDisplayString = (key: string | undefined | null, namespace: 'donations' | 'expenses', prefix: string, fallback: string) => {
+    const formattedKey = key?.toLowerCase().replace(/\s+|-/g, '') || '';
+    if (!formattedKey) return fallback;
+    const translationKey = `${namespace}:${prefix}.${formattedKey}`;
+    const translated = t(translationKey, fallback);
+    return translated === translationKey ? fallback : translated;
+  };
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -175,13 +191,13 @@ export function ReportsContent() {
 
   // Handle export
   const handleExport = () => {
-    // This would be connected to actual export functionality
     console.log(`Exporting ${activeTab} report as ${exportFormat}`)
     console.log(
-      `Date range: ${dateRange.from ? format(dateRange.from, "MMM d, yyyy") : "All"} to ${
-        dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Present"
+      `Date range: ${dateRange.from ? formatDate(dateRange.from.toISOString()) : "All"} to ${
+        dateRange.to ? formatDate(dateRange.to.toISOString()) : "Present"
       }`,
     )
+    // TODO: Implement actual export logic using jsPDF or papaparse
   }
 
   // Generate page numbers to display
@@ -190,54 +206,23 @@ export function ReportsContent() {
     const maxPagesToShow = 5
 
     if (totalPages <= maxPagesToShow) {
-      // Show all pages if there are few
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i)
-      }
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
     } else {
-      // Always show first page
       pages.push(1)
-
-      // Calculate start and end of page range around current page
       let startPage = Math.max(2, currentPage - 1)
       let endPage = Math.min(totalPages - 1, currentPage + 1)
-
-      // Adjust if we're near the start
-      if (currentPage <= 3) {
-        endPage = Math.min(totalPages - 1, 4)
-      }
-
-      // Adjust if we're near the end
-      if (currentPage >= totalPages - 2) {
-        startPage = Math.max(2, totalPages - 3)
-      }
-
-      // Add ellipsis after first page if needed
-      if (startPage > 2) {
-        pages.push(-1) // -1 represents ellipsis
-      }
-
-      // Add middle pages
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i)
-      }
-
-      // Add ellipsis before last page if needed
-      if (endPage < totalPages - 1) {
-        pages.push(-2) // -2 represents ellipsis
-      }
-
-      // Always show last page
-      if (totalPages > 1) {
-        pages.push(totalPages)
-      }
+      if (currentPage <= 3) endPage = Math.min(totalPages - 1, 4)
+      if (currentPage >= totalPages - 2) startPage = Math.max(2, totalPages - 3)
+      if (startPage > 2) pages.push(-1) // Ellipsis start
+      for (let i = startPage; i <= endPage; i++) pages.push(i)
+      if (endPage < totalPages - 1) pages.push(-2) // Ellipsis end
+      if (totalPages > 1) pages.push(totalPages)
     }
-
     return pages
   }
 
-  // Pagination component
-  const TablePagination = ({
+  // Pagination component (Internal, uses parent's t function)
+  const InternalTablePagination = ({
     currentPage,
     totalPages,
     onPageChange,
@@ -252,15 +237,15 @@ export function ReportsContent() {
     onItemsPerPageChange: (value: number) => void
     totalItems: number
   }) => {
-    // Calculate the range of items being displayed
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1
     const endItem = Math.min(currentPage * itemsPerPage, totalItems)
 
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
         <div className="text-sm text-muted-foreground">
-          Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of{" "}
-          <span className="font-medium">{totalItems}</span> items
+           {/* Use common namespace */}
+           {t('common:pagination.showing', 
+              { start: startItem, end: endItem, total: totalItems })}
         </div>
 
         <div className="flex items-center space-x-2">
@@ -270,7 +255,7 @@ export function ReportsContent() {
               size="icon"
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
-              aria-label="First page"
+              aria-label={t('common:pagination.first')} 
             >
               <ChevronsLeft className="h-4 w-4" />
             </Button>
@@ -279,7 +264,7 @@ export function ReportsContent() {
               size="icon"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              aria-label="Previous page"
+              aria-label={t('common:pagination.previous')} 
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -287,14 +272,8 @@ export function ReportsContent() {
             <div className="flex items-center">
               {getPageNumbers(currentPage, totalPages).map((page, index) => {
                 if (page < 0) {
-                  // Render ellipsis
-                  return (
-                    <span key={`ellipsis-${index}`} className="px-2">
-                      ...
-                    </span>
-                  )
+                  return <span key={`ellipsis-${index}`} className="px-2">...</span>
                 }
-
                 return (
                   <Button
                     key={page}
@@ -302,7 +281,7 @@ export function ReportsContent() {
                     size="icon"
                     onClick={() => onPageChange(page)}
                     className="h-8 w-8"
-                    aria-label={`Page ${page}`}
+                    aria-label={t('common:pagination.page', { page })}
                     aria-current={currentPage === page ? "page" : undefined}
                   >
                     {page}
@@ -316,7 +295,7 @@ export function ReportsContent() {
               size="icon"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              aria-label="Next page"
+              aria-label={t('common:pagination.next')} 
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -325,7 +304,7 @@ export function ReportsContent() {
               size="icon"
               onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages}
-              aria-label="Last page"
+              aria-label={t('common:pagination.last')}
             >
               <ChevronsRight className="h-4 w-4" />
             </Button>
@@ -336,11 +315,12 @@ export function ReportsContent() {
               <SelectValue placeholder={itemsPerPage} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="5">5 per page</SelectItem>
-              <SelectItem value="10">10 per page</SelectItem>
-              <SelectItem value="20">20 per page</SelectItem>
-              <SelectItem value="50">50 per page</SelectItem>
-              <SelectItem value="100">100 per page</SelectItem>
+               {/* Use common namespace */}
+              <SelectItem value="5">{t('common:pagination.perPage', { count: 5 })}</SelectItem>
+              <SelectItem value="10">{t('common:pagination.perPage', { count: 10 })}</SelectItem>
+              <SelectItem value="20">{t('common:pagination.perPage', { count: 20 })}</SelectItem>
+              <SelectItem value="50">{t('common:pagination.perPage', { count: 50 })}</SelectItem>
+              <SelectItem value="100">{t('common:pagination.perPage', { count: 100 })}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -352,26 +332,30 @@ export function ReportsContent() {
     <div className="flex flex-col gap-6 p-4 md:p-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground">Generate and view financial reports</p>
+          {/* Use reports namespace */}
+          <h1 className="text-3xl font-bold tracking-tight">{t('reports:title')}</h1>
+          <p className="text-muted-foreground">{t('reports:reportsContent.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="flex gap-2">
                 <Filter className="h-4 w-4" />
-                Filter
+                 {/* Use common namespace */}
+                {t('common:filter')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Date Range</h4>
+                   {/* Use reports namespace */}
+                  <h4 className="font-medium leading-none">{t('reports:timeFrame')}</h4>
                   <div className="flex flex-col gap-2">
                     <div className="grid gap-2">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 opacity-70" />
-                        <span className="text-sm">From</span>
+                        {/* Use reports namespace */}
+                        <span className="text-sm">{t('reports:generateReportModal.customRange.from')}</span>
                       </div>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -383,7 +367,8 @@ export function ReportsContent() {
                               !dateRange.from && "text-muted-foreground",
                             )}
                           >
-                            {dateRange.from ? format(dateRange.from, "PPP") : "Pick a date"}
+                             {/* Use reports namespace */}
+                            {dateRange.from ? formatDate(dateRange.from.toISOString()) : t('reports:generateReportModal.customRange.pickDate')}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -399,7 +384,8 @@ export function ReportsContent() {
                     <div className="grid gap-2">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 opacity-70" />
-                        <span className="text-sm">To</span>
+                         {/* Use reports namespace */}
+                        <span className="text-sm">{t('reports:generateReportModal.customRange.to')}</span>
                       </div>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -411,7 +397,8 @@ export function ReportsContent() {
                               !dateRange.to && "text-muted-foreground",
                             )}
                           >
-                            {dateRange.to ? format(dateRange.to, "PPP") : "Pick a date"}
+                             {/* Use reports namespace */}
+                            {dateRange.to ? formatDate(dateRange.to.toISOString()) : t('reports:generateReportModal.customRange.pickDate')}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -427,7 +414,8 @@ export function ReportsContent() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Export Format</h4>
+                   {/* Use reports namespace */}
+                  <h4 className="font-medium leading-none">{t('reports:reportsContent.exportFormatTitle')}</h4>
                   <div className="flex gap-2">
                     <Button
                       variant={exportFormat === "pdf" ? "default" : "outline"}
@@ -435,7 +423,8 @@ export function ReportsContent() {
                       onClick={() => setExportFormat("pdf")}
                       className="flex-1"
                     >
-                      PDF
+                       {/* Use reports namespace */}
+                      {t('reports:exportPDF')}
                     </Button>
                     <Button
                       variant={exportFormat === "csv" ? "default" : "outline"}
@@ -443,16 +432,19 @@ export function ReportsContent() {
                       onClick={() => setExportFormat("csv")}
                       className="flex-1"
                     >
-                      CSV
+                       {/* Use reports namespace */}
+                      {t('reports:exportCSV')}
                     </Button>
                   </div>
                 </div>
                 <div className="flex justify-between">
                   <Button variant="outline" size="sm" onClick={handleResetFilter}>
-                    Reset
+                     {/* Use common namespace */}
+                    {t('common:reset')}
                   </Button>
                   <Button size="sm" onClick={() => setIsFilterOpen(false)}>
-                    Apply
+                     {/* Use common namespace */}
+                    {t('common:apply')}
                   </Button>
                 </div>
               </div>
@@ -460,69 +452,77 @@ export function ReportsContent() {
           </Popover>
           <Button className="flex gap-2" onClick={handleExport}>
             <Download className="h-4 w-4" />
-            Export
+             {/* Use common namespace */}
+            {t('common:export')}
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="donations" value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="donations">Donation Reports</TabsTrigger>
-          <TabsTrigger value="expenses">Expense Reports</TabsTrigger>
-          <TabsTrigger value="campaigns">Campaign Reports</TabsTrigger>
+           {/* Use reports namespace */}
+          <TabsTrigger value="donations">{t('reports:reportsContent.tabs.donations')}</TabsTrigger>
+          <TabsTrigger value="expenses">{t('reports:reportsContent.tabs.expenses')}</TabsTrigger>
+          <TabsTrigger value="campaigns">{t('reports:reportsContent.tabs.campaigns')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="donations" className="space-y-4 pt-4">
-          {/* Donation Charts - Pass required donations prop */}
           <DonationCharts
             donations={filteredDonations}
             startDate={dateRange.from}
             endDate={dateRange.to}
           />
-
-          {/* Donation Summary Cards */}
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Donations</CardTitle>
+                 {/* Use reports namespace */}
+                <CardTitle className="text-sm font-medium">{t('reports:reportsContent.donations.totalTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(totalDonations)}</div>
-                <p className="text-xs text-muted-foreground">{filteredDonations.length} donations in selected period</p>
+                <p className="text-xs text-muted-foreground">
+                   {/* Use reports namespace */}
+                  {t('reports:reportsContent.donations.totalSubtitle', { count: filteredDonations.length })}
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Average Donation</CardTitle>
+                 {/* Use reports namespace */}
+                <CardTitle className="text-sm font-medium">{t('reports:reportsContent.donations.averageTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {formatCurrency(filteredDonations.length ? totalDonations / filteredDonations.length : 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">Per donation in selected period</p>
+                 {/* Use reports namespace */}
+                <p className="text-xs text-muted-foreground">{t('reports:reportsContent.donations.averageSubtitle')}</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Unique Donors</CardTitle>
+                 {/* Use reports namespace */}
+                <CardTitle className="text-sm font-medium">{t('reports:reportsContent.donations.uniqueDonorsTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{new Set(filteredDonations.map((d: Donation) => d.donorId)).size}</div>
-                <p className="text-xs text-muted-foreground">Contributors in selected period</p>
+                 {/* Use reports namespace */}
+                <p className="text-xs text-muted-foreground">{t('reports:reportsContent.donations.uniqueDonorsSubtitle')}</p>
               </CardContent>
             </Card>
           </div>
-
-          {/* Donation Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Donation Records</CardTitle>
+               {/* Use reports namespace */}
+              <CardTitle>{t('reports:reportsContent.donations.recordsTitle')}</CardTitle>
               <CardDescription>
-                Showing {filteredDonations.length} donations
+                 {/* Use reports and common namespaces */}
+                {t('reports:reportsContent.showingCount', { count: filteredDonations.length })}
                 {dateRange.from || dateRange.to
-                  ? ` from ${dateRange.from ? format(dateRange.from, "MMM d, yyyy") : "all time"} to ${
-                      dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "present"
-                    }`
+                  ? t('reports:reportsContent.dateRangeSuffix', {
+                      start: dateRange.from ? formatDate(dateRange.from.toISOString()) : t('common:allTime'),
+                      end: dateRange.to ? formatDate(dateRange.to.toISOString()) : t('common:present')
+                    })
                   : ""}
               </CardDescription>
             </CardHeader>
@@ -530,32 +530,39 @@ export function ReportsContent() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Donor</TableHead>
-                    <TableHead>Campaign</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                     {/* Use donations namespace */}
+                    <TableHead>{t('donations:date')}</TableHead>
+                    <TableHead>{t('donations:donor')}</TableHead>
+                    <TableHead>{t('donations:campaign')}</TableHead>
+                    <TableHead>{t('donations:method')}</TableHead>
+                    <TableHead className="text-right">{t('donations:amount')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedDonations.map((donation: Donation) => (
-                    <TableRow key={donation.id}>
-                      <TableCell>{formatDate(donation.date)}</TableCell>
-                      <TableCell>{getDonorName(donation.donorId)}</TableCell>
-                      <TableCell>{getCampaignName(donation.campaignId)}</TableCell>
-                      <TableCell>
-                        {donation.paymentMethod
-                          .split("-")
-                          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                          .join(" ")}
-                      </TableCell>
-                      <TableCell className="text-right">{formatCurrency(donation.amount)}</TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredDonations.length === 0 && (
+                  {isLoading ? (
+                     [...Array(donationsPerPage)].map((_, i) => (
+                       <TableRow key={`loading-donation-${i}`}>
+                         <TableCell colSpan={5}><div className="h-8 bg-muted animate-pulse rounded"></div></TableCell>
+                       </TableRow>
+                     ))
+                   ) : paginatedDonations.length > 0 ? (
+                    paginatedDonations.map((donation: Donation) => (
+                      <TableRow key={donation.id}>
+                        <TableCell>{formatDate(donation.date)}</TableCell>
+                        <TableCell>{getDonorName(donation.donorId)}</TableCell>
+                        <TableCell>{getCampaignName(donation.campaignId)}</TableCell>
+                        <TableCell>
+                            {/* Use donations namespace */}
+                           {formatDisplayString(donation.paymentMethod, 'donations', 'methods', donation.paymentMethod)}
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(donation.amount)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                        No donations found for the selected period
+                         {/* Use reports namespace */}
+                        {t('reports:reportsContent.noDataPeriod')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -564,7 +571,7 @@ export function ReportsContent() {
             </CardContent>
             {filteredDonations.length > 0 && (
               <div className="border-t px-4">
-                <TablePagination
+                <InternalTablePagination
                   currentPage={donationsCurrentPage}
                   totalPages={donationsTotalPages}
                   onPageChange={setDonationsCurrentPage}
@@ -578,58 +585,64 @@ export function ReportsContent() {
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4 pt-4">
-          {/* Expense Charts - Pass required expenses prop */}
           <ExpenseCharts
             expenses={filteredExpenses}
             startDate={dateRange.from}
             endDate={dateRange.to}
           />
-
-          {/* Expense Summary Cards */}
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                 {/* Use reports namespace */}
+                <CardTitle className="text-sm font-medium">{t('reports:reportsContent.expenses.totalTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
-                <p className="text-xs text-muted-foreground">{filteredExpenses.length} expenses in selected period</p>
+                <p className="text-xs text-muted-foreground">
+                    {/* Use reports namespace */}
+                   {t('reports:reportsContent.expenses.totalSubtitle', { count: filteredExpenses.length })}
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Average Expense</CardTitle>
+                 {/* Use reports namespace */}
+                <CardTitle className="text-sm font-medium">{t('reports:reportsContent.expenses.averageTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {formatCurrency(filteredExpenses.length ? totalExpenses / filteredExpenses.length : 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">Per expense in selected period</p>
+                 {/* Use reports namespace */}
+                <p className="text-xs text-muted-foreground">{t('reports:reportsContent.expenses.averageSubtitle')}</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Net Income</CardTitle>
+                 {/* Use reports namespace */}
+                <CardTitle className="text-sm font-medium">{t('reports:reportsContent.expenses.netIncomeTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${netIncome >= 0 ? "text-green-600" : "text-red-600"}`}>
                   {formatCurrency(netIncome)}
                 </div>
-                <p className="text-xs text-muted-foreground">Donations minus expenses</p>
+                 {/* Use reports namespace */}
+                <p className="text-xs text-muted-foreground">{t('reports:reportsContent.expenses.netIncomeSubtitle')}</p>
               </CardContent>
             </Card>
           </div>
-
-          {/* Expense Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Expense Records</CardTitle>
+               {/* Use reports namespace */}
+              <CardTitle>{t('reports:reportsContent.expenses.recordsTitle')}</CardTitle>
               <CardDescription>
-                Showing {filteredExpenses.length} expenses
-                {dateRange.from || dateRange.to
-                  ? ` from ${dateRange.from ? format(dateRange.from, "MMM d, yyyy") : "all time"} to ${
-                      dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "present"
-                    }`
+                 {/* Use reports and common namespaces */}
+                {t('reports:reportsContent.showingCountExpenses', { count: filteredExpenses.length })}
+                 {dateRange.from || dateRange.to
+                  ? t('reports:reportsContent.dateRangeSuffix', {
+                      start: dateRange.from ? formatDate(dateRange.from.toISOString()) : t('common:allTime'),
+                      end: dateRange.to ? formatDate(dateRange.to.toISOString()) : t('common:present')
+                    })
                   : ""}
               </CardDescription>
             </CardHeader>
@@ -637,32 +650,37 @@ export function ReportsContent() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                     {/* Use expenses namespace */}
+                    <TableHead>{t('expenses:date')}</TableHead>
+                    <TableHead>{t('expenses:vendor')}</TableHead>
+                    <TableHead>{t('expenses:category')}</TableHead>
+                    <TableHead>{t('expenses:paymentMethod')}</TableHead>
+                    <TableHead className="text-right">{t('expenses:amount')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedExpenses.map((expense: Expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>{formatDate(expense.date)}</TableCell>
-                      <TableCell>{expense.vendor}</TableCell>
-                      <TableCell>{expense.category.charAt(0).toUpperCase() + expense.category.slice(1)}</TableCell>
-                      <TableCell>
-                        {expense.paymentMethod
-                          .split("-")
-                          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                          .join(" ")}
-                      </TableCell>
-                      <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredExpenses.length === 0 && (
+                   {isLoading ? (
+                     [...Array(expensesPerPage)].map((_, i) => (
+                       <TableRow key={`loading-expense-${i}`}>
+                         <TableCell colSpan={5}><div className="h-8 bg-muted animate-pulse rounded"></div></TableCell>
+                       </TableRow>
+                     ))
+                   ) : paginatedExpenses.length > 0 ? (
+                    paginatedExpenses.map((expense: Expense) => (
+                      <TableRow key={expense.id}>
+                        <TableCell>{formatDate(expense.date)}</TableCell>
+                        <TableCell>{expense.vendor}</TableCell>
+                         {/* Use expenses and donations namespaces via helper */}
+                        <TableCell>{formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category)}</TableCell>
+                        <TableCell>{formatDisplayString(expense.paymentMethod, 'donations', 'methods', expense.paymentMethod)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
+                      </TableRow>
+                    ))
+                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                        No expenses found for the selected period
+                         {/* Use reports namespace */}
+                        {t('reports:reportsContent.noDataPeriodExpenses')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -671,7 +689,7 @@ export function ReportsContent() {
             </CardContent>
             {filteredExpenses.length > 0 && (
               <div className="border-t px-4">
-                <TablePagination
+                <InternalTablePagination
                   currentPage={expensesCurrentPage}
                   totalPages={expensesTotalPages}
                   onPageChange={setExpensesCurrentPage}
@@ -685,100 +703,120 @@ export function ReportsContent() {
         </TabsContent>
 
         <TabsContent value="campaigns" className="space-y-4 pt-4">
-          {/* Campaign Charts - Pass required props */}
           <CampaignCharts
             donations={filteredDonations}
             expenses={filteredExpenses}
             startDate={dateRange.from}
             endDate={dateRange.to}
           />
-
-          {/* Campaign Summary Cards */}
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
+                 {/* Use reports namespace */}
+                <CardTitle className="text-sm font-medium">{t('reports:reportsContent.campaigns.activeTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{campaigns.filter((campaign: Campaign) => campaign.isActive).length}</div>
-                <p className="text-xs text-muted-foreground">Currently running campaigns</p>
+                 {/* Use reports namespace */}
+                <p className="text-xs text-muted-foreground">{t('reports:reportsContent.campaigns.activeSubtitle')}</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Raised</CardTitle>
+                 {/* Use reports namespace */}
+                <CardTitle className="text-sm font-medium">{t('reports:reportsContent.campaigns.totalRaisedTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(campaigns.reduce((sum: number, campaign: Campaign) => sum + campaign.raised, 0))}
+                   {/* TODO: Add raised calculation */} 
+                  {formatCurrency(campaigns.reduce((sum: number, campaign: Campaign) => sum + (campaign.raised || 0), 0))}
                 </div>
-                <p className="text-xs text-muted-foreground">Across all campaigns</p>
+                 {/* Use reports namespace */}
+                <p className="text-xs text-muted-foreground">{t('reports:reportsContent.campaigns.totalRaisedSubtitle')}</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Goal Completion</CardTitle>
+                 {/* Use reports namespace */}
+                <CardTitle className="text-sm font-medium">{t('reports:reportsContent.campaigns.goalCompletionTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {Math.round(
-                    (campaigns.filter((c: Campaign) => c.goal > 0).reduce((sum: number, campaign: Campaign) => sum + campaign.raised, 0) /
-                      campaigns.filter((c: Campaign) => c.goal > 0).reduce((sum: number, campaign: Campaign) => sum + campaign.goal, 0)) *
+                    (campaigns.filter((c: Campaign) => c.goal > 0).reduce((sum: number, campaign: Campaign) => sum + (campaign.raised || 0), 0) /
+                      campaigns.filter((c: Campaign) => c.goal > 0).reduce((sum: number, campaign: Campaign) => sum + campaign.goal, 1)) *
                       100,
-                  ) || 0} {/* Added || 0 to prevent NaN if denominator is 0 */}
+                  ) || 0} 
                   %
                 </div>
-                <p className="text-xs text-muted-foreground">Average across campaigns with goals</p>
+                 {/* Use reports namespace */}
+                <p className="text-xs text-muted-foreground">{t('reports:reportsContent.campaigns.goalCompletionSubtitle')}</p>
               </CardContent>
             </Card>
           </div>
-
-          {/* Campaign Progress */}
           <Card>
             <CardHeader>
-              <CardTitle>Campaign Progress</CardTitle>
-              <CardDescription>Current status of active fundraising campaigns</CardDescription>
+               {/* Use reports namespace */}
+              <CardTitle>{t('reports:reportsContent.campaigns.progressTitle')}</CardTitle>
+              <CardDescription>{t('reports:reportsContent.campaigns.progressSubtitle')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {paginatedCampaigns.map((campaign: Campaign) => {
-                  const goal = campaign.goal || 1; // Prevent division by zero
-                  const progress = Math.min(100, Math.round((campaign.raised / goal) * 100))
-                  return (
-                    <div key={campaign.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium">{campaign.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatCurrency(campaign.raised)} of {formatCurrency(campaign.goal)}
+                 {isLoading ? (
+                   [...Array(campaignsPerPage)].map((_, i) => (
+                     <div key={`loading-campaign-${i}`} className="space-y-2">
+                       <div className="h-4 bg-muted animate-pulse rounded w-1/2"></div>
+                       <div className="h-6 bg-muted animate-pulse rounded"></div>
+                       <div className="h-4 bg-muted animate-pulse rounded w-1/4"></div>
+                     </div>
+                   ))
+                 ) : paginatedCampaigns.length > 0 ? (
+                  paginatedCampaigns.map((campaign: Campaign) => {
+                    const goal = campaign.goal || 1;
+                    const raised = campaign.raised || 0; // Use raised property
+                    const progress = Math.min(100, Math.round((raised / goal) * 100))
+                    return (
+                      <div key={campaign.id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">{campaign.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                             {/* Use reports and common namespaces */}
+                            {t('reports:reportsContent.campaigns.goalStatus',
+                              { raised: formatCurrency(raised), goal: formatCurrency(campaign.goal || 0) })}
+                          </div>
+                        </div>
+                        <Progress value={progress} aria-label={t('reports:reportsContent.campaigns.progressAriaLabel', { percent: progress })} />
+                        <div className="text-xs text-muted-foreground">
+                            {/* Use reports and common namespaces */}
+                           {t('reports:reportsContent.campaigns.progressPercent', { percent: progress })} 
+                           {campaign.endDate ? t('reports:reportsContent.campaigns.endDate', { date: formatDate(campaign.endDate) }) : t('common:ongoing')} 
                         </div>
                       </div>
-                      <Progress value={progress} className="h-2" />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <div>{progress}% Complete</div>
-                        <div>{campaign.endDate ? `Ends ${formatDate(campaign.endDate)}` : "No end date"}</div>
-                      </div>
-                    </div>
-                  )
-                })}
-                {activeCampaigns.length === 0 && (
-                  <div className="text-center py-6 text-muted-foreground">No active campaigns with goals found</div>
+                    )
+                  })
+                ) : (
+                   <div className="text-center h-24 flex items-center justify-center text-muted-foreground">
+                      {/* Use reports namespace */}
+                     {t('reports:reportsContent.noActiveCampaigns')}
+                   </div>
                 )}
               </div>
             </CardContent>
-            {activeCampaigns.length > 0 && (
-              <div className="border-t px-4">
-                <TablePagination
-                  currentPage={campaignsCurrentPage}
-                  totalPages={campaignsTotalPages}
-                  onPageChange={setCampaignsCurrentPage}
-                  itemsPerPage={campaignsPerPage}
-                  onItemsPerPageChange={setCampaignsPerPage}
-                  totalItems={activeCampaigns.length}
-                />
-              </div>
-            )}
+             {activeCampaigns.length > 0 && (
+               <div className="border-t px-4">
+                 <InternalTablePagination
+                   currentPage={campaignsCurrentPage}
+                   totalPages={campaignsTotalPages}
+                   onPageChange={setCampaignsCurrentPage}
+                   itemsPerPage={campaignsPerPage}
+                   onItemsPerPageChange={setCampaignsPerPage}
+                   totalItems={activeCampaigns.length}
+                 />
+               </div>
+             )}
           </Card>
         </TabsContent>
+
       </Tabs>
     </div>
   )

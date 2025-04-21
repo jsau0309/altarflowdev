@@ -1,0 +1,14 @@
+{
+  "title": "NFC Donation",
+  "scanInstructions": "Scan the NFC tag to donate",
+  "donationTitle": "Make a Donation",
+  "selectAmount": "Select Amount",
+  "customAmount": "Custom Amount",
+  "donateButton": "Donate Now",
+  "donateToLabel": "Donate to",
+  "recurringOption": "Make this a recurring donation",
+  "thankYou": "Thank You for Your Donation!",
+  "receiptSent": "A receipt has been sent to your email.",
+  "donationFailed": "Donation Failed",
+  "tryAgain": "Please try again or use another payment method."
+} 

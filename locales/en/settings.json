@@ -1,0 +1,122 @@
+{
+  "title": "Settings",
+  "general": "General Settings",
+  "church": "Church Information",
+  "users": "User Management",
+  "notifications": "Notifications",
+  "security": "Security",
+  "integrations": "Integrations",
+  "churchName": "Church Name",
+  "churchAddress": "Church Address",
+  "churchPhone": "Church Phone",
+  "churchEmail": "Church Email",
+  "churchWebsite": "Church Website",
+  "defaultLanguage": "Default Language",
+  "defaultCurrency": "Default Currency",
+  "theme": "Theme",
+  "darkMode": "Dark Mode",
+  
+  "currencies": {
+    "usd": "USD ($)"
+  },
+  
+  "languages": {
+    "english": "English",
+    "spanish": "Spanish"
+  },
+  
+  "settingsContent": {
+    "subtitle": "Manage your account settings and preferences",
+    "tabs": {
+      "churchProfile": "Church Profile",
+      "visitorForm": "Visitor Form"
+    },
+    "general": {
+      "description": "Manage your general application settings",
+      "emailLabel": "Receive email notifications for important events"
+    },
+    "churchProfile": {
+      "description": "Update your church information",
+      "cityLabel": "City",
+      "stateLabel": "State",
+      "zipLabel": "ZIP Code",
+      "aboutLabel": "About",
+      "saveButton": "Save Church Profile"
+    }
+  },
+  
+  "userPermissions": {
+    "title": "Users & Permissions",
+    "subtitle": "Manage user access and roles",
+    "addUserButton": "Add User",
+    "addUserDialog": {
+      "title": "Add New User",
+      "description": "Enter the details of the new user. They will receive an email invitation.",
+      "nameLabel": "Name",
+      "emailLabel": "Email",
+      "roleLabel": "Role",
+      "rolePlaceholder": "Select a role",
+      "addButton": "Add User"
+    },
+    "table": {
+      "headerName": "Name",
+      "headerEmail": "Email",
+      "headerRole": "Role",
+      "headerActions": "Actions"
+    },
+    "mainAdminBadge": "Main Admin",
+    "editUserDialog": {
+      "title": "Edit User",
+      "description": "Update user information and permissions.",
+      "nameLabel": "Name",
+      "emailLabel": "Email",
+      "roleLabel": "Role",
+      "rolePlaceholder": "Select a role",
+      "cannotChangeAdminRole": "The main admin role cannot be changed.",
+      "deleteUserButton": "Delete User",
+      "saveButton": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the user {{name}} and remove their access to the system."
+    },
+    "toast": {
+      "userAdded": "{{name}} has been added as a {{role}}",
+      "userUpdated": "{{name}}'s information has been updated",
+      "cannotDeleteAdmin": "The main admin account cannot be deleted as it holds the license.",
+      "userRemoved": "{{name}} has been removed"
+    }
+  },
+
+  "formSettings": {
+    "title": "Visitor Form Settings",
+    "description": "Configure the visitor information collection form",
+    "formUrlLabel": "Form URL",
+    "formUrlDescription": "Share this link with visitors or use it to generate QR codes",
+    "urlCopied": "Form URL copied to clipboard!",
+    "tabs": {
+      "services": "Service Times",
+      "ministries": "Ministries",
+      "settings": "Settings"
+    },
+    "services": {
+      "title": "Service Times",
+      "description": "Add the service times that visitors can select on the form",
+      "dayPlaceholder": "Day (e.g., Sunday)",
+      "timePlaceholder": "Time (e.g., 10:00 AM)"
+    },
+    "ministries": {
+      "title": "Ministries & Next Steps",
+      "description": "Add the ministries or next steps that visitors can express interest in",
+      "namePlaceholder": "Ministry name"
+    },
+    "settings": {
+      "title": "Form Settings",
+      "description": "Configure general settings for the visitor form",
+      "prayerLabel": "Prayer Requests",
+      "prayerDescription": "Allow visitors to submit prayer requests",
+      "referralLabel": "Referral Tracking",
+      "referralDescription": "Ask visitors how they heard about your church"
+    }
+  }
+} 

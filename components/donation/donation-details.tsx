@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import type { DonationFormData } from "./donation-form"
+import { useTranslation } from 'react-i18next'
 
 interface DonationDetailsProps {
   formData: DonationFormData
@@ -17,6 +18,7 @@ interface DonationDetailsProps {
 
 export default function DonationDetails({ formData, updateFormData, onNext }: DonationDetailsProps) {
   const [amount, setAmount] = useState<string>(formData.amount?.toString() || "")
+  const { t } = useTranslation(['donations', 'campaigns', 'common'])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,9 +27,7 @@ export default function DonationDetails({ formData, updateFormData, onNext }: Do
   }
 
   const handleAmountChange = (value: string) => {
-    // Remove non-numeric characters except decimal point
     const sanitizedValue = value.replace(/[^\d.]/g, "")
-    // Ensure only one decimal point
     const parts = sanitizedValue.split(".")
     const formattedValue = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitizedValue
     setAmount(formattedValue)
@@ -38,7 +38,7 @@ export default function DonationDetails({ formData, updateFormData, onNext }: Do
   }
 
   const handleCampaignChange = (value: string) => {
-    const campaignName = value === "tithe" ? "Tithe" : "General Offering"
+    const campaignName = value === "tithe" ? t('campaigns:campaign.tithe', 'Tithe') : t('campaigns:campaign.general', 'General Offering')
     updateFormData({ campaignId: value, campaignName })
   }
 
@@ -51,8 +51,8 @@ export default function DonationDetails({ formData, updateFormData, onNext }: Do
         className="w-full"
       >
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="one-time">One Time</TabsTrigger>
-          <TabsTrigger value="recurring">Recurring</TabsTrigger>
+          <TabsTrigger value="one-time">{t('donations:donations.types.oneTime', 'One Time')}</TabsTrigger>
+          <TabsTrigger value="recurring">{t('donations:donations.types.recurring', 'Recurring')}</TabsTrigger>
         </TabsList>
         <TabsContent value="one-time" className="pt-4">
           {/* One-time donation options */}
@@ -60,19 +60,19 @@ export default function DonationDetails({ formData, updateFormData, onNext }: Do
         <TabsContent value="recurring" className="pt-4">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="frequency">Frequency</Label>
+              <Label htmlFor="frequency">{t('donations:frequency', 'Frequency')}</Label>
               <Select
                 value={formData.frequency || "monthly"}
                 onValueChange={(value) => updateFormData({ frequency: value as any })}
               >
                 <SelectTrigger id="frequency">
-                  <SelectValue placeholder="Select frequency" />
+                  <SelectValue placeholder={t('common:selectFrequency', 'Select frequency')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
+                  <SelectItem value="weekly">{t('donations:frequencies.weekly', 'Weekly')}</SelectItem>
+                  <SelectItem value="monthly">{t('donations:frequencies.monthly', 'Monthly')}</SelectItem>
+                  <SelectItem value="quarterly">{t('donations:frequencies.quarterly', 'Quarterly')}</SelectItem>
+                  <SelectItem value="annually">{t('donations:frequencies.annually', 'Annually')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -84,16 +84,17 @@ export default function DonationDetails({ formData, updateFormData, onNext }: Do
         <div className="text-2xl font-medium">$</div>
         <input
           type="text"
+          inputMode="decimal"
           value={amount}
           onChange={(e) => handleAmountChange(e.target.value)}
           className="w-full text-center text-4xl font-bold bg-transparent border-none focus:outline-none focus:ring-0"
           placeholder="0"
         />
-        <div className="text-2xl font-medium">USD</div>
+        <div className="text-2xl font-medium">{t('common:currency.usd', 'USD')}</div>
       </div>
 
       <div className="text-sm text-center text-gray-500 dark:text-gray-400">
-        Enter an amount or make a quick selection below
+        {t('donations:donationDetails.amountPrompt', 'Enter an amount or make a quick selection below')}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -112,20 +113,20 @@ export default function DonationDetails({ formData, updateFormData, onNext }: Do
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="campaign">Select a campaign</Label>
+        <Label htmlFor="campaign">{t('donations:donationDetails.selectCampaignLabel', 'Select a campaign')}</Label>
         <Select value={formData.campaignId || "tithe"} onValueChange={handleCampaignChange}>
           <SelectTrigger id="campaign">
-            <SelectValue placeholder="Select a campaign" />
+            <SelectValue placeholder={t('donations:donationDetails.selectCampaignPlaceholder', 'Select a campaign')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="tithe">Tithe</SelectItem>
-            <SelectItem value="general">General Offering</SelectItem>
+            <SelectItem value="tithe">{t('campaigns:campaign.tithe', 'Tithe')}</SelectItem>
+            <SelectItem value="general">{t('campaigns:campaign.general', 'General Offering')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <Button type="submit" className="w-full">
-        Next
+        {t('common:next', 'Next')}
       </Button>
     </form>
   )

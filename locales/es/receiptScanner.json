@@ -1,0 +1,85 @@
+{
+    "scanReceipt": "Escanea el recibo",
+    
+    "processing": {
+      "title": "Procesando el recibo",
+      "extracting": "Extrayendo detalles de los gastos",
+      "wait": "Esto puede tomar unos momentos..."
+    },
+    
+    "mobile": {
+      "centerInFrame": "Centra el recibo en el marco",
+      "ensureLighting": "Asegúrate de tener buena iluminación y que todo el recibo sea visible"
+    },
+    
+    "autoFilled": {
+      "newExpense": "Nuevo gasto",
+      "applied": "Datos del recibo aplicados al formulario",
+      "amountLabel": "Cantidad",
+      "currencySymbol": "$",
+      "autoFilled": "Auto-llenado",
+      "dateLabel": "Fecha",
+      "vendorLabel": "Proveedor/Pago",
+      "categoryLabel": "Categoría",
+      "selectCategory": "Selecciona categoría",
+      "categoryOptions": {
+        "utilities": "Utilidades",
+        "supplies": "Suministros",
+        "maintenance": "Mantenimiento",
+        "salaries": "Salarios",
+        "events": "Eventos",
+        "other": "Otro"
+      },
+      "paymentMethodLabel": "Método de pago",
+      "selectPaymentMethod": "Selecciona método de pago",
+      "paymentMethodOptions": {
+        "cash": "Efectivo",
+        "check": "Cheque",
+        "creditCard": "Tarjeta de crédito",
+        "bankTransfer": "Transferencia bancaria"
+      },
+      "descriptionLabel": "Descripción",
+      "receiptImageLabel": "Imagen del recibo",
+      "scannedOn": "Escaneada el {{date}}",
+      "viewButton": "Ver",
+      "cancelButton": "Cancelar",
+      "saveButton": "Guardar gasto"
+    },
+    
+    "review": {
+      "title": "Revisar datos del recibo",
+      "success": "Recibo procesado exitosamente",
+      "vendor": "Proveedor",
+      "date": "Fecha",
+      "totalAmount": "Cantidad total",
+      "description": "Descripción",
+      "items": "Artículos",
+      "tax": "Impuesto",
+      "total": "Total",
+      "currencySymbol": "$",
+      "cancelButton": "Cancelar",
+      "saveChangesButton": "Guardar cambios",
+      "useDataButton": "Usar estos datos"
+    },
+    
+    "modal": {
+      "title": "Carga de recibo",
+      "scanTab": "Escaneo de recibo",
+      "uploadTab": "Carga de archivo",
+      "scanTitle": "Escanea tu recibo",
+      "scanDescription": "Toma una foto de tu recibo para extraer automáticamente los detalles de los gastos",
+      "startCameraButton": "Iniciar cámara",
+      "uploadTitle": "Carga de recibo",
+      "uploadDescription": "Carga una imagen de tu recibo para extraer automáticamente los detalles de los gastos",
+      "selectFileButton": "Seleccionar archivo"
+    },
+    
+    "expenseModal": {
+      "dragDrop": "Arrastra y suelta o haz clic para subir una imagen de recibo",
+      "vendorPlaceholder": "Ingresa el proveedor o nombre del pago",
+      "cameraPreview": "Vista previa de cámara",
+      "receiptImagePreview": "Vista previa de imagen de recibo",
+      "extractedInfo": "Información extraída",
+      "editButton": "Editar"
+    }
+  } 

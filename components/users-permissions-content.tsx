@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "react-i18next"
 
 type User = {
   id: string
@@ -37,6 +38,7 @@ type User = {
 }
 
 export function UsersPermissionsContent() {
+  const { t } = useTranslation(['settings', 'common'])
   const { showToast } = useToast()
   const [users, setUsers] = useState<User[]>([
     { id: "1", name: "John Doe", email: "john@example.com", role: "admin", isMainAdmin: true },
@@ -60,7 +62,7 @@ export function UsersPermissionsContent() {
     setIsAddDialogOpen(false)
 
     showToast(
-      `${newUser.name} has been added as a ${newUser.role}`,
+      t('settings:userPermissions.toast.userAdded', '{{name}} has been added as a {{role}}', { name: newUser.name, role: newUser.role }),
       "success",
     )
   }
@@ -73,7 +75,7 @@ export function UsersPermissionsContent() {
     setIsEditDialogOpen(false)
 
     showToast(
-      `${editingUser.name}'s information has been updated`,
+      t('settings:userPermissions.toast.userUpdated', "{{name}}\'s information has been updated", { name: editingUser.name }),
       "success",
     )
   }
@@ -83,7 +85,7 @@ export function UsersPermissionsContent() {
 
     if (userToDelete.isMainAdmin) {
       showToast(
-        "The main admin account cannot be deleted as it holds the license.",
+        t('settings:userPermissions.toast.cannotDeleteAdmin', 'The main admin account cannot be deleted as it holds the license.'),
         "error",
       )
       return
@@ -94,7 +96,7 @@ export function UsersPermissionsContent() {
     setIsDeleteDialogOpen(false)
 
     showToast(
-      `${userToDelete.name} has been removed`,
+      t('settings:userPermissions.toast.userRemoved', '{{name}} has been removed', { name: userToDelete.name }),
       "success",
     )
   }
@@ -104,23 +106,23 @@ export function UsersPermissionsContent() {
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle>Users & Permissions</CardTitle>
-            <CardDescription>Manage user access and roles</CardDescription>
+            <CardTitle>{t('settings:userPermissions.title', 'Users & Permissions')}</CardTitle>
+            <CardDescription>{t('settings:userPermissions.subtitle', 'Manage user access and roles')}</CardDescription>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="mt-4 sm:mt-0">Add User</Button>
+              <Button className="mt-4 sm:mt-0">{t('settings:userPermissions.addUserButton', 'Add User')}</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
+                <DialogTitle>{t('settings:userPermissions.addUserDialog.title', 'Add New User')}</DialogTitle>
                 <DialogDescription>
-                  Enter the details of the new user. They will receive an email invitation.
+                  {t('settings:userPermissions.addUserDialog.description', 'Enter the details of the new user. They will receive an email invitation.')}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">{t('settings:userPermissions.addUserDialog.nameLabel', 'Name')}</Label>
                   <Input
                     id="name"
                     value={newUser.name}
@@ -128,7 +130,7 @@ export function UsersPermissionsContent() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('settings:userPermissions.addUserDialog.emailLabel', 'Email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -137,27 +139,25 @@ export function UsersPermissionsContent() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="role">Role</Label>
+                  <Label htmlFor="role">{t('settings:userPermissions.addUserDialog.roleLabel', 'Role')}</Label>
                   <Select
                     value={newUser.role}
                     onValueChange={(value: "admin" | "editor" | "viewer") => setNewUser({ ...newUser, role: value })}
                   >
                     <SelectTrigger id="role">
-                      <SelectValue placeholder="Select a role" />
+                      <SelectValue placeholder={t('settings:userPermissions.addUserDialog.rolePlaceholder', 'Select a role')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
+                      <SelectItem value="admin">{t('common:roles.admin', 'Admin')}</SelectItem>
+                      <SelectItem value="editor">{t('common:roles.editor', 'Editor')}</SelectItem>
+                      <SelectItem value="viewer">{t('common:roles.viewer', 'Viewer')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddUser}>Add User</Button>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>{t('common:cancel', 'Cancel')}</Button>
+                <Button onClick={handleAddUser}>{t('settings:userPermissions.addUserDialog.addButton', 'Add User')}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -167,10 +167,10 @@ export function UsersPermissionsContent() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('settings:userPermissions.table.headerName', 'Name')}</TableHead>
+                  <TableHead>{t('settings:userPermissions.table.headerEmail', 'Email')}</TableHead>
+                  <TableHead>{t('settings:userPermissions.table.headerRole', 'Role')}</TableHead>
+                  <TableHead className="text-right">{t('common:actions', 'Actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -180,7 +180,7 @@ export function UsersPermissionsContent() {
                       {user.name}
                       {user.isMainAdmin && (
                         <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                          Main Admin
+                          {t('settings:userPermissions.mainAdminBadge', 'Main Admin')}
                         </span>
                       )}
                     </TableCell>
@@ -189,7 +189,7 @@ export function UsersPermissionsContent() {
                       <span
                         className={`capitalize ${user.role === "admin" ? "text-blue-600" : user.role === "editor" ? "text-green-600" : "text-gray-600"}`}
                       >
-                        {user.role}
+                        {t(`common:roles.${user.role}`, user.role.charAt(0).toUpperCase() + user.role.slice(1))}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -209,18 +209,18 @@ export function UsersPermissionsContent() {
                               setIsEditDialogOpen(true)
                             }}
                           >
-                            Edit
+                            {t('common:edit', 'Edit')}
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px]">
                           <DialogHeader>
-                            <DialogTitle>Edit User</DialogTitle>
-                            <DialogDescription>Update user information and permissions.</DialogDescription>
+                            <DialogTitle>{t('settings:userPermissions.editUserDialog.title', 'Edit User')}</DialogTitle>
+                            <DialogDescription>{t('settings:userPermissions.editUserDialog.description', 'Update user information and permissions.')}</DialogDescription>
                           </DialogHeader>
                           {editingUser && (
                             <div className="grid gap-4 py-4">
                               <div className="grid gap-2">
-                                <Label htmlFor="edit-name">Name</Label>
+                                <Label htmlFor="edit-name">{t('settings:userPermissions.editUserDialog.nameLabel', 'Name')}</Label>
                                 <Input
                                   id="edit-name"
                                   value={editingUser.name}
@@ -228,7 +228,7 @@ export function UsersPermissionsContent() {
                                 />
                               </div>
                               <div className="grid gap-2">
-                                <Label htmlFor="edit-email">Email</Label>
+                                <Label htmlFor="edit-email">{t('settings:userPermissions.editUserDialog.emailLabel', 'Email')}</Label>
                                 <Input
                                   id="edit-email"
                                   type="email"
@@ -237,7 +237,7 @@ export function UsersPermissionsContent() {
                                 />
                               </div>
                               <div className="grid gap-2">
-                                <Label htmlFor="edit-role">Role</Label>
+                                <Label htmlFor="edit-role">{t('settings:userPermissions.editUserDialog.roleLabel', 'Role')}</Label>
                                 <Select
                                   value={editingUser.role}
                                   onValueChange={(value: "admin" | "editor" | "viewer") =>
@@ -246,17 +246,17 @@ export function UsersPermissionsContent() {
                                   disabled={editingUser.isMainAdmin}
                                 >
                                   <SelectTrigger id="edit-role">
-                                    <SelectValue placeholder="Select a role" />
+                                    <SelectValue placeholder={t('settings:userPermissions.editUserDialog.rolePlaceholder', 'Select a role')} />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="editor">Editor</SelectItem>
-                                    <SelectItem value="viewer">Viewer</SelectItem>
+                                    <SelectItem value="admin">{t('common:roles.admin', 'Admin')}</SelectItem>
+                                    <SelectItem value="editor">{t('common:roles.editor', 'Editor')}</SelectItem>
+                                    <SelectItem value="viewer">{t('common:roles.viewer', 'Viewer')}</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 {editingUser.isMainAdmin && (
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    The main admin role cannot be changed.
+                                    {t('settings:userPermissions.editUserDialog.cannotChangeAdminRole', 'The main admin role cannot be changed.')}
                                   </p>
                                 )}
                               </div>
@@ -272,17 +272,15 @@ export function UsersPermissionsContent() {
                                       setIsDeleteDialogOpen(true)
                                     }}
                                   >
-                                    Delete User
+                                    {t('settings:userPermissions.editUserDialog.deleteUserButton', 'Delete User')}
                                   </Button>
                                 </div>
                               )}
                             </div>
                           )}
                           <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                              Cancel
-                            </Button>
-                            <Button onClick={handleEditUser}>Save Changes</Button>
+                            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>{t('common:cancel', 'Cancel')}</Button>
+                            <Button onClick={handleEditUser}>{t('settings:userPermissions.editUserDialog.saveButton', 'Save Changes')}</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
@@ -298,15 +296,15 @@ export function UsersPermissionsContent() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings:userPermissions.deleteDialog.title', 'Are you sure?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the user {userToDelete?.name} and remove their access to the system.
+              {t('settings:userPermissions.deleteDialog.description', 'This will permanently delete the user {{name}} and remove their access to the system.', { name: userToDelete?.name || t('common.thisUser', 'this user') })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setUserToDelete(null)}>{t('common:cancel', 'Cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700">
-              Delete
+              {t('common:delete', 'Delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

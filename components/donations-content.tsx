@@ -1,6 +1,5 @@
 "use client"
 
-
 import { useState, useEffect } from "react"
 import { Search, Filter, Plus, Target, Users, X, Mail, Phone, DollarSign } from "lucide-react"
 import { format, isAfter, isBefore, parseISO } from "date-fns"
@@ -12,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { NewDonationModal } from "@/components/modals/new-donation-modal"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { CampaignModal } from "@/components/modals/campaign-modal"
-import { AddDonorModal } from "@/components/modals/add-donor-modal"
+import { AddMemberModal } from "@/components/modals/add-donor-modal"
 import { EditDonorModal } from "@/components/modals/edit-donor-modal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -24,6 +23,7 @@ import { DonationDetailsDrawer } from "@/components/donations/donation-details-d
 import { DonorDetailsDrawer } from "@/components/donations/donor-details-drawer"
 import { TablePagination } from "@/components/ui/table-pagination"
 import { Donation, Member, Campaign } from "@/lib/types"
+import { useTranslation } from 'react-i18next'
 
 export function DonationsContent() {
   const [donations] = useState<Donation[]>([])
@@ -55,6 +55,7 @@ export function DonationsContent() {
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
   const [displayedDonations, setDisplayedDonations] = useState<Donation[]>([])
+  const { t } = useTranslation(['donations', 'common', 'expenses', 'campaigns', 'members'])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -168,12 +169,12 @@ export function DonationsContent() {
 
   const getDonorName = (donorId: string) => {
     const donor = members.find((m) => m.id === donorId)
-    return donor ? `${donor.firstName} ${donor.lastName}` : "Unknown Donor"
+    return donor ? `${donor.firstName} ${donor.lastName}` : t('common:unknownDonor', 'Unknown Donor')
   }
 
   const getCampaignName = (campaignId: string) => {
     const campaign = campaigns.find((c) => c.id === campaignId)
-    return campaign ? campaign.name : "Unknown Campaign"
+    return campaign ? campaign.name : t('common:unknownCampaign', 'Unknown Campaign')
   }
 
   const handleNewDonationClick = (donationType: "digital" | "traditional" = "traditional") => {
@@ -189,11 +190,11 @@ export function DonationsContent() {
   const handleEditCampaign = (id: string) => {
     setSelectedCampaignId(id)
     setShowCampaignModal(true)
-    console.log("TODO: Check if members need refresh here?")
   }
 
   const handleCampaignModalClose = () => {
     setShowCampaignModal(false)
+    setSelectedCampaignId(undefined)
     console.log("TODO: Refresh campaigns after modal close")
   }
 
@@ -287,7 +288,7 @@ export function DonationsContent() {
     if (dateRange) {
       badges.push(
         <Badge key="date" variant="secondary" className="mr-1 mb-1">
-          Date: {format(parseISO(dateRange.start), "PP")} - {format(parseISO(dateRange.end), "PP")}
+          {t('donations:date', 'Date')}: {format(parseISO(dateRange.start), "PP")} - {format(parseISO(dateRange.end), "PP")}
           <button onClick={() => setDateRange(null)} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
@@ -297,7 +298,7 @@ export function DonationsContent() {
     if (selectedDonationTypes.length > 0) {
       badges.push(
         <Badge key="dtype" variant="secondary" className="mr-1 mb-1 capitalize">
-          Type: {selectedDonationTypes.join(", ")}
+          {t('donations:type', 'Type')}: {selectedDonationTypes.map(type => t(`common:${type}`, type)).join(", ")}
           <button onClick={() => setSelectedDonationTypes([])} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
@@ -307,7 +308,7 @@ export function DonationsContent() {
     if (selectedCampaigns.length > 0) {
       badges.push(
         <Badge key="camp" variant="secondary" className="mr-1 mb-1">
-          Campaigns: {selectedCampaigns.map(getCampaignName).join(", ")}
+          {t('donations:campaigns', 'Campaigns')}: {selectedCampaigns.map(getCampaignName).join(", ")}
           <button onClick={() => setSelectedCampaigns([])} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
@@ -317,7 +318,7 @@ export function DonationsContent() {
     if (selectedDonationMethods.length > 0) {
       badges.push(
         <Badge key="method" variant="secondary" className="mr-1 mb-1 capitalize">
-          Methods: {selectedDonationMethods.join(", ")}
+          {t('donations:method', 'Methods')}: {selectedDonationMethods.map(method => t(`donations:methods.${method.replace('-','').toLowerCase()}`, method)).join(", ")}
           <button onClick={() => setSelectedDonationMethods([])} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
@@ -327,7 +328,7 @@ export function DonationsContent() {
     if (selectedDonors.length > 0) {
       badges.push(
         <Badge key="donor" variant="secondary" className="mr-1 mb-1">
-          Donors: {selectedDonors.map(getDonorName).join(", ")}
+          {t('donations:donor', 'Donors')}: {selectedDonors.map(getDonorName).join(", ")}
           <button onClick={() => setSelectedDonors([])} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
@@ -338,7 +339,7 @@ export function DonationsContent() {
       <div className="mt-2">
         {badges}
         <Button variant="link" size="sm" onClick={clearFilters} className="text-red-500 hover:text-red-700">
-          Clear All Filters
+          {t('common:clearAllFilters', 'Clear All Filters')}
         </Button>
       </div>
     ) : null
@@ -353,15 +354,15 @@ export function DonationsContent() {
     <TooltipProvider>
       <div className="flex flex-col gap-8 p-4 md:p-8">
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight">Donation Management</h1>
-          <p className="text-muted-foreground">Track and manage your church donations</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('donations:title', 'Donation Management')}</h1>
+          <p className="text-muted-foreground">{t('donations:donationsContent.subtitle', 'Track and manage your church donations')}</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all-donations">All Donations</TabsTrigger>
-            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-            <TabsTrigger value="donors">Donors</TabsTrigger>
+            <TabsTrigger value="all-donations">{t('donations:donationsContent.tabs.allDonations', 'All Donations')}</TabsTrigger>
+            <TabsTrigger value="campaigns">{t('donations:campaigns', 'Campaigns')}</TabsTrigger>
+            <TabsTrigger value="donors">{t('donations:donor', 'Donors')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all-donations">
@@ -370,13 +371,13 @@ export function DonationsContent() {
                 <div>
                   <h3 className="text-xl font-semibold flex items-center gap-2">
                     <DollarSign className="h-5 w-5" />
-                    All Donations
+                    {t('donations:donationsContent.tabs.allDonations', 'All Donations')}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">View, search, and filter all donations</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('donations:donationsContent.allDonations.subtitle', 'View, search, and filter all donations')}</p>
                 </div>
                 <Button onClick={() => handleNewDonationClick()} className="gap-2">
                   <Plus className="h-4 w-4" />
-                  New Donation
+                  {t('donations:newDonation', 'New Donation')}
                 </Button>
               </div>
 
@@ -386,7 +387,7 @@ export function DonationsContent() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder="Search donations (donor, campaign, amount...)"
+                      placeholder={t('donations:donationsContent.allDonations.searchPlaceholder', 'Search donations (donor, campaign, amount...)')}
                       className="w-full rounded-md pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -396,7 +397,7 @@ export function DonationsContent() {
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full sm:w-auto gap-2">
                         <Filter className="h-4 w-4" />
-                        Filter
+                        {t('common:filter', 'Filter')}
                         {getActiveFilterCount() > 0 && (
                           <Badge variant="secondary" className="ml-2 rounded-full px-1.5">
                             {getActiveFilterCount()}
@@ -406,23 +407,23 @@ export function DonationsContent() {
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] p-4" align="end">
                       <div className="space-y-4">
-                        <h4 className="font-medium">Filter Donations</h4>
+                        <h4 className="font-medium">{t('donations:donationsContent.filter.title', 'Filter Donations')}</h4>
 
                         <div className="space-y-1">
-                          <Label>Date Range</Label>
-                          <Input type="text" placeholder="Start Date" />
-                          <Input type="text" placeholder="End Date" />
+                          <Label>{t('donations:dateRange', 'Date Range')}</Label>
+                          <Input type="text" placeholder={t('donations:startDate', 'Start Date')} />
+                          <Input type="text" placeholder={t('donations:endDate', 'End Date')} />
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Donation Type</Label>
+                          <Label>{t('donations:type', 'Donation Type')}</Label>
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="traditional"
                               checked={selectedDonationTypes.includes("traditional")}
                               onCheckedChange={() => handleDonationTypeFilterChange("traditional")}
                             />
-                            <Label htmlFor="traditional">Traditional</Label>
+                            <Label htmlFor="traditional">{t('common:traditional', 'Traditional')}</Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -430,12 +431,12 @@ export function DonationsContent() {
                               checked={selectedDonationTypes.includes("digital")}
                               onCheckedChange={() => handleDonationTypeFilterChange("digital")}
                             />
-                            <Label htmlFor="digital">Digital</Label>
+                            <Label htmlFor="digital">{t('common:digital', 'Digital')}</Label>
                           </div>
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Campaign</Label>
+                          <Label>{t('donations:campaign', 'Campaign')}</Label>
                           <ScrollArea className="h-[150px]">
                             {campaigns.map((campaign) => (
                               <div key={campaign.id} className="flex items-center space-x-2 p-1">
@@ -451,13 +452,13 @@ export function DonationsContent() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Payment Method</Label>
+                          <Label>{t('donations:method', 'Payment Method')}</Label>
                           <ScrollArea className="h-[100px]">
                             {[
-                              { value: "cash", label: "Cash" },
-                              { value: "check", label: "Check" },
-                              { value: "credit-card", label: "Credit Card" },
-                              { value: "bank-transfer", label: "Bank Transfer" },
+                              { value: "cash", label: t('donations:methods.cash', 'Cash') },
+                              { value: "check", label: t('donations:methods.check', 'Check') },
+                              { value: "credit-card", label: t('donations:methods.card', 'Credit Card') },
+                              { value: "bank-transfer", label: t('donations:methods.bankTransfer', 'Bank Transfer') },
                             ].map((method) => (
                               <div key={method.value} className="flex items-center space-x-2 p-1">
                                 <Checkbox
@@ -472,7 +473,7 @@ export function DonationsContent() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Donor</Label>
+                          <Label>{t('donations:donor', 'Donor')}</Label>
                           <ScrollArea className="h-[150px]">
                             {members.map((member) => (
                               <div key={member.id} className="flex items-center space-x-2 p-1">
@@ -506,12 +507,12 @@ export function DonationsContent() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Donor</TableHead>
-                          <TableHead>Campaign</TableHead>
-                          <TableHead>Method</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead>{t('donations:date', 'Date')}</TableHead>
+                          <TableHead>{t('donations:donor', 'Donor')}</TableHead>
+                          <TableHead>{t('donations:campaign', 'Campaign')}</TableHead>
+                          <TableHead>{t('donations:method', 'Method')}</TableHead>
+                          <TableHead>{t('donations:type', 'Type')}</TableHead>
+                          <TableHead className="text-right">{t('donations:amount', 'Amount')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -527,7 +528,7 @@ export function DonationsContent() {
                             <TableCell className="capitalize">{donation.paymentMethod.replace("-", " ")}</TableCell>
                             <TableCell>
                               <Badge variant={donation.isDigital ? "secondary" : "outline"}>
-                                {donation.isDigital ? "Digital" : "Traditional"}
+                                {donation.isDigital ? t('common:digital', 'Digital') : t('common:traditional', 'Traditional')}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right font-medium">
@@ -554,13 +555,13 @@ export function DonationsContent() {
                 ) : (
                   <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
                     <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-                      <h3 className="mt-4 text-lg font-semibold">No donations found</h3>
+                      <h3 className="mt-4 text-lg font-semibold">{t('donations:donationsContent.empty.title', 'No donations found')}</h3>
                       <p className="mb-4 mt-2 text-sm text-muted-foreground">
                         {searchTerm || getActiveFilterCount() > 0
-                          ? "Try adjusting your search or filters."
-                          : "Add your first donation to get started."}
+                          ? t('donations:donationsContent.empty.adjustFilters', 'Try adjusting your search or filters.')
+                          : t('donations:donationsContent.empty.addFirst', 'Add your first donation to get started.')}
                       </p>
-                      <Button onClick={() => handleNewDonationClick()}>Add New Donation</Button>
+                      <Button onClick={() => handleNewDonationClick()}>{t('donations:newDonation', 'Add New Donation')}</Button>
                     </div>
                   </div>
                 )}
@@ -574,13 +575,13 @@ export function DonationsContent() {
                 <div>
                   <h3 className="text-xl font-semibold flex items-center gap-2">
                     <Target className="h-5 w-5" />
-                    Campaigns
+                    {t('donations:campaigns', 'Campaigns')}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">Manage your donation campaigns</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('campaigns:campaignsContent.subtitle', 'Manage your donation campaigns')}</p>
                 </div>
                 <Button onClick={() => setShowCampaignModal(true)} className="gap-2">
                   <Plus className="h-4 w-4" />
-                  New Campaign
+                  {t('campaigns:newCampaign', 'New Campaign')}
                 </Button>
               </div>
               <div className="p-4">
@@ -589,7 +590,7 @@ export function DonationsContent() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder="Search campaigns..."
+                      placeholder={t('campaigns:campaignsContent.searchPlaceholder', 'Search campaigns...')}
                       className="w-full rounded-md pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -597,12 +598,12 @@ export function DonationsContent() {
                   </div>
                   <Select value={campaignFilter} onValueChange={(value) => setCampaignFilter(value as any)}>
                     <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Filter by status" />
+                      <SelectValue placeholder={t('campaigns:campaignsContent.filterPlaceholder', 'Filter by status')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Campaigns</SelectItem>
-                      <SelectItem value="active">Active Campaigns</SelectItem>
-                      <SelectItem value="inactive">Inactive Campaigns</SelectItem>
+                      <SelectItem value="all">{t('campaigns:campaignsContent.filter.all', 'All Campaigns')}</SelectItem>
+                      <SelectItem value="active">{t('campaigns:statuses.active', 'Active Campaigns')}</SelectItem>
+                      <SelectItem value="inactive">{t('campaigns:campaignsContent.filter.inactive', 'Inactive Campaigns')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -617,13 +618,13 @@ export function DonationsContent() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Goal</TableHead>
-                        <TableHead>Raised</TableHead>
-                        <TableHead>Start Date</TableHead>
-                        <TableHead>End Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>{t('campaigns:name', 'Name')}</TableHead>
+                        <TableHead>{t('common:goal', 'Goal')}</TableHead>
+                        <TableHead>{t('common:raised', 'Raised')}</TableHead>
+                        <TableHead>{t('campaigns:startDate', 'Start Date')}</TableHead>
+                        <TableHead>{t('campaigns:endDate', 'End Date')}</TableHead>
+                        <TableHead>{t('campaigns:status', 'Status')}</TableHead>
+                        <TableHead className="text-right">{t('common:actions', 'Actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -633,15 +634,15 @@ export function DonationsContent() {
                           <TableCell>${campaign.goal.toLocaleString()}</TableCell>
                           <TableCell>${campaign.raised.toLocaleString()}</TableCell>
                           <TableCell>{format(parseISO(campaign.startDate), "PP")}</TableCell>
-                          <TableCell>{campaign.endDate ? format(parseISO(campaign.endDate), "PP") : "Ongoing"}</TableCell>
+                          <TableCell>{campaign.endDate ? format(parseISO(campaign.endDate), "PP") : t('common:ongoing', 'Ongoing')}</TableCell>
                           <TableCell>
                             <Badge variant={campaign.isActive ? "default" : "secondary"}>
-                              {campaign.isActive ? "Active" : "Inactive"}
+                              {campaign.isActive ? t('campaigns:statuses.active', 'Active') : t('campaigns:statuses.inactive', 'Inactive')} 
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="sm" onClick={() => handleEditCampaign(campaign.id)}>
-                              Edit
+                              {t('common:edit', 'Edit')}
                             </Button>
                             <Button
                               variant="ghost"
@@ -649,7 +650,7 @@ export function DonationsContent() {
                               onClick={() => handleToggleCampaignStatus(campaign.id, campaign.isActive)}
                               className="ml-2"
                             >
-                              {campaign.isActive ? "Deactivate" : "Activate"}
+                              {campaign.isActive ? t('common:deactivate', 'Deactivate') : t('common:activate', 'Activate')}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -659,13 +660,13 @@ export function DonationsContent() {
                 ) : (
                   <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
                     <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-                      <h3 className="mt-4 text-lg font-semibold">No campaigns found</h3>
+                      <h3 className="mt-4 text-lg font-semibold">{t('campaigns:campaignsContent.empty.title', 'No campaigns found')}</h3>
                       <p className="mb-4 mt-2 text-sm text-muted-foreground">
                         {searchTerm || campaignFilter !== "all"
-                          ? "Try adjusting your search or filters."
-                          : "Add your first campaign to get started."}
+                          ? t('campaigns:campaignsContent.empty.adjustFilters', 'Try adjusting your search or filters.')
+                          : t('campaigns:campaignsContent.empty.addFirst', 'Add your first campaign to get started.')}
                       </p>
-                      <Button onClick={() => setShowCampaignModal(true)}>Add New Campaign</Button>
+                      <Button onClick={() => setShowCampaignModal(true)}>{t('campaigns:newCampaign', 'Add New Campaign')}</Button>
                     </div>
                   </div>
                 )}
@@ -679,13 +680,13 @@ export function DonationsContent() {
                 <div>
                   <h3 className="text-xl font-semibold flex items-center gap-2">
                     <Users className="h-5 w-5" />
-                    Donors
+                    {t('donations:donor', 'Donors')}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">Manage your donors</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('donations:donorsContent.subtitle', 'Manage your donors')}</p>
                 </div>
                 <Button onClick={handleAddDonorClick} className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Add Donor
+                  {t('donations:donorsContent.addDonorButton', 'Add Donor')}
                 </Button>
               </div>
               <div className="p-4">
@@ -693,7 +694,7 @@ export function DonationsContent() {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search donors (name, email, phone)..."
+                    placeholder={t('donations:donorsContent.searchPlaceholder', 'Search donors (name, email, phone)...')}
                     className="w-full rounded-md pl-8"
                     value={donorSearchTerm}
                     onChange={(e) => setDonorSearchTerm(e.target.value)}
@@ -710,11 +711,11 @@ export function DonationsContent() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Joined</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>{t('members:firstName', 'Name')}</TableHead>
+                        <TableHead>{t('members:email', 'Email')}</TableHead>
+                        <TableHead>{t('members:phone', 'Phone')}</TableHead>
+                        <TableHead>{t('common:joined', 'Joined')}</TableHead>
+                        <TableHead className="text-right">{t('common:actions', 'Actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -753,18 +754,14 @@ export function DonationsContent() {
                               "-"
                             )}
                           </TableCell>
-                          <TableCell>{format(parseISO(member.joinDate), "PP")}</TableCell>
+                          <TableCell>{member.joinDate ? format(parseISO(member.joinDate), "PP") : "-"}</TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedDonorId(member.id)
-                                setShowEditDonorModal(true)
-                              }}
-                            >
-                              Edit
+                            <Button variant="ghost" size="sm" onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDonorId(member.id);
+                              setShowEditDonorModal(true);
+                            }}>
+                              {t('common:edit', 'Edit')}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -774,13 +771,13 @@ export function DonationsContent() {
                 ) : (
                   <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
                     <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-                      <h3 className="mt-4 text-lg font-semibold">No donors found</h3>
+                      <h3 className="mt-4 text-lg font-semibold">{t('donations:donorsContent.empty.title', 'No donors found')}</h3>
                       <p className="mb-4 mt-2 text-sm text-muted-foreground">
                         {donorSearchTerm
-                          ? "Try adjusting your search terms."
-                          : "Add your first donor to get started."}
+                          ? t('donations:donorsContent.empty.adjustFilters', 'Try adjusting your search.')
+                          : t('donations:donorsContent.empty.addFirst', 'Add your first donor to get started.')}
                       </p>
-                      <Button onClick={handleAddDonorClick}>Add Donor</Button>
+                      <Button onClick={handleAddDonorClick}>{t('donations:donorsContent.addDonorButton', 'Add Donor')}</Button>
                     </div>
                   </div>
                 )}
@@ -795,19 +792,28 @@ export function DonationsContent() {
           onClose={handleCampaignModalClose}
           campaignId={selectedCampaignId}
         />
-        <AddDonorModal isOpen={showDonorModal} onClose={handleDonorModalClose} />
-        <EditDonorModal isOpen={showEditDonorModal} onClose={handleEditDonorModalClose} donorId={selectedDonorId} />
-
-        <DonationDetailsDrawer
-          donationId={selectedDonationId}
-          isOpen={showDonationDetails}
-          onClose={() => setShowDonationDetails(false)}
-        />
-        <DonorDetailsDrawer
-          donorId={selectedDonorIdForDetails}
-          isOpen={showDonorDetails}
-          onClose={() => setShowDonorDetails(false)}
-        />
+        <AddMemberModal isOpen={showDonorModal} onClose={handleDonorModalClose} />
+        {selectedDonorId && (
+          <EditDonorModal
+            isOpen={showEditDonorModal}
+            onClose={handleEditDonorModalClose}
+            donorId={selectedDonorId}
+          />
+        )}
+        {selectedDonationId && (
+          <DonationDetailsDrawer
+            isOpen={showDonationDetails}
+            onClose={() => setShowDonationDetails(false)}
+            donationId={selectedDonationId}
+          />
+        )}
+        {selectedDonorIdForDetails && (
+          <DonorDetailsDrawer
+            isOpen={showDonorDetails}
+            onClose={() => setShowDonorDetails(false)}
+            donorId={selectedDonorIdForDetails}
+          />
+        )}
       </div>
     </TooltipProvider>
   )

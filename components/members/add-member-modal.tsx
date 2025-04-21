@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Loader2, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -29,88 +29,49 @@ interface AddMemberModalProps {
 }
 
 export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
     address: "",
     city: "",
     state: "",
     zipCode: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
     membershipStatus: "new" as "active" | "visitor" | "inactive" | "new",
     language: "spanish" as "english" | "spanish" | "both",
     smsConsent: false,
     notes: "",
-  })
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target
-    setFormData((prev) => ({ ...prev, [id]: value }))
-  }
-
-  const handleSelectChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const handleCheckboxChange = (field: string, checked: boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: checked }))
-  }
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+    e.preventDefault();
+    console.log("Simplified Submit:", formData);
+    onClose(); // Just close the modal
+  };
 
-    // Validate form
-    if (!formData.firstName || !formData.lastName) {
-      alert("First name and last name are required")
-      setIsSubmitting(false)
-      return
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
 
-    // Add the new member to our mock data service
-    const newMember = {
-      ...formData,
-      joinDate: new Date().toISOString().split("T")[0],
-      phoneVerified: false,
-      welcomeMessageSent: formData.smsConsent && formData.phone ? true : false,
-      welcomeMessageDate: formData.smsConsent && formData.phone ? new Date().toISOString() : undefined,
-      welcomeMessageStatus: (formData.smsConsent && formData.phone ? "delivered" : undefined) as 'delivered' | undefined,
-      notes: formData.notes ? [formData.notes] : [],
-    }
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
-    // Simulate API call
-    setTimeout(() => {
-      // Use mockDataService.createMember
-      const addedMember = mockDataService.createMember(newMember)
-
-      setIsSubmitting(false)
-      resetForm()
-
-      if (onSuccess) {
-        onSuccess()
-      }
-
-      onClose()
-    }, 1000)
-  }
+  const handleCheckboxChange = (field: string, checked: boolean) => {
+    setFormData((prev) => ({ ...prev, [field]: checked }));
+  };
 
   const resetForm = () => {
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      address: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      membershipStatus: "new",
-      language: "spanish",
-      smsConsent: false,
-      notes: "",
-    })
+      setFormData({ 
+          address: "", city: "", state: "", zipCode: "", 
+          firstName: "", lastName: "", email: "", phone: "",
+          membershipStatus: "new", language: "spanish",
+          smsConsent: false,
+          notes: ""
+      });
   }
 
   return (
@@ -118,8 +79,8 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
       open={open}
       onOpenChange={(open) => {
         if (!open) {
-          resetForm()
-          onClose()
+          resetForm();
+          onClose();
         }
       }}
     >
@@ -133,7 +94,6 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
 
         <div className="overflow-y-auto pr-1">
           <form id="add-member-form" onSubmit={handleSubmit} className="space-y-4 py-4">
-            {/* Basic Information */}
             <div className="space-y-1">
               <h3 className="text-sm font-medium text-muted-foreground">Basic Information</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -147,7 +107,6 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
                     required
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last Name *</Label>
                   <Input
@@ -161,7 +120,6 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
               </div>
             </div>
 
-            {/* Contact Information */}
             <div className="space-y-1">
               <h3 className="text-sm font-medium text-muted-foreground">Contact Information</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -175,7 +133,6 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
                     placeholder="(555) 123-4567"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <Input
@@ -189,25 +146,26 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
               </div>
             </div>
 
-            {/* Address */}
             <div className="space-y-1">
               <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
               <div className="space-y-2">
                 <Label htmlFor="address">Street Address</Label>
-                <Input id="address" value={formData.address} onChange={handleChange} placeholder="123 Main St" />
+                <Input 
+                  id="address" 
+                  value={formData.address} 
+                  onChange={handleChange} 
+                  placeholder="123 Main St" 
+                />
               </div>
-
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
                   <Input id="city" value={formData.city} onChange={handleChange} placeholder="City" />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="state">State</Label>
                   <Input id="state" value={formData.state} onChange={handleChange} placeholder="State" />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="zipCode">Zip Code</Label>
                   <Input id="zipCode" value={formData.zipCode} onChange={handleChange} placeholder="12345" />
@@ -215,7 +173,6 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
               </div>
             </div>
 
-            {/* Member Details */}
             <div className="space-y-1">
               <h3 className="text-sm font-medium text-muted-foreground">Member Details</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -236,7 +193,6 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="language">Preferred Language</Label>
                   <Select value={formData.language} onValueChange={(value) => handleSelectChange("language", value)}>
@@ -253,7 +209,6 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
               </div>
             </div>
 
-            {/* SMS Consent */}
             <div className="space-y-2 border rounded-md p-4 bg-muted/10">
               <div className="flex items-start space-x-2">
                 <div className="pt-0.5">
@@ -286,7 +241,6 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
               </div>
             </div>
 
-            {/* Notes */}
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
@@ -321,5 +275,5 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

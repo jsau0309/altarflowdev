@@ -14,6 +14,7 @@ import { MemberDetailsDrawer } from "./member-details-drawer"
 import { AddMemberButton } from "./add-member-button"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useTranslation } from "react-i18next"
 
 // Add a new prop to control whether to show the Add Member button
 interface EnhancedMemberDirectoryProps {
@@ -26,6 +27,7 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [showMemberDetails, setShowMemberDetails] = useState(false)
+  const { t } = useTranslation(['members', 'common'])
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -154,6 +156,12 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
     return pages
   }
 
+  // Helper to get status text for badges
+  const getStatusText = (status: string | undefined) => {
+    if (!status) return t('common:unknown');
+    return t(`members:statuses.${status}`, status.charAt(0).toUpperCase() + status.slice(1));
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -161,7 +169,7 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search members..."
+            placeholder={t('common:searchPlaceholderMembers', 'Search members...')}
             className="w-full rounded-md pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -170,7 +178,7 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="gap-2">
             <Filter className="h-4 w-4" />
-            Filter
+            {t('common:filter', 'Filter')}
           </Button>
           {showAddButton && <AddMemberButton onMemberAdded={handleAddMemberSuccess} />}
         </div>
@@ -178,19 +186,19 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
 
       {isLoading ? (
         <div className="space-y-3">
-          <div className="h-10 bg-muted animate-pulse rounded-md"></div>
-          <div className="h-10 bg-muted animate-pulse rounded-md"></div>
-          <div className="h-10 bg-muted animate-pulse rounded-md"></div>
+          {[...Array(itemsPerPage)].map((_, i) => (
+            <div key={i} className="h-12 bg-muted animate-pulse rounded-md"></div>
+          ))}
         </div>
       ) : filteredMembers.length > 0 ? (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Join Date</TableHead>
+                <TableHead>{t('members:name', 'Name')}</TableHead>
+                <TableHead>{t('members:contact', 'Contact')}</TableHead>
+                <TableHead>{t('members:status')}</TableHead>
+                <TableHead>{t('members:joinDate')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -209,11 +217,11 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1 text-sm">
                         <Phone className="h-3 w-3 text-muted-foreground" />
-                        <span>{member.phone || "No phone"}</span>
+                        <span>{member.phone || t('common:noPhoneNumber', "No phone")}</span>
                       </div>
                       <div className="flex items-center gap-1 text-sm">
                         <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span>{member.email || "No email"}</span>
+                        <span>{member.email || t('common:noEmailAddress', "No email")}</span>
                       </div>
                     </div>
                   </TableCell>
@@ -234,10 +242,10 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
                             : ""
                       }
                     >
-                      {member.membershipStatus ? member.membershipStatus.charAt(0).toUpperCase() + member.membershipStatus.slice(1) : 'Unknown'}
+                      {getStatusText(member.membershipStatus)}
                     </Badge>
                   </TableCell>
-                  <TableCell>{format(new Date(member.joinDate), "MMM d, yyyy")}</TableCell>
+                  <TableCell>{format(new Date(member.joinDate), "PP")}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -246,9 +254,9 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
       ) : (
         <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
           <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-            <h3 className="mt-4 text-lg font-semibold">No members found</h3>
+            <h3 className="mt-4 text-lg font-semibold">{t('members:empty.title', 'No members found')}</h3>
             <p className="mb-4 mt-2 text-sm text-muted-foreground">
-              {searchTerm ? "Try adjusting your search terms." : "Add your first member to get started."}
+              {searchTerm ? t('members:empty.adjustSearch', "Try adjusting your search terms.") : t('members:empty.addFirst', "Add your first member to get started.")}
             </p>
             <AddMemberButton onMemberAdded={handleAddMemberSuccess} />
           </div>

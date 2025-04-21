@@ -1,0 +1,79 @@
+{
+    "title": "Campañas",
+    "newCampaign": "Nueva Campaña",
+    "activeCampaigns": "Campañas Activas",
+    "pastCampaigns": "Campañas Pasadas",
+    "name": "Nombre",
+    "description": "Descripción",
+    "goalAmount": "Cantidad Objetivo",
+    "currentAmount": "Cantidad Actual",
+    "startDate": "Fecha de Inicio",
+    "endDate": "Fecha de Fin",
+    "status": "Estado",
+    "progress": "Progreso",
+    "donors": "Donantes",
+    "donationCount": "Cantidad de Donaciones",
+    
+    "campaign": {
+      "tithe": "Diezmo",
+      "general": "Ofrenda General"
+    },
+    
+    "statuses": {
+      "planned": "Planificado",
+      "active": "Activo",
+      "completed": "Completado",
+      "cancelled": "Cancelado",
+      "inactive": "Inactivo"
+    },
+    
+    "campaignsContent": {
+      "subtitle": "Administra tus campañas de donaciones",
+      "searchPlaceholder": "Buscar campañas...",
+      "filterPlaceholder": "Filtrar por estado",
+      "filter": {
+        "all": "Todas las Campañas",
+        "inactive": "Campañas Inactivas"
+      },
+      "empty": {
+        "title": "No se encontraron campañas",
+        "adjustFilters": "Intenta ajustar tu búsqueda o filtros.",
+        "addFirst": "Agrega tu primera campaña para comenzar."
+      }
+    },
+    
+    "campaignModal": {
+      "editTitle": "Editar Tipo de Donación",
+      "newTitle": "Configurar Tipo de Donación",
+      "editDescription": "Actualiza tus ajustes de tipo de donación.",
+      "newDescription": "Configura tus ajustes de tipo de donación.",
+      "donationTypeLabel": "Tipo de Donación",
+      "donationTypePlaceholder": "Selecciona el tipo de donación",
+      "tithe": "Diezmo",
+      "generalOffering": "Ofrenda General",
+      "titheDescription": "Recolecta tithe regular para las operaciones de la iglesia.",
+      "generalOfferingDescription": "Ofrenda regular para las operaciones y ministerios de la iglesia.",
+      "allowRecurringLabel": "Permitir Donaciones Recurrentes",
+      "recurringFrequencyLabel": "Frecuencia Recurrente",
+      "recurringFrequencyDescription": "Selecciona todas las opciones de frecuencia que los donantes pueden elegir",
+      "frequencyOptions": {
+        "weekly": "Semanal",
+        "monthly": "Mensual",
+        "quarterly": "Trimestral",
+        "annually": "Anual"
+      },
+      "maxAmountLabel": "Cantidad Máxima",
+      "setLimitLabel": "Establecer Límite",
+      "currencySymbol": "$",
+      "maxAmountPlaceholder": "0.00",
+      "unlimited": "Ilimitado",
+      "cancelButton": "Cancelar",
+      "saving": "Guardando...",
+      "updating": "Actualizando...",
+      "saveButton": "Guardar Ajustes",
+      "updateButton": "Actualizar Ajustes",
+      "errors": {
+        "selectFrequency": "Por favor, selecciona al menos una opción de frecuencia recurrente"
+      }
+    }
+  } 

@@ -1,0 +1,88 @@
+{
+  "title": "Expenses",
+  "newExpense": "New Expense",
+  "expenseHistory": "Expense History",
+  "categories": "Categories",
+  "amount": "Amount",
+  "vendor": "Vendor",
+  "date": "Date",
+  "category": "Category",
+  "status": "Status",
+  "paymentMethod": "Payment Method",
+  "description": "Description",
+  "receipt": "Receipt",
+  "uploadReceipt": "Upload Receipt",
+  "approver": "Approver",
+  "approvalDate": "Approval Date",
+  "pendingApproval": "Pending Approval",
+  "approved": "Approved",
+  "rejected": "Rejected",
+  
+  "paymentMethods": {
+    "cash": "Cash",
+    "check": "Check",
+    "card": "Credit/Debit Card",
+    "bankTransfer": "Bank Transfer"
+  },
+  
+  "statuses": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "paid": "Paid"
+  },
+  
+  "expensesContent": {
+    "subtitle": "Track and manage your church expenses",
+    "recordsTitle": "Expense Records",
+    "recordsSubtitle": "View, add, and manage your church expenses",
+    "searchPlaceholder": "Search expenses...",
+    "empty": {
+      "title": "No expenses found",
+      "adjustSearch": "Try adjusting your search terms.",
+      "addFirst": "Add your first expense to get started."
+    }
+  },
+  
+  "newExpenseModal": {
+    "editTitle": "Edit Expense",
+    "newTitle": "New Expense",
+    "description": "Add a new expense to the system.",
+    "amountLabel": "Amount",
+    "currencySymbol": "$",
+    "amountPlaceholder": "0.00",
+    "dateLabel": "Date",
+    "vendorLabel": "Vendor/Payee",
+    "vendorPlaceholder": "Enter vendor or payee name",
+    "categoryLabel": "Category",
+    "categoryPlaceholder": "Select category",
+    "categoryOptions": {
+      "utilities": "Utilities",
+      "supplies": "Supplies",
+      "maintenance": "Maintenance",
+      "salaries": "Salaries",
+      "events": "Events",
+      "other": "Other"
+    },
+    "paymentMethodLabel": "Payment Method",
+    "paymentMethodPlaceholder": "Select payment method",
+    "paymentMethodOptions": {
+      "cash": "Cash",
+      "check": "Check",
+      "creditCard": "Credit Card",
+      "bankTransfer": "Bank Transfer"
+    },
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Describe the expense",
+    "receiptLabel": "Receipt (Optional)",
+    "removeReceiptButton": "Remove",
+    "replaceReceiptButton": "Replace",
+    "addReceiptInfo": "Add a receipt to automatically extract expense details",
+    "addReceiptButton": "Add Receipt",
+    "cancelButton": "Cancel",
+    "saving": "Saving...",
+    "updating": "Updating...",
+    "saveButton": "Save Expense",
+    "updateButton": "Update Expense"
+  }
+} 

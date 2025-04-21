@@ -1,0 +1,47 @@
+{
+    "toggleMenu": " Cambiar menú",
+    "toggleTheme": "Cambiar tema",
+    "lightMode": "Modo Claro",
+    "darkMode": "Modo Oscuro",
+    "switchLanguage": "Cambiar a español",
+    "profile": "Perfil",
+    "settings": "Configuraciones",
+    "help": "Ayuda",
+    "logout": "Cerrar sesión",
+    "churchAddressPlaceholder": "Dirección de la iglesia",
+    
+    "sidebar": {
+      "dashboard": "Tablero",
+      "donations": "Donaciones",
+      "donationHistory": "Historial de donaciones",
+      "createDonation": "Registrar donación",
+      "campaigns": "Campañas",
+      "expenses": "Gastos",
+      "expenseHistory": "Historial de gastos",
+      "createExpense": "Registrar gasto",
+      "expenseCategories": "Categorías",
+      "members": "Miembros",
+      "memberDirectory": "Directorio de miembros",
+      "newMember": "Nuevo miembro",
+      "reports": "Reportes",
+      "financialReports": "Reportes financieros",
+      "membershipReports": "Reportes de membresía",
+      "settings": "Configuraciones",
+      "banking": "Bancario",
+      "signOut": "Cerrar sesión"
+    },
+    
+    "themeToggle": {
+      "toggleLabel": "Cambiar tema",
+      "light": "Claro",
+      "dark": "Oscuro",
+      "system": "Sistema"
+    },
+    
+    "languageToggle": {
+      "label": "Idioma",
+      "english": "Inglés",
+      "spanish": "Español",
+      "toggleLabel": "Cambiar idioma - Actual: {{language}}"
+    }
+  } 

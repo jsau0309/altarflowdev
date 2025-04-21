@@ -1,0 +1,65 @@
+{
+    "stepper": {
+      "welcome": "¡Bienvenido!",
+      "churchDetails": "Detalles de la iglesia",
+      "preferences": "Preferencias",
+      "complete": "Completar"
+    },
+    
+    "context": {
+      "churchDetailsSaved": "Detalles de la iglesia guardados exitosamente"
+    },
+    
+    "step1": {
+      "title": "¡Bienvenido!",
+      "subtitle": "¡Vamos a configurar tu iglesia en Altarflow. Esto solo tomará unos minutos.",
+      "accountCard": {
+        "title": "Tu cuenta",
+        "description": "Has creado tu cuenta personal"
+      },
+      "churchCard": {
+        "title": "Detalles de la iglesia",
+        "description": "Agrega información sobre tu iglesia"
+      },
+      "continueButton": "Continuar a Detalles de la iglesia",
+      "languageSection": {
+        "title": "Idioma",
+        "description": "Esto nos ayuda a ajustar la experiencia a tu idioma principal."
+      },
+      "contactSection": {
+        "description": "Proporciona la información de contacto principal para tu iglesia. Usaremos esto para comunicaciones importantes."
+      }
+    },
+    
+    "step2": {
+      "title": "Cuéntanos sobre tu iglesia",
+      "subtitle": "Esta información se usará en toda tu cuenta de Altarflow.",
+      "churchNamePlaceholder": "Iglesia Bautista Primera",
+      "addressPlaceholder": "Comienza a escribir para buscar una dirección...",
+      "phonePlaceholder": "(555) 123-4567",
+      "emailPlaceholder": "hola@tuiglesia.org",
+      "websitePlaceholder": "https://www.tuiglesia.org"
+    },
+    
+    "step3": {
+      "title": "Personaliza tu experiencia",
+      "subtitle": "Configura tus preferencias para idioma y apariencia.",
+      "languageDescription": "Selecciona tu idioma preferido para la aplicación.",
+      "themeDescription": "Elige el tema para tu aplicación."
+    },
+    
+    "step4": {
+      "title": "¡Estás listo!",
+      "subtitle": "Tu cuenta de Altarflow está ahora configurada y lista para usar. Puedes comenzar a rastrear donaciones, gestionar miembros y más.",
+      "donationsCard": {
+        "description": "Comienza a registrar contribuciones de tu congregación."
+      },
+      "membersCard": {
+        "description": "Crea tu base de datos de miembros de la iglesia para un mejor manejo."
+      },
+      "campaignsCard": {
+        "description": "Crea campañas de recaudación de fondos para necesidades específicas de la iglesia."
+      },
+      "completionNote": "Por favor, no cierre esta ventana hasta que el proceso esté completo."
+    }
+  } 

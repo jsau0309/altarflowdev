@@ -1,6 +1,9 @@
 import { faker } from '@faker-js/faker';
 import type { Expense, Donation, Member, Campaign } from './types';
 
+// Re-export types for use in other modules
+export type { Expense, Donation, Member, Campaign };
+
 // --- Mock Data Generation ---
 
 const generateMockExpenses = (count: number): Expense[] => {

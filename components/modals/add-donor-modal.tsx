@@ -17,8 +17,9 @@ import {
 } from "@/components/ui/dialog"
 import { Member } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "react-i18next"
 
-interface AddDonorModalProps {
+interface AddMemberModalProps {
   isOpen: boolean
   onClose: () => void
 }
@@ -36,21 +37,29 @@ const initialFormState: NewMemberData = {
   city: "",
   state: "",
   zipCode: "",
-  language: "spanish" as "english" | "spanish" | "both",
+  language: "spanish" as "english" | "spanish" | "both", // Default might need review
   smsConsent: false,
-  notes: [],
+  notes: [], // Assuming notes is an array based on type, adjust if string
 }
 
-export function AddDonorModal({ isOpen, onClose }: AddDonorModalProps) {
+// Rename component to reflect its purpose
+export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
   // const router = useRouter() // Unused
   const [isLoading, setIsLoading] = useState(false)
-  const [newDonor, setNewDonor] = useState<NewMemberData>(initialFormState)
+  const [newMember, setNewMember] = useState<NewMemberData>(initialFormState)
   const [errors, setErrors] = useState<Partial<Record<keyof NewMemberData, string>>>({})
   const { showToast } = useToast()
+  // Load members namespace
+  const { t } = useTranslation('members'); 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setNewDonor((prev) => ({ ...prev, [name]: value }))
+    const { name, value, type } = e.target
+    const checked = (e.target as HTMLInputElement).checked; // Handle checkbox
+    
+    setNewMember((prev) => ({
+       ...prev,
+       [name]: type === 'checkbox' ? checked : value 
+    }))
 
     // Clear error when user types
     if (errors[name as keyof NewMemberData]) {
@@ -66,14 +75,17 @@ export function AddDonorModal({ isOpen, onClose }: AddDonorModalProps) {
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof NewMemberData, string>> = {}
 
-    if (!newDonor.firstName.trim()) {
-      newErrors.firstName = "First name is required"
+    if (!newMember.firstName.trim()) {
+      // Using key from members.json
+      newErrors.firstName = t('memberForm.personalInfo.firstName') + " is required"; // Assuming validation messages aren't fully translated yet
     }
-    if (!newDonor.lastName.trim()) {
-      newErrors.lastName = "Last name is required"
+    if (!newMember.lastName.trim()) {
+      // Using key from members.json
+      newErrors.lastName = t('memberForm.personalInfo.lastName') + " is required";
     }
-    if (newDonor.email && !/^\S+@\S+\.\S+$/.test(newDonor.email)) {
-      newErrors.email = "Please enter a valid email address"
+    if (newMember.email && !/^\S+@\S+\.\S+$/.test(newMember.email)) {
+      // Using key from members.json
+      newErrors.email = t('memberForm.errors.invalidEmail') || "Invalid email format"; // Fallback if key missing
     }
     // Add other validation rules as needed (phone, zip, etc.)
 
@@ -88,30 +100,32 @@ export function AddDonorModal({ isOpen, onClose }: AddDonorModalProps) {
     setIsLoading(true)
 
     try {
-      // --- TODO: Replace with actual API call to save the donor --- 
-      console.log("Submitting new donor data:", newDonor)
-      // Example: const response = await fetch('/api/donors', { method: 'POST', body: JSON.stringify(newDonor) });
-      // if (!response.ok) throw new Error('Failed to add donor');
+      // --- TODO: Replace with actual API call to save the member --- 
+      console.log("Submitting new member data:", newMember)
+      // Example: const response = await fetch('/api/members', { method: 'POST', body: JSON.stringify(newMember) });
+      // if (!response.ok) throw new Error('Failed to add member');
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000)); 
       // --- End of TODO section --- 
 
-      showToast(`Donor ${newDonor.firstName} ${newDonor.lastName} added successfully`, "success")
+      // Using keys from members.json
+      showToast(t('memberForm.submissionSuccess', { firstName: newMember.firstName, lastName: newMember.lastName }), "success")
       resetForm()
       onClose()
       // Optionally navigate or refresh data
       // router.refresh(); // If using Next.js App Router data fetching
     } catch (error) {
-      console.error("Failed to add donor:", error)
-      showToast("Failed to add donor. Please try again.", "error")
+      console.error("Failed to add member:", error)
+      // Using key from members.json
+      showToast(t('memberForm.errorMessage') || "Failed to add member", "error") // Fallback
     } finally {
       setIsLoading(false)
     }
   }
 
   const resetForm = () => {
-    setNewDonor(initialFormState)
+    setNewMember(initialFormState)
     setErrors({})
   }
 
@@ -125,114 +139,156 @@ export function AddDonorModal({ isOpen, onClose }: AddDonorModalProps) {
         }
       }}
     >
-      <DialogContent className="sm:max-w-[425px]">
+      {/* Consider using a different width if needed sm:max-w-[600px] */}
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Add New Donor</DialogTitle>
+           {/* Using key from members.json */}
+          <DialogTitle>{t('newMember')}</DialogTitle>
           <DialogDescription>
-            Add a new donor to your database. This information will be used for donation tracking.
+             {/* Assuming a key exists, otherwise add one */}
+            {t('memberForm.formSubtitle')}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="firstName" className="text-right">
-              First Name *
-            </Label>
-            <Input
-              id="firstName"
-              name="firstName"
-              value={newDonor.firstName}
-              onChange={handleChange}
-              placeholder="John"
-              className={`col-span-3 ${errors.firstName ? "border-red-500" : ""}`}
-              required
-              disabled={isLoading}
-            />
-            {errors.firstName && <p className="col-span-4 text-xs text-red-500 text-right">{errors.firstName}</p>}
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
+          {/* Basic Info */}
+          <div>
+            <h3 className="text-lg font-medium mb-2">{t('memberForm.personalInfo.title')}</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="firstName">{t('memberForm.personalInfo.firstName')} *</Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  value={newMember.firstName}
+                  onChange={handleChange}
+                  placeholder={t('memberForm.personalInfo.firstName')}
+                  className={errors.firstName ? "border-red-500" : ""}
+                  required
+                  disabled={isLoading}
+                />
+                {errors.firstName && <p className="text-xs text-red-500">{errors.firstName}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="lastName">{t('memberForm.personalInfo.lastName')} *</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={newMember.lastName}
+                  onChange={handleChange}
+                  placeholder={t('memberForm.personalInfo.lastName')}
+                  className={errors.lastName ? "border-red-500" : ""}
+                  required
+                  disabled={isLoading}
+                />
+                {errors.lastName && <p className="text-xs text-red-500">{errors.lastName}</p>}
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="lastName" className="text-right">
-              Last Name *
-            </Label>
-            <Input
-              id="lastName"
-              name="lastName"
-              value={newDonor.lastName}
-              onChange={handleChange}
-              placeholder="Doe"
-              className={`col-span-3 ${errors.lastName ? "border-red-500" : ""}`}
-              required
-              disabled={isLoading}
-            />
-            {errors.lastName && <p className="col-span-4 text-xs text-red-500 text-right">{errors.lastName}</p>}
+
+          {/* Contact Info */}
+          <div>
+            <h3 className="text-lg font-medium mb-2">{t('contactInformation')}</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="phone">{t('memberForm.personalInfo.phone')}</Label>
+                 <Input
+                   id="phone"
+                   name="phone"
+                   value={newMember.phone}
+                   onChange={handleChange}
+                   placeholder="(555) 123-4567"
+                   className={errors.phone ? "border-red-500" : ""}
+                   disabled={isLoading}
+                 />
+                 {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="email">{t('memberForm.personalInfo.email')}</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={newMember.email}
+                  onChange={handleChange}
+                  placeholder="name@example.com"
+                  className={errors.email ? "border-red-500" : ""}
+                  disabled={isLoading}
+                />
+                 {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              Email
-            </Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={newDonor.email}
-              onChange={handleChange}
-              placeholder="john.doe@example.com"
-              className={`col-span-3 ${errors.email ? "border-red-500" : ""}`}
-              disabled={isLoading}
-            />
-            {errors.email && <p className="col-span-4 text-xs text-red-500 text-right">{errors.email}</p>}
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="phone" className="text-right">
-              Phone
-            </Label>
-            <Input
-              id="phone"
-              name="phone"
-              value={newDonor.phone}
-              onChange={handleChange}
-              placeholder="(555) 123-4567"
-              className={`col-span-3 ${errors.phone ? "border-red-500" : ""}`}
-              disabled={isLoading}
-            />
-            {errors.phone && <p className="col-span-4 text-xs text-red-500 text-right">{errors.phone}</p>}
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="address" className="text-right">Address</Label>
-            <Input id="address" name="address" value={newDonor.address} onChange={handleChange} placeholder="123 Main St" className="col-span-3" disabled={isLoading} />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="city" className="text-right">City</Label>
-            <Input id="city" name="city" value={newDonor.city} onChange={handleChange} placeholder="Springfield" className="col-span-3" disabled={isLoading} />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="state" className="text-right">State</Label>
-            <Input id="state" name="state" value={newDonor.state} onChange={handleChange} placeholder="IL" className="col-span-3" disabled={isLoading} />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="zipCode" className="text-right">ZIP Code</Label>
-            <Input id="zipCode" name="zipCode" value={newDonor.zipCode} onChange={handleChange} placeholder="12345" className="col-span-3" disabled={isLoading} />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="notes" className="text-right">Notes</Label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={newDonor.notes}
-              onChange={handleChange}
-              placeholder="Add any notes about this donor"
-              className={`col-span-3 w-full rounded-md border p-2 ${errors.notes ? "border-red-500" : "border-input"}`}
-              rows={3}
-              disabled={isLoading}
-            />
-            {errors.notes && <p className="col-span-4 text-xs text-red-500 text-right">{errors.notes}</p>}
-          </div>
+          
+           {/* Address Info - Use top-level keys from members namespace */}
+           <div>
+             <h3 className="text-lg font-medium mb-2">{t('address')}</h3>
+             <div className="space-y-1 mb-4">
+               <Label htmlFor="address">{t('address')}</Label>
+               <Input id="address" name="address" value={newMember.address} onChange={handleChange} placeholder={t('memberForm.addressPlaceholder', "123 Main St")} disabled={isLoading} />
+             </div>
+             <div className="grid grid-cols-3 gap-4">
+               <div className="space-y-1">
+                  {/* Use top-level key */}
+                 <Label htmlFor="city">{t('city')}</Label>
+                 <Input id="city" name="city" value={newMember.city} onChange={handleChange} placeholder={t('memberForm.cityPlaceholder', "City")} disabled={isLoading} />
+               </div>
+               <div className="space-y-1">
+                  {/* Use top-level key */}
+                 <Label htmlFor="state">{t('state')}</Label>
+                 <Input id="state" name="state" value={newMember.state} onChange={handleChange} placeholder={t('memberForm.statePlaceholder', "State")} disabled={isLoading} />
+               </div>
+               <div className="space-y-1">
+                  {/* Use top-level key */}
+                 <Label htmlFor="zipCode">{t('zipCode')}</Label>
+                 <Input id="zipCode" name="zipCode" value={newMember.zipCode} onChange={handleChange} placeholder={t('memberForm.zipPlaceholder', "12345")} disabled={isLoading} />
+               </div>
+             </div>
+           </div>
+
+           {/* Member Details */}
+           <div>
+             <h3 className="text-lg font-medium mb-2">{t('memberDetails', "Member Details")} {/* Fallback added */}</h3>
+              <div className="grid grid-cols-2 gap-4">
+                 {/* Membership Status - Assuming Select component usage */}
+                 <div className="space-y-1">
+                   <Label htmlFor="membershipStatus">{t('status')}</Label>
+                   {/* Replace with actual Select component if needed */}
+                    <Input id="membershipStatus" name="membershipStatus" placeholder="Select Status" disabled={isLoading} /> 
+                 </div>
+                  {/* Preferred Language - Assuming Select component usage */}
+                 <div className="space-y-1">
+                   <Label htmlFor="language">{t('preferredLanguage')}</Label>
+                   {/* Replace with actual Select component if needed */}
+                   <Input id="language" name="language" placeholder="Select Language" disabled={isLoading} />
+                 </div>
+               </div>
+           </div>
+
+           {/* SMS Consent */}
+            <div className="flex items-center space-x-2">
+              <input 
+                type="checkbox"
+                id="smsConsent"
+                name="smsConsent"
+                checked={newMember.smsConsent}
+                onChange={handleChange} 
+                disabled={isLoading}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <Label htmlFor="smsConsent" className="text-sm font-medium text-gray-700">
+                {t('memberForm.personalInfo.smsConsentLabel')} {t('smsConsentConfirmation', "By checking this box, you confirm the member has consented to receive text messages.")} {/* Fallback added */}
+              </Label>
+            </div>
+
           <DialogFooter>
+            {/* Using key from common.json */}
             <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
-              Cancel
+              {t('common:cancel')}
             </Button>
+            {/* Using key from members.json */}
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Adding..." : "Add Donor"}
+              {isLoading ? t('memberForm.submitting') : t('memberForm.submit')}
             </Button>
           </DialogFooter>
         </form>

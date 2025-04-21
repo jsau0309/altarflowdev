@@ -2,6 +2,7 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useTranslation } from "react-i18next"
 
 interface TablePaginationProps {
   currentPage: number
@@ -20,6 +21,7 @@ export function TablePagination({
   onItemsPerPageChange,
   totalItems,
 }: TablePaginationProps) {
+  const { t } = useTranslation()
   // Calculate the range of items being displayed
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1
   const endItem = Math.min(currentPage * itemsPerPage, totalItems)
@@ -79,8 +81,8 @@ export function TablePagination({
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
       <div className="text-sm text-muted-foreground">
-        Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of{" "}
-        <span className="font-medium">{totalItems}</span> items
+        {t('pagination.showing', 
+           { start: startItem, end: endItem, total: totalItems })}
       </div>
 
       <div className="flex items-center space-x-2">
@@ -90,7 +92,7 @@ export function TablePagination({
             size="icon"
             onClick={() => onPageChange(1)}
             disabled={currentPage === 1}
-            aria-label="First page"
+            aria-label={t('pagination.first')}
           >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
@@ -99,7 +101,7 @@ export function TablePagination({
             size="icon"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            aria-label="Previous page"
+            aria-label={t('pagination.previous')}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -122,7 +124,7 @@ export function TablePagination({
                   size="icon"
                   onClick={() => onPageChange(page)}
                   className="h-8 w-8"
-                  aria-label={`Page ${page}`}
+                  aria-label={t('pagination.page', { page })}
                   aria-current={currentPage === page ? "page" : undefined}
                 >
                   {page}
@@ -136,7 +138,7 @@ export function TablePagination({
             size="icon"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            aria-label="Next page"
+            aria-label={t('pagination.next')}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -145,7 +147,7 @@ export function TablePagination({
             size="icon"
             onClick={() => onPageChange(totalPages)}
             disabled={currentPage === totalPages}
-            aria-label="Last page"
+            aria-label={t('pagination.last')}
           >
             <ChevronsRight className="h-4 w-4" />
           </Button>
@@ -156,11 +158,11 @@ export function TablePagination({
             <SelectValue placeholder={itemsPerPage} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="5">5 per page</SelectItem>
-            <SelectItem value="10">10 per page</SelectItem>
-            <SelectItem value="20">20 per page</SelectItem>
-            <SelectItem value="50">50 per page</SelectItem>
-            <SelectItem value="100">100 per page</SelectItem>
+            <SelectItem value="5">{t('pagination.perPage', { count: 5 })}</SelectItem>
+            <SelectItem value="10">{t('pagination.perPage', { count: 10 })}</SelectItem>
+            <SelectItem value="20">{t('pagination.perPage', { count: 20 })}</SelectItem>
+            <SelectItem value="50">{t('pagination.perPage', { count: 50 })}</SelectItem>
+            <SelectItem value="100">{t('pagination.perPage', { count: 100 })}</SelectItem>
           </SelectContent>
         </Select>
       </div>

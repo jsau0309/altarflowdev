@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Camera } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ReceiptScannerModal } from "./receipt-scanner-modal"
+import { useTranslation } from "react-i18next"
 
 interface ReceiptScannerButtonProps {
   onDataCaptured: (data: any) => void
@@ -21,6 +22,7 @@ export function ReceiptScannerButton({
   size = "default",
 }: ReceiptScannerButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const { t } = useTranslation()
 
   const handleDataCaptured = (data: any) => {
     onDataCaptured(data)
@@ -31,7 +33,7 @@ export function ReceiptScannerButton({
     <>
       <Button type="button" onClick={() => setIsModalOpen(true)} variant={variant} size={size} className="gap-2">
         <Camera className="h-4 w-4" />
-        {children || "Scan Receipt"}
+        {children || t('receiptScanner.scanReceipt')}
       </Button>
 
       <ReceiptScannerModal

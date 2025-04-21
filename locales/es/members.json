@@ -1,0 +1,89 @@
+{
+    "title": "Miembros",
+    "newMember": "Nuevo miembro",
+    "memberDirectory": "Directorio de miembros",
+    "profile": "Perfil de miembro",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "address": "Dirección",
+    "city": "Ciudad",
+    "state": "Estado",
+    "zipCode": "Código Postal",
+    "joinDate": "Fecha de unión",
+    "status": "Estado",
+    "notes": "Notas",
+    "preferredLanguage": "Idioma preferido",
+    "donationHistory": "Historial de donaciones",
+    "contactInformation": "Información de contacto",
+    "personalInformation": "Información personal",
+    "membershipInformation": "Información de membresía",
+    
+    "statuses": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "visitor": "Visitante",
+      "prospect": "Prospecto"
+    },
+    
+    "membersContent": {
+      "subtitle": "Gestiona a tus miembros y rastrea su información",
+      "directorySubtitle": "Ver, agregar y gestionar a tus miembros de la iglesia"
+    },
+    
+    "memberForm": {
+      "formTitle": "Formulario de Ingreso de Miembros",
+      "formSubtitle": "Por favor, completa los detalles a continuación.",
+      "submit": "Enviar Información",
+      "submitting": "Enviando...",
+      "resetForm": "Restablecer",
+      "thankYou": "¡Gracias!",
+      "submissionSuccess": "Tu información ha sido enviada exitosamente.",
+      "successTitle": "Success",
+      "successMessage": "Formulario enviado exitosamente!",
+      "errorTitle": "Error",
+      "errorMessage": "Error al enviar el formulario. Por favor, inténtalo de nuevo.",
+      
+      "personalInfo": {
+        "title": "Información personal",
+        "firstName": "Nombre",
+        "lastName": "Apellido",
+        "email": "Correo electrónico",
+        "phone": "Teléfono",
+        "smsConsentLabel": "Acepto recibir mensajes de texto."
+      },
+      
+      "relationship": {
+        "title": "Relación con la iglesia",
+        "visitor": "Visitante",
+        "regular": "Asistente regular"
+      },
+      
+      "lifeStage": {
+        "title": "Etapa de vida",
+        "teens": "Adolescentes",
+        "20s": "20s",
+        "30s": "30s",
+        "40s": "40s",
+        "50s": "50s",
+        "60s": "60s",
+        "70plus": "70+"
+      },
+      
+      "serviceAttended": {
+        "title": "Servicio habitualmente asistido"
+      },
+      
+      "referral": {
+        "title": "¿Cómo te enteraste de nosotros?",
+        "placeholder": "Amigo, sitio web, evento, etc."
+      },
+      
+      "prayer": {
+        "checkboxLabel": "Quiero oración",
+        "requestLabel": "Detalles de la oración",
+        "placeholder": "Por favor, comparte tu solicitud de oración aquí..."
+      }
+    }
+  } 

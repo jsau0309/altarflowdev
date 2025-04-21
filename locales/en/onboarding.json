@@ -1,0 +1,65 @@
+{
+  "stepper": {
+    "welcome": "Welcome",
+    "churchDetails": "Church Details",
+    "preferences": "Preferences",
+    "complete": "Complete"
+  },
+  
+  "context": {
+    "churchDetailsSaved": "Church details saved successfully"
+  },
+  
+  "step1": {
+    "title": "Welcome, there!",
+    "subtitle": "Let's set up your church on Altarflow. This will only take a few minutes.",
+    "accountCard": {
+      "title": "Your account",
+      "description": "You've created your personal account"
+    },
+    "churchCard": {
+      "title": "Church details",
+      "description": "Add information about your church"
+    },
+    "continueButton": "Continue to Church Details",
+    "languageSection": {
+      "title": "Language",
+      "description": "This helps us tailor the experience to your church's primary language."
+    },
+    "contactSection": {
+      "description": "Provide the primary contact information for your church. We'll use this for important communications."
+    }
+  },
+  
+  "step2": {
+    "title": "Tell us about your church",
+    "subtitle": "This information will be used throughout your Altarflow account.",
+    "churchNamePlaceholder": "First Baptist Church",
+    "addressPlaceholder": "Start typing to search for an address...",
+    "phonePlaceholder": "(555) 123-4567",
+    "emailPlaceholder": "hello@yourchurch.org",
+    "websitePlaceholder": "https://www.yourchurch.org"
+  },
+  
+  "step3": {
+    "title": "Customize your experience",
+    "subtitle": "Set your preferences for language and appearance.",
+    "languageDescription": "Select your preferred language for the application.",
+    "themeDescription": "Choose the theme for your application."
+  },
+  
+  "step4": {
+    "title": "You're all set!",
+    "subtitle": "Your Altarflow account is now configured and ready to use. You can start tracking donations, managing members, and more.",
+    "donationsCard": {
+      "description": "Start recording contributions from your congregation."
+    },
+    "membersCard": {
+      "description": "Build your church member database for better management."
+    },
+    "campaignsCard": {
+      "description": "Create fundraising campaigns for specific church needs."
+    },
+    "completionNote": "Please don't close this window until the process is complete."
+  }
+} 

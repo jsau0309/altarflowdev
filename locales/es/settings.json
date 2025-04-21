@@ -1,0 +1,122 @@
+{
+    "title": "Configuraciones",
+    "general": "Configuraciones generales",
+    "church": "Información de la iglesia",
+    "users": "Gestión de usuarios",
+    "notifications": "Notificaciones",
+    "security": "Seguridad",
+    "integrations": "Integraciones",
+    "churchName": "Nombre de la iglesia",
+    "churchAddress": "Dirección de la iglesia",
+    "churchPhone": "Teléfono de la iglesia",
+    "churchEmail": "Correo electrónico de la iglesia",
+    "churchWebsite": "Sitio web de la iglesia",
+    "defaultLanguage": "Idioma por defecto",
+    "defaultCurrency": "Moneda por defecto",
+    "theme": "Tema",
+    "darkMode": "Modo oscuro",
+    
+    "currencies": {
+      "usd": "USD ($)"
+    },
+    
+    "languages": {
+      "english": "English",
+      "spanish": "Spanish"
+    },
+    
+    "settingsContent": {
+      "subtitle": "Gestiona tus configuraciones y preferencias",
+      "tabs": {
+        "churchProfile": "Perfil de la iglesia",
+        "visitorForm": "Formulario de visitante"
+      },
+      "general": {
+        "description": "Gestiona tus configuraciones generales de la aplicación",
+        "emailLabel": "Recibir notificaciones por correo electrónico para eventos importantes"
+      },
+      "churchProfile": {
+        "description": "Actualiza la información de tu iglesia",
+        "cityLabel": "Ciudad",
+        "stateLabel": "Estado",
+        "zipLabel": "Código postal",
+        "aboutLabel": "Acerca de",
+        "saveButton": "Guardar perfil de la iglesia"
+      }
+    },
+    
+    "userPermissions": {
+      "title": "Usuarios & Permisos",
+      "subtitle": "Gestiona el acceso y los roles de los usuarios",
+      "addUserButton": "Agregar usuario",
+      "addUserDialog": {
+        "title": "Agregar nuevo usuario",
+        "description": "Ingresa los detalles del nuevo usuario. Recibirán una invitación por correo electrónico.",
+        "nameLabel": "Nombre",
+        "emailLabel": "Correo electrónico",
+        "roleLabel": "Rol",
+        "rolePlaceholder": "Selecciona un rol",
+        "addButton": "Agregar usuario"
+      },
+      "table": {
+        "headerName": "Nombre",
+        "headerEmail": "Correo electrónico",
+        "headerRole": "Rol",
+        "headerActions": "Acciones"
+      },
+      "mainAdminBadge": "Administrador principal",
+      "editUserDialog": {
+        "title": "Editar usuario",
+        "description": "Actualiza la información del usuario y sus permisos.",
+        "nameLabel": "Nombre",
+        "emailLabel": "Correo electrónico",
+        "roleLabel": "Rol",
+        "rolePlaceholder": "Selecciona un rol",
+        "cannotChangeAdminRole": "El rol de administrador principal no puede ser cambiado.",
+        "deleteUserButton": "Eliminar usuario",
+        "saveButton": "Guardar cambios"
+      },
+      "deleteDialog": {
+        "title": "¿Estás seguro?",
+        "description": "Esto eliminará permanentemente al usuario {{name}} y removerá su acceso al sistema."
+      },
+      "toast": {
+        "userAdded": "{{name}} ha sido agregado como {{role}}",
+        "userUpdated": "La información de {{name}} ha sido actualizada",
+        "cannotDeleteAdmin": "El cuenta de administrador principal no puede ser eliminada ya que mantiene la licencia.",
+        "userRemoved": "{{name}} ha sido removido"
+      }
+    },
+
+    "formSettings": {
+      "title": "Configuración del Formulario de Visitantes",
+      "description": "Configura el formulario de recopilación de información de visitantes",
+      "formUrlLabel": "URL del Formulario",
+      "formUrlDescription": "Comparte este enlace con los visitantes o úsalo para generar códigos QR",
+      "urlCopied": "¡URL del formulario copiada al portapapeles!",
+      "tabs": {
+        "services": "Horarios de Servicio",
+        "ministries": "Ministerios",
+        "settings": "Configuración"
+      },
+      "services": {
+        "title": "Horarios de Servicio",
+        "description": "Agrega los horarios de servicio que los visitantes pueden seleccionar en el formulario",
+        "dayPlaceholder": "Día (ej., Domingo)",
+        "timePlaceholder": "Hora (ej., 10:00 AM)"
+      },
+      "ministries": {
+        "title": "Ministerios y Próximos Pasos",
+        "description": "Agrega los ministerios o próximos pasos en los que los visitantes pueden expresar interés",
+        "namePlaceholder": "Nombre del ministerio"
+      },
+      "settings": {
+        "title": "Configuración del Formulario",
+        "description": "Configura los ajustes generales para el formulario de visitantes",
+        "prayerLabel": "Peticiones de Oración",
+        "prayerDescription": "Permite a los visitantes enviar peticiones de oración",
+        "referralLabel": "Seguimiento de Referidos",
+        "referralDescription": "Pregunta a los visitantes cómo se enteraron de tu iglesia"
+      }
+    }
+  } 

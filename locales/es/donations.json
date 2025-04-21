@@ -1,0 +1,215 @@
+{
+    "title": "Donaciones",
+    "newDonation": "Nueva Donación",
+    "donationHistory": "Historial de Donaciones",
+    "recurringDonations": "Donaciones Recurrentes",
+    "campaigns": "Campañas",
+    "amount": "Cantidad",
+    "donor": "Donante",
+    "date": "Fecha",
+    "method": "Método",
+    "type": "Tipo",
+    "campaign": "Campaña",
+    "status": "Estado",
+    "notes": "Notas",
+    "dateRange": "Rango de fechas",
+    "category": "Categoría",
+    "frequency": "Frecuencia",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "noEndDate": "No fecha de fin",
+    
+    "methods": {
+      "cash": "Efectivo",
+      "check": "Cheque",
+      "card": "Tarjeta de crédito/débito",
+      "bankTransfer": "Transferencia bancaria",
+      "nfc": "Pago NFC"
+    },
+    
+    "types": {
+      "oneTime": "Una vez",
+      "recurring": "Recurrente"
+    },
+    
+    "frequencies": {
+      "weekly": "Semanal",
+      "monthly": "Mensual",
+      "quarterly": "Trimestral",
+      "annually": "Anual"
+    },
+    
+    "statuses": {
+      "completed": "Completado",
+      "pending": "Pendiente",
+      "failed": "Fallado",
+      "cancelled": "Cancelado"
+    },
+    
+    "donationsContent": {
+      "subtitle": "Rastrea y administra tus donaciones de la iglesia",
+      "tabs": {
+        "allDonations": "Todas las Donaciones"
+      },
+      "allDonations": {
+        "subtitle": "Ver, buscar y filtrar todas las donaciones",
+        "searchPlaceholder": "Buscar donaciones (donante, campaña, cantidad...)"
+      },
+      "filter": {
+        "title": "Filtrar Donaciones"
+      },
+      "empty": {
+        "title": "No se encontraron donaciones",
+        "adjustFilters": "Intenta ajustar tu búsqueda o filtros.",
+        "addFirst": "Agrega tu primera donación para comenzar."
+      }
+    },
+    
+    "donationPayment": {
+      "thankYou": "¡Gracias por tu donación!",
+      "donateToLabel": "Donación a:",
+      "recurringLabel": "Donación recurrente {{frequency}}",
+      "paymentMethodTitle": "Elige un método de pago:",
+      "methodCard": "Tarjeta de crédito/débito",
+      "methodBank": "Cuenta bancaria",
+      "methodGooglePay": "Google Pay",
+      "methodApplePay": "Apple Pay",
+      "coverFeesLabel": "Agregar {{fee}} a mi regalo",
+      "coverFeesDescription": "Quiero aumentar mi regalo para ayudar a cubrir los costos administrativos y de procesamiento.",
+      "submitButton": "Donar ahora"
+    },
+    
+    "donationInfo": {
+      "anonymousLabel": "Donar anónimamente"
+    },
+    
+    "donationDetails": {
+      "amountPrompt": "Ingresa una cantidad o haz una selección rápida abajo",
+      "selectCampaignLabel": "Selecciona una campaña",
+      "selectCampaignPlaceholder": "Selecciona una campaña"
+    },
+    
+    "newDonationModal": {
+      "title": "Nueva Donación",
+      "description": "Agrega una nueva donación al sistema.",
+      "amountLabel": "Cantidad",
+      "currencySymbol": "$",
+      "amountPlaceholder": "0.00",
+      "donorLabel": "Donante",
+      "addingNewDonor": "Agregando nuevo donante...",
+      "selectDonor": "Selecciona donante",
+      "addNewDonor": "+ Agregar nuevo donante",
+      "newDonorInfo": "Información del nuevo donante",
+      "firstNameLabel": "Nombre",
+      "firstNamePlaceholder": "Nombre",
+      "lastNameLabel": "Apellido",
+      "lastNamePlaceholder": "Apellido",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "email@example.com",
+      "phoneLabel": "Teléfono",
+      "phonePlaceholder": "(555) 123-4567",
+      "donationTypeLabel": "Tipo de donación",
+      "selectDonationType": "Selecciona tipo de donación",
+      "paymentMethodLabel": "Método de pago",
+      "selectPaymentMethod": "Selecciona método de pago",
+      "paymentMethodOptions": {
+        "cash": "Efectivo",
+        "check": "Cheque",
+        "creditCard": "Tarjeta de crédito",
+        "bankTransfer": "Transferencia bancaria"
+      },
+      "receiptLabel": "Recibo (Opcional)",
+      "addReceiptButton": "Agregar Recibo",
+      "notesLabel": "Notas",
+      "notesPlaceholder": "Agrega cualquier nota adicional aquí",
+      "cancelButton": "Cancelar",
+      "saving": "Guardando...",
+      "saveButton": "Guardar Donación",
+      "success": "Donación guardada exitosamente.",
+      "errors": {
+        "failedToLoadData": "Error al cargar los datos requeridos. Por favor, inténtalo de nuevo.",
+        "missingNewDonorName": "Por favor, ingresa ambos nombres y apellidos para el nuevo donante.",
+        "failedToCreateDonor": "Error al crear nuevo donante. Por favor, inténtalo de nuevo.",
+        "selectOrAddDonor": "Por favor, selecciona o agrega un donante.",
+        "invalidAmount": "Por favor, ingresa una cantidad de donación válida.",
+        "failedToSaveDonation": "Error al guardar la donación. Por favor, inténtalo de nuevo."
+      }
+    },
+    
+    "donorsContent": {
+      "subtitle": "Administra tus donantes",
+      "addDonorButton": "Agregar Donante",
+      "searchPlaceholder": "Buscar donantes (nombre, correo, teléfono)...",
+      "empty": {
+        "title": "No se encontraron donantes",
+        "adjustFilters": "Intenta ajustar tu búsqueda.",
+        "addFirst": "Agrega tu primer donante para comenzar."
+      }
+    },
+    
+    "addDonorModal": {
+      "title": "Agregar Nuevo Donante",
+      "description": "Agrega un nuevo donante a tu base de datos. Esta información se utilizará para el seguimiento de donaciones.",
+      "firstNameLabel": "Nombre",
+      "firstNamePlaceholder": "John",
+      "lastNameLabel": "Apellido",
+      "lastNamePlaceholder": "Doe",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "john.doe@example.com",
+      "phoneLabel": "Teléfono",
+      "phonePlaceholder": "(555) 123-4567",
+      "addressLabel": "Dirección",
+      "addressPlaceholder": "123 Main St",
+      "cityLabel": "Ciudad",
+      "cityPlaceholder": "Springfield",
+      "stateLabel": "Estado",
+      "statePlaceholder": "IL",
+      "zipCodeLabel": "Código Postal",
+      "zipCodePlaceholder": "12345",
+      "notesLabel": "Notas",
+      "notesPlaceholder": "Agrega cualquier nota sobre este donante",
+      "cancelButton": "Cancelar",
+      "addButton": "Agregar Donante",
+      "adding": "Agregando...",
+      "success": "Donante {{firstName}} {{lastName}} agregado exitosamente",
+      "error": "Error al agregar donante. Por favor, inténtalo de nuevo.",
+      "errors": {
+        "firstNameRequired": "El nombre es requerido",
+        "lastNameRequired": "El apellido es requerido",
+        "invalidEmail": "Por favor, ingresa un correo electrónico válido"
+      }
+    },
+    
+    "editDonorModal": {
+      "title": "Editar Donante",
+      "description": "Actualiza la información del donante en tu base de datos.",
+      "firstNameLabel": "Nombre",
+      "firstNamePlaceholder": "John",
+      "lastNameLabel": "Apellido",
+      "lastNamePlaceholder": "Doe",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "john.doe@example.com",
+      "phoneLabel": "Teléfono",
+      "phonePlaceholder": "(555) 123-4567",
+      "addressLabel": "Dirección",
+      "addressPlaceholder": "123 Main St",
+      "cityLabel": "Ciudad",
+      "cityPlaceholder": "Springfield",
+      "stateLabel": "Estado",
+      "statePlaceholder": "IL",
+      "zipCodeLabel": "Código Postal",
+      "zipCodePlaceholder": "12345",
+      "notesLabel": "Notas",
+      "notesPlaceholder": "Agrega cualquier nota sobre este donante",
+      "cancelButton": "Cancelar",
+      "saving": "Guardando...",
+      "saveButton": "Guardar cambios",
+      "errors": {
+        "firstNameRequired": "El nombre es requerido",
+        "lastNameRequired": "El apellido es requerido",
+        "invalidEmail": "Por favor, ingresa un correo electrónico válido",
+        "invalidPhone": "Por favor, ingresa un número de teléfono válido",
+        "invalidZip": "Por favor, ingresa un código postal válido"
+      }
+    }
+  } 

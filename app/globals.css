@@ -100,4 +100,9 @@
   scrollbar-width: none; /* Firefox */
 }
 
+/* Google Places Autocomplete Dropdown Styling */
+.pac-container {
+  @apply z-[9999] !important; /* Ensure dropdown appears above modals (shadcn dialog is z-50) */
+}
+
 

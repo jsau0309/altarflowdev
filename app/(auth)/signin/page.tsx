@@ -1,27 +1,38 @@
+'use client';
+
 import { SignInForm } from "@/components/sign-in-form"
 import { Building2 } from "lucide-react"
 import Link from "next/link"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { LanguageToggle } from "@/components/language-toggle"
+import { useTranslation } from 'react-i18next';
 
 export default function SignInPage() {
+  const { t } = useTranslation(['common', 'auth', 'dashboard']);
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 bg-background">
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-12 bg-background">
+      <div className="absolute top-4 right-4 flex gap-2">
+        <LanguageToggle />
+        <ThemeToggle />
+      </div>
       <div className="mx-auto w-full max-w-md">
         <div className="flex items-center justify-center gap-2 mb-8">
           <Building2 className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">Altarflow</span>
+          <span className="text-2xl font-bold">{t('appName')}</span>
         </div>
 
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-          <p className="text-muted-foreground mt-2">Sign in to your account to continue</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('dashboard:welcomeMessage')}</h1>
+          <p className="text-muted-foreground mt-2">{t('auth:loginButton')}</p>
         </div>
 
         <SignInForm />
 
         <div className="mt-8 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          {t('auth:dontHaveAccount')}{" "}
           <Link href="/signup" className="font-medium text-primary hover:underline">
-            Sign up
+            {t('auth:register')}
           </Link>
         </div>
       </div>

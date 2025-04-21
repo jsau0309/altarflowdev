@@ -1,0 +1,85 @@
+{
+  "scanReceipt": "Scan Receipt",
+  
+  "processing": {
+    "title": "Processing Receipt",
+    "extracting": "Extracting expense details",
+    "wait": "This may take a few moments..."
+  },
+  
+  "mobile": {
+    "centerInFrame": "Center receipt in frame",
+    "ensureLighting": "Ensure good lighting and that the entire receipt is visible"
+  },
+  
+  "autoFilled": {
+    "newExpense": "New Expense",
+    "applied": "Receipt data applied to form",
+    "amountLabel": "Amount",
+    "currencySymbol": "$",
+    "autoFilled": "Auto-filled",
+    "dateLabel": "Date",
+    "vendorLabel": "Vendor/Payee",
+    "categoryLabel": "Category",
+    "selectCategory": "Select category",
+    "categoryOptions": {
+      "utilities": "Utilities",
+      "supplies": "Supplies",
+      "maintenance": "Maintenance",
+      "salaries": "Salaries",
+      "events": "Events",
+      "other": "Other"
+    },
+    "paymentMethodLabel": "Payment Method",
+    "selectPaymentMethod": "Select payment method",
+    "paymentMethodOptions": {
+      "cash": "Cash",
+      "check": "Check",
+      "creditCard": "Credit Card",
+      "bankTransfer": "Bank Transfer"
+    },
+    "descriptionLabel": "Description",
+    "receiptImageLabel": "Receipt Image",
+    "scannedOn": "Scanned on {{date}}",
+    "viewButton": "View",
+    "cancelButton": "Cancel",
+    "saveButton": "Save Expense"
+  },
+  
+  "review": {
+    "title": "Review Receipt Data",
+    "success": "Receipt processed successfully",
+    "vendor": "Vendor",
+    "date": "Date",
+    "totalAmount": "Total Amount",
+    "description": "Description",
+    "items": "Items",
+    "tax": "Tax",
+    "total": "Total",
+    "currencySymbol": "$",
+    "cancelButton": "Cancel",
+    "saveChangesButton": "Save Changes",
+    "useDataButton": "Use This Data"
+  },
+  
+  "modal": {
+    "title": "Receipt Upload",
+    "scanTab": "Scan Receipt",
+    "uploadTab": "Upload File",
+    "scanTitle": "Scan Your Receipt",
+    "scanDescription": "Take a photo of your receipt to automatically extract expense details",
+    "startCameraButton": "Start Camera",
+    "uploadTitle": "Upload Receipt",
+    "uploadDescription": "Upload an image of your receipt to automatically extract expense details",
+    "selectFileButton": "Select File"
+  },
+  
+  "expenseModal": {
+    "dragDrop": "Drag and drop or click to upload a receipt image",
+    "vendorPlaceholder": "Enter vendor or payee name",
+    "cameraPreview": "Camera Preview",
+    "receiptImagePreview": "Receipt Image Preview",
+    "extractedInfo": "Extracted Information",
+    "editButton": "Edit"
+  }
+} 

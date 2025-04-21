@@ -1,0 +1,38 @@
+{
+  "expenseCharts": {
+    "categoriesTitle": "Expense Categories",
+    "amountLabel": "Amount",
+    "trendsTitle": "Expense Trends",
+    "expensesLegend": "Expenses"
+  },
+  
+  "campaignCharts": {
+    "distributionTitle": "Campaign Distribution",
+    "amountLabel": "Amount",
+    "progressTitle": "Campaign Progress",
+    "raisedLabel": "Raised",
+    "goalLabel": "Goal"
+  },
+  
+  "donationCharts": {
+    "trendsTitle": "Donation Trends",
+    "amountLabel": "Amount",
+    "donationsLegend": "Donations",
+    "paymentMethodsTitle": "Payment Methods"
+  },
+  
+  "dashboardCharts": {
+    "donations": "Donations",
+    "expenses": "Expenses",
+    "donVsExpTitle": "Donations vs Expenses (Last 7 Days)",
+    "campaignTitle": "Campaign Progress (%)",
+    "progress": "Progress",
+    "campaign": {
+      "offerings": "Oferrings",
+      "thithe": "Tithe",
+      "generalOffering": "General Offering",
+      "titheDescription": "Regular tithe collection for church operations.",
+      "generalOfferingDescription": "Regular offering for church operations and ministries."
+    }
+  }
+} 

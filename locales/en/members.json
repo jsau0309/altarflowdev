@@ -1,0 +1,89 @@
+{
+  "title": "Members",
+  "newMember": "New Member",
+  "memberDirectory": "Member Directory",
+  "profile": "Member Profile",
+  "firstName": "First Name",
+  "lastName": "Last Name",
+  "email": "Email",
+  "phone": "Phone",
+  "address": "Address",
+  "city": "City",
+  "state": "State",
+  "zipCode": "Zip Code",
+  "joinDate": "Join Date",
+  "status": "Status",
+  "notes": "Notes",
+  "preferredLanguage": "Preferred Language",
+  "donationHistory": "Donation History",
+  "contactInformation": "Contact Information",
+  "personalInformation": "Personal Information",
+  "membershipInformation": "Membership Information",
+  
+  "statuses": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "visitor": "Visitor",
+    "prospect": "Prospect"
+  },
+  
+  "membersContent": {
+    "subtitle": "Manage church members and track their information",
+    "directorySubtitle": "View, add, and manage your church members"
+  },
+  
+  "memberForm": {
+    "formTitle": "Member Intake Form",
+    "formSubtitle": "Please fill out the details below.",
+    "submit": "Submit Information",
+    "submitting": "Submitting...",
+    "resetForm": "Reset",
+    "thankYou": "Thank you!",
+    "submissionSuccess": "Your information has been submitted successfully.",
+    "successTitle": "Success",
+    "successMessage": "Form submitted successfully!",
+    "errorTitle": "Error",
+    "errorMessage": "Failed to submit form. Please try again.",
+    
+    "personalInfo": {
+      "title": "Personal Information",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "smsConsentLabel": "I agree to receive text messages."
+    },
+    
+    "relationship": {
+      "title": "Relationship to Church",
+      "visitor": "Visitor",
+      "regular": "Regular Attender"
+    },
+    
+    "lifeStage": {
+      "title": "Life Stage",
+      "teens": "Teens",
+      "20s": "20s",
+      "30s": "30s",
+      "40s": "40s",
+      "50s": "50s",
+      "60s": "60s",
+      "70plus": "70+"
+    },
+    
+    "serviceAttended": {
+      "title": "Service Usually Attended"
+    },
+    
+    "referral": {
+      "title": "How did you hear about us?",
+      "placeholder": "Friend, website, event, etc."
+    },
+    
+    "prayer": {
+      "checkboxLabel": "I would like prayer",
+      "requestLabel": "Prayer Request Details",
+      "placeholder": "Please share your prayer request here..."
+    }
+  }
+} 

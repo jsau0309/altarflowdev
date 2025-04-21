@@ -10,6 +10,7 @@ import { mockDataService, type Expense } from "@/lib/mock-data"
 import { format } from "date-fns"
 import { ExpenseDetailsDrawer } from "./expenses/expense-details-drawer"
 import { TablePagination } from "@/components/ui/table-pagination"
+import { useTranslation } from 'react-i18next'
 
 export function ExpensesContent() {
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -20,6 +21,7 @@ export function ExpensesContent() {
   const [showExpenseDetails, setShowExpenseDetails] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
+  const { t, i18n } = useTranslation(['expenses', 'donations', 'common'])
 
   // Simulate API loading delay
   useEffect(() => {
@@ -37,7 +39,7 @@ export function ExpensesContent() {
 
   const handleModalClose = () => {
     setShowModal(false)
-    // Refresh the expenses list
+    setSelectedExpense(null)
     setExpenses(mockDataService.getExpenses())
   }
 
@@ -48,7 +50,6 @@ export function ExpensesContent() {
 
   const handleDeleteExpense = (expense: Expense) => {
     mockDataService.deleteExpense(expense.id)
-    // Refresh the expenses list
     setExpenses(mockDataService.getExpenses())
   }
 
@@ -57,15 +58,28 @@ export function ExpensesContent() {
     setShowExpenseDetails(true)
   }
 
+  // Helper function to format category/method using translation keys
+  const formatDisplayString = (key: string, namespace: 'expenses' | 'donations', prefix: string, fallback: string) => {
+    // Ensure key is valid and lowercase
+    const formattedKey = key?.toLowerCase().replace(/\s+|-/g, '') || '';
+    if (!formattedKey) return fallback;
+    const translationKey = `${namespace}:${prefix}.${formattedKey}`;
+    const translated = t(translationKey, fallback);
+    // If translation returns the key itself, return the fallback
+    return translated === translationKey ? fallback : translated;
+  };
+
   // Filter expenses based on search term
   const filteredExpenses = expenses.filter((expense) => {
     if (!searchTerm) return true
-
+    const term = searchTerm.toLowerCase()
+    // Include translated category/method in search if needed
     return (
-      expense.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.amount.toString().includes(searchTerm) ||
-      expense.category.toLowerCase().includes(searchTerm.toLowerCase())
+      expense.vendor.toLowerCase().includes(term) ||
+      (expense.notes && expense.notes.toLowerCase().includes(term)) ||
+      expense.amount.toString().includes(term) ||
+      formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category).toLowerCase().includes(term) ||
+      formatDisplayString(expense.paymentMethod, 'donations', 'methods', expense.paymentMethod).toLowerCase().includes(term)
     )
   })
 
@@ -73,13 +87,21 @@ export function ExpensesContent() {
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filteredExpenses.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage)
+  const totalPages = Math.max(1, Math.ceil(filteredExpenses.length / itemsPerPage))
+
+  // Helper to format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat(i18n.language, {
+      style: "currency",
+      currency: "USD", // TODO: Make dynamic
+    }).format(amount)
+  }
 
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Expense Management</h1>
-        <p className="text-muted-foreground">Track and manage your church expenses</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('expenses:title')}</h1>
+        <p className="text-muted-foreground">{t('expenses:expensesContent.subtitle')}</p>
       </div>
 
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -87,13 +109,13 @@ export function ExpensesContent() {
           <div>
             <h3 className="text-xl font-semibold flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Expense Records
+              {t('expenses:expensesContent.recordsTitle')}
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">View, add, and manage your church expenses</p>
+            <p className="text-sm text-muted-foreground mt-1">{t('expenses:expensesContent.recordsSubtitle')}</p>
           </div>
           <Button onClick={handleNewExpenseClick} className="gap-2">
             <Plus className="h-4 w-4" />
-            New Expense
+            {t('expenses:newExpense')}
           </Button>
         </div>
 
@@ -102,7 +124,7 @@ export function ExpensesContent() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search expenses..."
+              placeholder={t('expenses:expensesContent.searchPlaceholder')}
               className="w-full rounded-md pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -111,21 +133,20 @@ export function ExpensesContent() {
 
           {isLoading ? (
             <div className="space-y-3">
-              <div className="h-10 bg-muted animate-pulse rounded-md"></div>
-              <div className="h-10 bg-muted animate-pulse rounded-md"></div>
-              <div className="h-10 bg-muted animate-pulse rounded-md"></div>
-              <div className="h-10 bg-muted animate-pulse rounded-md"></div>
+              {[...Array(itemsPerPage)].map((_, i) => (
+                <div key={i} className="h-10 bg-muted animate-pulse rounded-md"></div>
+              ))}
             </div>
           ) : filteredExpenses.length > 0 ? (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>{t('expenses:date')}</TableHead>
+                    <TableHead>{t('expenses:vendor')}</TableHead>
+                    <TableHead>{t('expenses:category')}</TableHead>
+                    <TableHead>{t('expenses:paymentMethod')}</TableHead>
+                    <TableHead className="text-right">{t('expenses:amount')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -135,11 +156,11 @@ export function ExpensesContent() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => handleViewExpenseDetails(expense)}
                     >
-                      <TableCell>{format(new Date(expense.date), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{format(new Date(expense.date), "PP")}</TableCell>
                       <TableCell>{expense.vendor}</TableCell>
-                      <TableCell>{expense.category.charAt(0).toUpperCase() + expense.category.slice(1)}</TableCell>
-                      <TableCell>{expense.paymentMethod.replace("-", " ")}</TableCell>
-                      <TableCell className="text-right">${expense.amount.toLocaleString()}</TableCell>
+                      <TableCell>{formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category)}</TableCell>
+                      <TableCell>{formatDisplayString(expense.paymentMethod, 'donations', 'methods', expense.paymentMethod)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -151,19 +172,20 @@ export function ExpensesContent() {
                   onPageChange={setCurrentPage}
                   totalItems={filteredExpenses.length}
                   itemsPerPage={itemsPerPage}
-                  onItemsPerPageChange={setItemsPerPage}
-                  showingText={`Showing ${indexOfFirstItem + 1} to ${Math.min(indexOfLastItem, filteredExpenses.length)} of ${filteredExpenses.length} items`}
+                  onItemsPerPageChange={(items) => { setCurrentPage(1); setItemsPerPage(items); }}
                 />
               </div>
             </>
           ) : (
             <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
               <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-                <h3 className="mt-4 text-lg font-semibold">No expenses found</h3>
+                <h3 className="mt-4 text-lg font-semibold">{t('expenses:expensesContent.empty.title')}</h3>
                 <p className="mb-4 mt-2 text-sm text-muted-foreground">
-                  {searchTerm ? "Try adjusting your search terms." : "Add your first expense to get started."}
+                  {searchTerm 
+                    ? t('expenses:expensesContent.empty.adjustSearch')
+                    : t('expenses:expensesContent.empty.addFirst')}
                 </p>
-                <Button onClick={handleNewExpenseClick}>Add New Expense</Button>
+                <Button onClick={handleNewExpenseClick}>{t('expenses:newExpense')}</Button>
               </div>
             </div>
           )}
@@ -171,7 +193,11 @@ export function ExpensesContent() {
       </div>
 
       {/* Modals */}
-      <NewExpenseModal isOpen={showModal} onClose={handleModalClose} expenseToEdit={selectedExpense || undefined} />
+      <NewExpenseModal 
+        isOpen={showModal} 
+        onClose={handleModalClose} 
+        expenseToEdit={selectedExpense ? {...selectedExpense, notes: selectedExpense.notes || ''} : undefined} 
+      />
       <ExpenseDetailsDrawer
         expense={selectedExpense}
         open={showExpenseDetails}

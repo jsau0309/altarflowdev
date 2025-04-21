@@ -16,6 +16,18 @@ const defaultConfig: FormConfig = {
   showPrayerRequest: true,
   showCustomFields: false,
   customFields: [],
+  ministries: [
+    { id: "m1", name: "Youth Group", description: "Weekly meetings for teens", isActive: true },
+    { id: "m2", name: "Worship Team", description: "Singers and musicians", isActive: true },
+    { id: "m3", name: "Community Outreach", description: "Serving the local area", isActive: true },
+    { id: "m4", name: "Seniors Club", description: "", isActive: false },
+  ],
+  serviceTimes: [
+    { id: "s1", name: "Sunday 9:00 AM", description: "Main Service", isActive: true },
+    { id: "s2", name: "Sunday 11:00 AM", description: "Contemporary Service", isActive: true },
+    { id: "s3", name: "Wednesday 7:00 PM", description: "Midweek Prayer", isActive: true },
+    { id: "s4", name: "Saturday 5:00 PM", description: "Youth Service", isActive: false },
+  ],
   submitButtonText: "Submit",
   successMessage: "Thank you for connecting with us!",
   errorMessage: "There was an error submitting your form. Please try again.",

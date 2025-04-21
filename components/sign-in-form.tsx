@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 
 export function SignInForm() {
+  const { t } = useTranslation('auth')
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -32,22 +34,28 @@ export function SignInForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" placeholder="name@example.com" required autoComplete="email" />
+        <Label htmlFor="email">{t('auth:signInForm.emailLabel', 'Email')}</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder={t('auth:signInForm.emailPlaceholder', 'name@example.com')}
+          required
+          autoComplete="email"
+        />
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t('auth:signInForm.passwordLabel', 'Password')}</Label>
           <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
-            Forgot password?
+            {t('auth:signInForm.forgotPasswordLink', 'Forgot password?')}
           </Link>
         </div>
         <div className="relative">
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
+            placeholder={t('auth:signInForm.passwordPlaceholder', '••••••••')}
             required
             autoComplete="current-password"
           />
@@ -57,9 +65,10 @@ export function SignInForm() {
             size="icon"
             className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground"
             onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? t('auth:signInForm.hidePassword', 'Hide password') : t('auth:signInForm.showPassword', 'Show password')}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
+            <span className="sr-only">{showPassword ? t('auth:signInForm.hidePassword', 'Hide password') : t('auth:signInForm.showPassword', 'Show password')}</span>
           </Button>
         </div>
       </div>
@@ -70,7 +79,7 @@ export function SignInForm() {
           htmlFor="remember"
           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
         >
-          Remember me
+          {t('auth:signInForm.rememberMeLabel', 'Remember me')}
         </Label>
       </div>
 
@@ -78,10 +87,10 @@ export function SignInForm() {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Signing in...
+            {t('auth:signInForm.signingInButton', 'Signing in...')}
           </>
         ) : (
-          "Sign in"
+          t('auth:signInForm.signInButton', 'Sign in')
         )}
       </Button>
 
@@ -90,12 +99,12 @@ export function SignInForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+          <span className="bg-background px-2 text-muted-foreground">{t('auth:signInForm.orContinueWith', 'Or continue with')}</span>
         </div>
       </div>
 
       <Button variant="outline" type="button" className="w-full">
-        Google
+        {t('auth:signInForm.googleButton', 'Google')}
       </Button>
     </form>
   )

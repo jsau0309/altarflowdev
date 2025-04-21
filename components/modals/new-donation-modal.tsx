@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ReceiptScannerButton } from "@/components/receipt-scanner/receipt-scanner-button"
 import { Member, Campaign, Donation } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
+import { useTranslation } from "react-i18next"
 
 interface NewDonationModalProps {
   isOpen: boolean
@@ -38,6 +39,7 @@ const initialFormData: Omit<Partial<Donation>, "amount"> & { amount: string } = 
 export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initialData }: NewDonationModalProps) {
   const router = useRouter()
   const { toast } = useToast()
+  const { t } = useTranslation('donations')
   const [isLoading, setIsLoading] = useState(false)
   const [members, setMembers] = useState<Member[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -76,14 +78,14 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
         } catch (error) {
           console.error("Error fetching data:", error)
           toast({
-            description: "Failed to load required data. Please try again.",
+            description: t('donations:newDonationModal.errors.failedToLoadData'),
             variant: "destructive"
           })
         }
       }
       fetchData()
     }
-  }, [isOpen, toast])
+  }, [isOpen, toast, t])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
@@ -119,7 +121,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     if (showNewDonorForm) {
       if (!newDonor.firstName || !newDonor.lastName) {
         toast({
-          description: "Please enter both first and last name for the new donor.",
+          description: t('donations:newDonationModal.errors.missingNewDonorName'),
           variant: "destructive"
         })
         setIsLoading(false)
@@ -134,7 +136,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
       } catch (error) {
         console.error("Error creating donor:", error)
         toast({
-          description: "Failed to create new donor. Please try again.",
+          description: t('donations:newDonationModal.errors.failedToCreateDonor'),
           variant: "destructive"
         })
         setIsLoading(false)
@@ -147,7 +149,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     // Ensure donorIdToSave is valid before proceeding
     if (!donorIdToSave) {
       toast({
-        description: "Please select or add a donor.",
+        description: t('donations:newDonationModal.errors.selectOrAddDonor'),
         variant: "destructive"
       })
       setIsLoading(false)
@@ -157,7 +159,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     const parsedAmount = Number.parseFloat(formData.amount || "0")
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast({
-        description: "Please enter a valid donation amount.",
+        description: t('donations:newDonationModal.errors.invalidAmount'),
         variant: "destructive"
       })
       setIsLoading(false)
@@ -179,7 +181,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
       console.log("Creating donation:", donationPayload)
 
       toast({
-        description: "Donation saved successfully.",
+        description: t('donations:newDonationModal.success'),
       })
 
       // If opened from dashboard, redirect to the traditional tab
@@ -190,7 +192,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     } catch (error) {
       console.error("Error saving donation:", error)
       toast({
-        description: "Failed to save donation. Please try again.",
+        description: t('donations:newDonationModal.errors.failedToSaveDonation'),
         variant: "destructive"
       })
       setIsLoading(false)
@@ -249,21 +251,21 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     >
       <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>New Donation</DialogTitle>
-          <DialogDescription>Add a new donation to the system.</DialogDescription>
+          <DialogTitle>{t('donations:newDonationModal.title')}</DialogTitle>
+          <DialogDescription>{t('donations:newDonationModal.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto pr-1">
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount</Label>
+                <Label htmlFor="amount">{t('donations:newDonationModal.amountLabel')}</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{t('donations:newDonationModal.currencySymbol')}</span>
                   <Input
                     id="amount"
                     type="number"
-                    placeholder="0.00"
+                    placeholder={t('donations:newDonationModal.amountPlaceholder')}
                     className="pl-8"
                     step="0.01"
                     min="0"
@@ -275,13 +277,13 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
+                <Label htmlFor="date">{t('donations:date')}</Label>
                 <Input id="date" type="date" value={formData.date} onChange={handleChange} required />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="donor">Donor</Label>
+              <Label htmlFor="donor">{t('donations:newDonationModal.donorLabel')}</Label>
               <Select
                 required={!showNewDonorForm}
                 value={formData.donorId}
@@ -289,7 +291,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
                 disabled={showNewDonorForm}
               >
                 <SelectTrigger id="donor">
-                  <SelectValue placeholder={showNewDonorForm ? "Adding new donor..." : "Select donor"} />
+                  <SelectValue placeholder={showNewDonorForm ? t('donations:newDonationModal.addingNewDonor') : t('donations:newDonationModal.selectDonor')} />
                 </SelectTrigger>
                 <SelectContent>
                   {members.map((member) => (
@@ -297,7 +299,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
                       {member.firstName} {member.lastName}
                     </SelectItem>
                   ))}
-                  <SelectItem value="new">+ Add New Donor</SelectItem>
+                  <SelectItem value="new">{t('donations:newDonationModal.addNewDonor')}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -314,50 +316,50 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
                     <span className="sr-only">Close</span>
                   </Button>
 
-                  <h4 className="font-medium mb-3">New Donor Information</h4>
+                  <h4 className="font-medium mb-3">{t('donations:newDonationModal.newDonorInfo')}</h4>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
+                      <Label htmlFor="firstName">{t('donations:newDonationModal.firstNameLabel')}</Label>
                       <Input
                         id="firstName"
                         value={newDonor.firstName}
                         onChange={handleNewDonorChange}
-                        placeholder="First name"
+                        placeholder={t('donations:newDonationModal.firstNamePlaceholder')}
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
+                      <Label htmlFor="lastName">{t('donations:newDonationModal.lastNameLabel')}</Label>
                       <Input
                         id="lastName"
                         value={newDonor.lastName}
                         onChange={handleNewDonorChange}
-                        placeholder="Last name"
+                        placeholder={t('donations:newDonationModal.lastNamePlaceholder')}
                         required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2 mb-4">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email">{t('donations:newDonationModal.emailLabel')}</Label>
                     <Input
                       id="email"
                       type="email"
                       value={newDonor.email || ""}
                       onChange={handleNewDonorChange}
-                      placeholder="email@example.com"
+                      placeholder={t('donations:newDonationModal.emailPlaceholder')}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="phone">{t('donations:newDonationModal.phoneLabel')}</Label>
                     <Input
                       id="phone"
                       value={newDonor.phone || ""}
                       onChange={handleNewDonorChange}
-                      placeholder="(555) 123-4567"
+                      placeholder={t('donations:newDonationModal.phonePlaceholder')}
                     />
                   </div>
                 </div>
@@ -365,14 +367,14 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="campaign">Donation Type</Label>
+              <Label htmlFor="campaign">{t('donations:newDonationModal.donationTypeLabel')}</Label>
               <Select
                 required
                 value={formData.campaignId}
                 onValueChange={(value) => handleSelectChange("campaignId", value)}
               >
                 <SelectTrigger id="campaign">
-                  <SelectValue placeholder="Select donation type" />
+                  <SelectValue placeholder={t('donations:newDonationModal.selectDonationType')} />
                 </SelectTrigger>
                 <SelectContent>
                   {campaigns
@@ -387,26 +389,26 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="payment-method">Payment Method</Label>
+              <Label htmlFor="payment-method">{t('donations:newDonationModal.paymentMethodLabel')}</Label>
               <Select
                 required
                 value={formData.paymentMethod}
                 onValueChange={(value) => handleSelectChange("paymentMethod", value)}
               >
                 <SelectTrigger id="payment-method">
-                  <SelectValue placeholder="Select payment method" />
+                  <SelectValue placeholder={t('donations:newDonationModal.selectPaymentMethod')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="check">Check</SelectItem>
-                  <SelectItem value="credit-card">Credit Card</SelectItem>
-                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="cash">{t('donations:newDonationModal.paymentMethodOptions.cash')}</SelectItem>
+                  <SelectItem value="check">{t('donations:newDonationModal.paymentMethodOptions.check')}</SelectItem>
+                  <SelectItem value="credit-card">{t('donations:newDonationModal.paymentMethodOptions.creditCard')}</SelectItem>
+                  <SelectItem value="bank-transfer">{t('donations:newDonationModal.paymentMethodOptions.bankTransfer')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Receipt (Optional)</Label>
+              <Label>{t('donations:newDonationModal.receiptLabel')}</Label>
 
               {receiptImage ? (
                 <div className="relative border rounded-md p-2">
@@ -434,16 +436,16 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
                     </div>
                   </div>
                   <p className="text-gray-500 mb-4">Add a receipt to automatically extract donation details</p>
-                  <ReceiptScannerButton onDataCaptured={handleReceiptData}>Add Receipt</ReceiptScannerButton>
+                  <ReceiptScannerButton onDataCaptured={handleReceiptData}>{t('donations:newDonationModal.addReceiptButton')}</ReceiptScannerButton>
                 </div>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">{t('donations:newDonationModal.notesLabel')}</Label>
               <Textarea
                 id="notes"
-                placeholder="Add any additional notes here"
+                placeholder={t('donations:newDonationModal.notesPlaceholder')}
                 value={formData.notes}
                 onChange={handleChange}
               />
@@ -452,8 +454,8 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
         </div>
 
         <DialogFooter className="mt-2 pt-2 border-t">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+          <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+            {t('donations:newDonationModal.cancelButton')}
           </Button>
           <Button
             type="submit"
@@ -467,10 +469,10 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {t('donations:newDonationModal.saving')}
               </>
             ) : (
-              "Save Donation"
+              t('donations:newDonationModal.saveButton')
             )}
           </Button>
         </DialogFooter>

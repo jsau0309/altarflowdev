@@ -35,7 +35,8 @@ interface CampaignChartsProps {
 }
 
 export function CampaignCharts({ donations, expenses /*, startDate, endDate */ }: CampaignChartsProps) {
-  // const { t } = useTranslation() // Unused
+  // Load charts namespace
+  const { t } = useTranslation('charts')
 
   // Filter data based on date range if provided
   // const filteredDonations = startDate && endDate
@@ -85,13 +86,13 @@ export function CampaignCharts({ donations, expenses /*, startDate, endDate */ }
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       <Card className="overflow-hidden">
         <CardHeader className="pb-0">
-          <CardTitle className="text-md">Campaign Distribution</CardTitle>
+          <CardTitle className="text-md">{t('charts:campaignCharts.distributionTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-0 px-0">
           <ChartContainer
             config={{
               value: {
-                label: "Amount",
+                label: t('charts:campaignCharts.amountLabel'),
                 color: "hsl(var(--chart-3))",
               },
             }}
@@ -122,17 +123,17 @@ export function CampaignCharts({ donations, expenses /*, startDate, endDate */ }
       </Card>
       <Card className="overflow-hidden">
         <CardHeader className="pb-0">
-          <CardTitle className="text-md">Campaign Progress</CardTitle>
+          <CardTitle className="text-md">{t('charts:campaignCharts.progressTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-0 px-0">
           <ChartContainer
             config={{
               raised: {
-                label: "Raised",
+                label: t('charts:campaignCharts.raisedLabel'),
                 color: "hsl(var(--chart-1))",
               },
               goal: {
-                label: "Goal",
+                label: t('charts:campaignCharts.goalLabel'),
                 color: "hsl(var(--chart-4))",
               },
             }}
@@ -149,8 +150,8 @@ export function CampaignCharts({ donations, expenses /*, startDate, endDate */ }
                 <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
-                <Bar dataKey="raised" fill="var(--color-raised)" name="Raised" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="goal" fill="var(--color-goal)" name="Goal" radius={[0, 4, 4, 0]} opacity={0.6} />
+                <Bar dataKey="raised" fill="var(--color-raised)" name={t('charts:campaignCharts.raisedLabel')} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="goal" fill="var(--color-goal)" name={t('charts:campaignCharts.goalLabel')} radius={[0, 4, 4, 0]} opacity={0.6} />
               </BarChart>
             </ResponsiveContainer>
           </ChartContainer>

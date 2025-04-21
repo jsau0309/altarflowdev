@@ -1,0 +1,117 @@
+{
+  "appName": "Altarflow",
+  "tagline": "Church Management Made Simple",
+  "loading": "Loading...",
+  "error": "An error occurred",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "view": "View",
+  "search": "Search",
+  "submit": "Submit",
+  "confirm": "Confirm",
+  "back": "Back",
+  "next": "Next",
+  "continue": "Continue",
+  "optional": "Optional",
+  "saveAndContinue": "Save and Continue",
+  "roles": {
+    "admin": "Admin",
+    "editor": "Editor",
+    "viewer": "Viewer"
+  },
+  "thisUser": "this user",
+  "refresh": "Refresh",
+  "default": "Default",
+  "available": "Available",
+  "download": "Download",
+  "change": "Change",
+  "enabled": "Enabled",
+  "active": "Active",
+  "live": "Live",
+  "reset": "Reset",
+  "apply": "Apply",
+  "export": "Export",
+  "allTime": "all time",
+  "present": "present",
+  "unknown": "Unknown",
+  "general": "General",
+  "toggleSidebar": "Toggle Sidebar",
+  "unknownDonor": "Unknown Donor",
+  "unknownCampaign": "Unknown Campaign",
+  "clearAllFilters": "Clear All Filters",
+  "filter": "Filter",
+  "traditional": "Traditional",
+  "digital": "Digital",
+  "goal": "Goal",
+  "raised": "Raised",
+  "actions": "Actions",
+  "ongoing": "Ongoing",
+  "deactivate": "Deactivate",
+  "activate": "Activate",
+  "joined": "Joined",
+  "currency": {
+    "usd": "USD"
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email address",
+    "passwordMismatch": "Passwords do not match",
+    "invalidAmount": "Please enter a valid amount",
+    "invalidDate": "Please enter a valid date",
+    "invalidPhone": "Please enter a valid phone number",
+    "serverError": "A server error occurred. Please try again.",
+    "unauthorized": "Unauthorized access",
+    "notFound": "Not found",
+    "pageNotFound": "Page not found",
+    "goHome": "Go to Home"
+  },
+  "success": {
+    "donationCreated": "Donation recorded successfully",
+    "expenseCreated": "Expense recorded successfully",
+    "memberAdded": "Member added successfully",
+    "campaignCreated": "Campaign created successfully",
+    "settingsSaved": "Settings saved successfully",
+    "profileUpdated": "Profile updated successfully",
+    "passwordChanged": "Password changed successfully",
+    "emailVerified": "Email verified successfully"
+  },
+  "pagination": {
+    "showing": "Showing {{start}} to {{end}} of {{total}} items",
+    "first": "First page",
+    "previous": "Previous page",
+    "page": "Page {{page}}",
+    "next": "Next page",
+    "last": "Last page",
+    "perPage": "{{count}} per page"
+  },
+  "customFields": {
+    "cf1": {
+      "label": "Spouse's Name"
+    },
+    "cf2": {
+      "label": "Anniversary Date"
+    },
+    "cf3": {
+      "label": "Preferred Contact Method",
+      "options": {
+        "email": "Email",
+        "phone": "Phone Call",
+        "text": "Text Message"
+      }
+    },
+    "cf4": {
+      "label": "Subscribe to Newsletter"
+    },
+    "cf5": {
+      "label": "Years Attending"
+    }
+  },
+  "stepper": {
+    "details": "Details",
+    "info": "Info",
+    "donate": "Donate"
+  },
+  "selectFrequency": "Select frequency"
+} 

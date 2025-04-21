@@ -3,46 +3,48 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { BarChart3, CreditCard, DollarSign, LayoutDashboard, LogOut, Settings, Users } from "lucide-react"
+import { useTranslation } from 'react-i18next';
 
 import { cn } from "@/lib/utils"
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useTranslation('layout');
 
   const routes = [
     {
-      name: "Dashboard",
+      name: t('sidebar.dashboard'),
       path: "/dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
-      name: "Donations",
+      name: t('sidebar.donations'),
       path: "/donations",
       icon: <DollarSign className="h-5 w-5" />,
     },
     {
-      name: "Expenses",
+      name: t('sidebar.expenses'),
       path: "/expenses",
       icon: <CreditCard className="h-5 w-5" />,
     },
     {
-      name: "Members",
+      name: t('sidebar.members'),
       path: "/members",
       icon: <Users className="h-5 w-5" />,
     },
     {
-      name: "Reports",
+      name: t('sidebar.reports'),
       path: "/reports",
       icon: <BarChart3 className="h-5 w-5" />,
     },
     {
-      name: "Banking",
+      name: t('sidebar.banking'),
       path: "/banking",
       icon: <CreditCard className="h-5 w-5" />,
     },
     {
-      name: "Settings",
+      name: t('sidebar.settings'),
       path: "/settings",
       icon: <Settings className="h-5 w-5" />,
     },
@@ -76,7 +78,7 @@ export function Sidebar() {
           className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
         >
           <LogOut className="h-5 w-5" />
-          Sign Out
+          {t('sidebar.signOut')}
         </button>
       </nav>
     </div>

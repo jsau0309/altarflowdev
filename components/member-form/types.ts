@@ -63,6 +63,8 @@ export type FormConfig = {
   showPrayerRequest: boolean
   showCustomFields: boolean
   customFields: CustomField[]
+  ministries: Ministry[]
+  serviceTimes: ServiceTime[]
   submitButtonText: string
   successMessage: string
   errorMessage: string

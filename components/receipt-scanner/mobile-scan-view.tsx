@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useTranslation } from "react-i18next"
 
 interface MobileScanViewProps {
   onCapture: (imageData: string) => void
@@ -14,6 +15,7 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
+  const { t } = useTranslation()
 
   useEffect(() => {
     async function setupCamera() {
@@ -77,7 +79,7 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
 
         <div className="absolute inset-x-0 top-4 text-center">
           <Badge variant="secondary" className="bg-black/70 text-white">
-            Center receipt in frame
+            {t('receiptScanner.mobile.centerInFrame')}
           </Badge>
         </div>
       </div>
@@ -93,7 +95,7 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
 
       <div className="bg-background p-4 rounded-b-lg">
         <p className="text-center text-sm text-muted-foreground">
-          Ensure good lighting and that the entire receipt is visible
+          {t('receiptScanner.mobile.ensureLighting')}
         </p>
       </div>
     </div>

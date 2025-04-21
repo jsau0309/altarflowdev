@@ -1,0 +1,114 @@
+{
+  "title": "Reports",
+  "financialReports": "Financial Reports",
+  "membershipReports": "Membership Reports",
+  "donationSummary": "Donation Summary",
+  "expenseSummary": "Expense Summary",
+  "incomeStatement": "Income Statement",
+  "campaignPerformance": "Campaign Performance",
+  "memberGrowth": "Member Growth",
+  "memberAttendance": "Member Attendance",
+  "memberEngagement": "Member Engagement",
+  "generateReport": "Generate Report",
+  "timeFrame": "Time Frame",
+  "exportPDF": "Export to PDF",
+  "exportCSV": "Export to CSV",
+  
+  "timeFrames": {
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month",
+    "thisYear": "This Year",
+    "lastYear": "Last Year",
+    "custom": "Custom"
+  },
+  
+  "reportsContent": {
+    "subtitle": "Generate and view financial reports",
+    "exportFormatTitle": "Export Format",
+    "tabs": {
+      "donations": "Donation Reports",
+      "expenses": "Expense Reports",
+      "campaigns": "Campaign Reports"
+    },
+    "donations": {
+      "totalTitle": "Total Donations",
+      "totalSubtitle": "{{count}} donations in selected period",
+      "averageTitle": "Average Donation",
+      "averageSubtitle": "Per donation in selected period",
+      "uniqueDonorsTitle": "Unique Donors",
+      "uniqueDonorsSubtitle": "Contributors in selected period",
+      "recordsTitle": "Donation Records"
+    },
+    "showingCount": "Showing {{count}} donations",
+    "dateRangeSuffix": " from {{start}} to {{end}}",
+    "noDataPeriod": "No donations found for the selected period",
+    "expenses": {
+      "totalTitle": "Total Expenses",
+      "totalSubtitle": "{{count}} expenses in selected period",
+      "averageTitle": "Average Expense",
+      "averageSubtitle": "Per expense in selected period",
+      "netIncomeTitle": "Net Income",
+      "netIncomeSubtitle": "Donations minus expenses",
+      "recordsTitle": "Expense Records"
+    },
+    "showingCountExpenses": "Showing {{count}} expenses",
+    "noDataPeriodExpenses": "No expenses found for the selected period",
+    "campaigns": {
+      "activeTitle": "Active Campaigns",
+      "activeSubtitle": "Currently running campaigns",
+      "totalRaisedTitle": "Total Raised",
+      "totalRaisedSubtitle": "Across all campaigns",
+      "goalCompletionTitle": "Goal Completion",
+      "goalCompletionSubtitle": "Average across campaigns with goals",
+      "progressTitle": "Campaign Progress",
+      "progressSubtitle": "Current status of active fundraising campaigns",
+      "goalStatus": "{{raised}} / {{goal}} raised",
+      "progressAriaLabel": "{{percent}}% towards goal",
+      "progressPercent": "{{percent}}% Complete",
+      "endDate": " Ends {{date}}"
+    },
+    "noActiveCampaigns": "No active campaigns found"
+  },
+  
+  "generateReportModal": {
+    "title": "Generate a report",
+    "description": "Select the report you want to generate.",
+    "reportTypeLabel": "Report type",
+    "reportTypePlaceholder": "Select the report type",
+    "reportTypeOptions": {
+      "donations": "Donation Report",
+      "expenses": "Expense Report",
+      "campaigns": "Campaign Report"
+    },
+    "dateRangeLabel": "Date range",
+    "dateRangeOptions": {
+      "currentMonth": "Current Month",
+      "previousMonth": "Previous Month",
+      "currentQuarter": "Current Quarter",
+      "yearToDate": "Year to Date",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "custom": "Custom Date Range"
+    },
+    "customRange": {
+      "from": "From",
+      "to": "To",
+      "pickDate": "Pick a date"
+    },
+    "optionsLabel": "Report options",
+    "options": {
+      "charts": "Include charts",
+      "summary": "Include summary",
+      "details": "Include details"
+    },
+    "exportFormatLabel": " Export format",
+    "exportFormatOptions": {
+      "pdf": "PDF",
+      "csv": "CSV"
+    },
+    "cancelButton": "Cancel",
+    "generating": "Generating...",
+    "generateButton": "Generate Report"
+  }
+} 

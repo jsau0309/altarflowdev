@@ -6,6 +6,7 @@ import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Cart
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Expense } from "@/lib/types"
 import { TrendingUp, TrendingDown, CheckCircle, AlertCircle, DollarSign } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 interface ExpenseChartsProps {
   expenses: Expense[];
@@ -14,7 +15,8 @@ interface ExpenseChartsProps {
 }
 
 export function ExpenseCharts({ expenses, startDate, endDate }: ExpenseChartsProps) {
-  // const { t } = useTranslation() // Unused
+  // Load charts namespace
+  const { t } = useTranslation('charts')
 
   // Filter expenses based on date range
   const filteredExpenses = expenses.filter((expense: Expense) => {
@@ -68,13 +70,13 @@ export function ExpenseCharts({ expenses, startDate, endDate }: ExpenseChartsPro
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       <Card className="overflow-hidden">
         <CardHeader className="pb-0">
-          <CardTitle className="text-md">Expense Categories</CardTitle>
+          <CardTitle className="text-md">{t('charts:expenseCharts.categoriesTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-0 px-0">
           <ChartContainer
             config={{
               amount: {
-                label: "Amount",
+                label: t('charts:expenseCharts.amountLabel'),
                 color: "hsl(var(--chart-2))",
               },
             }}
@@ -87,7 +89,7 @@ export function ExpenseCharts({ expenses, startDate, endDate }: ExpenseChartsPro
                 <YAxis tickFormatter={(value: number) => formatCurrency(value)} tick={{ fontSize: 12 }} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
-                <Bar dataKey="amount" fill="var(--color-amount)" name="Amount" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="amount" fill="var(--color-amount)" name={t('charts:expenseCharts.amountLabel')} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartContainer>
@@ -95,13 +97,13 @@ export function ExpenseCharts({ expenses, startDate, endDate }: ExpenseChartsPro
       </Card>
       <Card className="overflow-hidden">
         <CardHeader className="pb-0">
-          <CardTitle className="text-md">Expense Trends</CardTitle>
+          <CardTitle className="text-md">{t('charts:expenseCharts.trendsTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-0 px-0">
           <ChartContainer
             config={{
               amount: {
-                label: "Amount",
+                label: t('charts:expenseCharts.amountLabel'),
                 color: "hsl(var(--chart-3))",
               },
             }}
@@ -118,7 +120,7 @@ export function ExpenseCharts({ expenses, startDate, endDate }: ExpenseChartsPro
                   type="monotone"
                   dataKey="amount"
                   stroke="var(--color-amount)"
-                  name="Expenses"
+                  name={t('charts:expenseCharts.expensesLegend')}
                   strokeWidth={2}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}

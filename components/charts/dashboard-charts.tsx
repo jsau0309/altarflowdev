@@ -9,6 +9,7 @@ import { ChartData, ChartOptions } from 'chart.js/auto'
 import { Bar, Line, Pie } from "react-chartjs-2"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useTranslation } from "react-i18next"
 
 // Define basic types if not already defined elsewhere
 interface Donation {
@@ -38,6 +39,8 @@ interface DashboardChartsProps {
 }
 
 export function DashboardCharts({ donations: initialDonations, expenses: initialExpenses, /* campaigns, */ timeRange, onTimeRangeChange }: DashboardChartsProps) {
+  // Load charts namespace
+  const { t } = useTranslation('charts');
   const financialChartRef = useRef<HTMLCanvasElement | null>(null)
   const campaignChartRef = useRef<HTMLCanvasElement | null>(null)
   const financialChartInstance = useRef<Chart | null>(null)
@@ -84,8 +87,8 @@ export function DashboardCharts({ donations: initialDonations, expenses: initial
 
     // Campaign data - Needs real data source
     // const campaigns = [] // Placeholder
-    const campaignNames = ["Building Fund", "Youth Mission Trip", "Weekly Tithe", "General Offering", "Missions"] // Placeholder
-    const campaignProgress = [30, 55, 100, 100, 55] // Percentages as shown in screenshot - Placeholder
+    const campaignNames = [t('charts:dashboardCharts.campaign.ofrendas'), t('charts:dashboardCharts.campaign.diezmo')]
+    const campaignProgress = [60, 100] // Example progress values for MVP
 
     // Create financial chart
     if (financialChartRef.current) {
@@ -112,7 +115,7 @@ export function DashboardCharts({ donations: initialDonations, expenses: initial
             labels: formattedDates,
             datasets: [
               {
-                label: "Donations",
+                label: t('charts:dashboardCharts.donations'),
                 data: donationsByDate,
                 borderColor: "rgb(75, 192, 192)",
                 backgroundColor: donationsGradient,
@@ -122,7 +125,7 @@ export function DashboardCharts({ donations: initialDonations, expenses: initial
                 pointBackgroundColor: "rgb(75, 192, 192)",
               },
               {
-                label: "Expenses",
+                label: t('charts:dashboardCharts.expenses'),
                 data: expensesByDate,
                 borderColor: "rgb(255, 99, 132)",
                 backgroundColor: expensesGradient,
@@ -152,7 +155,7 @@ export function DashboardCharts({ donations: initialDonations, expenses: initial
               },
               title: {
                 display: true,
-                text: "Donations vs Expenses (Last 7 Days)",
+                text: t('charts:dashboardCharts.donVsExpTitle'),
                 font: {
                   size: 14,
                   weight: "normal",
@@ -204,7 +207,7 @@ export function DashboardCharts({ donations: initialDonations, expenses: initial
           labels: campaignNames,
           datasets: [
             {
-              label: "Progress",
+              label: t('charts:dashboardCharts.progress'),
               data: campaignProgress,
               backgroundColor: campaignProgress.map((progress) => {
                 if (progress >= 100) return "rgba(75, 192, 192, 0.7)" // Teal for 100%
@@ -228,7 +231,7 @@ export function DashboardCharts({ donations: initialDonations, expenses: initial
             },
             title: {
               display: true,
-              text: "Campaign Progress (%)",
+              text: t('charts:dashboardCharts.campaignTitle'),
               font: {
                 size: 14,
                 weight: "normal",
@@ -278,7 +281,7 @@ export function DashboardCharts({ donations: initialDonations, expenses: initial
         campaignChartInstance.current.destroy()
       }
     }
-  }, [initialDonations, initialExpenses, timeRange])
+  }, [initialDonations, initialExpenses, timeRange, t]) // Add t to dependency array
 
   return (
     <>

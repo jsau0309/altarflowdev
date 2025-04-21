@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "react-i18next"
 
 type OnboardingData = {
   // Church details
@@ -51,6 +52,7 @@ const defaultData: OnboardingData = {
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined)
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
   const router = useRouter()
   const { showToast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
@@ -67,7 +69,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
       // Show success toast when moving to next step
       if (currentStep === 2) {
-        showToast("Church details saved successfully", "success")
+        showToast(t('onboarding.context.churchDetailsSaved', "Church details saved successfully"), "success")
       }
     }
   }

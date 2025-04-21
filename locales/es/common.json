@@ -1,0 +1,124 @@
+{
+  "appName": "Altarflow",
+  "tagline": "Manejo de Iglesia Simplificado",
+  "loading": "Cargando...",
+  "error": "Ocurrió un error",
+  "save": "Guardar",
+  "cancel": "Cancelar",
+  "delete": "Eliminar",
+  "edit": "Editar",
+  "view": "Ver",
+  "search": "Buscar",
+  "submit": "Enviar",
+  "confirm": "Confirmar",
+  "back": "Atrás",
+  "next": "Siguiente",
+  "continue": "Continuar",
+  "optional": "Opcional",
+  "saveAndContinue": "Guardar y Continuar",
+  "roles": {
+    "admin": "Administrador",
+    "editor": "Editor",
+    "viewer": "Usuario"
+  },
+  "thisUser": "este usuario",
+  "refresh": "Refrescar",
+  "default": "Defecto",
+  "available": "Disponible",
+  "download": "Descargar",
+  "change": "Cambiar",
+  "enabled": "Habilitado",
+  "active": "Activo",
+  "live": "Activo",
+  "reset": "Reiniciar",
+  "apply": "Aplicar",
+  "export": "Exportar",
+  "allTime": "todo el tiempo",
+  "present": "presente",
+  "unknown": "Desconocido",
+  "general": " General",
+  "toggleSidebar": "Menu Lateral",
+  "unknownDonor": "Desconocido",
+  "unknownCampaign": "Desconocido",
+  "clearAllFilters": "Limpiar todos los filtros",
+  "filter": "Filtro",
+  "traditional": "Tradicional",
+  "digital": "Digital",
+  "goal": "Objetivo",
+  "raised": "Recaudado",
+  "actions": "Acciones",
+  "ongoing": "En curso",
+  "deactivate": "Desactivar",
+  "activate": "Activar",
+  "joined": "Unido",
+  "currency": {
+    "usd": "USD"
+  },
+  "errors": {
+    "required": "Este campo es requerido",
+    "invalidEmail": "Por favor, ingrese una dirección de correo electrónico válida",
+    "passwordMismatch": "Las contraseñas no coinciden",
+    "invalidAmount": "Por favor, ingrese una cantidad válida",
+    "invalidDate": "Por favor, ingrese una fecha válida",
+    "invalidPhone": "Por favor, ingrese un número de teléfono válido",
+    "serverError": "Ocurrió un error en el servidor. Por favor, inténtelo de nuevo.",
+    "unauthorized": "Acceso no autorizado",
+    "notFound": "No encontrado",
+    "pageNotFound": "Página no encontrada",
+    "goHome": "Ir a Inicio"
+  },
+  "success": {
+    "donationCreated": "Donación registrada exitosamente",
+    "expenseCreated": "Gasto registrado exitosamente",
+    "memberAdded": "Miembro agregado exitosamente",
+    "campaignCreated": "Campaña creada exitosamente",
+    "settingsSaved": "Ajustes guardados exitosamente",
+    "profileUpdated": "Perfil actualizado exitosamente",
+    "passwordChanged": "Contraseña cambiada exitosamente",
+    "emailVerified": "Correo electrónico verificado exitosamente"
+  },
+  "pagination": {
+    "showing": "Mostrando {{start}} a {{end}} de {{total}} elementos",
+    "first": "Primera página",
+    "previous": "Página anterior",
+    "page": "Página {{page}}",
+    "next": "Página siguiente",
+    "last": "Última página",
+    "perPage": "{{count}} por página"
+  },
+  "customFields": {
+    "cf1": {
+      "label": "Nombre del Cónyuge"
+    },
+    "cf2": {
+      "label": "Fecha de Aniversario"
+    },
+    "cf3": {
+      "label": "Método de Contacto Preferido",
+      "options": {
+        "email": "Correo electrónico",
+        "phone": "Llamada telefónica",
+        "text": "Mensaje de texto"
+      }
+    },
+    "cf4": {
+      "label": "Suscribirse al boletín"
+    },
+    "cf5": {
+      "label": "Años asistiendo"
+    }
+  },
+  "stepper": {
+    "details": "Detalles",
+    "info": "Info",
+    "donate": "Donar"
+  },
+  "selectFrequency": "Seleccionar frecuencia"
+} 
+
+
+
+
+
+
+

@@ -1,0 +1,47 @@
+{
+  "toggleMenu": "Toggle Menu",
+  "toggleTheme": "Toggle Theme",
+  "lightMode": "Light Mode",
+  "darkMode": "Dark Mode",
+  "switchLanguage": "Switch to Spanish",
+  "profile": "Profile",
+  "settings": "Settings",
+  "help": "Help",
+  "logout": "Logout",
+  "churchAddressPlaceholder": "Church Address Placeholder",
+  
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "donations": "Donations",
+    "donationHistory": "Donation History",
+    "createDonation": "Record Donation",
+    "campaigns": "Campaigns",
+    "expenses": "Expenses",
+    "expenseHistory": "Expense History",
+    "createExpense": "Record Expense",
+    "expenseCategories": "Categories",
+    "members": "Members",
+    "memberDirectory": "Member Directory",
+    "newMember": "New Member",
+    "reports": "Reports",
+    "financialReports": "Financial Reports",
+    "membershipReports": "Membership Reports",
+    "settings": "Settings",
+    "banking": "Banking",
+    "signOut": "Sign Out"
+  },
+  
+  "themeToggle": {
+    "toggleLabel": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  
+  "languageToggle": {
+    "label": "Language",
+    "english": "English",
+    "spanish": "Spanish",
+    "toggleLabel": "Change language - Current: {{language}}"
+  }
+} 

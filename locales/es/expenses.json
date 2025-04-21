@@ -1,0 +1,88 @@
+{
+    "title": "Gastos",
+    "newExpense": "Nuevo gasto",
+    "expenseHistory": "Historial de gastos",
+    "categories": "Categorías",
+    "amount": "Cantidad",
+    "vendor": "Proveedor",
+    "date": "Fecha",
+    "category": "Categoría",
+    "status": "Estado",
+    "paymentMethod": "Método de pago",
+    "description": "Descripción",
+    "receipt": "Recibo",
+    "uploadReceipt": "Subir recibo",
+    "approver": "Aprobador",
+    "approvalDate": "Fecha de aprobación",
+    "pendingApproval": "Pendiente de aprobación",
+    "approved": "Aprobado",
+    "rejected": "Rechazado",
+    
+    "paymentMethods": {
+      "cash": "Efectivo",
+      "check": "Cheque",
+      "card": "Tarjeta de crédito/débito",
+      "bankTransfer": "Transferencia bancaria"
+    },
+    
+    "statuses": {
+      "pending": "Pendiente",
+      "approved": "Aprobado",
+      "rejected": "Rechazado",
+      "paid": "Pagado"
+    },
+    
+    "expensesContent": {
+      "subtitle": "Seguimiento y gestión de tus gastos de la iglesia",
+      "recordsTitle": "Registros de gastos",
+      "recordsSubtitle": "Ver, agregar y gestionar tus gastos de la iglesia",
+      "searchPlaceholder": "Buscar gastos...",
+      "empty": {
+        "title": "No se encontraron gastos",
+        "adjustSearch": "Intenta ajustar tus términos de búsqueda.",
+        "addFirst": "Agrega tu primer gasto para comenzar."
+      }
+    },
+    
+    "newExpenseModal": {
+      "editTitle": "Editar gasto",
+      "newTitle": "Nuevo gasto",
+      "description": "Agrega un nuevo gasto al sistema.",
+      "amountLabel": "Cantidad",
+      "currencySymbol": "$",
+      "amountPlaceholder": "0.00",
+      "dateLabel": "Fecha",
+      "vendorLabel": "Proveedor/Beneficiario",
+      "vendorPlaceholder": "Ingresa el nombre del proveedor o beneficiario",
+      "categoryLabel": "Categoría",
+      "categoryPlaceholder": "Selecciona una categoría",
+      "categoryOptions": {
+        "utilities": "Utilidades",
+        "supplies": "Suministros",
+        "maintenance": "Mantenimiento",
+        "salaries": "Salarios",
+        "events": "Eventos",
+        "other": "Otros"
+      },
+      "paymentMethodLabel": "Método de pago",
+      "paymentMethodPlaceholder": "Selecciona un método de pago",
+      "paymentMethodOptions": {
+        "cash": "Efectivo",
+        "check": "Cheque",
+        "creditCard": "Tarjeta de crédito",
+        "bankTransfer": "Transferencia bancaria"
+      },
+      "notesLabel": "Notas",
+      "notesPlaceholder": "Describe el gasto",
+      "receiptLabel": "Recibo (Opcional)",
+      "removeReceiptButton": "Eliminar",
+      "replaceReceiptButton": "Reemplazar",
+      "addReceiptInfo": "Agrega un recibo para extraer automáticamente los detalles del gasto",
+      "addReceiptButton": "Agregar Recibo",
+      "cancelButton": "Cancelar",
+      "saving": "Guardando...",
+      "updating": "Actualizando...",
+      "saveButton": "Guardar gasto",
+      "updateButton": "Actualizar gasto"
+    }
+  } 

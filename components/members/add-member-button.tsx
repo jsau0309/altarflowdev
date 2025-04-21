@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { Plus } from "lucide-react"
 import { Button, type ButtonProps } from "@/components/ui/button"
-import { AddMemberModal } from "./add-member-modal"
+import { AddMemberModal } from "@/components/modals/add-donor-modal"
+import { useTranslation } from "react-i18next"
 
 interface AddMemberButtonProps extends ButtonProps {
   onMemberAdded?: () => void
@@ -18,16 +19,20 @@ export function AddMemberButton({
   variant = "default",
   size = "default",
   showIcon = true,
-  label = "Add Member",
+  label,
   className,
   ...props
 }: AddMemberButtonProps) {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
+  const { t } = useTranslation('members')
+
+  const buttonLabel = label ?? t('members:newMember')
 
   const handleAddMemberSuccess = () => {
     if (onMemberAdded) {
       onMemberAdded()
     }
+    setShowAddMemberModal(false)
   }
 
   return (
@@ -40,13 +45,12 @@ export function AddMemberButton({
         {...props}
       >
         {showIcon && <Plus className="h-4 w-4 mr-2" />}
-        {label}
+        {buttonLabel}
       </Button>
 
       <AddMemberModal
-        open={showAddMemberModal}
+        isOpen={showAddMemberModal}
         onClose={() => setShowAddMemberModal(false)}
-        onSuccess={handleAddMemberSuccess}
       />
     </>
   )

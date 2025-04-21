@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type { Member } from "@/lib/types"
 import { EditMemberForm } from "./edit-member-form"
+import { useTranslation } from "react-i18next"
 
 interface MemberDetailsDrawerProps {
   member: Member
@@ -26,6 +27,7 @@ interface MemberDetailsDrawerProps {
 
 export function MemberDetailsDrawer({ member, open, onClose }: MemberDetailsDrawerProps) {
   const [isEditing, setIsEditing] = useState(false)
+  const { t } = useTranslation(['members', 'common'])
 
   const handleSave = () => {
     // In a real app, this would update the member data
@@ -34,27 +36,41 @@ export function MemberDetailsDrawer({ member, open, onClose }: MemberDetailsDraw
     onClose()
   }
 
+  // Helper to get language display text
+  const getLanguageText = (lang: string | undefined) => {
+    if (!lang) return '';
+    if (lang === 'both') return t('common:languageOptions.both', 'Bilingual');
+    if (lang === 'spanish') return t('common:languageOptions.spanish', 'Spanish');
+    return t('common:languageOptions.english', 'English');
+  }
+
+  // Helper to get membership status text
+  const getStatusText = (status: string | undefined) => {
+    if (!status) return '';
+    return t(`members:statuses.${status}`, status);
+  }
+
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent className="sm:max-w-md w-[90vw] p-0 flex flex-col">
         <SheetHeader className="p-6 border-b">
           <div className="flex justify-between items-center">
-            <SheetTitle>Member Details</SheetTitle>
+            <SheetTitle>{t('members:profile')}</SheetTitle>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="More actions">
+                <Button variant="ghost" size="icon" aria-label={t('common:moreActions', 'More actions')}>
                   <MoreVertical className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setIsEditing(true)}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Member
+                  {t('common:edit')} {t('members:member', 'Member')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive">
                   <Trash className="h-4 w-4 mr-2" />
-                  Delete Member
+                  {t('common:delete')} {t('members:member', 'Member')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -79,7 +95,7 @@ export function MemberDetailsDrawer({ member, open, onClose }: MemberDetailsDraw
                     {member.firstName} {member.lastName}
                   </h2>
                   <p className="text-muted-foreground">
-                    Member since {format(new Date(member.joinDate), "MMMM d, yyyy")}
+                    {t('common:memberSince', 'Member since')} {format(new Date(member.joinDate), "PP")}
                   </p>
                 </div>
               </div>
@@ -95,7 +111,7 @@ export function MemberDetailsDrawer({ member, open, onClose }: MemberDetailsDraw
                         : "outline"
                   }
                 >
-                  {member.membershipStatus}
+                  {getStatusText(member.membershipStatus)}
                 </Badge>
 
                 {member.language && (
@@ -108,29 +124,29 @@ export function MemberDetailsDrawer({ member, open, onClose }: MemberDetailsDraw
                           : "outline"
                     }
                   >
-                    {member.language === "both" ? "Bilingual" : member.language === "spanish" ? "Spanish" : "English"}
+                    {getLanguageText(member.language)}
                   </Badge>
                 )}
               </div>
 
               {/* Contact information */}
               <div className="space-y-4 mb-6">
-                <h3 className="text-sm font-medium text-muted-foreground">Contact Information</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">{t('members:contactInformation')}</h3>
 
                 <div className="grid grid-cols-1 gap-3">
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{member.phone || "No phone number"}</span>
+                    <span>{member.phone || t('common:noPhoneNumber', 'No phone number')}</span>
                     {member.phoneVerified && (
                       <Badge variant="outline" className="ml-auto text-xs">
-                        Verified
+                        {t('common:verified', 'Verified')}
                       </Badge>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{member.email || "No email address"}</span>
+                    <span>{member.email || t('common:noEmailAddress', 'No email address')}</span>
                   </div>
 
                   {member.address && (
@@ -160,7 +176,7 @@ export function MemberDetailsDrawer({ member, open, onClose }: MemberDetailsDraw
                         <Check className="h-4 w-4 text-green-600" />
                       </div>
                       <div>
-                        <h4 className="font-medium">SMS Consent: Yes</h4>
+                        <h4 className="font-medium">{t('members:smsConsentStatus', 'SMS Consent: Yes')}</h4>
                       </div>
                     </>
                   ) : (
@@ -169,7 +185,7 @@ export function MemberDetailsDrawer({ member, open, onClose }: MemberDetailsDraw
                         <X className="h-4 w-4 text-red-600" />
                       </div>
                       <div>
-                        <h4 className="font-medium">SMS Consent: No</h4>
+                        <h4 className="font-medium">{t('members:smsConsentStatusNo', 'SMS Consent: No')}</h4>
                       </div>
                     </>
                   )}

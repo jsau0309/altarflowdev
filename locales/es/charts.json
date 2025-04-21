@@ -1,0 +1,38 @@
+{
+    "expenseCharts": {
+      "categoriesTitle": "Categorías de Gastos",
+      "amountLabel": "Cantidad",
+      "trendsTitle": "Tendencias de Gastos",
+      "expensesLegend": "Gastos"
+    },
+    
+    "campaignCharts": {
+      "distributionTitle": "Distribución de Campañas",
+      "amountLabel": "Cantidad",
+      "progressTitle": "Progreso de Campañas",
+      "raisedLabel": "Recaudado",
+      "goalLabel": "Objetivo"
+    },
+    
+    "donationCharts": {
+      "trendsTitle": "Tendencias de Donaciones",
+      "amountLabel": "Cantidad",
+      "donationsLegend": "Donaciones",
+      "paymentMethodsTitle": "Métodos de Pago"
+    },
+    
+    "dashboardCharts": {
+      "donations": "Donaciones",
+      "expenses": "Gastos",
+      "donVsExpTitle": "Donaciones vs Gastos (Últimos 7 Días)",
+      "campaignTitle": "Progreso de Campañas (%)",
+      "progress": "Progreso",
+      "campaign": {
+        "offerings": "Ofrendas",
+        "thithe": "Diezmo",
+        "generalOffering": "Ofrenda General",
+        "titheDescription": "Recolecta diezmo regular para las operaciones de la iglesia.",
+        "generalOfferingDescription": "Ofrenda regular para las operaciones y ministerios de la iglesia."
+      }
+    }
+  } 

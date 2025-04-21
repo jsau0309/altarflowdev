@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, DollarSign, Clock, Infinity } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,6 +53,7 @@ interface FormData {
 
 export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProps) {
   const router = useRouter()
+  const { t } = useTranslation('campaigns')
   const [isLoading, setIsLoading] = useState(false)
   const [campaignType, setCampaignType] = useState<"tithe" | "general">("tithe")
   const [allowRecurring, setAllowRecurring] = useState(true)
@@ -144,17 +146,17 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
 
     // Ensure at least one frequency is selected if recurring is enabled
     if (allowRecurring && frequencies.length === 0) {
-      alert("Please select at least one recurring frequency option")
+      alert(t('campaigns:campaignModal.errors.selectFrequency'))
       setIsLoading(false)
       return
     }
 
     // Set name and description based on campaign type
-    const name = campaignType === "tithe" ? "Tithe" : "General Offering"
+    const name = campaignType === "tithe" ? t('campaigns:campaignModal.tithe') : t('campaigns:campaignModal.generalOffering')
     const description =
       campaignType === "tithe"
-        ? "Regular tithe collection for church operations."
-        : "Regular offering for church operations and ministries."
+        ? t('campaigns:campaignModal.titheDescription')
+        : t('campaigns:campaignModal.generalOfferingDescription')
 
     // Prepare campaign data
     const campaignData = {
@@ -226,22 +228,22 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
     >
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{campaignId ? "Edit Donation Type" : "Configure Donation Type"}</DialogTitle>
+          <DialogTitle>{campaignId ? t('campaigns:campaignModal.editTitle') : t('campaigns:campaignModal.newTitle')}</DialogTitle>
           <DialogDescription>
-            {campaignId ? "Update your donation type settings." : "Configure your donation type settings."}
+            {campaignId ? t('campaigns:campaignModal.editDescription') : t('campaigns:campaignModal.newDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="campaignType">Donation Type</Label>
+            <Label htmlFor="campaignType">{t('campaigns:campaignModal.donationTypeLabel')}</Label>
             <Select value={campaignType} onValueChange={(value) => setCampaignType(value as "tithe" | "general")}>
               <SelectTrigger>
-                <SelectValue placeholder="Select donation type" />
+                <SelectValue placeholder={t('campaigns:campaignModal.donationTypePlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="tithe">Tithe</SelectItem>
-                <SelectItem value="general">General Offering</SelectItem>
+                <SelectItem value="tithe">{t('campaigns:campaignModal.tithe')}</SelectItem>
+                <SelectItem value="general">{t('campaigns:campaignModal.generalOffering')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -251,7 +253,7 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <Label htmlFor="allow-recurring" className="font-medium">
-                  Allow Recurring Donations
+                  {t('campaigns:campaignModal.allowRecurringLabel')}
                 </Label>
               </div>
               <Switch id="allow-recurring" checked={allowRecurring} onCheckedChange={setAllowRecurring} />
@@ -260,9 +262,9 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
             {allowRecurring && (
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label>Recurring Frequency</Label>
+                  <Label>{t('campaigns:campaignModal.recurringFrequencyLabel')}</Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Select all frequency options that donors can choose from
+                    {t('campaigns:campaignModal.recurringFrequencyDescription')}
                   </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
@@ -271,7 +273,7 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
                         checked={selectedFrequencies.weekly}
                         onCheckedChange={(checked) => handleFrequencyChange("weekly", checked === true)}
                       />
-                      <Label htmlFor="weekly">Weekly</Label>
+                      <Label htmlFor="weekly">{t('campaigns:campaignModal.frequencyOptions.weekly')}</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -279,7 +281,7 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
                         checked={selectedFrequencies.monthly}
                         onCheckedChange={(checked) => handleFrequencyChange("monthly", checked === true)}
                       />
-                      <Label htmlFor="monthly">Monthly</Label>
+                      <Label htmlFor="monthly">{t('campaigns:campaignModal.frequencyOptions.monthly')}</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -287,7 +289,7 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
                         checked={selectedFrequencies.quarterly}
                         onCheckedChange={(checked) => handleFrequencyChange("quarterly", checked === true)}
                       />
-                      <Label htmlFor="quarterly">Quarterly</Label>
+                      <Label htmlFor="quarterly">{t('campaigns:campaignModal.frequencyOptions.quarterly')}</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -295,7 +297,7 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
                         checked={selectedFrequencies.annually}
                         onCheckedChange={(checked) => handleFrequencyChange("annually", checked === true)}
                       />
-                      <Label htmlFor="annually">Annually</Label>
+                      <Label htmlFor="annually">{t('campaigns:campaignModal.frequencyOptions.annually')}</Label>
                     </div>
                   </div>
                 </div>
@@ -304,25 +306,25 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <Label htmlFor="maxAmount">Maximum Amount</Label>
+                      <Label htmlFor="maxAmount">{t('campaigns:campaignModal.maxAmountLabel')}</Label>
                     </div>
                     <div className="flex items-center gap-2">
                       <Switch id="has-max-amount" checked={hasMaxAmount} onCheckedChange={setHasMaxAmount} />
                       <Label htmlFor="has-max-amount" className="text-sm">
-                        Set Limit
+                        {t('campaigns:campaignModal.setLimitLabel')}
                       </Label>
                     </div>
                   </div>
 
                   {hasMaxAmount ? (
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{t('campaigns:campaignModal.currencySymbol')}</span>
                       <Input
                         id="maxAmount"
                         type="number"
                         value={formData.maxAmount}
                         onChange={handleChange}
-                        placeholder="0.00"
+                        placeholder={t('campaigns:campaignModal.maxAmountPlaceholder')}
                         className="pl-8"
                         step="0.01"
                         min="0"
@@ -332,7 +334,7 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
                   ) : (
                     <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted/20">
                       <Infinity className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Unlimited</span>
+                      <span className="text-muted-foreground">{t('campaigns:campaignModal.unlimited')}</span>
                     </div>
                   )}
                 </div>
@@ -342,18 +344,18 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              {t('campaigns:campaignModal.cancelButton')}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {campaignId ? "Updating..." : "Saving..."}
+                  {campaignId ? t('campaigns:campaignModal.updating') : t('campaigns:campaignModal.saving')}
                 </>
               ) : campaignId ? (
-                "Update Settings"
+                t('campaigns:campaignModal.updateButton')
               ) : (
-                "Save Settings"
+                t('campaigns:campaignModal.saveButton')
               )}
             </Button>
           </DialogFooter>

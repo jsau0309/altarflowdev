@@ -5,6 +5,7 @@ import { Check } from "lucide-react"
 import DonationDetails from "./donation-details"
 import DonationInfo from "./donation-info"
 import DonationPayment from "./donation-payment"
+import { useTranslation } from "react-i18next"
 
 export type DonationFormData = {
   amount: number
@@ -72,10 +73,11 @@ interface StepperProps {
 }
 
 function Stepper({ currentStep }: StepperProps) {
+  const { t } = useTranslation();
   const steps = [
-    { id: 1, name: "Details" },
-    { id: 2, name: "Info" },
-    { id: 3, name: "Donate" },
+    { id: 1, name: t('stepper.details', "Details") },
+    { id: 2, name: t('stepper.info', "Info") },
+    { id: 3, name: t('stepper.donate', "Donate") },
   ]
 
   return (

@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import type { FormConfiguration } from "../member-form/types"
 import { PlusCircle, Trash2, ExternalLink } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 // Sample configuration for demonstration
 const defaultConfig: FormConfiguration = {
@@ -39,7 +40,8 @@ export function FormSettings() {
   const [newServiceDay, setNewServiceDay] = useState("")
   const [newServiceTime, setNewServiceTime] = useState("")
   const [newMinistryName, setNewMinistryName] = useState("")
-  const formUrl = `${window.location.origin}/connect`
+  const { t } = useTranslation(['settings', 'common'])
+  const formUrl = typeof window !== 'undefined' ? `${window.location.origin}/connect` : '';
 
   const handleAddService = () => {
     if (newServiceDay && newServiceTime) {
@@ -120,47 +122,53 @@ export function FormSettings() {
   }
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(formUrl)
-    alert("Form URL copied to clipboard!")
+    if(formUrl){
+        navigator.clipboard.writeText(formUrl)
+        alert(t('settings:formSettings.urlCopied', "Form URL copied to clipboard!"))
+    }
+  }
+
+  const openPreview = () => {
+    if(formUrl) window.open(formUrl, "_blank");
   }
 
   return (
     <div className="w-full overflow-x-hidden">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Visitor Form Settings</CardTitle>
-          <CardDescription>Configure the visitor information collection form</CardDescription>
+          <CardTitle>{t('settings:formSettings.title')}</CardTitle>
+          <CardDescription>{t('settings:formSettings.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-6">
-            <Label htmlFor="form-url">Form URL</Label>
+            <Label htmlFor="form-url">{t('settings:formSettings.formUrlLabel')}</Label>
             <div className="flex mt-1.5">
               <Input id="form-url" value={formUrl} readOnly className="flex-1" />
               <Button variant="outline" className="ml-2" onClick={copyToClipboard}>
-                Copy
+                {t('common:copy')}
               </Button>
-              <Button variant="outline" className="ml-2" onClick={() => window.open(formUrl, "_blank")}>
+              <Button variant="outline" className="ml-2" onClick={openPreview}>
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Preview
+                {t('common:preview')}
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
-              Share this link with visitors or use it to generate QR codes
+              {t('settings:formSettings.formUrlDescription')}
             </p>
           </div>
 
           <Tabs defaultValue="services">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="services">Service Times</TabsTrigger>
-              <TabsTrigger value="ministries">Ministries</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsTrigger value="services">{t('settings:formSettings.tabs.services')}</TabsTrigger>
+              <TabsTrigger value="ministries">{t('settings:formSettings.tabs.ministries')}</TabsTrigger>
+              <TabsTrigger value="settings">{t('settings:formSettings.tabs.settings')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="services" className="space-y-4 mt-4">
               <div>
-                <h3 className="text-lg font-medium">Service Times</h3>
+                <h3 className="text-lg font-medium">{t('settings:formSettings.services.title')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Add the service times that visitors can select on the form
+                  {t('settings:formSettings.services.description')}
                 </p>
               </div>
 
@@ -182,27 +190,27 @@ export function FormSettings() {
 
               <div className="flex space-x-2">
                 <Input
-                  placeholder="Day (e.g., Sunday)"
+                  placeholder={t('settings:formSettings.services.dayPlaceholder')}
                   value={newServiceDay}
                   onChange={(e) => setNewServiceDay(e.target.value)}
                 />
                 <Input
-                  placeholder="Time (e.g., 10:00 AM)"
+                  placeholder={t('settings:formSettings.services.timePlaceholder')}
                   value={newServiceTime}
                   onChange={(e) => setNewServiceTime(e.target.value)}
                 />
                 <Button onClick={handleAddService}>
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  Add
+                  {t('common:add')}
                 </Button>
               </div>
             </TabsContent>
 
             <TabsContent value="ministries" className="space-y-4 mt-4">
               <div>
-                <h3 className="text-lg font-medium">Ministries & Next Steps</h3>
+                <h3 className="text-lg font-medium">{t('settings:formSettings.ministries.title')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Add the ministries or next steps that visitors can express interest in
+                  {t('settings:formSettings.ministries.description')}
                 </p>
               </div>
 
@@ -222,29 +230,29 @@ export function FormSettings() {
 
               <div className="flex space-x-2">
                 <Input
-                  placeholder="Ministry name"
+                  placeholder={t('settings:formSettings.ministries.namePlaceholder')}
                   value={newMinistryName}
                   onChange={(e) => setNewMinistryName(e.target.value)}
                   className="flex-1"
                 />
                 <Button onClick={handleAddMinistry}>
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  Add
+                  {t('common:add')}
                 </Button>
               </div>
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-4 mt-4">
               <div>
-                <h3 className="text-lg font-medium">Form Settings</h3>
-                <p className="text-sm text-muted-foreground">Configure general settings for the visitor form</p>
+                <h3 className="text-lg font-medium">{t('settings:formSettings.settings.title')}</h3>
+                <p className="text-sm text-muted-foreground">{t('settings:formSettings.settings.description')}</p>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="prayer-requests">Prayer Requests</Label>
-                    <p className="text-sm text-muted-foreground">Allow visitors to submit prayer requests</p>
+                    <Label htmlFor="prayer-requests">{t('settings:formSettings.settings.prayerLabel')}</Label>
+                    <p className="text-sm text-muted-foreground">{t('settings:formSettings.settings.prayerDescription')}</p>
                   </div>
                   <Switch
                     id="prayer-requests"
@@ -255,8 +263,8 @@ export function FormSettings() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="referral-tracking">Referral Tracking</Label>
-                    <p className="text-sm text-muted-foreground">Ask visitors how they heard about your church</p>
+                    <Label htmlFor="referral-tracking">{t('settings:formSettings.settings.referralLabel')}</Label>
+                    <p className="text-sm text-muted-foreground">{t('settings:formSettings.settings.referralDescription')}</p>
                   </div>
                   <Switch
                     id="referral-tracking"
@@ -269,7 +277,7 @@ export function FormSettings() {
           </Tabs>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button>Save Changes</Button>
+          <Button>{t('common:saveChanges', 'Save Changes')}</Button>
         </CardFooter>
       </Card>
     </div>

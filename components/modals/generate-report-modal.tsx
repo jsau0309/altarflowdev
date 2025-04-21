@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { AlertCircle, Calendar, Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -40,6 +41,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
     summary: true,
     details: true,
   })
+  const { t } = useTranslation('reports');
 
   // Calculate date range based on selection
   const getDateRangeValues = (): { from: Date | undefined; to: Date | undefined } => {
@@ -129,8 +131,8 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Generate Report</DialogTitle>
-          <DialogDescription>Select the type of report you want to generate.</DialogDescription>
+          <DialogTitle>{t('reports:generateReportModal.title')}</DialogTitle>
+          <DialogDescription>{t('reports:generateReportModal.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto pr-1">
@@ -143,49 +145,49 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="report-type">Report Type</Label>
+              <Label htmlFor="report-type">{t('reports:generateReportModal.reportTypeLabel')}</Label>
               <Select required value={reportType} onValueChange={setReportType}>
                 <SelectTrigger id="report-type">
-                  <SelectValue placeholder="Select report type" />
+                  <SelectValue placeholder={t('reports:generateReportModal.reportTypePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="donations">Donation Report</SelectItem>
-                  <SelectItem value="expenses">Expense Report</SelectItem>
-                  <SelectItem value="campaigns">Campaign Report</SelectItem>
+                  <SelectItem value="donations">{t('reports:generateReportModal.reportTypeOptions.donations')}</SelectItem>
+                  <SelectItem value="expenses">{t('reports:generateReportModal.reportTypeOptions.expenses')}</SelectItem>
+                  <SelectItem value="campaigns">{t('reports:generateReportModal.reportTypeOptions.campaigns')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Date Range</Label>
+              <Label>{t('reports:generateReportModal.dateRangeLabel')}</Label>
               <RadioGroup value={dateRange} onValueChange={setDateRange}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="current-month" id="current-month" />
-                  <Label htmlFor="current-month">Current Month</Label>
+                  <Label htmlFor="current-month">{t('reports:generateReportModal.dateRangeOptions.currentMonth')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="previous-month" id="previous-month" />
-                  <Label htmlFor="previous-month">Previous Month</Label>
+                  <Label htmlFor="previous-month">{t('reports:generateReportModal.dateRangeOptions.previousMonth')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="current-quarter" id="current-quarter" />
-                  <Label htmlFor="current-quarter">Current Quarter</Label>
+                  <Label htmlFor="current-quarter">{t('reports:generateReportModal.dateRangeOptions.currentQuarter')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="year-to-date" id="year-to-date" />
-                  <Label htmlFor="year-to-date">Year to Date</Label>
+                  <Label htmlFor="year-to-date">{t('reports:generateReportModal.dateRangeOptions.yearToDate')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="last-7-days" id="last-7-days" />
-                  <Label htmlFor="last-7-days">Last 7 Days</Label>
+                  <Label htmlFor="last-7-days">{t('reports:generateReportModal.dateRangeOptions.last7Days')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="last-30-days" id="last-30-days" />
-                  <Label htmlFor="last-30-days">Last 30 Days</Label>
+                  <Label htmlFor="last-30-days">{t('reports:generateReportModal.dateRangeOptions.last30Days')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="custom" id="custom" />
-                  <Label htmlFor="custom">Custom Date Range</Label>
+                  <Label htmlFor="custom">{t('reports:generateReportModal.dateRangeOptions.custom')}</Label>
                 </div>
               </RadioGroup>
 
@@ -194,7 +196,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
                   <div className="grid gap-2">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 opacity-70" />
-                      <span className="text-sm">From</span>
+                      <span className="text-sm">{t('reports:generateReportModal.customRange.from')}</span>
                     </div>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -206,7 +208,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
                             !customDateRange.from && "text-muted-foreground",
                           )}
                         >
-                          {customDateRange.from ? format(customDateRange.from, "PPP") : "Pick a date"}
+                          {customDateRange.from ? format(customDateRange.from, "PPP") : t('reports:generateReportModal.customRange.pickDate')}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -222,7 +224,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
                   <div className="grid gap-2">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 opacity-70" />
-                      <span className="text-sm">To</span>
+                      <span className="text-sm">{t('reports:generateReportModal.customRange.to')}</span>
                     </div>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -234,7 +236,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
                             !customDateRange.to && "text-muted-foreground",
                           )}
                         >
-                          {customDateRange.to ? format(customDateRange.to, "PPP") : "Pick a date"}
+                          {customDateRange.to ? format(customDateRange.to, "PPP") : t('reports:generateReportModal.customRange.pickDate')}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -252,7 +254,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
             </div>
 
             <div className="space-y-2">
-              <Label>Report Options</Label>
+              <Label>{t('reports:generateReportModal.optionsLabel')}</Label>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -260,7 +262,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
                     checked={includeOptions.charts}
                     onCheckedChange={() => handleOptionChange("charts")}
                   />
-                  <Label htmlFor="include-charts">Include Charts and Graphs</Label>
+                  <Label htmlFor="include-charts">{t('reports:generateReportModal.options.charts')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -268,7 +270,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
                     checked={includeOptions.summary}
                     onCheckedChange={() => handleOptionChange("summary")}
                   />
-                  <Label htmlFor="include-summary">Include Executive Summary</Label>
+                  <Label htmlFor="include-summary">{t('reports:generateReportModal.options.summary')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -276,21 +278,21 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
                     checked={includeOptions.details}
                     onCheckedChange={() => handleOptionChange("details")}
                   />
-                  <Label htmlFor="include-details">Include Detailed Breakdown</Label>
+                  <Label htmlFor="include-details">{t('reports:generateReportModal.options.details')}</Label>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Export Format</Label>
+              <Label>{t('reports:generateReportModal.exportFormatLabel')}</Label>
               <RadioGroup value={exportFormat} onValueChange={(value) => setExportFormat(value as "pdf" | "csv")}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="pdf" id="pdf" />
-                  <Label htmlFor="pdf">PDF</Label>
+                  <Label htmlFor="pdf">{t('reports:generateReportModal.exportFormatOptions.pdf')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="csv" id="csv" />
-                  <Label htmlFor="csv">CSV</Label>
+                  <Label htmlFor="csv">{t('reports:generateReportModal.exportFormatOptions.csv')}</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -299,22 +301,22 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
 
         <DialogFooter className="mt-2 pt-2 border-t">
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            {t('reports:generateReportModal.cancelButton')}
           </Button>
           <Button
             type="submit"
             disabled={isLoading || !reportType}
             onClick={() => {
-              document.getElementById("report-form")?.requestSubmit()
+              (document.getElementById("report-form") as HTMLFormElement | null)?.requestSubmit()
             }}
           >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
+                {t('reports:generateReportModal.generating')}
               </>
             ) : (
-              "Generate Report"
+              t('reports:generateReportModal.generateButton')
             )}
           </Button>
         </DialogFooter>

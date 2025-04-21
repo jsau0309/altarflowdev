@@ -1,0 +1,14 @@
+{
+    "title": "Donación NFC",
+    "scanInstructions": "Escanea la etiqueta NFC para donar",
+    "donationTitle": "Hacer una donación",
+    "selectAmount": "Seleccionar cantidad",
+    "customAmount": "Cantidad personalizada",
+    "donateButton": "Donar ahora",
+    "donateToLabel": "Donar a",
+    "recurringOption": "Hacer esta una donación recurrente",
+    "thankYou": "¡Gracias por tu donación!",
+    "receiptSent": "Un recibo ha sido enviado a tu correo electrónico.",
+    "donationFailed": "Donación fallida",
+    "tryAgain": "Por favor, inténtalo de nuevo o usa otro método de pago."
+  } 

@@ -9,8 +9,11 @@ import { Input } from "@/components/ui/input"
 import { FormSettings } from "./settings/form-settings"
 import { UsersPermissionsContent } from "./users-permissions-content"
 import { useState } from "react"
+import { useTranslation } from 'react-i18next'
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 export function SettingsContent() {
+  const { i18n, t } = useTranslation(['settings', 'common'])
   const [churchProfile, setChurchProfile] = useState({
     name: "Faith Community Church",
     phone: "(555) 123-4567",
@@ -22,34 +25,47 @@ export function SettingsContent() {
       "Faith Community Church is a welcoming congregation dedicated to serving our community through faith and action.",
   })
 
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true)
+
   const handleChurchProfileChange = (field: string, value: string) => {
-    setChurchProfile({
-      ...churchProfile,
-      [field]: value,
-    })
+    setChurchProfile((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleLanguageChange = (value: string) => {
+    i18n.changeLanguage(value)
+  }
+
+  const handleSaveChanges = () => {
+    console.log("Saving general settings...")
+    // TODO: Add toast notification for success/failure
+  }
+
+  const handleSaveChurchProfile = () => {
+    console.log("Saving church profile:", churchProfile)
+    // TODO: Add toast notification for success/failure
   }
 
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences</p>
+        <h1 className="text-3xl font-bold">{t('settings:title')}</h1>
+        <p className="text-muted-foreground">{t('settings:settingsContent.subtitle')}</p>
       </div>
 
       <Tabs defaultValue="general">
         <div className="overflow-x-auto pb-2">
           <TabsList className="mb-6 inline-flex w-auto min-w-full">
             <TabsTrigger value="general" className="flex-1 whitespace-nowrap">
-              General
+              {t('settings:general')}
             </TabsTrigger>
             <TabsTrigger value="church-profile" className="flex-1 whitespace-nowrap">
-              Church Profile
+              {t('settings:settingsContent.tabs.churchProfile')}
             </TabsTrigger>
             <TabsTrigger value="users-permissions" className="flex-1 whitespace-nowrap">
-              Users & Permissions
+              {t('settings:users')}
             </TabsTrigger>
             <TabsTrigger value="visitor-form" className="flex-1 whitespace-nowrap">
-              Visitor Form
+              {t('settings:settingsContent.tabs.visitorForm')}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -57,33 +73,41 @@ export function SettingsContent() {
         <TabsContent value="general">
           <Card>
             <CardHeader>
-              <CardTitle>General Settings</CardTitle>
-              <CardDescription>Manage your general application settings</CardDescription>
+              <CardTitle>{t('settings:general')}</CardTitle>
+              <CardDescription>{t('settings:settingsContent.general.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium mb-4">Language</h3>
-                <div className="space-y-2">
+                <h3 className="text-lg font-medium mb-4">{t('settings:defaultLanguage')}</h3>
+                <RadioGroup 
+                  value={i18n.language} 
+                  onValueChange={handleLanguageChange} 
+                  className="space-y-2"
+                >
                   <div className="flex items-center space-x-2">
-                    <input type="radio" id="english" name="language" defaultChecked />
-                    <Label htmlFor="english">English</Label>
+                    <RadioGroupItem value="en" id="english" />
+                    <Label htmlFor="english">{t('settings:languages.english')}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <input type="radio" id="spanish" name="language" />
-                    <Label htmlFor="spanish">Spanish</Label>
+                    <RadioGroupItem value="es" id="spanish" />
+                    <Label htmlFor="spanish">{t('settings:languages.spanish')}</Label>
                   </div>
-                </div>
+                </RadioGroup>
               </div>
 
               <div>
-                <h3 className="text-lg font-medium mb-2">Email Notifications</h3>
+                <h3 className="text-lg font-medium mb-2">{t('settings:notifications')}</h3>
                 <div className="flex items-center space-x-2">
-                  <Switch id="email-notifications" defaultChecked />
-                  <Label htmlFor="email-notifications">Receive email notifications for important events</Label>
+                  <Switch 
+                    id="email-notifications" 
+                    checked={emailNotificationsEnabled} 
+                    onCheckedChange={setEmailNotificationsEnabled} 
+                  />
+                  <Label htmlFor="email-notifications">{t('settings:settingsContent.general.emailLabel')}</Label>
                 </div>
               </div>
 
-              <Button>Save Changes</Button>
+              <Button onClick={handleSaveChanges}>{t('common:save')}</Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -91,13 +115,13 @@ export function SettingsContent() {
         <TabsContent value="church-profile">
           <Card>
             <CardHeader>
-              <CardTitle>Church Profile</CardTitle>
-              <CardDescription>Update your church information</CardDescription>
+              <CardTitle>{t('settings:church')}</CardTitle>
+              <CardDescription>{t('settings:settingsContent.churchProfile.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="church-name">Church Name</Label>
+                  <Label htmlFor="church-name">{t('settings:churchName')}</Label>
                   <Input
                     id="church-name"
                     value={churchProfile.name}
@@ -105,7 +129,7 @@ export function SettingsContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">{t('settings:churchPhone')}</Label>
                   <Input
                     id="phone"
                     value={churchProfile.phone}
@@ -113,7 +137,7 @@ export function SettingsContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">{t('settings:churchAddress')}</Label>
                   <Input
                     id="address"
                     value={churchProfile.address}
@@ -121,7 +145,7 @@ export function SettingsContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">{t('settings:settingsContent.churchProfile.cityLabel')}</Label>
                   <Input
                     id="city"
                     value={churchProfile.city}
@@ -129,7 +153,7 @@ export function SettingsContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
+                  <Label htmlFor="state">{t('settings:settingsContent.churchProfile.stateLabel')}</Label>
                   <Input
                     id="state"
                     value={churchProfile.state}
@@ -137,7 +161,7 @@ export function SettingsContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="zip">ZIP Code</Label>
+                  <Label htmlFor="zip">{t('settings:settingsContent.churchProfile.zipLabel')}</Label>
                   <Input
                     id="zip"
                     value={churchProfile.zip}
@@ -146,7 +170,7 @@ export function SettingsContent() {
                 </div>
               </div>
               <div className="space-y-2 mt-4">
-                <Label htmlFor="about">About</Label>
+                <Label htmlFor="about">{t('settings:settingsContent.churchProfile.aboutLabel')}</Label>
                 <textarea
                   id="about"
                   className="w-full p-2 border rounded h-24"
@@ -154,7 +178,9 @@ export function SettingsContent() {
                   onChange={(e) => handleChurchProfileChange("about", e.target.value)}
                 />
               </div>
-              <Button className="mt-4">Save Church Profile</Button>
+              <Button onClick={handleSaveChurchProfile} className="mt-4">
+                {t('settings:settingsContent.churchProfile.saveButton')}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

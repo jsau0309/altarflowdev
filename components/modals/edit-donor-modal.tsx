@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useTranslation } from "react-i18next"
 
 interface Donor {
   id: string
@@ -63,6 +64,8 @@ export function EditDonorModal({ isOpen, onClose, donorId }: EditDonorModalProps
     notes: "",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  // Load donations namespace
+  const { t } = useTranslation('donations');
 
   // Load donor data when modal opens
   useEffect(() => {
@@ -117,23 +120,23 @@ export function EditDonorModal({ isOpen, onClose, donorId }: EditDonorModalProps
     const newErrors: Record<string, string> = {}
 
     if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required"
+      newErrors.firstName = t('donations:editDonorModal.errors.firstNameRequired')
     }
 
     if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required"
+      newErrors.lastName = t('donations:editDonorModal.errors.lastNameRequired')
     }
 
     if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address"
+      newErrors.email = t('donations:editDonorModal.errors.invalidEmail')
     }
 
     if (formData.phone && !/^[\d\s$$$$\-+]+$/.test(formData.phone)) {
-      newErrors.phone = "Please enter a valid phone number"
+      newErrors.phone = t('donations:editDonorModal.errors.invalidPhone')
     }
 
     if (formData.zipCode && !/^\d{5}(-\d{4})?$/.test(formData.zipCode)) {
-      newErrors.zipCode = "Please enter a valid ZIP code"
+      newErrors.zipCode = t('donations:editDonorModal.errors.invalidZip')
     }
 
     setErrors(newErrors)
@@ -182,31 +185,31 @@ export function EditDonorModal({ isOpen, onClose, donorId }: EditDonorModalProps
     >
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Donor</DialogTitle>
-          <DialogDescription>Update donor information in your database.</DialogDescription>
+          <DialogTitle>{t('donations:editDonorModal.title')}</DialogTitle>
+          <DialogDescription>{t('donations:editDonorModal.description')}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
+              <Label htmlFor="firstName">{t('donations:editDonorModal.firstNameLabel')}</Label>
               <Input
                 id="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                placeholder="John"
+                placeholder={t('donations:editDonorModal.firstNamePlaceholder')}
                 className={errors.firstName ? "border-red-500" : ""}
               />
               {errors.firstName && <p className="text-xs text-red-500">{errors.firstName}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="lastName">{t('donations:editDonorModal.lastNameLabel')}</Label>
               <Input
                 id="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                placeholder="Doe"
+                placeholder={t('donations:editDonorModal.lastNamePlaceholder')}
                 className={errors.lastName ? "border-red-500" : ""}
               />
               {errors.lastName && <p className="text-xs text-red-500">{errors.lastName}</p>}
@@ -214,37 +217,37 @@ export function EditDonorModal({ isOpen, onClose, donorId }: EditDonorModalProps
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
+            <Label htmlFor="email">{t('donations:editDonorModal.emailLabel')}</Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="john.doe@example.com"
+              placeholder={t('donations:editDonorModal.emailPlaceholder')}
               className={errors.email ? "border-red-500" : ""}
             />
             {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
+            <Label htmlFor="phone">{t('donations:editDonorModal.phoneLabel')}</Label>
             <Input
               id="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="(555) 123-4567"
+              placeholder={t('donations:editDonorModal.phonePlaceholder')}
               className={errors.phone ? "border-red-500" : ""}
             />
             {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
+            <Label htmlFor="address">{t('donations:editDonorModal.addressLabel')}</Label>
             <Input
               id="address"
               value={formData.address}
               onChange={handleChange}
-              placeholder="123 Main St"
+              placeholder={t('donations:editDonorModal.addressPlaceholder')}
               className={errors.address ? "border-red-500" : ""}
             />
             {errors.address && <p className="text-xs text-red-500">{errors.address}</p>}
@@ -252,36 +255,36 @@ export function EditDonorModal({ isOpen, onClose, donorId }: EditDonorModalProps
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city">{t('donations:editDonorModal.cityLabel')}</Label>
               <Input
                 id="city"
                 value={formData.city}
                 onChange={handleChange}
-                placeholder="Springfield"
+                placeholder={t('donations:editDonorModal.cityPlaceholder')}
                 className={errors.city ? "border-red-500" : ""}
               />
               {errors.city && <p className="text-xs text-red-500">{errors.city}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
+              <Label htmlFor="state">{t('donations:editDonorModal.stateLabel')}</Label>
               <Input
                 id="state"
                 value={formData.state}
                 onChange={handleChange}
-                placeholder="IL"
+                placeholder={t('donations:editDonorModal.statePlaceholder')}
                 className={errors.state ? "border-red-500" : ""}
               />
               {errors.state && <p className="text-xs text-red-500">{errors.state}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="zipCode">ZIP Code</Label>
+              <Label htmlFor="zipCode">{t('donations:editDonorModal.zipCodeLabel')}</Label>
               <Input
                 id="zipCode"
                 value={formData.zipCode}
                 onChange={handleChange}
-                placeholder="12345"
+                placeholder={t('donations:editDonorModal.zipCodePlaceholder')}
                 className={errors.zipCode ? "border-red-500" : ""}
               />
               {errors.zipCode && <p className="text-xs text-red-500">{errors.zipCode}</p>}
@@ -289,12 +292,12 @@ export function EditDonorModal({ isOpen, onClose, donorId }: EditDonorModalProps
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">{t('donations:editDonorModal.notesLabel')}</Label>
             <textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-              placeholder="Add any notes about this donor"
+              placeholder={t('donations:editDonorModal.notesPlaceholder')}
               className={`w-full rounded-md border p-2 ${errors.notes ? "border-red-500" : "border-input"}`}
               rows={3}
             />
@@ -303,16 +306,16 @@ export function EditDonorModal({ isOpen, onClose, donorId }: EditDonorModalProps
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleCancel}>
-              Cancel
+              {t('donations:editDonorModal.cancelButton')}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  {t('donations:editDonorModal.saving')}
                 </>
               ) : (
-                "Save Changes"
+                t('donations:editDonorModal.saveButton')
               )}
             </Button>
           </DialogFooter>

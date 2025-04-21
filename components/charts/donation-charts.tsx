@@ -27,7 +27,8 @@ interface DonationChartsProps {
 }
 
 export function DonationCharts({ donations, startDate, endDate }: DonationChartsProps) {
-  // const { t } = useTranslation() // Unused
+  // Load charts namespace
+  const { t } = useTranslation('charts')
 
   // Filter donations based on date range
   const filteredDonations = donations.filter((donation: Donation) => {
@@ -76,13 +77,13 @@ export function DonationCharts({ donations, startDate, endDate }: DonationCharts
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       <Card className="overflow-hidden">
         <CardHeader className="pb-0">
-          <CardTitle className="text-md">Donation Trends</CardTitle>
+          <CardTitle className="text-md">{t('charts:donationCharts.trendsTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-0 px-0">
           <ChartContainer
             config={{
               amount: {
-                label: "Amount",
+                label: t('charts:donationCharts.amountLabel'),
                 color: "hsl(var(--chart-1))",
               },
             }}
@@ -99,7 +100,7 @@ export function DonationCharts({ donations, startDate, endDate }: DonationCharts
                   type="monotone"
                   dataKey="donations"
                   stroke="var(--color-donations)"
-                  name="Donations"
+                  name={t('charts:donationCharts.donationsLegend')}
                   strokeWidth={2}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
@@ -111,13 +112,13 @@ export function DonationCharts({ donations, startDate, endDate }: DonationCharts
       </Card>
       <Card className="overflow-hidden">
         <CardHeader className="pb-0">
-          <CardTitle className="text-md">Payment Methods</CardTitle>
+          <CardTitle className="text-md">{t('charts:donationCharts.paymentMethodsTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-0 px-0">
           <ChartContainer
             config={{
               value: {
-                label: "Amount",
+                label: t('charts:donationCharts.amountLabel'),
                 color: "hsl(var(--chart-2))",
               },
             }}

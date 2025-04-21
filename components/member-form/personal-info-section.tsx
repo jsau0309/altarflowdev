@@ -1,40 +1,92 @@
 "use client"
 
-import type React from "react"
+import { useFormContext } from "react-hook-form"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { translations } from "./translations"
+import { Checkbox } from "@/components/ui/checkbox"
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
+import { useTranslation } from "react-i18next"
+import type { MemberFormValues } from "./validation-schema"
 
-interface PersonalInfoSectionProps {
-  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  language: string
-}
-
-export function PersonalInfoSection({ handleChange, language = "en" }: PersonalInfoSectionProps) {
-  // Ensure we have a valid language or fallback to English
-  const t = translations[language as keyof typeof translations] || translations.en
+export function PersonalInfoSection() {
+  const { t } = useTranslation('members')
+  const { control } = useFormContext<MemberFormValues>()
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">{t.personalInfo.title}</h2>
+      <h2 className="text-xl font-semibold">{t("members:memberForm.personalInfo.title")}</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">{t.personalInfo.firstName} *</Label>
-          <Input id="firstName" name="firstName" required onChange={handleChange} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">{t.personalInfo.lastName} *</Label>
-          <Input id="lastName" name="lastName" required onChange={handleChange} />
-        </div>
+        <FormField
+          control={control}
+          name="firstName"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>{t("members:memberForm.personalInfo.firstName")} *</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="lastName"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>{t("members:memberForm.personalInfo.lastName")} *</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">{t.personalInfo.email} *</Label>
-        <Input id="email" name="email" type="email" required onChange={handleChange} />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="phone">{t.personalInfo.phone}</Label>
-        <Input id="phone" name="phone" type="tel" onChange={handleChange} />
-      </div>
+      <FormField
+        control={control}
+        name="email"
+        render={({ field }) => (
+          <FormItem className="space-y-2">
+            <FormLabel>{t("members:memberForm.personalInfo.email")} *</FormLabel>
+            <FormControl>
+              <Input type="email" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="phone"
+        render={({ field }) => (
+          <FormItem className="space-y-2">
+            <FormLabel>{t("members:memberForm.personalInfo.phone")}</FormLabel>
+            <FormControl>
+              <Input type="tel" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="smsConsent"
+        render={({ field }) => (
+          <FormItem className="flex items-center space-x-2 pt-2">
+            <FormControl>
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            </FormControl>
+            <FormLabel className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              {t("members:memberForm.personalInfo.smsConsentLabel", "I agree to receive text messages.")}
+            </FormLabel>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   )
 }

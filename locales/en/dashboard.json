@@ -1,0 +1,52 @@
+{
+  "welcomeTitle": "Welcome to Altarflow",
+  "welcomeSubtitle": "Comprehensive church management platform",
+  "welcomeMessage": "Welcome to your church dashboard",
+  "overviewTitle": "Financial Overview",
+  "quickStats": "Quick Stats",
+  "recentActivity": "Recent Activity",
+  "donationsThisMonth": "Donations This Month",
+  "expensesThisMonth": "Expenses This Month",
+  "yearToDateDonations": "Year-to-Date Donations",
+  "yearToDateExpenses": "Year-to-Date Expenses",
+  "netIncomeYTD": "Net Income YTD",
+  "vsLastMonth": "+{{change}}% vs last month",
+  "thisWeek": "This Week",
+  "thisMonth": "This Month",
+  "thisYear": "This Year",
+  "vsLastMonthExpense": "{{change}}% vs last month",
+  "newMembers": "New Members",
+  "upcomingBirthdays": "Upcoming Birthdays",
+  
+  "donationSummary": {
+    "title": "Donation Summary"
+  },
+  
+  "expenseSummary": {
+    "title": "Expense Summary"
+  },
+  
+  "memberActivity": {
+    "title": "Member Activity",
+    "newMembersLabel": "New Members",
+    "newMembersSubtitle": "This month",
+    "activeMembersLabel": "Active Members",
+    "activeMembersSubtitle": "Total",
+    "recentMembersTitle": "Recent Members",
+    "joinedToday": "Joined today",
+    "joinedYesterday": "Joined yesterday",
+    "joinedDaysAgo": "Joined {{count}} days ago",
+    "noRecentMembers": "No recent members found."
+  },
+  
+  "quickActions": {
+    "title": "Quick Actions",
+    "newDonation": "New Donation",
+    "newExpense": "New Expense",
+    "addMember": "Add Member",
+    "generateReport": "Generate Report",
+    "recordDonation": "Record Donation",
+    "recordExpense": "Record Expense",
+    "viewReports": "View Reports"
+  }
+} 

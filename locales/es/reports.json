@@ -1,0 +1,114 @@
+{
+    "title": "Reportes",
+    "financialReports": "Reportes Financieros",
+    "membershipReports": "Reportes de Membresía",
+    "donationSummary": "Resumen de Donaciones",
+    "expenseSummary": "Resumen de Gastos",
+    "incomeStatement": "Estado de Resultados",
+    "campaignPerformance": "Rendimiento de Campañas",
+    "memberGrowth": "Crecimiento de Miembros",
+    "memberAttendance": "Asistencia de Miembros",
+    "memberEngagement": "Engagement de Miembros",
+    "generateReport": "Generar Reporte",
+    "timeFrame": "Rango de Tiempo",
+    "exportPDF": "Exportar a PDF",
+    "exportCSV": "Exportar a CSV",
+    
+    "timeFrames": {
+      "thisWeek": "Esta Semana",
+      "thisMonth": "Este Mes",
+      "lastMonth": "Mes Anterior",
+      "thisYear": "Este Año",
+      "lastYear": "Año Anterior",
+      "custom": "Personalizado"
+    },
+    
+    "reportsContent": {
+      "subtitle": "Generar y ver reportes financieros",
+      "exportFormatTitle": "Formato de exportación",
+      "tabs": {
+        "donations": "Reportes de Donaciones",
+        "expenses": "Reportes de Gastos",
+        "campaigns": "Reportes de Campañas"
+      },
+      "donations": {
+        "totalTitle": "Total Donaciones",
+        "totalSubtitle": "{{count}} donaciones en el periodo seleccionado",
+        "averageTitle": "Promedio de Donación",
+        "averageSubtitle": "Por donación en el periodo seleccionado",
+        "uniqueDonorsTitle": "Donantes Únicos",
+        "uniqueDonorsSubtitle": "Contribuyentes en el periodo seleccionado",
+        "recordsTitle": "Registros de Donaciones"
+      },
+      "showingCount": "Mostrando {{count}} donaciones",
+      "dateRangeSuffix": " desde {{start}} hasta {{end}}",
+      "noDataPeriod": "No se encontraron donaciones para el periodo seleccionado",
+      "expenses": {
+        "totalTitle": "Total Gastos",
+        "totalSubtitle": "{{count}} gastos en el periodo seleccionado",
+        "averageTitle": "Promedio de Gastos",
+        "averageSubtitle": "Por gasto en el periodo seleccionado",
+        "netIncomeTitle": "Ingresos Netos",
+        "netIncomeSubtitle": "Donaciones menos gastos",
+        "recordsTitle": "Registros de Gastos"
+      },
+      "showingCountExpenses": "Mostrando {{count}} gastos",
+      "noDataPeriodExpenses": "No se encontraron gastos para el periodo seleccionado",
+      "campaigns": {
+        "activeTitle": "Campañas Activas",
+        "activeSubtitle": "Actualmente corriendo campañas",
+        "totalRaisedTitle": "Total Recaudado",
+        "totalRaisedSubtitle": "En todas las campañas",
+        "goalCompletionTitle": "Completamiento de Objetivo",
+        "goalCompletionSubtitle": "Promedio en campañas con objetivos",
+        "progressitle": "Progreso de Campaña",
+        "progressSubtitle": "Estado actual de campañas de recaudación de fondos",
+        "goalStatus": "{{raised}} / {{goal}} recaudado",
+        "progressAriaLabel": "{{percent}}% hacia el objetivo",
+        "progressPercent": "{{percent}}% Completado",
+        "endDate": " Termina {{date}}"
+      },
+      "noActiveCampaigns": "No se encontraron campañas activas"
+    },
+    
+    "generateReportModal": {
+      "title": "Genera un reporte",
+      "description": "Seleciona el reporte que quieres generar.",
+      "reportTypeLabel": "Tipo de reporte",
+      "reportTypePlaceholder": "Selecciona el tipo de reporte",
+      "reportTypeOptions": {
+        "donations": "Reporte de Donaciones",
+        "expenses": "Reporte de Gastos",
+        "campaigns": "Reporte de Campañas"
+      },
+      "dateRangeLabel": "Rango de fechas",
+      "dateRangeOptions": {
+        "currentMonth": "Mes actual",
+        "previousMonth": "Mes anterior",
+        "currentQuarter": "Cuatrimestre actual",
+        "yearToDate": "Año a la fecha",
+        "last7Days": "Ultimos 7 dias",
+        "last30Days": "Ultimos 30 dias",
+        "custom": "Rango de fechas personalizado"
+      },
+      "customRange": {
+        "from": "Desde",
+        "to": "Hacia",
+        "pickDate": "Seleciona una fecha"
+      },
+      "optionsLabel": "Opciones de reporte",
+      "options": {
+        "charts": "Incluir gráficos",
+        "summary": "Incluir resumen",
+        "details": "Incluir detalles"
+      },
+      "exportFormatLabel": "Formato de exportación",
+      "exportFormatOptions": {
+        "pdf": "PDF",
+        "csv": "CSV"
+      },
+      "cancelButton": "Cancelar",
+      "generating": "Generar...",
+      "generateButton": "Generar Reporte"
+    }
+  } 
