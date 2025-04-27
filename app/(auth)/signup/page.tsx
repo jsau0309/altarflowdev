@@ -22,13 +22,6 @@ export default function SignUpPage() {
         </div>
 
         <SignUpForm />
-
-        <div className="mt-8 text-center text-sm text-muted-foreground">
-          {t('auth:alreadyHaveAccount')} {" "}
-          <Link href="/signin" className="font-medium text-primary hover:underline">
-            {t('auth:login')}
-          </Link>
-        </div>
       </div>
     </div>
   )

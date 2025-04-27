@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Search, Filter, Phone, Mail } from "lucide-react"
 import { format } from "date-fns"
 
@@ -9,21 +9,39 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { type Member } from "@/lib/types"
-import { mockDataService } from "@/lib/mock-data"
 import { MemberDetailsDrawer } from "./member-details-drawer"
 import { AddMemberButton } from "./add-member-button"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslation } from "react-i18next"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
-// Add a new prop to control whether to show the Add Member button
+// Add props for filter state and handler
 interface EnhancedMemberDirectoryProps {
-  showAddButton?: boolean
+  members: Member[];
+  isLoading: boolean;
+  error: string | null;
+  filterStatus: string | null;
+  onFilterChange: (status: string | null) => void;
+  onActionComplete: () => void;
 }
 
-export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMemberDirectoryProps) {
-  const [members, setMembers] = useState<Member[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+// Destructure new props
+export function EnhancedMemberDirectory({ 
+  members, 
+  isLoading, 
+  error, 
+  filterStatus, 
+  onFilterChange, 
+  onActionComplete
+}: EnhancedMemberDirectoryProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [showMemberDetails, setShowMemberDetails] = useState(false)
@@ -33,37 +51,59 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
+  // Effect to update selectedMember state when the main members list prop changes
   useEffect(() => {
-    // Simulate API loading delay
-    const timer = setTimeout(() => {
-      setMembers(mockDataService.getMembers())
-      setIsLoading(false)
-    }, 500)
+    if (selectedMember && showMemberDetails) {
+      // Find the corresponding member in the potentially updated list
+      const updatedMember = members.find(m => m.id === selectedMember.id);
+      // Update the state only if the data has actually changed
+      // (Simple stringify comparison, might need deep comparison for complex objects)
+      if (updatedMember && JSON.stringify(updatedMember) !== JSON.stringify(selectedMember)) {
+        setSelectedMember(updatedMember);
+      } else if (!updatedMember) {
+        // Member was likely deleted (e.g., by the action), close the drawer
+        setShowMemberDetails(false);
+        setSelectedMember(null);
+      }
+    }
+    // Ensure selectedMember is updated even if the drawer is closed and reopened later
+    // This handles cases where the list updates while the drawer isn't visible
+    else if (selectedMember && !showMemberDetails) {
+      const updatedMember = members.find(m => m.id === selectedMember.id);
+      if (updatedMember && JSON.stringify(updatedMember) !== JSON.stringify(selectedMember)) {
+        setSelectedMember(updatedMember);
+      } else if (!updatedMember) {
+         setSelectedMember(null); // Clear selection if deleted
+      }
+    }
+  }, [members, selectedMember, showMemberDetails]); // Rerun when members list or selection changes
 
-    return () => clearTimeout(timer)
-  }, [])
+  // Filter members based on search term AND status
+  const filteredMembers = useMemo(() => {
+    return members.filter((member) => {
+      const searchMatch = (
+        !searchTerm ||
+        `${member.firstName} ${member.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (member.phone && member.phone.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
 
-  // Filter members based on search term
-  const filteredMembers = members.filter((member) => {
-    if (!searchTerm) return true
+      const statusMatch = (
+        !filterStatus || // Show all if no filter selected
+        member.membershipStatus === filterStatus
+      );
 
-    const fullName = `${member.firstName} ${member.lastName}`.toLowerCase()
-    const searchLower = searchTerm.toLowerCase()
-
-    return (
-      fullName.includes(searchLower) ||
-      (member.email && member.email.toLowerCase().includes(searchLower)) ||
-      (member.phone && member.phone.toLowerCase().includes(searchLower))
-    )
-  })
+      return searchMatch && statusMatch;
+    });
+  }, [searchTerm, filterStatus, members])
 
   // Pagination logic
   const totalPages = Math.max(1, Math.ceil(filteredMembers.length / itemsPerPage))
 
-  // Reset to page 1 when search term changes
+  // Reset to page 1 when search term OR filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm])
+  }, [searchTerm, filterStatus]) // Add filterStatus dependency
 
   // Ensure current page is valid
   useEffect(() => {
@@ -97,11 +137,6 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
   const handleMemberClick = (member: Member) => {
     setSelectedMember(member)
     setShowMemberDetails(true)
-  }
-
-  const handleAddMemberSuccess = () => {
-    // Refresh the member list
-    setMembers(mockDataService.getMembers())
   }
 
   // Generate page numbers to display
@@ -156,8 +191,8 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
     return pages
   }
 
-  // Helper to get status text for badges
-  const getStatusText = (status: string | undefined) => {
+  // Helper to get status text for badges and dropdown
+  const getStatusText = (status: string | undefined | null) => {
     if (!status) return t('common:unknown');
     return t(`members:statuses.${status}`, status.charAt(0).toUpperCase() + status.slice(1));
   }
@@ -176,19 +211,61 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Filter className="h-4 w-4" />
-            {t('common:filter', 'Filter')}
-          </Button>
-          {showAddButton && <AddMemberButton onMemberAdded={handleAddMemberSuccess} />}
+          {/* Implement DropdownMenu for Filter button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Filter className="h-4 w-4" />
+                {t('common:filter', 'Filter')}
+                {filterStatus && <span className="ml-2 text-xs text-muted-foreground">({getStatusText(filterStatus)})</span>}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{t('members:filterByStatus', 'Filter by Status')}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {/* Option to clear filter */}
+              <DropdownMenuCheckboxItem
+                checked={!filterStatus} // Checked if no status is selected
+                onSelect={() => onFilterChange(null)} // Call handler with null
+              >
+                {t('common:allStatuses', 'All Statuses')}
+              </DropdownMenuCheckboxItem>
+              {/* Options for each status */}
+              {[ "new", "active", "visitor", "inactive"].map((status) => (
+                <DropdownMenuCheckboxItem
+                  key={status}
+                  checked={filterStatus === status}
+                  onSelect={() => onFilterChange(status)}
+                >
+                  {getStatusText(status)}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* Removed AddMemberButton instance from here */}
+          {/* {showAddButton && <AddMemberButton onMemberAdded={handleAddMemberSuccess} />} */}
         </div>
       </div>
 
+      {/* Use isLoading prop */}
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(itemsPerPage)].map((_, i) => (
             <div key={i} className="h-12 bg-muted animate-pulse rounded-md"></div>
           ))}
+        </div>
+      ) : error ? ( // Use error prop
+        <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed border-destructive p-4 sm:p-8 text-center">
+          <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
+            <h3 className="mt-4 text-lg font-semibold text-destructive">{t('common:errors.errorTitle', 'Error')}</h3>
+            <p className="mb-4 mt-2 text-sm text-destructive">
+              {error}
+            </p>
+            {/* Remove retry button or pass refetch function as prop if needed later */}
+            {/* <Button onClick={fetchMembers} variant="destructive" size="sm">
+              {t('common:retry', 'Try Again')}
+            </Button> */}
+          </div>
         </div>
       ) : filteredMembers.length > 0 ? (
         <div className="rounded-md border">
@@ -197,7 +274,7 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
               <TableRow>
                 <TableHead>{t('members:name', 'Name')}</TableHead>
                 <TableHead>{t('members:contact', 'Contact')}</TableHead>
-                <TableHead>{t('members:status')}</TableHead>
+                <TableHead className="text-center">{t('members:status')}</TableHead>
                 <TableHead>{t('members:joinDate')}</TableHead>
               </TableRow>
             </TableHeader>
@@ -225,7 +302,7 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <Badge
                       variant={
                         member.membershipStatus === "active"
@@ -245,7 +322,21 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
                       {getStatusText(member.membershipStatus)}
                     </Badge>
                   </TableCell>
-                  <TableCell>{format(new Date(member.joinDate), "PP")}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      // console.log('[Table] member.joinDate:', member.joinDate, typeof member.joinDate);
+                      const joinDate = member.joinDate as any; // Type assertion to satisfy instanceof check
+                      // Check if it looks like a Date object and is valid
+                      if (joinDate && typeof joinDate.getTime === 'function' && !isNaN(joinDate.getTime())) {
+                        return format(joinDate, "PP"); // Format Date object directly
+                      } else if (!member.joinDate) {
+                        return t('common:notApplicable', 'N/A'); // Handle null/undefined
+                      } else {
+                        console.error("[Table] Invalid joinDate value:", member.joinDate);
+                        return t('common:invalidDate', 'Invalid Date'); 
+                      }
+                    })()}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -258,7 +349,8 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
             <p className="mb-4 mt-2 text-sm text-muted-foreground">
               {searchTerm ? t('members:empty.adjustSearch', "Try adjusting your search terms.") : t('members:empty.addFirst', "Add your first member to get started.")}
             </p>
-            <AddMemberButton onMemberAdded={handleAddMemberSuccess} />
+            {/* Remove AddMemberButton from empty state */}
+            {/* <AddMemberButton onMemberAdded={handleAddMemberSuccess} /> */}
           </div>
         </div>
       )}
@@ -367,6 +459,7 @@ export function EnhancedMemberDirectory({ showAddButton = true }: EnhancedMember
           member={selectedMember}
           open={showMemberDetails}
           onClose={() => setShowMemberDetails(false)}
+          onActionComplete={onActionComplete}
         />
       )}
     </div>

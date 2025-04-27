@@ -20,11 +20,16 @@
     "personalInformation": "Información personal",
     "membershipInformation": "Información de membresía",
     
+    "modal": {
+      "description": "Agrega un nuevo miembro a tu directorio de iglesia. Los campos marcados con * son obligatorios."
+    },
+    
     "statuses": {
       "active": "Activo",
       "inactive": "Inactivo",
       "visitor": "Visitante",
-      "prospect": "Prospecto"
+      "prospect": "Prospecto",
+      "new": "Nuevo"
     },
     
     "membersContent": {

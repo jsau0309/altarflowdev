@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { Camera, Upload } from "lucide-react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { MobileScanView } from "./mobile-scan-view"
@@ -21,10 +21,65 @@ interface ReceiptScannerModalProps {
 type ScanningStage = "initial" | "camera" | "upload" | "processing" | "review"
 
 export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: ReceiptScannerModalProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation('receiptScanner')
   const [scanningStage, setScanningStage] = useState<ScanningStage>("initial")
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
   const [extractedData, setExtractedData] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  const callScanApi = async (fileSource: File | string) => {
+    setError(null)
+    setIsProcessing(true)
+    setScanningStage("processing")
+
+    try {
+      const formData = new FormData()
+      if (fileSource instanceof File) {
+        formData.append('receipt', fileSource)
+      } else if (typeof fileSource === 'string') {
+        const fetchRes = await fetch(fileSource)
+        const blob = await fetchRes.blob()
+        const fileName = `camera_capture_${Date.now()}.jpg`
+        formData.append('receipt', blob, fileName)
+      } else {
+        throw new Error("Invalid file source type")
+      }
+
+      const response = await fetch('/api/scan-receipt', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || `API Error: ${response.statusText}`)
+      }
+
+      const apiData = result.data
+      setExtractedData({
+        vendor: apiData.vendor,
+        total: apiData.total,
+        date: apiData.date,
+        description: "",
+        items: [],
+        receiptUrl: apiData.receiptUrl || null,
+        receiptPath: apiData.receiptPath || null,
+        receiptImage: typeof fileSource === 'string' ? fileSource : receiptImage
+      })
+      if (apiData.receiptUrl) {
+        setReceiptImage(apiData.receiptUrl);
+      }
+      setScanningStage("review")
+    } catch (err) {
+      console.error("Receipt processing error:", err)
+      setError(err instanceof Error ? err.message : "An unknown error occurred during scanning.")
+      setScanningStage("initial")
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -34,54 +89,18 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
         const readerTarget = event.target as FileReader | null;
         if (readerTarget && readerTarget.result) {
           setReceiptImage(readerTarget.result as string)
-          setScanningStage("processing")
-
-          // Simulate processing delay
-          setTimeout(() => {
-            // Mock extracted data
-            setExtractedData({
-              vendor: "Office Depot",
-              total: "125.47",
-              date: new Date().toISOString().split("T")[0],
-              description: "Office supplies - printer paper, ink cartridges, pens",
-              items: [
-                { description: "Printer Paper", amount: "45.99" },
-                { description: "Ink Cartridges", amount: "65.49" },
-                { description: "Pens (12 pack)", amount: "13.99" },
-              ],
-              taxAmount: "10.99",
-              receiptImage: readerTarget.result,
-            })
-            setScanningStage("review")
-          }, 2000)
         }
       }
       reader.readAsDataURL(file)
+      
+      callScanApi(file)
     }
+    e.target.value = ''
   }
 
   const handleCameraCapture = (imageData: string) => {
     setReceiptImage(imageData)
-    setScanningStage("processing")
-
-    // Simulate processing delay
-    setTimeout(() => {
-      // Mock extracted data
-      setExtractedData({
-        vendor: "Office Depot",
-        total: "125.47",
-        date: new Date().toISOString().split("T")[0],
-        description: "Office supplies - printer paper, ink cartridges, pens",
-        items: [
-          { description: "Printer Paper", amount: "45.99" },
-          { description: "Ink Cartridges", amount: "65.49" },
-          { description: "Pens (12 pack)", amount: "13.99" },
-        ],
-        taxAmount: "10.99",
-        receiptImage: imageData,
-      })
-      setScanningStage("review")
-    }, 2000)
+    callScanApi(imageData)
   }
 
   const handleAcceptData = () => {
@@ -101,22 +120,22 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[500px] p-0 overflow-hidden">
         {scanningStage === "initial" && (
           <>
             <div className="flex items-center justify-center border-b p-4">
-              <h2 className="text-lg font-semibold">{t('receiptScanner.modal.title')}</h2>
+              <h2 className="text-lg font-semibold">{t('modal.title')}</h2>
             </div>
 
             <Tabs defaultValue="scan" className="w-full">
               <TabsList className="grid w-full grid-cols-2 rounded-none">
                 <TabsTrigger value="scan" className="rounded-none py-3">
                   <Camera className="mr-2 h-4 w-4" />
-                  {t('receiptScanner.modal.scanTab')}
+                  {t('modal.scanTab')}
                 </TabsTrigger>
                 <TabsTrigger value="upload" className="rounded-none py-3">
                   <Upload className="mr-2 h-4 w-4" />
-                  {t('receiptScanner.modal.uploadTab')}
+                  {t('modal.uploadTab')}
                 </TabsTrigger>
               </TabsList>
 
@@ -125,12 +144,12 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
                   <div className="rounded-full bg-primary/10 p-6 mb-4">
                     <Camera className="h-10 w-10 text-primary" />
                   </div>
-                  <h3 className="text-xl font-medium mb-2">{t('receiptScanner.modal.scanTitle')}</h3>
+                  <h3 className="text-xl font-medium mb-2">{t('modal.scanTitle')}</h3>
                   <p className="text-sm text-muted-foreground text-center mb-6 max-w-xs">
-                    {t('receiptScanner.modal.scanDescription')}
+                    {t('modal.scanDescription')}
                   </p>
                   <Button onClick={() => setScanningStage("camera")} size="lg">
-                    {t('receiptScanner.modal.startCameraButton')}
+                    {t('modal.startCameraButton')}
                   </Button>
                 </div>
               </TabsContent>
@@ -140,9 +159,9 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
                   <div className="rounded-full bg-primary/10 p-6 mb-4">
                     <Upload className="h-10 w-10 text-primary" />
                   </div>
-                  <h3 className="text-xl font-medium mb-2">{t('receiptScanner.modal.uploadTitle')}</h3>
+                  <h3 className="text-xl font-medium mb-2">{t('modal.uploadTitle')}</h3>
                   <p className="text-sm text-muted-foreground text-center mb-6 max-w-xs">
-                    {t('receiptScanner.modal.uploadDescription')}
+                    {t('modal.uploadDescription')}
                   </p>
                   <input
                     type="file"
@@ -152,7 +171,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
                     onChange={handleFileUpload}
                   />
                   <Button onClick={() => document.getElementById("receipt-file-upload")?.click()} size="lg">
-                    {t('receiptScanner.modal.selectFileButton')}
+                    {t('modal.selectFileButton')}
                   </Button>
                 </div>
               </TabsContent>

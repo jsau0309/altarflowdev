@@ -40,29 +40,47 @@ export interface Campaign {
   };
 }
 
-export interface Member {
+// Member type based on Prisma schema (ensure it stays in sync)
+export type Member = {
   id: string;
   firstName: string;
   lastName: string;
-  email?: string; // Added from donations-content
-  phone?: string; // Added from donations-content
-  joinDate: string; // Added from donations-content
-  address?: string; // Added from add-donor-modal
-  city?: string; // Added from add-donor-modal
-  state?: string; // Added from add-donor-modal
-  zipCode?: string; // Added from add-donor-modal
-  membershipStatus?: string; // Added from add-donor-modal (mock usage)
-  // Fields from add-member-modal
-  language?: 'english' | 'spanish' | 'both';
-  smsConsent?: boolean;
-  phoneVerified?: boolean;
-  welcomeMessageSent?: boolean;
-  welcomeMessageDate?: string; // ISO string date
-  welcomeMessageStatus?: 'pending' | 'sent' | 'delivered' | 'failed' | undefined;
-  // Fields from EditMemberForm
-  smsConsentDate?: string; // ISO string date
-  consentMethod?: 'verbal' | 'written' | 'electronic' | 'implied' | 'none' | string; // Allow string for flexibility initially?
-  consentNotes?: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  membershipStatus: string | null;
+  joinDate: string | null; // Dates might be strings after JSON serialization
+  ministryInvolvement: string | null;
+  smsConsent: boolean;
+  smsConsentDate: string | null;
+  smsConsentMethod: string | null;
+  language: string | null; // Added from form
+  churchId: string;
+  // Add audit timestamps
+  createdAt: string; // Assume ISO string from API
+  updatedAt: string; // Assume ISO string from API
+};
+
+// Donor type (example, update as needed)
+export type Donor = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
   // Update notes to be an array of strings
   notes?: string[];
-} 
+  // Add audit timestamps to the existing Member type
+  createdAt: string; // Assume ISO string from API
+  updatedAt: string; // Assume ISO string from API
+}
+
+// Expense type (example, adjust based on your actual schema and API returns)
+// ... existing code ... 

@@ -27,7 +27,7 @@ interface ReviewDataViewProps {
 }
 
 export function ReviewDataView({ data, receiptImage, onAccept, onCancel, onEdit }: ReviewDataViewProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation('receiptScanner')
   const [isEditing, setIsEditing] = useState(false)
   const [editedData, setEditedData] = useState(data)
 
@@ -44,13 +44,13 @@ export function ReviewDataView({ data, receiptImage, onAccept, onCancel, onEdit 
   return (
     <div className="flex flex-col max-h-[80vh]">
       <div className="flex items-center justify-center border-b p-4">
-        <h2 className="text-lg font-semibold">{t('receiptScanner.review.title')}</h2>
+        <h2 className="text-lg font-semibold">{t('receiptScanner:review.title')}</h2>
       </div>
 
       <div className="overflow-y-auto p-4 space-y-4">
         <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-md">
           <Check className="h-5 w-5" />
-          <span className="font-medium">{t('receiptScanner.review.success')}</span>
+          <span className="font-medium">{t('receiptScanner:review.success')}</span>
         </div>
 
         {receiptImage && (
@@ -67,28 +67,28 @@ export function ReviewDataView({ data, receiptImage, onAccept, onCancel, onEdit 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="vendor">{t('receiptScanner.review.vendor')}</Label>
+                <Label htmlFor="vendor">{t('receiptScanner:review.vendor')}</Label>
                 <Input id="vendor" name="vendor" value={editedData.vendor} onChange={handleInputChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="date">{t('receiptScanner.review.date')}</Label>
+                <Label htmlFor="date">{t('receiptScanner:review.date')}</Label>
                 <Input id="date" name="date" type="date" value={editedData.date} onChange={handleInputChange} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="total">{t('receiptScanner.review.totalAmount')}</Label>
+              <Label htmlFor="total">{t('receiptScanner:review.totalAmount')}</Label>
               <Input id="total" name="total" value={editedData.total} onChange={handleInputChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">{t('receiptScanner.review.description')}</Label>
+              <Label htmlFor="description">{t('receiptScanner:review.description')}</Label>
               <Input id="description" name="description" value={editedData.description} onChange={handleInputChange} />
             </div>
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsEditing(false)}>
-                {t('receiptScanner.review.cancelButton')}
+                {t('receiptScanner:review.cancelButton')}
               </Button>
-              <Button onClick={saveChanges}>{t('receiptScanner.review.saveChangesButton')}</Button>
+              <Button onClick={saveChanges}>{t('receiptScanner:review.saveChangesButton')}</Button>
             </div>
           </div>
         ) : (
@@ -97,11 +97,11 @@ export function ReviewDataView({ data, receiptImage, onAccept, onCancel, onEdit 
               <div className="flex justify-between items-start">
                 <div className="grid grid-cols-2 gap-3 flex-1">
                   <div>
-                    <p className="text-xs text-muted-foreground">{t('receiptScanner.review.vendor')}</p>
+                    <p className="text-xs text-muted-foreground">{t('receiptScanner:review.vendor')}</p>
                     <p className="font-medium">{data.vendor}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t('receiptScanner.review.date')}</p>
+                    <p className="text-xs text-muted-foreground">{t('receiptScanner:review.date')}</p>
                     <p className="font-medium">{new Date(data.date).toLocaleDateString()}</p>
                   </div>
                 </div>
@@ -112,12 +112,12 @@ export function ReviewDataView({ data, receiptImage, onAccept, onCancel, onEdit 
 
               {data.items && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">{t('receiptScanner.review.items')}</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t('receiptScanner:review.items')}</p>
                   <div className="space-y-1.5">
                     {data.items.map((item, index) => (
                       <div key={index} className="flex justify-between text-sm">
                         <span>{item.description}</span>
-                        <span>{t('receiptScanner.review.currencySymbol')}{item.amount}</span>
+                        <span>{t('receiptScanner:review.currencySymbol')}{item.amount}</span>
                       </div>
                     ))}
                   </div>
@@ -127,18 +127,18 @@ export function ReviewDataView({ data, receiptImage, onAccept, onCancel, onEdit 
               <div className="border-t pt-2">
                 {data.taxAmount && (
                   <div className="flex justify-between text-sm">
-                    <span>{t('receiptScanner.review.tax')}</span>
-                    <span>{t('receiptScanner.review.currencySymbol')}{data.taxAmount}</span>
+                    <span>{t('receiptScanner:review.tax')}</span>
+                    <span>{t('receiptScanner:review.currencySymbol')}{data.taxAmount}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-medium mt-1">
-                  <span>{t('receiptScanner.review.total')}</span>
-                  <span>{t('receiptScanner.review.currencySymbol')}{data.total}</span>
+                  <span>{t('receiptScanner:review.total')}</span>
+                  <span>{t('receiptScanner:review.currencySymbol')}{data.total}</span>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-muted-foreground mb-1">{t('receiptScanner.review.description')}</p>
+                <p className="text-xs text-muted-foreground mb-1">{t('receiptScanner:review.description')}</p>
                 <p className="text-sm">{data.description}</p>
               </div>
             </CardContent>
@@ -148,9 +148,9 @@ export function ReviewDataView({ data, receiptImage, onAccept, onCancel, onEdit 
 
       <div className="border-t p-4 flex justify-end gap-2">
         <Button variant="outline" onClick={onCancel}>
-          {t('receiptScanner.review.cancelButton')}
+          {t('receiptScanner:review.cancelButton')}
         </Button>
-        <Button onClick={onAccept}>{t('receiptScanner.review.useDataButton')}</Button>
+        <Button onClick={onAccept}>{t('receiptScanner:review.useDataButton')}</Button>
       </div>
     </div>
   )

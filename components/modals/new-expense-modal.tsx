@@ -4,7 +4,7 @@ import { DialogFooter } from "@/components/ui/dialog"
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Receipt } from "lucide-react"
 
@@ -12,21 +12,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { ReceiptScannerButton } from "@/components/receipt-scanner/receipt-scanner-button"
 import { useTranslation } from "react-i18next"
-
-interface Expense {
-  id: string
-  amount: number
-  date: string
-  vendor: string
-  category: string
-  paymentMethod: string
-  notes: string
-  receiptUrl?: string | null
-}
+import type { Expense } from '@prisma/client'
+import { Decimal } from '@prisma/client/runtime/library';
 
 interface NewExpenseModalProps {
   isOpen: boolean
@@ -37,16 +27,74 @@ interface NewExpenseModalProps {
 export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseModalProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [receiptImage, setReceiptImage] = useState<string | null>(expenseToEdit?.receiptUrl || null)
+  const [receiptImage, setReceiptImage] = useState<string | null>(null)
+  const [receiptPath, setReceiptPath] = useState<string | null>(null)
+  
+  // Function to safely format date string to YYYY-MM-DD
+  const formatDateForInput = (dateInput: Date | string | undefined | null): string => {
+    if (!dateInput) return new Date().toISOString().split("T")[0];
+    try {
+      // Date constructor handles both Date objects and ISO strings
+      const dateObj = new Date(dateInput);
+      // Check if the date is valid after parsing
+      if (isNaN(dateObj.getTime())) {
+          throw new Error("Invalid date input");
+      }
+      return dateObj.toISOString().split("T")[0];
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return new Date().toISOString().split("T")[0]; // Fallback to today
+    }
+  };
+
   const [formData, setFormData] = useState({
-    amount: expenseToEdit?.amount.toString() || "",
-    date: expenseToEdit?.date || new Date().toISOString().split("T")[0],
-    vendor: expenseToEdit?.vendor || "",
-    category: expenseToEdit?.category || "",
-    paymentMethod: expenseToEdit?.paymentMethod || "",
-    notes: expenseToEdit?.notes || "",
+    amount: "",
+    expenseDate: new Date().toISOString().split("T")[0],
+    vendor: "",
+    category: "",
+    description: "",
   })
   const { t } = useTranslation('expenses');
+
+  // useEffect to update form when expenseToEdit changes or modal opens
+  useEffect(() => {
+    if (isOpen) {
+      if (expenseToEdit) {
+        // Edit mode: Populate form with expenseToEdit data
+        setFormData({
+          amount: expenseToEdit.amount?.toString() || "",
+          expenseDate: formatDateForInput(expenseToEdit.expenseDate),
+          vendor: expenseToEdit.vendor || "",
+          category: expenseToEdit.category || "",
+          description: expenseToEdit.description || "",
+        });
+        setReceiptImage(expenseToEdit.receiptUrl || null);
+        // Remove receiptPath since it's not in the Expense type
+      } else {
+        // New mode: Reset form to defaults
+        setFormData({
+          amount: "",
+          expenseDate: new Date().toISOString().split("T")[0],
+          vendor: "",
+          category: "",
+          description: "",
+        });
+        setReceiptImage(null);
+        setReceiptPath(null);
+      }
+    } else {
+        // Optional: Reset form when modal closes, though resetting on open is key
+        setFormData({
+            amount: "",
+            expenseDate: new Date().toISOString().split("T")[0],
+            vendor: "",
+            category: "",
+            description: "",
+        });
+        setReceiptImage(null);
+        setReceiptPath(null);
+    }
+  }, [isOpen, expenseToEdit]); // Dependency array includes isOpen and expenseToEdit
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
@@ -54,36 +102,92 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
   }
 
   const handleSelectChange = (id: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [id]: value }))
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
+    let apiError: string | null = null;
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      onClose()
-      router.push("/expenses")
-    }, 1500)
-  }
+    // Ensure date is treated as UTC
+    const utcExpenseDate = formData.expenseDate ? `${formData.expenseDate}T00:00:00Z` : new Date().toISOString();
+
+    const payload = {
+      amount: parseFloat(formData.amount) || 0,
+      expenseDate: new Date(utcExpenseDate).toISOString(), // Use the UTC-adjusted date string
+      category: formData.category,
+      vendor: formData.vendor || null,
+      description: formData.description || null,
+      receiptUrl: receiptImage || null,
+      receiptPath: receiptPath || null,
+    };
+
+    try {
+      let response;
+      if (expenseToEdit) {
+        response = await fetch(`/api/expenses/${expenseToEdit.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        response = await fetch('/api/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${expenseToEdit ? 'update' : 'create'} expense`);
+      }
+
+      onClose();
+
+    } catch (err) {
+      console.error("Expense form submission error:", err);
+      apiError = err instanceof Error ? err.message : "An unexpected error occurred.";
+      alert(`Error: ${apiError}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleReceiptData = (data: unknown) => {
     if (typeof data === 'object' && data !== null) {
-      const expenseData = data as Partial<{ total: string, date: string, notes: string, receiptImage: string, vendor: string, category: string }>;
+      const expenseData = data as Partial<{ 
+        total: string, 
+        date: string, 
+        notes: string, 
+        receiptImage: string, 
+        receiptUrl: string,
+        receiptPath: string,
+        vendor: string, 
+        category: string 
+      }>;
 
       setFormData((prev) => ({
         ...prev,
         amount: expenseData.total || prev.amount,
-        date: expenseData.date || prev.date,
-        notes: expenseData.notes || prev.notes,
+        expenseDate: expenseData.date || prev.expenseDate,
+        notes: expenseData.notes || prev.description,
         vendor: expenseData.vendor || prev.vendor,
         category: expenseData.category || prev.category,
       }))
 
-      if (expenseData.receiptImage) {
-        setReceiptImage(expenseData.receiptImage)
+      if (expenseData.receiptUrl) {
+        setReceiptImage(expenseData.receiptUrl);
+      } else if (expenseData.receiptImage) {
+        setReceiptImage(expenseData.receiptImage);
+      }
+      
+      if (expenseData.receiptPath) {
+        setReceiptPath(expenseData.receiptPath);
       }
     }
   }
@@ -118,8 +222,8 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="date">{t('expenses:newExpenseModal.dateLabel')}</Label>
-                <Input id="date" type="date" required value={formData.date} onChange={handleInputChange} />
+                <Label htmlFor="expenseDate">{t('expenses:newExpenseModal.dateLabel')}</Label>
+                <Input id="expenseDate" name="expenseDate" type="date" required value={formData.expenseDate} onChange={handleInputChange} />
               </div>
             </div>
 
@@ -128,7 +232,6 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
               <Input
                 id="vendor"
                 placeholder={t('expenses:newExpenseModal.vendorPlaceholder')}
-                required
                 value={formData.vendor}
                 onChange={handleInputChange}
               />
@@ -136,51 +239,30 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
 
             <div className="space-y-2">
               <Label htmlFor="category">{t('expenses:newExpenseModal.categoryLabel')}</Label>
-              <Select
-                required
-                value={formData.category}
-                onValueChange={(value) => handleSelectChange("category", value)}
+              <select 
+                id="category" 
+                name="category" 
+                required 
+                value={formData.category} 
+                onChange={(e) => handleSelectChange("category", e.target.value)}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
               >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder={t('expenses:newExpenseModal.categoryPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="utilities">{t('expenses:newExpenseModal.categoryOptions.utilities')}</SelectItem>
-                  <SelectItem value="supplies">{t('expenses:newExpenseModal.categoryOptions.supplies')}</SelectItem>
-                  <SelectItem value="maintenance">{t('expenses:newExpenseModal.categoryOptions.maintenance')}</SelectItem>
-                  <SelectItem value="salaries">{t('expenses:newExpenseModal.categoryOptions.salaries')}</SelectItem>
-                  <SelectItem value="events">{t('expenses:newExpenseModal.categoryOptions.events')}</SelectItem>
-                  <SelectItem value="other">{t('expenses:newExpenseModal.categoryOptions.other')}</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="" disabled>{t('expenses:newExpenseModal.categoryPlaceholder')}</option>
+                <option value="utilities">{t('expenses:newExpenseModal.categoryOptions.utilities')}</option>
+                <option value="supplies">{t('expenses:newExpenseModal.categoryOptions.supplies')}</option>
+                <option value="maintenance">{t('expenses:newExpenseModal.categoryOptions.maintenance')}</option>
+                <option value="salaries">{t('expenses:newExpenseModal.categoryOptions.salaries')}</option>
+                <option value="events">{t('expenses:newExpenseModal.categoryOptions.events')}</option>
+                <option value="other">{t('expenses:newExpenseModal.categoryOptions.other')}</option>
+              </select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="paymentMethod">{t('expenses:newExpenseModal.paymentMethodLabel')}</Label>
-              <Select
-                required
-                value={formData.paymentMethod}
-                onValueChange={(value) => handleSelectChange("paymentMethod", value)}
-              >
-                <SelectTrigger id="paymentMethod">
-                  <SelectValue placeholder={t('expenses:newExpenseModal.paymentMethodPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">{t('expenses:newExpenseModal.paymentMethodOptions.cash')}</SelectItem>
-                  <SelectItem value="check">{t('expenses:newExpenseModal.paymentMethodOptions.check')}</SelectItem>
-                  <SelectItem value="credit-card">{t('expenses:newExpenseModal.paymentMethodOptions.creditCard')}</SelectItem>
-                  <SelectItem value="bank-transfer">{t('expenses:newExpenseModal.paymentMethodOptions.bankTransfer')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">{t('expenses:newExpenseModal.notesLabel')}</Label>
+              <Label htmlFor="description">{t('expenses:newExpenseModal.notesLabel')}</Label>
               <Textarea
-                id="notes"
+                id="description" name="description"
                 placeholder={t('expenses:newExpenseModal.notesPlaceholder')}
-                required
-                value={formData.notes}
+                value={formData.description}
                 onChange={handleInputChange}
               />
             </div>
@@ -203,7 +285,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
                       </Button>
                       <ReceiptScannerButton onDataCaptured={handleReceiptData} variant="outline" size="sm">
                         {t('expenses:newExpenseModal.replaceReceiptButton')}
-                      </ReceiptScannerButton>
+                      </ReceiptScannerButton> 
                     </div>
                   </div>
                 ) : (
@@ -212,7 +294,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
                     <p className="text-sm text-gray-500 mb-4 text-center">
                       {t('expenses:newExpenseModal.addReceiptInfo')}
                     </p>
-                    <ReceiptScannerButton onDataCaptured={handleReceiptData}>{t('expenses:newExpenseModal.addReceiptButton')}</ReceiptScannerButton>
+                    <ReceiptScannerButton onDataCaptured={handleReceiptData}>{t('expenses:newExpenseModal.addReceiptButton')}</ReceiptScannerButton> 
                   </div>
                 )}
               </div>
@@ -225,10 +307,10 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
             {t('expenses:newExpenseModal.cancelButton')}
           </Button>
           <Button
-            type="submit"
+            type="button"
             disabled={isLoading}
-            onClick={() => {
-              (document.getElementById("expense-form") as HTMLFormElement)?.requestSubmit()
+            onClick={(e) => {
+              handleSubmit(e as any);
             }}
           >
             {isLoading ? (

@@ -20,11 +20,16 @@
   "personalInformation": "Personal Information",
   "membershipInformation": "Membership Information",
   
+  "modal": {
+    "description": "Add a new member to your church directory. Fields marked with * are required."
+  },
+  
   "statuses": {
     "active": "Active",
     "inactive": "Inactive",
     "visitor": "Visitor",
-    "prospect": "Prospect"
+    "prospect": "Prospect",
+    "new": "New"
   },
   
   "membersContent": {

@@ -3,9 +3,46 @@ import { Users } from "lucide-react"
 import { EnhancedMemberDirectory } from "@/components/members/enhanced-member-directory"
 import { AddMemberButton } from "@/components/members/add-member-button"
 import { useTranslation } from 'react-i18next'
+import { useState, useEffect } from "react"
+import { type Member } from "@/lib/types"
 
 export function MembersContent() {
-  const { t } = useTranslation('members')
+  const { t } = useTranslation(['members', 'common'])
+
+  const [members, setMembers] = useState<Member[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+
+  const fetchMembers = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/members', { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      const processedData = data.map((member: any) => ({
+        ...member,
+        joinDate: member.joinDate ? new Date(member.joinDate) : null,
+      }));
+      setMembers(processedData);
+    } catch (e) {
+      console.error("Failed to fetch members:", e);
+      setError(t('common:errors.fetchFailed', 'Failed to load members. Please try again.'));
+    } finally {
+      setIsLoading(false)
+    }
+  };
+
+  useEffect(() => {
+    fetchMembers();
+  }, [])
+
+  const handleAddMemberSuccess = () => {
+    fetchMembers();
+  }
 
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8">
@@ -23,11 +60,18 @@ export function MembersContent() {
             </h3>
             <p className="text-sm text-muted-foreground mt-1">{t('members:membersContent.directorySubtitle', 'View, add, and manage your church members')}</p>
           </div>
-          <AddMemberButton onMemberAdded={() => {}} />
+          <AddMemberButton onMemberAdded={handleAddMemberSuccess} />
         </div>
 
         <div className="p-4">
-          <EnhancedMemberDirectory showAddButton={false} />
+          <EnhancedMemberDirectory 
+            members={members} 
+            isLoading={isLoading} 
+            error={error} 
+            filterStatus={filterStatus}
+            onFilterChange={setFilterStatus}
+            onActionComplete={fetchMembers} 
+          />
         </div>
       </div>
     </div>

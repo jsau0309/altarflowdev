@@ -28,13 +28,6 @@ export default function SignInPage() {
         </div>
 
         <SignInForm />
-
-        <div className="mt-8 text-center text-sm text-muted-foreground">
-          {t('auth:dontHaveAccount')}{" "}
-          <Link href="/signup" className="font-medium text-primary hover:underline">
-            {t('auth:register')}
-          </Link>
-        </div>
       </div>
     </div>
   )

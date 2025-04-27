@@ -1,20 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Search, Plus, CreditCard } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Search, Plus, CreditCard, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { NewExpenseModal } from "@/components/modals/new-expense-modal"
-import { mockDataService, type Expense } from "@/lib/mock-data"
 import { format } from "date-fns"
 import { ExpenseDetailsDrawer } from "./expenses/expense-details-drawer"
 import { TablePagination } from "@/components/ui/table-pagination"
 import { useTranslation } from 'react-i18next'
+import type { Expense } from '@prisma/client'
+import { Decimal } from '@prisma/client/runtime/library'
+import { useToast } from "@/components/ui/use-toast"
 
 export function ExpensesContent() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [showModal, setShowModal] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
@@ -22,25 +25,50 @@ export function ExpensesContent() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
   const { t, i18n } = useTranslation(['expenses', 'donations', 'common'])
+  const { toast } = useToast()
 
-  // Simulate API loading delay
+  const fetchExpenses = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/expenses');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch expenses');
+      }
+      const data = await response.json();
+      setExpenses(data as Expense[]);
+    } catch (err) {
+      console.error("API fetch error:", err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setExpenses(mockDataService.getExpenses())
-      setIsLoading(false)
-    }, 500)
+    fetchExpenses();
+  }, [fetchExpenses]);
 
-    return () => clearTimeout(timer)
-  }, [])
+  useEffect(() => {
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error,
+      });
+    }
+  }, [error, toast]);
 
   const handleNewExpenseClick = () => {
+    setSelectedExpense(null)
     setShowModal(true)
   }
 
   const handleModalClose = () => {
     setShowModal(false)
     setSelectedExpense(null)
-    setExpenses(mockDataService.getExpenses())
+    fetchExpenses();
   }
 
   const handleEditExpense = (expense: Expense) => {
@@ -48,53 +76,100 @@ export function ExpensesContent() {
     setShowModal(true)
   }
 
-  const handleDeleteExpense = (expense: Expense) => {
-    mockDataService.deleteExpense(expense.id)
-    setExpenses(mockDataService.getExpenses())
-  }
+  const handleDeleteExpense = async (expenseId: string) => {
+    // Add a confirmation step maybe?
+    // if (!confirm("Are you sure you want to delete this expense?")) return;
+    
+    // Optimistic UI update (optional): Remove immediately
+    // setExpenses(prev => prev.filter(exp => exp.id !== expenseId));
+    // setError(null); // Clear previous errors
+
+    try {
+      const response = await fetch(`/api/expenses/${expenseId}`, { 
+        method: 'DELETE' 
+      });
+
+      if (!response.ok) {
+        // Revert optimistic update if failed
+        // fetchExpenses(); // Or revert manually if needed
+        const errorData = await response.json().catch(() => ({})); // Catch potential JSON parsing errors on empty bodies
+        throw new Error(errorData.error || 'Failed to delete expense');
+      }
+      
+      // Success: If not using optimistic update, refetch here
+      fetchExpenses(); 
+
+    } catch (err) {
+      console.error("Delete expense error:", err);
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during deletion.';
+      setError(errorMessage); // Set error state to display in the main content area
+      // Revert optimistic update if it failed
+      // fetchExpenses(); 
+    } finally {
+        // Close drawer and clear selection regardless of success/fail?
+        setShowExpenseDetails(false);
+        setSelectedExpense(null);
+    }
+  };
 
   const handleViewExpenseDetails = (expense: Expense) => {
     setSelectedExpense(expense)
     setShowExpenseDetails(true)
   }
 
-  // Helper function to format category/method using translation keys
-  const formatDisplayString = (key: string, namespace: 'expenses' | 'donations', prefix: string, fallback: string) => {
-    // Ensure key is valid and lowercase
-    const formattedKey = key?.toLowerCase().replace(/\s+|-/g, '') || '';
+  const formatDisplayString = (key: string | null | undefined, namespace: 'expenses' | 'donations', prefix: string, fallback: string) => {
+    const validKey = key || '';
+    const formattedKey = validKey.toLowerCase().replace(/\s+|-/g, '') || '';
     if (!formattedKey) return fallback;
     const translationKey = `${namespace}:${prefix}.${formattedKey}`;
     const translated = t(translationKey, fallback);
-    // If translation returns the key itself, return the fallback
     return translated === translationKey ? fallback : translated;
   };
 
-  // Filter expenses based on search term
   const filteredExpenses = expenses.filter((expense) => {
     if (!searchTerm) return true
     const term = searchTerm.toLowerCase()
-    // Include translated category/method in search if needed
     return (
-      expense.vendor.toLowerCase().includes(term) ||
-      (expense.notes && expense.notes.toLowerCase().includes(term)) ||
+      expense.vendor?.toLowerCase().includes(term) ||
+      expense.description?.toLowerCase().includes(term) ||
       expense.amount.toString().includes(term) ||
-      formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category).toLowerCase().includes(term) ||
-      formatDisplayString(expense.paymentMethod, 'donations', 'methods', expense.paymentMethod).toLowerCase().includes(term)
+      formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category).toLowerCase().includes(term)
     )
   })
 
-  // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filteredExpenses.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.max(1, Math.ceil(filteredExpenses.length / itemsPerPage))
 
-  // Helper to format currency
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | Decimal | string | null | undefined) => {
+    console.log("Formatting currency for:", typeof amount, amount);
+    if (amount === null || amount === undefined) return '-';
+
+    let numericAmount: number;
+    if (typeof amount === 'number') {
+      numericAmount = amount;
+    } else if (typeof amount === 'string') {
+      numericAmount = parseFloat(amount);
+    } else if (typeof amount === 'object' && amount !== null && typeof (amount as any).toNumber === 'function') {
+      // Handle Decimal object case (less likely after JSON serialization, but good practice)
+      numericAmount = (amount as Decimal).toNumber();
+    } else {
+      // Log error for unexpected types and fallback
+      console.error("Unexpected type for amount in formatCurrency:", typeof amount, amount);
+      return '-'; 
+    }
+
+    // Check if parsing failed
+    if (isNaN(numericAmount)) {
+        console.error("Failed to parse amount in formatCurrency:", amount);
+        return '-';
+    }
+
     return new Intl.NumberFormat(i18n.language, {
       style: "currency",
-      currency: "USD", // TODO: Make dynamic
-    }).format(amount)
+      currency: "USD", // Consider making currency dynamic if needed
+    }).format(numericAmount)
   }
 
   return (
@@ -145,24 +220,29 @@ export function ExpensesContent() {
                     <TableHead>{t('expenses:date')}</TableHead>
                     <TableHead>{t('expenses:vendor')}</TableHead>
                     <TableHead>{t('expenses:category')}</TableHead>
-                    <TableHead>{t('expenses:paymentMethod')}</TableHead>
                     <TableHead className="text-right">{t('expenses:amount')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {currentItems.map((expense) => (
-                    <TableRow
-                      key={expense.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleViewExpenseDetails(expense)}
-                    >
-                      <TableCell>{format(new Date(expense.date), "PP")}</TableCell>
-                      <TableCell>{expense.vendor}</TableCell>
-                      <TableCell>{formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category)}</TableCell>
-                      <TableCell>{formatDisplayString(expense.paymentMethod, 'donations', 'methods', expense.paymentMethod)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
-                    </TableRow>
-                  ))}
+                  {currentItems.map((expense) => {
+                    // Adjust date for display based on timezone offset
+                    const dateUtc = new Date(expense.expenseDate); // Parse the UTC date string
+                    // getTimezoneOffset returns diff in minutes (e.g., 300 for UTC-5). We need to *add* this offset back to UTC time.
+                    const adjustedDate = new Date(dateUtc.valueOf() + dateUtc.getTimezoneOffset() * 60 * 1000);
+                    
+                    return (
+                      <TableRow
+                        key={expense.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleViewExpenseDetails(expense)}
+                      >
+                        <TableCell>{format(adjustedDate, "PP")}</TableCell> {/* Format the adjusted date */}
+                        <TableCell>{expense.vendor || '-'}</TableCell>
+                        <TableCell>{formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
               <div className="mt-4">
@@ -192,18 +272,17 @@ export function ExpensesContent() {
         </div>
       </div>
 
-      {/* Modals */}
       <NewExpenseModal 
         isOpen={showModal} 
         onClose={handleModalClose} 
-        expenseToEdit={selectedExpense ? {...selectedExpense, notes: selectedExpense.notes || ''} : undefined} 
+        expenseToEdit={selectedExpense ?? undefined}
       />
       <ExpenseDetailsDrawer
         expense={selectedExpense}
         open={showExpenseDetails}
         onClose={() => setShowExpenseDetails(false)}
-        onEdit={handleEditExpense}
-        onDelete={handleDeleteExpense}
+        onEdit={() => selectedExpense && handleEditExpense(selectedExpense)}
+        onDelete={() => selectedExpense && handleDeleteExpense(selectedExpense.id)}
       />
     </div>
   )

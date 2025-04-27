@@ -65,7 +65,9 @@
     "unauthorized": "Acceso no autorizado",
     "notFound": "No encontrado",
     "pageNotFound": "Página no encontrada",
-    "goHome": "Ir a Inicio"
+    "goHome": "Ir a Inicio",
+    "invalidPhoneDigits": "El número de teléfono debe tener 10 dígitos.",
+    "invalidEmailFormat": "Por favor, ingrese un formato de correo electrónico válido."
   },
   "success": {
     "donationCreated": "Donación registrada exitosamente",
@@ -113,7 +115,34 @@
     "info": "Info",
     "donate": "Donar"
   },
-  "selectFrequency": "Seleccionar frecuencia"
+  "selectFrequency": "Seleccionar frecuencia",
+  "languages": {
+    "spanish": "Español",
+    "english": "Inglés",
+    "bilingual": "Bilingüe"
+  },
+  "placeholders": {
+    "enterFirstName": "Ingresa el nombre",
+    "enterLastName": "Ingresa el apellido",
+    "phoneExample": "(555) 123-4567",
+    "emailExample": "nombre@ejemplo.com",
+    "streetExample": "123 Calle Principal",
+    "city": "Ciudad",
+    "state": "Estado",
+    "zipExample": "12345"
+  },
+  "deleteMemberConfirmation": {
+    "title": "¿Eliminar Miembro?",
+    "description": "¿Estás seguro de que quieres eliminar a este miembro? Esta acción no se puede deshacer."
+  },
+  "updateMemberError": {
+    "title": "Error al Actualizar",
+    "description": "No se pudo actualizar la información del miembro. Por favor, inténtalo de nuevo."
+  },
+  "updateMemberSuccess": {
+    "title": "Miembro Actualizado",
+    "description": "La información del miembro ha sido actualizada exitosamente."
+  }
 } 
 
 

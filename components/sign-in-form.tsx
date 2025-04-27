@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { supabase } from "@/lib/supabase"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,25 +18,78 @@ export function SignInForm() {
   const { t } = useTranslation('auth')
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
-    // Simulate authentication delay
-    setTimeout(() => {
-      // During UI development, we'll skip setting cookies
-      setIsLoading(false)
-      router.push("/dashboard")
-    }, 1500)
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+  
+        const data = await response.json();
+  
+        if (!response.ok) {
+          setError(data.error || 'Login failed. Please check your credentials.');
+        } else {
+          router.push('/dashboard');
+          router.refresh();
+        }
+      } catch (err) {
+        console.error("Login fetch error:", err);
+        setError('An unexpected error occurred during login.');
+      } finally {
+        setIsLoading(false);
+      }
   }
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) {
+        console.error("Google Sign-In Error:", error.message);
+        setError(error.message || 'Failed to initiate Google Sign-In.');
+        setIsGoogleLoading(false);
+      }
+    } catch (err) {
+      console.error("Google Sign-In Exception:", err);
+      setError('An unexpected error occurred initiating Google Sign-In.');
+      setIsGoogleLoading(false);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="p-3 bg-destructive/10 border border-destructive/50 text-destructive text-sm rounded-md">
+          {error}
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="email">{t('auth:signInForm.emailLabel', 'Email')}</Label>
         <Input
+          name="email"
           id="email"
           type="email"
           placeholder={t('auth:signInForm.emailPlaceholder', 'name@example.com')}
@@ -53,6 +107,7 @@ export function SignInForm() {
         </div>
         <div className="relative">
           <Input
+            name="password"
             id="password"
             type={showPassword ? "text" : "password"}
             placeholder={t('auth:signInForm.passwordPlaceholder', '••••••••')}
@@ -83,7 +138,7 @@ export function SignInForm() {
         </Label>
       </div>
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -103,7 +158,19 @@ export function SignInForm() {
         </div>
       </div>
 
-      <Button variant="outline" type="button" className="w-full">
+      <Button 
+        variant="outline" 
+        type="button" 
+        className="w-full" 
+        onClick={handleGoogleSignIn}
+        disabled={isLoading || isGoogleLoading}
+      >
+        {isGoogleLoading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <>
+          </>
+        )}
         {t('auth:signInForm.googleButton', 'Google')}
       </Button>
     </form>

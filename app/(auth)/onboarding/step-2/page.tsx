@@ -1,37 +1,46 @@
 "use client"
 
 import type React from "react"
+import { useEffect } from "react";
+import { useFormState, useFormStatus } from "react-dom";
+import { z } from 'zod';
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Stepper } from "@/components/onboarding/stepper"
 import { useOnboarding } from "@/components/onboarding/onboarding-context"
 import { useTranslation } from 'react-i18next'
+import { Loader2 } from "lucide-react"
+
+import { completeOnboardingAction, type OnboardingFormState } from '../actions';
+
+const initialState: OnboardingFormState = {
+  message: '',
+  success: false,
+};
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  const { t } = useTranslation();
+
+  return (
+    <Button type="submit" disabled={pending} aria-disabled={pending}>
+      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {t('continue', 'Continue')}
+    </Button>
+  );
+}
 
 export default function ChurchDetailsStep() {
-  const { data, updateData, nextStep, prevStep } = useOnboarding()
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const { data, updateData, prevStep } = useOnboarding()
   const { t } = useTranslation()
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const [state, formAction] = useFormState(completeOnboardingAction, initialState);
 
-    // Validate form
-    const newErrors: Record<string, string> = {}
-    if (!data.churchName) newErrors.churchName = t('errors.required')
-    if (!data.address) newErrors.address = t('errors.required')
-    if (!data.phone) newErrors.phone = t('errors.required')
-    if (!data.email) newErrors.email = t('errors.required')
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
-
-    nextStep()
-  }
+  const getFieldError = (fieldName: string): string | undefined => {
+    return state.errors?.find((err: z.ZodIssue) => err.path.includes(fieldName))?.message;
+  };
 
   return (
     <div>
@@ -41,39 +50,41 @@ export default function ChurchDetailsStep() {
         <h2 className="text-2xl font-semibold mb-2">{t('onboarding.step2.title', 'Tell us about your church')}</h2>
         <p className="text-gray-600 mb-8">{t('onboarding.step2.subtitle', 'This information will be used throughout your Altarflow account.')}</p>
 
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+        {!state.success && state.message && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {state.message}
+          </div>
+        )}
+
+        <form action={formAction} className="space-y-6 max-w-2xl">
           <div className="space-y-2">
             <Label htmlFor="churchName">{t('settings.churchName', 'Church Name')}</Label>
             <Input
               id="churchName"
+              name="churchName"
               value={data.churchName}
-              onChange={(e) => {
-                updateData({ churchName: e.target.value })
-                if (errors.churchName) {
-                  setErrors({ ...errors, churchName: "" })
-                }
-              }}
+              onChange={(e) => updateData({ churchName: e.target.value })}
               placeholder={t('onboarding.step2.churchNamePlaceholder', 'First Baptist Church')}
-              className={errors.churchName ? "border-red-500" : ""}
+              className={getFieldError('churchName') ? "border-red-500" : ""}
+              aria-invalid={!!getFieldError('churchName')}
+              aria-describedby={getFieldError('churchName') ? "churchName-error" : undefined}
             />
-            {errors.churchName && <p className="text-sm text-red-500">{errors.churchName}</p>}
+            {getFieldError('churchName') && <p id="churchName-error" className="text-sm text-red-500">{getFieldError('churchName')}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="address">{t('settings.churchAddress', 'Address')}</Label>
             <Input
               id="address"
+              name="address"
               value={data.address}
-              onChange={(e) => {
-                updateData({ address: e.target.value })
-                if (errors.address) {
-                  setErrors({ ...errors, address: "" })
-                }
-              }}
+              onChange={(e) => updateData({ address: e.target.value })}
               placeholder={t('onboarding.step2.addressPlaceholder', 'Start typing to search for an address...')}
-              className={errors.address ? "border-red-500" : ""}
+              className={getFieldError('address') ? "border-red-500" : ""}
+              aria-invalid={!!getFieldError('address')}
+              aria-describedby={getFieldError('address') ? "address-error" : undefined}
             />
-            {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
+            {getFieldError('address') && <p id="address-error" className="text-sm text-red-500">{getFieldError('address')}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -81,35 +92,31 @@ export default function ChurchDetailsStep() {
               <Label htmlFor="phone">{t('settings.churchPhone', 'Phone Number')}</Label>
               <Input
                 id="phone"
+                name="phone"
                 value={data.phone}
-                onChange={(e) => {
-                  updateData({ phone: e.target.value })
-                  if (errors.phone) {
-                    setErrors({ ...errors, phone: "" })
-                  }
-                }}
+                onChange={(e) => updateData({ phone: e.target.value })}
                 placeholder={t('onboarding.step2.phonePlaceholder', '(555) 123-4567')}
-                className={errors.phone ? "border-red-500" : ""}
+                className={getFieldError('phone') ? "border-red-500" : ""}
+                aria-invalid={!!getFieldError('phone')}
+                aria-describedby={getFieldError('phone') ? "phone-error" : undefined}
               />
-              {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
+              {getFieldError('phone') && <p id="phone-error" className="text-sm text-red-500">{getFieldError('phone')}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">{t('settings.churchEmail', 'Email Address')}</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 value={data.email}
-                onChange={(e) => {
-                  updateData({ email: e.target.value })
-                  if (errors.email) {
-                    setErrors({ ...errors, email: "" })
-                  }
-                }}
+                onChange={(e) => updateData({ email: e.target.value })}
                 placeholder={t('onboarding.step2.emailPlaceholder', 'hello@yourchurch.org')}
-                className={errors.email ? "border-red-500" : ""}
+                className={getFieldError('email') ? "border-red-500" : ""}
+                aria-invalid={!!getFieldError('email')}
+                aria-describedby={getFieldError('email') ? "email-error" : undefined}
               />
-              {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+              {getFieldError('email') && <p id="email-error" className="text-sm text-red-500">{getFieldError('email')}</p>}
             </div>
           </div>
 
@@ -117,17 +124,22 @@ export default function ChurchDetailsStep() {
             <Label htmlFor="website">{t('settings.churchWebsite', 'Website')} ({t('optional', 'Optional')})</Label>
             <Input
               id="website"
+              name="website"
               value={data.website}
               onChange={(e) => updateData({ website: e.target.value })}
               placeholder={t('onboarding.step2.websitePlaceholder', 'https://www.yourchurch.org')}
+              className={getFieldError('website') ? "border-red-500" : ""}
+              aria-invalid={!!getFieldError('website')}
+              aria-describedby={getFieldError('website') ? "website-error" : undefined}
             />
+            {getFieldError('website') && <p id="website-error" className="text-sm text-red-500">{getFieldError('website')}</p>}
           </div>
 
           <div className="flex justify-between pt-4">
-            <Button type="button" variant="outline" onClick={prevStep}>
+            <Button type="button" variant="outline" onClick={prevStep} disabled={useFormStatus().pending}>
               {t('back', 'Back')}
             </Button>
-            <Button type="submit">{t('continue', 'Continue')}</Button>
+            <SubmitButton />
           </div>
         </form>
       </div>

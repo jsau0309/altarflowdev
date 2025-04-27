@@ -1,0 +1,215 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Correctly formatted datasource block
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Reads from prisma/.env or root .env
+  directUrl = env("DIRECT_URL") // Reads from prisma/.env or root .env
+}
+
+// Optionally add shadowDatabaseUrl for migration safety
+// shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+
+// --- Enums ---
+
+enum Role {
+  ADMIN // Typically the license purchaser / main account owner
+  STAFF // Invited staff members (up to 3)
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// --- Models ---
+
+// Represents a Church organization/tenant
+model Church {
+  id        String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
+  name      String   // Name of the church
+  address   String?  // Added: Physical address of the church
+  phone     String?  // Added: Primary phone number
+  email     String?  // Added: Primary contact email
+  website   String?  // Added: Church website URL
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt // Keep @updatedAt, add @default(now()) for INSERT
+
+  // --- Relationships ---
+  profiles Profile[]  // A church has many user profiles
+  expenses Expense[]  // A church has many expenses
+  donations Donation[] // A church has many donations
+  members   Member[]   // A church has many members
+  campaigns Campaign[] // A church has many campaigns
+}
+
+// Represents an authenticated user within our application context
+// We link this to the Supabase auth.users table via the ID
+model Profile {
+  id        String   @id @db.Uuid
+  firstName String?
+  lastName  String?
+  churchName String? 
+  role      Role     @default(STAFF) // Default to STAFF, ADMIN set manually or via specific logic
+  onboardingComplete Boolean  @default(false)
+
+  // --- Link to Church --- (Now Optional)
+  churchId  String?  @db.Uuid // <-- Add @db.Uuid
+  church    Church?   @relation(fields: [churchId], references: [id]) // Made optional
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
+
+  // User-specific expense relations (who submitted/approved)
+  submittedExpenses Expense[] @relation("SubmittedExpenses")
+  approvedExpenses  Expense[] @relation("ApprovedExpenses")
+
+  // Optional: Add email here if needed, though it's in auth.users
+  // email     String   @unique 
+
+  @@index([churchId]) // Index for faster lookups by church
+}
+
+// Represents a member or visitor of the church
+model Member {
+  id        String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
+  firstName String
+  lastName  String
+  email     String?  @unique // Email is optional but should be unique if provided
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  membershipStatus String?  // e.g., "Visitor", "Member", "Inactive"
+  joinDate  DateTime? // Date they officially became a member
+  ministryInvolvement String? // Text area for notes on involvement
+  smsConsent        Boolean  @default(false)
+  smsConsentDate    DateTime? // When consent was given
+  smsConsentMethod  String?  // How consent was obtained (e.g., "Web Form", "Paper Card")
+  language          String? // Add preferred language field
+
+  // --- Link to Church --- (Now Required)
+  churchId  String   @db.Uuid // <-- Add @db.Uuid
+  church    Church   @relation(fields: [churchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
+
+  donations Donation[] // Relation to donations made by this member
+
+  @@index([churchId]) // Index for faster lookups by church
+}
+
+// Represents a fundraising or donation campaign
+model Campaign {
+  id          String    @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
+  name        String
+  description String?
+  goalAmount  Decimal?  @db.Decimal(10, 2) // Example: 10 digits, 2 decimal places
+  startDate   DateTime?
+  endDate     DateTime?
+
+  // --- Link to Church --- (Now Required)
+  churchId  String   @db.Uuid // <-- Add @db.Uuid
+  church    Church   @relation(fields: [churchId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt // Add @default(now()) for INSERT
+
+  donations Donation[] // Relation to donations for this campaign
+
+  @@index([churchId]) // Index for faster lookups by church
+}
+
+// Represents a single donation transaction
+model Donation {
+  id        String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
+  amount    Decimal  @db.Decimal(10, 2)
+  currency  String   @default("USD")
+  donationDate DateTime @default(now())
+  
+  // Optional donor info (if not linked to a Member)
+  donorFirstName String?
+  donorLastName  String?
+  donorEmail     String?
+
+  // Link to Member (if the donor is a known member)
+  memberId  String? @db.Uuid // <-- Add @db.Uuid
+  member    Member?  @relation(fields: [memberId], references: [id])
+
+  // Link to Campaign (if the donation is for a specific campaign)
+  campaignId String? @db.Uuid // <-- Add @db.Uuid
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+
+  // --- Link to Church --- (Now Required)
+  churchId  String   @db.Uuid // <-- Add @db.Uuid
+  church    Church   @relation(fields: [churchId], references: [id])
+
+  // Stripe details
+  stripePaymentIntentId String? @unique // Store the Stripe PaymentIntent ID
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
+
+  @@index([memberId])
+  @@index([campaignId])
+  @@index([churchId]) // Index for faster lookups by church
+}
+
+// Represents an expense submitted by staff/admin
+model Expense {
+  id          String    @id @default(cuid()) // Expense ID is still CUID, didn't change its default
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String    @default("USD")
+  expenseDate DateTime
+  category    String    // e.g., "Utilities", "Supplies", "Events", "Ministry"
+  vendor      String?
+  description String?
+  receiptUrl  String?   // URL to the uploaded receipt image/file (now a signed URL with expiration)
+  receiptPath String?   // Storage path to the receipt file (for generating fresh signed URLs)
+  status      ExpenseStatus @default(PENDING)
+
+  // Link to the user who submitted the expense
+  submitterId String @db.Uuid
+  submitter   Profile   @relation("SubmittedExpenses", fields: [submitterId], references: [id])
+
+  // Link to the user who approved/rejected the expense (optional)
+  approverId  String? @db.Uuid
+  approver    Profile?  @relation("ApprovedExpenses", fields: [approverId], references: [id])
+
+  // --- Link to Church --- (Now Required)
+  churchId  String   @db.Uuid
+  church    Church   @relation(fields: [churchId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt // Add @default(now()) for INSERT
+
+  @@index([submitterId])
+  @@index([approverId])
+  @@index([churchId]) // Index for faster lookups by church
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

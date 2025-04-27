@@ -126,7 +126,8 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+# Set to true for OTP flow consistency locally
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -171,19 +172,6 @@ max_frequency = "5s"
 # timebox = "24h"
 # Force log out if the user has been inactive longer than the specified duration.
 # inactivity_timeout = "8h"
-
-# This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
-# [auth.hook.custom_access_token]
-# enabled = true
-# uri = "pg-functions://<database>/<schema>/<hook_name>"
-
-# Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
-[auth.sms.twilio]
-enabled = false
-account_sid = ""
-message_service_sid = ""
-# DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
-auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 
 # Multi-factor-authentication is available to Supabase Pro plan.
 [auth.mfa]
@@ -276,3 +264,15 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Comment out function-specific config as it's deleted
+# [functions.add-church-claim]
+# enabled = true
+# verify_jwt = true
+# import_map = "./functions/add-church-claim/deno.json"
+# # Uncomment to specify a custom file path to the entrypoint.
+# # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+# entrypoint = "./functions/add-church-claim/index.ts"
+# # Specifies static files to be bundled with the function. Supports glob patterns.
+# # For example, if you want to serve static HTML pages in your function:
+# # static_files = [ "./functions/add-church-claim/*.html" ]

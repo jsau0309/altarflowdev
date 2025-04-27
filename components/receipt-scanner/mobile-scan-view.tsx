@@ -15,7 +15,7 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
-  const { t } = useTranslation()
+  const { t } = useTranslation('receiptScanner')
 
   useEffect(() => {
     async function setupCamera() {
@@ -79,7 +79,7 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
 
         <div className="absolute inset-x-0 top-4 text-center">
           <Badge variant="secondary" className="bg-black/70 text-white">
-            {t('receiptScanner.mobile.centerInFrame')}
+            {t('receiptScanner:mobile.centerInFrame')}
           </Badge>
         </div>
       </div>
@@ -95,7 +95,7 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
 
       <div className="bg-background p-4 rounded-b-lg">
         <p className="text-center text-sm text-muted-foreground">
-          {t('receiptScanner.mobile.ensureLighting')}
+          {t('receiptScanner:mobile.ensureLighting')}
         </p>
       </div>
     </div>

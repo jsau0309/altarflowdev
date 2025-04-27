@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { NewDonationModal } from "@/components/modals/new-donation-modal"
 import { NewExpenseModal } from "@/components/modals/new-expense-modal"
-import { AddMemberModal } from "@/components/modals/add-donor-modal"
+import { AddMemberModal } from "@/components/members/add-member-modal"
 import { GenerateReportModal } from "@/components/modals/generate-report-modal"
 // Import Member type
 import type { Member } from "@/lib/types"
@@ -71,6 +71,13 @@ export function DashboardContent() {
     // const data = await fetchDashboardData();
     // setDashboardData(data);
   }
+
+  // Define the success handler (can be empty for dashboard)
+  const handleAddMemberSuccess = () => {
+    console.log("Member added from dashboard quick action.");
+    // Optionally trigger a refetch of dashboard summary data if needed in the future
+    // fetchDashboardData(); 
+  };
 
   if (isLoading) {
     return (
@@ -303,7 +310,11 @@ Remove this code block:
       {/* Modals */}
       <NewDonationModal isOpen={activeModal === "donation"} onClose={closeModal} fromDashboard={true} />
       <NewExpenseModal isOpen={activeModal === "expense"} onClose={closeModal} />
-      <AddMemberModal isOpen={activeModal === "member"} onClose={closeModal} />
+      <AddMemberModal 
+        open={activeModal === "member"} 
+        onClose={closeModal} 
+        onSuccess={handleAddMemberSuccess} 
+      />
       <GenerateReportModal isOpen={activeModal === "report"} onClose={closeModal} />
     </div>
   )

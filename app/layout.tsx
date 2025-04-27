@@ -5,6 +5,9 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import I18nClientProvider from "@/components/i18n-client-provider"
 
+// Removed client-side Supabase imports
+import SupabaseListener from "@/components/supabase-listener"; // Import the new client component
+
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
@@ -17,6 +20,9 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+
+  // Removed client-side Supabase setup logic
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -29,6 +35,8 @@ export default function RootLayout({
         */}
       </head>
       <body className={inter.className}>
+        {/* Render the listener early inside body */}
+        <SupabaseListener /> 
         <I18nClientProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             {children}

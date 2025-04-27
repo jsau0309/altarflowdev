@@ -1,132 +1,190 @@
-"use client"
-
-import type React from "react"
-
+import { z } from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/components/ui/use-toast"
+
+// Define the validation schema using Zod
+const SignUpSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters long"),
+  terms: z.boolean().refine(val => val === true, {
+    message: "You must agree to the terms and privacy policy",
+  }),
+})
+
+type SignUpFormValues = z.infer<typeof SignUpSchema>
 
 export function SignUpForm() {
-  const { t } = useTranslation('auth')
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
+  const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const form = useForm<SignUpFormValues>({
+    resolver: zodResolver(SignUpSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      terms: false,
+    },
+  })
+
+  const onSubmit = async (values: SignUpFormValues) => {
     setIsLoading(true)
+    try {
+      const payload = {
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        password: values.password,
+      };
 
-    // Simulate registration delay
-    setTimeout(() => {
-      // During UI development, we'll skip setting cookies
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Signup failed')
+      }
+
+      if (!result.email) {
+        console.error("Signup API response missing email:", result);
+        throw new Error("Signup complete but couldn't proceed. Please try again or contact support.");
+      }
+
+      toast({
+        title: "Verification Required",
+        description: "Account created! Please check your email for a verification code.",
+      })
+
+      router.push(`/verify-otp?email=${encodeURIComponent(result.email)}`)
+
+    } catch (error) {
+      console.error("Signup error:", error)
+      toast({
+        title: "Signup Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      })
+    } finally {
       setIsLoading(false)
-      router.push("/dashboard")
-    }, 1500)
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">{t('auth:signUpForm.firstNameLabel', 'First name')}</Label>
-          <Input id="firstName" placeholder={t('auth:signUpForm.firstNamePlaceholder', 'John')} required />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">{t('auth:signUpForm.lastNameLabel', 'Last name')}</Label>
-          <Input id="lastName" placeholder={t('auth:signUpForm.lastNamePlaceholder', 'Doe')} required />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="churchName">{t('auth:signUpForm.churchNameLabel', 'Church name')}</Label>
-        <Input
-          id="churchName"
-          placeholder={t('auth:signUpForm.churchNamePlaceholder', 'Faith Community Church')}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="email">{t('auth:signUpForm.emailLabel', 'Email')}</Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder={t('auth:signUpForm.emailPlaceholder', 'name@example.com')}
-          required
-          autoComplete="email"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">{t('auth:signUpForm.passwordLabel', 'Password')}</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            placeholder={t('auth:signUpForm.passwordPlaceholder', '••••••••')}
-            required
-            autoComplete="new-password"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First name</FormLabel>
+                <FormControl>
+                  <Input placeholder="John" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground"
-            onClick={() => setShowPassword(!showPassword)}
-            aria-label={showPassword ? t('auth:signUpForm.hidePassword', 'Hide password') : t('auth:signUpForm.showPassword', 'Show password')}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            <span className="sr-only">{showPassword ? t('auth:signUpForm.hidePassword', 'Hide password') : t('auth:signUpForm.showPassword', 'Show password')}</span>
-          </Button>
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-      </div>
 
-      <div className="flex items-center space-x-2">
-        <Checkbox id="terms" required />
-        <Label
-          htmlFor="terms"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          {t('auth:signUpForm.termsAgree', 'I agree to the')}{" "}
-          <a href="/terms" className="text-primary hover:underline">
-            {t('auth:signUpForm.termsLink', 'terms of service')}
-          </a>{" "}
-          {t('auth:signUpForm.termsAnd', 'and')}{" "}
-          <a href="/privacy" className="text-primary hover:underline">
-            {t('auth:signUpForm.privacyLink', 'privacy policy')}
-          </a>
-        </Label>
-      </div>
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="name@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {t('auth:signUpForm.creatingAccountButton', 'Creating account...')}
-          </>
-        ) : (
-          t('auth:signUpForm.createAccountButton', 'Create account')
-        )}
-      </Button>
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="********"
+                    {...field}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
+                  </Button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">{t('auth:signUpForm.orContinueWith', 'Or continue with')}</span>
-        </div>
-      </div>
+        <FormField
+          control={form.control}
+          name="terms"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>I agree to the <Link href="/terms" className="underline hover:text-primary">terms of service</Link> and <Link href="/privacy" className="underline hover:text-primary">privacy policy</Link></FormLabel>
+                <FormMessage />
+              </div>
+            </FormItem>
+          )}
+        />
 
-      <Button variant="outline" type="button" className="w-full">
-        {t('auth:signUpForm.googleButton', 'Google')}
-      </Button>
-    </form>
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Create account
+        </Button>
+      </form>
+    </Form>
   )
-}
+} 

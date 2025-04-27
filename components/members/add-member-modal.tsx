@@ -16,11 +16,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { mockDataService } from "@/lib/mock-data"
+import { useToast } from "@/components/ui/use-toast"
+import { useTranslation } from 'react-i18next'
 
 interface AddMemberModalProps {
   open: boolean
@@ -29,7 +29,12 @@ interface AddMemberModalProps {
 }
 
 export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps) {
+  const { t } = useTranslation(['members', 'common'])
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     address: "",
     city: "",
@@ -41,27 +46,91 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
     phone: "",
     membershipStatus: "new" as "active" | "visitor" | "inactive" | "new",
     language: "spanish" as "english" | "spanish" | "both",
-    smsConsent: false,
-    notes: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Simplified Submit:", formData);
-    onClose(); // Just close the modal
+    setIsSubmitting(true);
+    setError(null);
+
+    const dataToSend = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      membershipStatus: formData.membershipStatus,
+      language: formData.language,
+      joinDate: new Date().toISOString(),
+      email: formData.email || null,
+      phone: formData.phone || null,
+      address: formData.address || null,
+      city: formData.city || null,
+      state: formData.state || null,
+      zipCode: formData.zipCode || null,
+    };
+
+    try {
+      const response = await fetch('/api/members', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend),
+      });
+
+      if (!response.ok) {
+        let errorMessage = "Failed to add member.";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || (errorData.details ? JSON.stringify(errorData.details) : errorMessage);
+        } catch (jsonError) {
+          errorMessage = `HTTP error! status: ${response.status}`; 
+        }
+        throw new Error(errorMessage);
+      }
+
+      toast({
+        title: "Member Added",
+        description: `${formData.firstName} ${formData.lastName} has been added successfully.`,
+        variant: "default", 
+      });
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+      resetForm();
+
+    } catch (error: any) {
+      console.error("Error adding member:", error);
+      setError(error.message || "An unexpected error occurred.");
+      toast({
+        title: "Error Adding Member",
+        description: error.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
-  };
 
-  const handleSelectChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+    if (id === 'phone') {
+      if (value && !/^\d{10}$/.test(value)) {
+        setPhoneError("common:errors.invalidPhoneDigits");
+      } else {
+        setPhoneError(null);
+      }
+    }
 
-  const handleCheckboxChange = (field: string, checked: boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: checked }));
+    if (id === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (value && !emailRegex.test(value)) {
+        setEmailError("common:errors.invalidEmailFormat");
+      } else {
+        setEmailError(null);
+      }
+    }
   };
 
   const resetForm = () => {
@@ -69,8 +138,6 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
           address: "", city: "", state: "", zipCode: "", 
           firstName: "", lastName: "", email: "", phone: "",
           membershipStatus: "new", language: "spanish",
-          smsConsent: false,
-          notes: ""
       });
   }
 
@@ -85,35 +152,40 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
       }}
     >
       <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Add New Member</DialogTitle>
+        <DialogHeader className="pb-4">
+          <DialogTitle className="mb-2">{t('members:newMember')}</DialogTitle>
           <DialogDescription>
-            Add a new member to your church directory. Fields marked with * are required.
+            {t('members:modal.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto pr-1">
+          {error && (
+            <div className="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+              <p>{error}</p>
+            </div>
+          )}
           <form id="add-member-form" onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-1">
-              <h3 className="text-sm font-medium text-muted-foreground">Basic Information</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">{t('members:modal.basicInfo', 'Basic Information')}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name *</Label>
+                  <Label htmlFor="firstName">{t('members:firstName', 'First Name')} *</Label>
                   <Input
                     id="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
-                    placeholder="Enter first name"
+                    placeholder={t('common:placeholders.enterFirstName')}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Label htmlFor="lastName">{t('members:lastName', 'Last Name')} *</Label>
                   <Input
                     id="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
-                    placeholder="Enter last name"
+                    placeholder={t('common:placeholders.enterLastName')}
                     required
                   />
                 </div>
@@ -121,155 +193,124 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-sm font-medium text-muted-foreground">Contact Information</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">{t('members:contactInformation', 'Contact Information')}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">{t('members:phone', 'Phone Number')}</Label>
                   <Input
                     id="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="(555) 123-4567"
+                    placeholder={t('common:placeholders.phoneExample')}
+                    maxLength={10}
+                    aria-describedby="phone-error"
                   />
+                  {phoneError && (
+                    <p id="phone-error" className="text-sm text-destructive">
+                      {t(phoneError)}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="email">{t('members:email', 'Email Address')}</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="name@example.com"
+                    placeholder={t('common:placeholders.emailExample')}
+                    aria-describedby="email-error"
                   />
+                  {emailError && (
+                    <p id="email-error" className="text-sm text-destructive">
+                      {t(emailError)}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">{t('members:address', 'Address')}</h3>
               <div className="space-y-2">
-                <Label htmlFor="address">Street Address</Label>
+                <Label htmlFor="address">{t('common:streetAddress', 'Street Address')}</Label>
                 <Input 
                   id="address" 
                   value={formData.address} 
                   onChange={handleChange} 
-                  placeholder="123 Main St" 
+                  placeholder={t('common:placeholders.streetExample')} 
                 />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input id="city" value={formData.city} onChange={handleChange} placeholder="City" />
+                  <Label htmlFor="city">{t('members:city')}</Label>
+                  <Input id="city" value={formData.city} onChange={handleChange} placeholder={t('common:placeholders.city')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input id="state" value={formData.state} onChange={handleChange} placeholder="State" />
+                  <Label htmlFor="state">{t('members:state')}</Label>
+                  <Input id="state" value={formData.state} onChange={handleChange} placeholder={t('common:placeholders.state')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="zipCode">Zip Code</Label>
-                  <Input id="zipCode" value={formData.zipCode} onChange={handleChange} placeholder="12345" />
+                  <Label htmlFor="zipCode">{t('members:zipCode')}</Label>
+                  <Input id="zipCode" value={formData.zipCode} onChange={handleChange} placeholder={t('common:placeholders.zipExample')} />
                 </div>
               </div>
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-sm font-medium text-muted-foreground">Member Details</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">{t('members:membershipInformation', 'Member Details')}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="membershipStatus">Membership Status</Label>
-                  <Select
+                  <Label htmlFor="membershipStatus">{t('members:status', 'Membership Status')}</Label>
+                  <select
+                    id="membershipStatus"
                     value={formData.membershipStatus}
-                    onValueChange={(value) => handleSelectChange("membershipStatus", value)}
+                    onChange={handleChange}
+                    required
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <SelectTrigger id="membershipStatus">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="visitor">Visitor</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="new">{t('members:statuses.new')}</option>
+                    <option value="active">{t('members:statuses.active')}</option>
+                    <option value="visitor">{t('members:statuses.visitor')}</option>
+                    <option value="inactive">{t('members:statuses.inactive')}</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="language">Preferred Language</Label>
-                  <Select value={formData.language} onValueChange={(value) => handleSelectChange("language", value)}>
-                    <SelectTrigger id="language">
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="spanish">Spanish</SelectItem>
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="both">Bilingual</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="language">{t('members:preferredLanguage', 'Preferred Language')}</Label>
+                  <select
+                    id="language"
+                    value={formData.language}
+                    onChange={handleChange}
+                    required
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="spanish">{t('common:languages.spanish')}</option>
+                    <option value="english">{t('common:languages.english')}</option>
+                    <option value="both">{t('common:languages.bilingual')}</option>
+                  </select>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-2 border rounded-md p-4 bg-muted/10">
-              <div className="flex items-start space-x-2">
-                <div className="pt-0.5">
-                  <Checkbox
-                    id="smsConsent"
-                    checked={formData.smsConsent}
-                    onCheckedChange={(checked) => handleCheckboxChange("smsConsent", checked === true)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="smsConsent" className="font-medium flex items-center">
-                    SMS Consent
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 ml-1 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>
-                            If checked and a phone number is provided, a welcome message will be automatically sent.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    By checking this box, you confirm the member has consented to receive text messages.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                placeholder="Add any additional notes about this member"
-                rows={3}
-              />
             </div>
           </form>
         </div>
 
         <DialogFooter className="mt-2 pt-2 border-t">
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            {t('common:cancel', 'Cancel')}
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !!phoneError || !!emailError}
             onClick={() => (document.getElementById("add-member-form") as HTMLFormElement | null)?.requestSubmit()}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Adding...
+                {t('common:adding', 'Adding...')}
               </>
             ) : (
-              "Add Member"
+              t('members:newMember', 'Add Member')
             )}
           </Button>
         </DialogFooter>

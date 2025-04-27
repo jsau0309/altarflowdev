@@ -22,8 +22,8 @@ export default function ForgotPasswordPage() {
         <ForgotPasswordForm />
 
         <div className="mt-8 text-center text-sm text-muted-foreground">
-            {t('auth:rememberPasswordPrompt', 'Remember your password?')}
-            <Link href="/signin" className="font-medium text-primary hover:underline">
+            {t('auth:rememberPasswordPrompt', 'Remember your password?')}{" "}
+            <Link href="/signin" className="font-medium text-primary hover:underline ml-1">
                 {t('auth:backToSignIn', 'Back to sign in')}
             </Link>
         </div>

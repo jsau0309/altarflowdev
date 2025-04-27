@@ -84,5 +84,11 @@
       "updating": "Actualizando...",
       "saveButton": "Guardar gasto",
       "updateButton": "Actualizar gasto"
+    },
+    "detailsDrawer": {
+      "title": "Detalles del Gasto",
+      "noReceipt": "No hay recibo adjunto.",
+      "deleteConfirmTitle": "Confirmar Eliminación",
+      "deleteConfirmDescription": "¿Estás seguro de que quieres eliminar este gasto? Esta acción no se puede deshacer."
     }
   } 
