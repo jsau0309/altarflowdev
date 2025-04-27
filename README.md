@@ -1,6 +1,3 @@
-[![CodeGuide](/codeguide-backdrop.svg)](https://codeguide.dev)
-
-
 # Altarflow - Bilingual Church Management Platform
 
 A sophisticated, bilingual church management platform tailored for Hispanic churches in the United States. It modernizes traditional church administration by integrating digital tools with conventional methods, enabling efficient donation tracking, expense management, and member relationship nurturing—ideal for users with varied technological proficiency.
@@ -10,91 +7,101 @@ Built upon the CodeGuide Starter Pro template.
 ## Tech Stack
 
 - **Framework:** [Next.js 14](https://nextjs.org/) (App Router)
-- **Authentication:** [Clerk](https://clerk.com/) (To be integrated)
-- **Database:** [Supabase](https://supabase.com/) (via Prisma ORM - To be integrated)
+- **Database:** [Supabase](https://supabase.com/) (Postgres)
+- **ORM:** [Prisma](https://www.prisma.io/)
 - **Styling:** [Tailwind CSS](https://tailwindcss.com/)
 - **UI Components:** [shadcn/ui](https://ui.shadcn.com/)
 - **Payments:** [Stripe Connect](https://stripe.com/connect) (To be integrated)
 - **SMS:** [Twilio](https://www.twilio.com/) (To be integrated)
 - **Internationalization:** [react-i18next](https://react.i18next.com/) (To be integrated)
-- **Mock Data:** [@faker-js/faker](https://fakerjs.dev/) (for UI development)
 
 ## Project Status
 
 - **Initial Setup:** Complete (Next.js 14, TypeScript, Tailwind, shadcn/ui).
-- **Code Migration:** UI components and structure from the Vizero project have been integrated.
-- **Layout:** Main dashboard layout uses Next.js App Router file-system conventions (`app/(dashboard)/layout.tsx`).
-- **Error Resolution:** Build errors from the code migration have been addressed.
-- **Mock Data:** Basic mock data service implemented in `lib/mock-data.ts` for Expenses and Members.
-- **Placeholders:** Report generation functions exist as placeholders in `lib/report-generators.ts`.
-- **Current Phase:** Frontend UI refinement and testing (Phase 2 of Implementation Plan).
+- **Database Setup:** Prisma schema defined, connected to Supabase database.
+- **Migrations:** Initial Prisma migration applied. Supabase migrations applied for RLS and Storage policies.
+- **Core Features:**
+    - Member management UI (List, Details Drawer, Edit Form) is functional.
+    - Basic multi-tenancy via RLS is implemented.
+- **Code Migration:** UI components and structure from the Vizero project integrated.
+- **Layout:** Main dashboard layout implemented (`app/(dashboard)/layout.tsx`).
+- **Current Phase:** Backend integration for other features (Donations, Expenses, etc.) and frontend refinement.
 
 ## Prerequisites
 
 Before you begin, ensure you have the following:
-- Node.js 20+ installed (as recommended by Implementation Plan)
-- A [Clerk](https://clerk.com/) account for authentication
-- A [Supabase](https://supabase.com/) account for database
-- A [Stripe](https://stripe.com/) account (specifically for Stripe Connect)
-- A [Twilio](https://www.twilio.com/) account for SMS (optional, if implementing SMS features)
-- Project documentation (like `implementation_plan.md`) available for reference.
+- Node.js 20+ installed
+- A package manager (npm, yarn, or pnpm)
+- A [Supabase](https://supabase.com/) account for the database
+- [Supabase CLI](https://supabase.com/docs/guides/cli) installed and logged in (`supabase login`)
+- A [Clerk](https://clerk.com/) account (for future authentication integration)
+- A [Stripe](https://stripe.com/) account (for future payments integration)
+- A [Twilio](https://www.twilio.com/) account (for future SMS integration)
 
 ## Getting Started
 
-1. **Clone the repository** (if you haven't already)
-   ```bash
-   git clone <repository-url>
-   cd altarflowdev # Or your project directory name
-   ```
+1.  **Clone the repository**
+    ```bash
+    git clone <repository-url>
+    cd altarflowdev
+    ```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   # or
-   yarn install
-   # or
-   pnpm install
-   ```
+2.  **Install dependencies**
+    ```bash
+    npm install
+    # or yarn install / pnpm install
+    ```
 
-3. **Install Development Dependencies** (if needed, e.g., after cloning)
-   ```bash
-   npm install @faker-js/faker --save-dev
-   ```
+3.  **Link Supabase Project** (if not already linked)
+    ```bash
+    supabase link --project-ref <your-project-ref>
+    ```
+    *Replace `<your-project-ref>` with your actual Supabase project reference ID.* 
 
-4. **Environment Variables Setup**
-   - Copy the `.env.example` file to `.env`:
-     ```bash
-     cp .env.example .env
-     ```
-   - Fill in the environment variables in `.env` for services like Clerk, Supabase, Stripe, Twilio as you integrate them (see Configuration section below - *Note: Integration pending*).
+4.  **Environment Variables Setup**
+    *   Copy `.env.example` to `.env`:
+        ```bash
+        cp .env.example .env
+        ```
+    *   Create `prisma/.env` if it doesn't exist.
+    *   Fill in the necessary variables in both `.env` (for frontend Supabase keys, Clerk, etc.) and `prisma/.env` (for `DATABASE_URL`, `DIRECT_URL`) based on the Configuration section.
 
-5. **Start the development server**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   # or
-   pnpm dev
-   ```
+5.  **Database Setup**
+    *   Ensure your Supabase database connection strings are correct in `prisma/.env`.
+    *   Apply Prisma migrations (creates table structure):
+        ```bash
+        npx prisma migrate dev
+        ```
+        *(Note: If running for the first time after cloning a project with existing migrations, `migrate dev` will apply them. Use `prisma migrate reset` in development *only* if you need to wipe and recreate the DB, **this causes data loss**.)*
+    *   Apply Supabase migrations (applies RLS, functions, storage policies, etc.):
+        ```bash
+        supabase db push
+        ```
 
-6. **Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.** (Currently redirects to `/dashboard`).
+6.  **Start the development server**
+    ```bash
+    npm run dev
+    # or yarn dev / pnpm dev
+    ```
 
-## Configuration (Integration Pending)
+7.  **Open [http://localhost:3000](http://localhost:3000) in your browser.**
 
-Configuration details for Clerk, Supabase, Stripe Connect, and Twilio will be required during backend integration (Phase 3 & 4).
+## Configuration
+
+### Supabase Setup
+1. Go to [Supabase Dashboard](https://app.supabase.com/)
+2. Create a new project (if you haven't).
+3. Go to Project Settings > API.
+4. Obtain `Project URL` and `anon` public key for `.env` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
+5. Go to Project Settings > Database > Connection string.
+6. Copy the **URI** (using the Transaction pooler) and add it to `prisma/.env` as `DATABASE_URL`.
+7. Copy the **Direct connection** string and add it to `prisma/.env` as `DIRECT_URL` (used by Prisma Migrate).
 
 ### Clerk Setup (Future)
 1. Go to [Clerk Dashboard](https://dashboard.clerk.com/)
-2. Create a new application
-3. Go to API Keys
+2. Create a new application.
+3. Go to API Keys.
 4. Obtain `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` for `.env`.
-
-### Supabase Setup (Future)
-1. Go to [Supabase Dashboard](https://app.supabase.com/)
-2. Create a new project
-3. Go to Project Settings > API
-4. Obtain `Project URL` and `anon` public key for `.env` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
-5. Obtain the **Database Connection String** (Pooler) for Prisma configuration (`DATABASE_URL` in `prisma/.env`).
 
 ### Stripe Connect Setup (Future)
 1. Go to [Stripe Dashboard](https://dashboard.stripe.com/)
@@ -105,8 +112,9 @@ Configuration details for Clerk, Supabase, Stripe Connect, and Twilio will be re
 1. Go to [Twilio Console](https://www.twilio.com/console)
 2. Obtain Account SID, Auth Token, and a Twilio phone number for `.env`.
 
-## Environment Variables (.env)
+## Environment Variables
 
+### `.env` (Root Directory)
 ```env
 # Clerk Authentication (Required Later)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
@@ -116,50 +124,75 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
 
-# Supabase (Required Later for Data)
+# Supabase Frontend Keys
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-# Note: DATABASE_URL for Prisma goes in prisma/.env
 
-# Stripe Connect (Required Later for Payments)
+# Stripe Connect (Required Later)
 STRIPE_SECRET_KEY=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 STRIPE_WEBHOOK_SECRET=
 
-# Twilio (Required Later for SMS)
+# Twilio (Required Later)
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=
 ```
+
+### `prisma/.env`
+```env
+# Supabase Database Connection Strings
+# Use Pooler (Transaction Mode) for general application access
+DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@[YOUR-DB-HOST]:6543/postgres?pgbouncer=true"
+# Use Direct Connection for migrations
+DIRECT_URL="postgresql://postgres:[YOUR-PASSWORD]@[YOUR-DB-HOST]:5432/postgres"
+```
+*Replace placeholders with your actual Supabase DB credentials.* 
+
+## Database Migration Workflow
+
+This project uses a hybrid approach for database migrations:
+
+1.  **Prisma (`prisma/migrations`)**: Used for managing the core **database schema** (tables, columns, relations, indexes).
+    *   Define schema in `prisma/schema.prisma`.
+    *   Generate migrations: `npx prisma migrate dev --name <migration_name>` (Development only)
+    *   Apply migrations: `npx prisma migrate deploy` (Production)
+2.  **Supabase CLI (`supabase/migrations`)**: Used for managing **RLS policies, database functions, triggers, storage policies,** and other Supabase-specific configurations not handled well by Prisma.
+    *   Create new migration files: `supabase migration new <migration_name>`.
+    *   Write SQL for policies, functions, etc., in the generated file.
+    *   Apply migrations: `supabase db push` (Applies pending migrations to linked DB).
+
+**Important:**
+*   Avoid defining table structures in Supabase migrations if they are managed by Prisma.
+*   If a Supabase migration alters table structure, run `npx prisma db pull` followed by `npx prisma generate` to update the Prisma schema.
+*   **Never** run `prisma migrate reset` in production (causes data loss).
+*   Always back up production before applying any migrations.
 
 ## Project Structure
 
 ```
 altarflowdev/
 ├── app/                  # Next.js App Router (routes, layouts, pages)
-│   ├── (auth)/           # Auth-related routes (sign-in, sign-up)
+│   ├── (auth)/           # Auth-related routes
 │   ├── (dashboard)/      # Protected dashboard routes
-│   │   ├── dashboard/    # Specific dashboard page
-│   │   ├── donations/    # Donations page
-│   │   └── ...           # Other dashboard sections
-│   ├── api/              # API Route Handlers (future)
+│   ├── api/              # API Route Handlers
 │   ├── layout.tsx        # Root layout
-│   └── page.tsx          # Root page (redirects to /dashboard)
+│   └── page.tsx          # Root page
 ├── components/           # Shared React components
 │   ├── ui/               # shadcn/ui components
-│   ├── layout/           # Layout-specific components (e.g., Sidebar)
+│   ├── layout/           # Layout-specific components
 │   ├── modals/           # Modal dialog components
 │   └── ...               # Feature-specific components
 ├── lib/                  # Libraries, utilities, types
-│   ├── mock-data.ts      # Mock data service for UI dev
-│   ├── report-generators.ts # Placeholder report functions
-│   ├── types.ts          # TypeScript type definitions
-│   └── utils.ts          # Utility functions (e.g., cn)
 ├── public/               # Static assets
-├── styles/               # (Not typically used with App Router/Tailwind)
-├── documentation/        # Project documentation (e.g., implementation_plan.md)
-├── prisma/               # Prisma ORM schema and config (future)
-├── supabase/             # Supabase config/migrations (if not using Prisma)
+├── documentation/        # Project documentation
+├── prisma/               # Prisma ORM configuration
+│   ├── schema.prisma     # Database schema definition
+│   ├── migrations/       # Prisma-managed SQL migration files
+│   └── .env              # Prisma DB connection strings (gitignored)
+├── supabase/             # Supabase CLI configuration
+│   ├── migrations/       # Supabase CLI-managed SQL files (RLS, functions, etc.)
+│   └── config.toml       # Supabase CLI config
 ├── .env                  # Local environment variables (gitignored)
 ├── .env.example          # Example environment variables
 ├── next.config.mjs       # Next.js configuration
@@ -170,4 +203,3 @@ altarflowdev/
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
