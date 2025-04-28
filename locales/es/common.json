@@ -41,7 +41,7 @@
   "unknownDonor": "Desconocido",
   "unknownCampaign": "Desconocido",
   "clearAllFilters": "Limpiar todos los filtros",
-  "filter": "Filtro",
+  "filter": "Filtrar",
   "traditional": "Tradicional",
   "digital": "Digital",
   "goal": "Objetivo",
@@ -55,7 +55,7 @@
     "usd": "USD"
   },
   "errors": {
-    "required": "Este campo es requerido",
+    "required": "Este campo es obligatorio",
     "invalidEmail": "Por favor, ingrese una dirección de correo electrónico válida",
     "passwordMismatch": "Las contraseñas no coinciden",
     "invalidAmount": "Por favor, ingrese una cantidad válida",
@@ -67,7 +67,10 @@
     "pageNotFound": "Página no encontrada",
     "goHome": "Ir a Inicio",
     "invalidPhoneDigits": "El número de teléfono debe tener 10 dígitos.",
-    "invalidEmailFormat": "Por favor, ingrese un formato de correo electrónico válido."
+    "invalidEmailFormat": "Por favor, ingrese un formato de correo electrónico válido.",
+    "fetchFailed": "Error al cargar datos. Por favor, inténtalo de nuevo.",
+    "errorTitle": "Error",
+    "default": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo."
   },
   "success": {
     "donationCreated": "Donación registrada exitosamente",
@@ -142,7 +145,33 @@
   "updateMemberSuccess": {
     "title": "Miembro Actualizado",
     "description": "La información del miembro ha sido actualizada exitosamente."
-  }
+  },
+  "add": "Añadir",
+  "close": "Cerrar",
+  "saving": "Guardando...",
+  "sending": "Enviando...",
+  "noResults": "No se encontraron resultados.",
+  "required": "Este campo es obligatorio.",
+  "name": "Nombre",
+  "email": "Correo Electrónico",
+  "phone": "Teléfono",
+  "address": "Dirección",
+  "date": "Fecha",
+  "amount": "Cantidad",
+  "status": "Estado",
+  "role": "Rol",
+  "action": "Acción",
+  "selectOption": "Selecciona una opción",
+  "allStatuses": "Todos los Estados",
+  "notApplicable": "N/A",
+  "noPhoneNumber": "Sin teléfono",
+  "noEmailAddress": "Sin correo",
+  "roles": {
+    "ADMIN": "Admin",
+    "STAFF": "Personal"
+  },
+  "searchPlaceholderMembers": "Buscar miembros...",
+  "retry": "Intentar de Nuevo"
 } 
 
 

@@ -120,15 +120,21 @@ export async function POST(request: Request) {
         });
         newChurchId = newChurch.id; // Capture the new church ID
 
+        console.log(`[Onboarding] Attempting to update profile ${userId} with churchId ${newChurch.id} and role ADMIN...`);
+
         // Update the user's Profile
-        await tx.profile.update({
+        const updatedProfile = await tx.profile.update({
           where: { id: userId },
           data: {
             churchId: newChurch.id,
             onboardingComplete: true,
-            // Optionally update name/other profile fields if needed
+            role: 'ADMIN',
           },
+          select: { id: true, role: true }
         });
+
+        console.log(`[Onboarding] Profile update result for ${userId}:`, updatedProfile);
+
       });
     } catch (dbError) {
         console.error(`Database transaction failed for user ${userId}:`, dbError);

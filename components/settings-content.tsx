@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { FormSettings } from "./settings/form-settings"
-import { UsersPermissionsContent } from "./users-permissions-content"
+import { UserManagementContent } from "./settings/user-management"
 import { useState } from "react"
 import { useTranslation } from 'react-i18next'
 // Assuming react-hot-toast is used, adjust if necessary
@@ -167,7 +167,7 @@ export function SettingsContent({ initialChurchProfile }: SettingsContentProps) 
         </TabsContent>
 
         <TabsContent value="users-permissions">
-          <UsersPermissionsContent />
+          <UserManagementContent />
         </TabsContent>
 
         <TabsContent value="visitor-form">

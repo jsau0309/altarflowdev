@@ -103,14 +103,23 @@ export async function completeOnboardingAction(
         });
         newChurchId = newChurch.id;
 
+        // Log before updating profile
+        const profileBefore = await tx.profile.findUnique({ where: { id: userId }, select: { role: true } });
+        console.log(`[ServerAction Onboarding] Profile ${userId} BEFORE update:`, profileBefore);
+
         // Update the user's Profile
-        await tx.profile.update({
+        const updatedProfile = await tx.profile.update({ // Capture result again
           where: { id: userId },
           data: {
             churchId: newChurch.id,
             onboardingComplete: true,
+            role: 'ADMIN', // <<< Role assignment is here
           },
+          select: { id: true, role: true, churchId: true, onboardingComplete: true } // Select more fields
         });
+
+        // Log after updating profile
+        console.log(`[ServerAction Onboarding] Profile ${userId} AFTER update result:`, updatedProfile);
       });
     } catch (dbError) {
         console.error(`ServerAction DB Transaction Error for user ${userId}:`, dbError);

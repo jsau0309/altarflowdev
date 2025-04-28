@@ -1,17 +1,18 @@
 {
-    "title": "Configuraciones",
-    "general": "Configuraciones generales",
-    "church": "Información de la iglesia",
-    "users": "Gestión de usuarios",
+    "title": "Configuración",
+    "subtitle": "Gestiona la configuración y preferencias de tu cuenta",
+    "general": "Configuración General",
+    "church": "Perfil de la Iglesia",
+    "users": "Gestión de Usuarios",
     "notifications": "Notificaciones",
     "security": "Seguridad",
     "integrations": "Integraciones",
-    "churchName": "Nombre de la iglesia",
-    "churchAddress": "Dirección de la iglesia",
-    "churchPhone": "Teléfono de la iglesia",
+    "churchName": "Nombre de la Iglesia",
+    "churchAddress": "Dirección de la Iglesia",
+    "churchPhone": "Teléfono de la Iglesia",
     "churchEmail": "Correo electrónico de la iglesia",
     "churchWebsite": "Sitio web de la iglesia",
-    "defaultLanguage": "Idioma por defecto",
+    "defaultLanguage": "Idioma Predeterminado",
     "defaultCurrency": "Moneda por defecto",
     "theme": "Tema",
     "darkMode": "Modo oscuro",
@@ -21,27 +22,33 @@
     },
     
     "languages": {
-      "english": "English",
-      "spanish": "Spanish"
+      "english": "Inglés",
+      "spanish": "Español"
     },
     
     "settingsContent": {
-      "subtitle": "Gestiona tus configuraciones y preferencias",
+      "subtitle": "Gestiona la configuración y preferencias de tu cuenta",
       "tabs": {
-        "churchProfile": "Perfil de la iglesia",
-        "visitorForm": "Formulario de visitante"
+        "general": "General",
+        "churchProfile": "Perfil de la Iglesia",
+        "usersPermissions": "Gestión de Usuarios",
+        "visitorForm": "Formulario de Visitantes"
       },
       "general": {
-        "description": "Gestiona tus configuraciones generales de la aplicación",
-        "emailLabel": "Recibir notificaciones por correo electrónico para eventos importantes"
+        "description": "Gestiona la configuración general de tu aplicación",
+        "emailLabel": "Recibir notificaciones por email para eventos importantes"
       },
       "churchProfile": {
         "description": "Actualiza la información de tu iglesia",
         "cityLabel": "Ciudad",
-        "stateLabel": "Estado",
-        "zipLabel": "Código postal",
+        "stateLabel": "Estado/Provincia",
+        "zipLabel": "Código Postal",
         "aboutLabel": "Acerca de",
-        "saveButton": "Guardar perfil de la iglesia"
+        "saveButton": "Guardar Perfil de Iglesia",
+        "websiteLabel": "Sitio Web",
+        "fetchError": "Error al cargar el perfil de la iglesia.",
+        "saveSuccess": "¡Perfil de la iglesia guardado con éxito!",
+        "saveError": "Error al guardar el perfil de la iglesia."
       }
     },
     
@@ -118,5 +125,19 @@
         "referralLabel": "Seguimiento de Referidos",
         "referralDescription": "Pregunta a los visitantes cómo se enteraron de tu iglesia"
       }
-    }
+    },
+
+    "userManagement": {
+        "title": "Gestión de Usuarios",
+        "description": "Invita y gestiona a los miembros del personal.",
+        "fetchError": "Error al cargar usuarios: {{message}}",
+        "inviteButton": "Invitar Usuario",
+        "inviteDialog": {
+          "title": "Invitar Miembro del Personal",
+          "description": "Ingresa la dirección de correo electrónico del usuario que deseas invitar. Recibirá un correo electrónico con instrucciones para registrarse y unirse.",
+          "sendButton": "Enviar Invitación"
+        },
+        "inviteError": "Error al enviar invitación: {{message}}",
+        "noUsers": "No se encontraron usuarios."
+      }
   } 

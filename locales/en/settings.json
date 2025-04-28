@@ -1,8 +1,10 @@
 {
   "title": "Settings",
+  "subtitle": "Manage your account settings and preferences",
   "general": "General Settings",
-  "church": "Church Information",
+  "church": "Church Profile",
   "users": "User Management",
+  "visitorForm": "Visitor Form",
   "notifications": "Notifications",
   "security": "Security",
   "integrations": "Integrations",
@@ -27,10 +29,6 @@
   
   "settingsContent": {
     "subtitle": "Manage your account settings and preferences",
-    "tabs": {
-      "churchProfile": "Church Profile",
-      "visitorForm": "Visitor Form"
-    },
     "general": {
       "description": "Manage your general application settings",
       "emailLabel": "Receive email notifications for important events"
@@ -39,9 +37,19 @@
       "description": "Update your church information",
       "cityLabel": "City",
       "stateLabel": "State",
-      "zipLabel": "ZIP Code",
+      "zipLabel": "Zip Code",
       "aboutLabel": "About",
-      "saveButton": "Save Church Profile"
+      "saveButton": "Save Church Profile",
+      "websiteLabel": "Website",
+      "fetchError": "Failed to load church profile.",
+      "saveSuccess": "Church profile saved successfully!",
+      "saveError": "Failed to save church profile."
+    },
+    "tabs": {
+        "general": "General",
+        "churchProfile": "Church Profile",
+        "usersPermissions": "User Management",
+        "visitorForm": "Visitor Form"
     }
   },
   
@@ -118,5 +126,19 @@
       "referralLabel": "Referral Tracking",
       "referralDescription": "Ask visitors how they heard about your church"
     }
+  },
+
+  "userManagement": {
+    "title": "User Management",
+    "description": "Invite and manage staff members.",
+    "fetchError": "Failed to load users: {{message}}",
+    "inviteButton": "Invite User",
+    "inviteDialog": {
+      "title": "Invite Staff Member",
+      "description": "Enter the email address of the user you want to invite. They will receive an email with instructions to sign up and join.",
+      "sendButton": "Send Invitation"
+    },
+    "inviteError": "Failed to send invitation: {{message}}",
+    "noUsers": "No users found."
   }
 } 

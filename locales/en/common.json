@@ -67,7 +67,10 @@
     "pageNotFound": "Page not found",
     "goHome": "Go to Home",
     "invalidPhoneDigits": "Phone number must be 10 digits.",
-    "invalidEmailFormat": "Please enter a valid email format."
+    "invalidEmailFormat": "Please enter a valid email format.",
+    "fetchFailed": "Failed to load data. Please try again.",
+    "errorTitle": "Error",
+    "default": "An unexpected error occurred. Please try again."
   },
   "success": {
     "donationCreated": "Donation recorded successfully",
@@ -142,5 +145,28 @@
   "updateMemberSuccess": {
     "title": "Member Updated",
     "description": "Member information has been updated successfully."
-  }
+  },
+  "add": "Add",
+  "close": "Close",
+  "name": "Name",
+  "email": "Email",
+  "phone": "Phone",
+  "address": "Address",
+  "date": "Date",
+  "amount": "Amount",
+  "status": "Status",
+  "role": "Role",
+  "action": "Action",
+  "selectOption": "Select an option",
+  "allStatuses": "All Statuses",
+  "notApplicable": "N/A",
+  "invalidDate": "Invalid Date",
+  "noPhoneNumber": "No phone",
+  "noEmailAddress": "No Email",
+  "roles": {
+    "ADMIN": "Admin",
+    "STAFF": "Staff"
+  },
+  "searchPlaceholderMembers": "Search members...",
+  "retry": "Try Again"
 } 
