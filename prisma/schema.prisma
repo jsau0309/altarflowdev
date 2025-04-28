@@ -50,6 +50,9 @@ model Church {
   donations Donation[] // A church has many donations
   members   Member[]   // A church has many members
   campaigns Campaign[] // A church has many campaigns
+
+  // --- Add inverse relation for InviteToken ---
+  inviteTokens InviteToken[]
 }
 
 // Represents an authenticated user within our application context
@@ -75,6 +78,9 @@ model Profile {
 
   // Optional: Add email here if needed, though it's in auth.users
   // email     String   @unique 
+
+  // --- Add inverse relation for PasswordResetToken ---
+  passwordResetTokens PasswordResetToken[]
 
   @@index([churchId]) // Index for faster lookups by church
 }
@@ -197,6 +203,34 @@ model Expense {
   @@index([submitterId])
   @@index([approverId])
   @@index([churchId]) // Index for faster lookups by church
+}
+
+// --- Add InviteToken Model ---
+model InviteToken {
+  id        String   @id @default(cuid())
+  token     String   @unique // The secure random token
+  email     String   // Email address the invite was sent to
+  churchId  String   @db.Uuid // ID of the church the user is invited to
+  expiresAt DateTime // When the token becomes invalid
+  createdAt DateTime @default(now())
+
+  church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([churchId])
+}
+
+// --- Add PasswordResetToken Model ---
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique // The secure random token
+  userId    String   @db.Uuid // ID of the user requesting reset (references auth.users directly via Profile)
+  expiresAt DateTime // When the token becomes invalid
+  createdAt DateTime @default(now())
+
+  profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 

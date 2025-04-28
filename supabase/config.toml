@@ -276,3 +276,14 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # # Specifies static files to be bundled with the function. Supports glob patterns.
 # # For example, if you want to serve static HTML pages in your function:
 # # static_files = [ "./functions/add-church-claim/*.html" ]
+
+[functions.custom-email-hook-handler]
+enabled = true
+verify_jwt = true
+import_map = "./functions/custom-email-hook-handler/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/custom-email-hook-handler/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/custom-email-hook-handler/*.html" ]

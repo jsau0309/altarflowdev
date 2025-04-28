@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 
@@ -30,6 +30,16 @@ export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    const token = searchParams.get('invite_token')
+    if (token) {
+      console.log("Invite token found in URL:", token)
+      setInviteToken(token)
+    }
+  }, [searchParams])
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(SignUpSchema),
@@ -45,12 +55,15 @@ export function SignUpForm() {
   const onSubmit = async (values: SignUpFormValues) => {
     setIsLoading(true)
     try {
-      const payload = {
+      const payload: any = {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
         password: values.password,
-      };
+      }
+      if (inviteToken) {
+        payload.inviteToken = inviteToken
+      }
 
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -64,17 +77,23 @@ export function SignUpForm() {
         throw new Error(result.error || 'Signup failed')
       }
 
-      if (!result.email) {
-        console.error("Signup API response missing email:", result);
-        throw new Error("Signup complete but couldn't proceed. Please try again or contact support.");
+      if (result.invitedUser) {
+        toast({
+          title: "Signup Successful!",
+          description: "Your account has been created via invitation. Welcome!",
+        })
+        window.location.assign('/dashboard')
+      } else {
+        if (!result.email) {
+          console.error("Signup API response missing email:", result)
+          throw new Error("Signup complete but couldn't proceed. Please try again or contact support.")
+        }
+        toast({
+          title: "Verification Required",
+          description: "Account created! Please check your email for a verification code.",
+        })
+        router.push(`/verify-otp?email=${encodeURIComponent(result.email)}`)
       }
-
-      toast({
-        title: "Verification Required",
-        description: "Account created! Please check your email for a verification code.",
-      })
-
-      router.push(`/verify-otp?email=${encodeURIComponent(result.email)}`)
 
     } catch (error) {
       console.error("Signup error:", error)

@@ -25,7 +25,7 @@ export function ForgotPasswordForm() {
     const email = formData.get("email") as string
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch('/api/auth/request-password-reset', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
