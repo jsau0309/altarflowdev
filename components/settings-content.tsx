@@ -3,47 +3,97 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { FormSettings } from "./settings/form-settings"
 import { UsersPermissionsContent } from "./users-permissions-content"
 import { useState } from "react"
 import { useTranslation } from 'react-i18next'
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+// Assuming react-hot-toast is used, adjust if necessary
+// import toast from 'react-hot-toast'; 
 
-export function SettingsContent() {
+// Define a type for the church profile data
+interface ChurchProfileData {
+  name: string;
+  phone?: string | null;
+  address?: string | null;
+  website?: string | null;
+}
+
+// Define props for the component
+interface SettingsContentProps {
+  initialChurchProfile: ChurchProfileData;
+}
+
+export function SettingsContent({ initialChurchProfile }: SettingsContentProps) {
   const { i18n, t } = useTranslation(['settings', 'common'])
-  const [churchProfile, setChurchProfile] = useState({
-    name: "Faith Community Church",
-    phone: "(555) 123-4567",
-    address: "123 Faith Street",
-    city: "New Hope",
-    state: "CA",
-    zip: "95123",
-    about:
-      "Faith Community Church is a welcoming congregation dedicated to serving our community through faith and action.",
+  // Initialize state directly from the prop
+  const [churchProfile, setChurchProfile] = useState<ChurchProfileData>({
+    name: initialChurchProfile.name || "", 
+    phone: initialChurchProfile.phone || "",
+    address: initialChurchProfile.address || "",
+    website: initialChurchProfile.website || "",
   })
+  // Remove isLoading state
+  // const [isLoading, setIsLoading] = useState(true); 
+  const [isSaving, setIsSaving] = useState(false);  // Saving state for updates
 
-  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true)
+  // Remove useEffect for fetching data
+  /*
+  useEffect(() => {
+    const fetchProfile = async () => {
+      // ... fetch logic removed ...
+    };
+    fetchProfile();
+  }, [t]);
+  */
 
-  const handleChurchProfileChange = (field: string, value: string) => {
+  const handleChurchProfileChange = (field: keyof ChurchProfileData, value: string) => {
     setChurchProfile((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleLanguageChange = (value: string) => {
-    i18n.changeLanguage(value)
+  const handleSaveChurchProfile = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/settings/church-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(churchProfile),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const updatedData: ChurchProfileData = await response.json();
+      setChurchProfile({
+        name: updatedData.name || "",
+        phone: updatedData.phone || "",
+        address: updatedData.address || "",
+        website: updatedData.website || "",
+      });
+
+      // Remove success alert
+      // alert(t('settings:settingsContent.churchProfile.saveSuccess', 'Church profile saved successfully!'));
+    } catch (error) {
+      console.error("Failed to save church profile:", error);
+      const message = error instanceof Error ? error.message : 'Failed to save church profile.';
+      // Remove error alert
+      // alert(t('settings:settingsContent.churchProfile.saveError', message));
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  const handleSaveChanges = () => {
-    console.log("Saving general settings...")
-    // TODO: Add toast notification for success/failure
+  // Remove loading state return
+  /*
+  if (isLoading) {
+    return <div className="container mx-auto py-6">{t('common:loading', 'Loading...')}</div>; 
   }
-
-  const handleSaveChurchProfile = () => {
-    console.log("Saving church profile:", churchProfile)
-    // TODO: Add toast notification for success/failure
-  }
+  */
 
   return (
     <div className="container mx-auto py-6">
@@ -52,12 +102,9 @@ export function SettingsContent() {
         <p className="text-muted-foreground">{t('settings:settingsContent.subtitle')}</p>
       </div>
 
-      <Tabs defaultValue="general">
+      <Tabs defaultValue="church-profile">
         <div className="overflow-x-auto pb-2">
           <TabsList className="mb-6 inline-flex w-auto min-w-full">
-            <TabsTrigger value="general" className="flex-1 whitespace-nowrap">
-              {t('settings:general')}
-            </TabsTrigger>
             <TabsTrigger value="church-profile" className="flex-1 whitespace-nowrap">
               {t('settings:settingsContent.tabs.churchProfile')}
             </TabsTrigger>
@@ -69,48 +116,6 @@ export function SettingsContent() {
             </TabsTrigger>
           </TabsList>
         </div>
-
-        <TabsContent value="general">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('settings:general')}</CardTitle>
-              <CardDescription>{t('settings:settingsContent.general.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-4">{t('settings:defaultLanguage')}</h3>
-                <RadioGroup 
-                  value={i18n.language} 
-                  onValueChange={handleLanguageChange} 
-                  className="space-y-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="en" id="english" />
-                    <Label htmlFor="english">{t('settings:languages.english')}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="es" id="spanish" />
-                    <Label htmlFor="spanish">{t('settings:languages.spanish')}</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-medium mb-2">{t('settings:notifications')}</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="email-notifications" 
-                    checked={emailNotificationsEnabled} 
-                    onCheckedChange={setEmailNotificationsEnabled} 
-                  />
-                  <Label htmlFor="email-notifications">{t('settings:settingsContent.general.emailLabel')}</Label>
-                </div>
-              </div>
-
-              <Button onClick={handleSaveChanges}>{t('common:save')}</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="church-profile">
           <Card>
@@ -132,54 +137,30 @@ export function SettingsContent() {
                   <Label htmlFor="phone">{t('settings:churchPhone')}</Label>
                   <Input
                     id="phone"
-                    value={churchProfile.phone}
+                    value={churchProfile.phone ?? ''}
                     onChange={(e) => handleChurchProfileChange("phone", e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="address">{t('settings:churchAddress')}</Label>
                   <Input
                     id="address"
-                    value={churchProfile.address}
+                    value={churchProfile.address ?? ''}
                     onChange={(e) => handleChurchProfileChange("address", e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="city">{t('settings:settingsContent.churchProfile.cityLabel')}</Label>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="website">{t('settings:settingsContent.churchProfile.websiteLabel', 'Website')}</Label>
                   <Input
-                    id="city"
-                    value={churchProfile.city}
-                    onChange={(e) => handleChurchProfileChange("city", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">{t('settings:settingsContent.churchProfile.stateLabel')}</Label>
-                  <Input
-                    id="state"
-                    value={churchProfile.state}
-                    onChange={(e) => handleChurchProfileChange("state", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="zip">{t('settings:settingsContent.churchProfile.zipLabel')}</Label>
-                  <Input
-                    id="zip"
-                    value={churchProfile.zip}
-                    onChange={(e) => handleChurchProfileChange("zip", e.target.value)}
+                    id="website"
+                    value={churchProfile.website ?? ''}
+                    onChange={(e) => handleChurchProfileChange("website", e.target.value)}
+                    placeholder="https://example.com"
                   />
                 </div>
               </div>
-              <div className="space-y-2 mt-4">
-                <Label htmlFor="about">{t('settings:settingsContent.churchProfile.aboutLabel')}</Label>
-                <textarea
-                  id="about"
-                  className="w-full p-2 border rounded h-24"
-                  value={churchProfile.about}
-                  onChange={(e) => handleChurchProfileChange("about", e.target.value)}
-                />
-              </div>
-              <Button onClick={handleSaveChurchProfile} className="mt-4">
-                {t('settings:settingsContent.churchProfile.saveButton')}
+              <Button onClick={handleSaveChurchProfile} className="mt-4" disabled={isSaving}>
+                {isSaving ? t('common:saving', 'Saving...') : t('settings:settingsContent.churchProfile.saveButton')}
               </Button>
             </CardContent>
           </Card>
