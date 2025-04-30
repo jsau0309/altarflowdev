@@ -58,7 +58,7 @@ export type Member = {
   smsConsentDate: string | null;
   smsConsentMethod: string | null;
   language: string | null; // Added from form
-  churchId: string;
+  // churchId: string; // Removed as client-side likely doesn't need internal DB ID
   // Add audit timestamps
   createdAt: string; // Assume ISO string from API
   updatedAt: string; // Assume ISO string from API

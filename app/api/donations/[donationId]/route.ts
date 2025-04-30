@@ -1,45 +1,49 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-helpers';
+import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 
-// Schema for validating updated donation data (PATCH) - Limited use case?
+// Update schema validation if Member/Campaign IDs are UUIDs
 const donationUpdateSchema = z.object({
-  // Typically, core details like amount/date of processed donations aren't changed.
-  // Maybe allow updating links or non-financial details?
   donorFirstName: z.string().nullable().optional(),
   donorLastName: z.string().nullable().optional(),
   donorEmail: z.string().email().nullable().optional(),
-  memberId: z.string().cuid().nullable().optional(),
-  campaignId: z.string().cuid().nullable().optional(),
+  memberId: z.string().uuid({ message: "Invalid Member ID format" }).nullable().optional(), // Assuming UUID
+  campaignId: z.string().uuid({ message: "Invalid Campaign ID format" }).nullable().optional(), // Assuming UUID
 }).partial(); 
 
-// GET /api/donations/[donationId] - Fetch a single donation
+// GET /api/donations/[donationId] - Fetch a single donation from the active organization
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { donationId: string } }
 ) {
   try {
-    // Authentication & Authorization check
-    // TODO: Role check needed? Current RLS allows authenticated read.
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const { userId, orgId } = getAuth(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!orgId) {
+      console.error(`User ${userId} attempted GET on donation ${params.donationId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
+    }
+    // TODO: Role check needed?
 
     const donationId = params.donationId;
-    const donation = await prisma.donation.findUnique({
-      where: { id: donationId },
-      // Example: Include related data
-      // include: { 
-      //   member: { select: { firstName: true, lastName: true } },
-      //   campaign: { select: { name: true } }
-      // }
+
+    // 2. Fetch donation only if it belongs to the active org
+    const donation = await prisma.donation.findFirst({
+      where: { 
+        id: donationId, 
+        church: { clerkOrgId: orgId } 
+      },
+      // include: { ... } // Add includes if needed
     });
 
     if (!donation) {
-      return NextResponse.json({ error: 'Donation not found' }, { status: 404 });
+      // Not found or doesn't belong to this org
+      return NextResponse.json({ error: 'Donation not found or access denied' }, { status: 404 });
     }
 
     return NextResponse.json(donation);
@@ -50,47 +54,54 @@ export async function GET(
   }
 }
 
-// PATCH /api/donations/[donationId] - Update a donation (Limited Use)
+// PATCH /api/donations/[donationId] - Update a donation in the active organization
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { donationId: string } }
 ) {
+  let orgId: string | null | undefined = null; // Declare outside try
   try {
-    // Authentication & Authorization check
-    // TODO: Implement role-based access (e.g., only ADMIN)
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!orgId) {
+      console.error(`User ${userId} attempted PATCH on donation ${params.donationId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
+    }
+    // TODO: Implement role-based access (e.g., only ADMIN using authResult.orgRole)
 
     const donationId = params.donationId;
 
-    // Check existence
-    const existingDonation = await prisma.donation.findUnique({ where: { id: donationId }, select: { id: true, stripePaymentIntentId: true } });
-    if (!existingDonation) {
-       return NextResponse.json({ error: 'Donation not found' }, { status: 404 });
-    }
+    // Remove initial existence check, updateMany handles this with the org check
+    // const existingDonation = await prisma.donation.findUnique(...);
     
-    // Prevent updating donations processed via Stripe?
-    // if (existingDonation.stripePaymentIntentId) {
-    //   return NextResponse.json({ error: 'Cannot modify donations processed online.' }, { status: 403 });
-    // }
+    // TODO: Consider check here if donation is from Stripe and disallow update?
+    // const donationOrg = await prisma.donation.findFirst({ 
+    //    where: { id: donationId, church: { clerkOrgId: orgId }, stripePaymentIntentId: { not: null } }, 
+    //    select: { id: true }
+    // });
+    // if (donationOrg) return ...
 
     const body = await request.json();
     
-    // Validate input data
+    // 2. Validate input data
     const validation = donationUpdateSchema.safeParse(body);
     if (!validation.success) {
         return NextResponse.json({ error: 'Invalid input data', details: validation.error.errors }, { status: 400 });
     }
     const donationData = validation.data;
 
-    // Prepare data, handling potential disconnections
+    // 3. Prepare data, handling potential disconnections
     const dataToUpdate: Prisma.DonationUpdateInput = {
-      donorFirstName: donationData.donorFirstName,
-      donorLastName: donationData.donorLastName,
-      donorEmail: donationData.donorEmail,
-      // Connect/disconnect logic for relations
+      // Only include fields present in the validated data
+      ...(donationData.donorFirstName !== undefined && { donorFirstName: donationData.donorFirstName }),
+      ...(donationData.donorLastName !== undefined && { donorLastName: donationData.donorLastName }),
+      ...(donationData.donorEmail !== undefined && { donorEmail: donationData.donorEmail }),
       member: donationData.memberId === null 
         ? { disconnect: true } 
         : (donationData.memberId ? { connect: { id: donationData.memberId } } : undefined),
@@ -99,58 +110,96 @@ export async function PATCH(
         : (donationData.campaignId ? { connect: { id: donationData.campaignId } } : undefined),
     };
 
-    const updatedDonation = await prisma.donation.update({
-      where: { id: donationId },
+    // Check if there's actually anything to update
+    if (Object.keys(dataToUpdate).length === 0) {
+      return NextResponse.json({ error: 'No valid fields provided for update' }, { status: 400 });
+    }
+
+    // 4. Perform update using updateMany to ensure org boundary
+    const updateResult = await prisma.donation.updateMany({
+      where: { 
+        id: donationId,
+        church: { clerkOrgId: orgId } // Ensure org match
+        // Optional: Add stripePaymentIntentId: null check if needed
+      },
       data: dataToUpdate,
+    });
+
+    // 5. Check if update occurred
+    if (updateResult.count === 0) {
+       return NextResponse.json({ error: 'Donation not found, access denied, or no changes needed' }, { status: 404 });
+    }
+    
+    // 6. Fetch and return updated donation
+    const updatedDonation = await prisma.donation.findFirst({
+        where: { id: donationId, church: { clerkOrgId: orgId } }
     });
 
     return NextResponse.json(updatedDonation);
 
   } catch (error) {
     console.error(`Error updating donation ${params.donationId}:`, error);
-    // Handle potential foreign key or record not found errors during connect
-    if (error instanceof Error && 'code' in error && typeof error.code === 'string' && (error.code === 'P2003' || error.code === 'P2025')) { 
-        return NextResponse.json({ error: 'Invalid or non-existent Member or Campaign ID provided for update.' }, { status: 400 });
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2003' || error.code === 'P2025') {
+          const field = (error.meta as any)?.field_name || 'related record';
+          const model = (error.meta as any)?.modelName || 'record';
+          console.warn(`Failed donation update due to invalid foreign key on ${field} or ${model} not found.`);
+          return NextResponse.json({ error: `Invalid or non-existent ${field} provided for update.` }, { status: 400 });
+        }
     }
     return NextResponse.json({ error: 'Failed to update donation' }, { status: 500 });
   }
 }
 
-// DELETE /api/donations/[donationId] - Delete a donation (Use with caution!)
+// DELETE /api/donations/[donationId] - Delete a donation from the active organization
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { donationId: string } }
 ) {
+  let orgId: string | null | undefined = null; // Declare outside try
   try {
-    // Authentication & Authorization check
-    // TODO: Implement role-based access (VERY restricted, e.g., ADMIN only?)
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    // Add strict role check here later!
+    if (!orgId) {
+      console.error(`User ${userId} attempted DELETE on donation ${params.donationId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
+    }
+    // TODO: Add strict role check here later!
 
     const donationId = params.donationId;
 
-    // Check existence 
-    const existingDonation = await prisma.donation.findUnique({ where: { id: donationId }, select: { id: true, stripePaymentIntentId: true } });
-    if (!existingDonation) {
-      return new NextResponse(null, { status: 204 }); // Already deleted
-    }
-    
-    // Prevent deleting donations processed via Stripe?
-    // if (existingDonation.stripePaymentIntentId) {
-    //   return NextResponse.json({ error: 'Cannot delete donations processed online.' }, { status: 403 });
-    // }
+    // Remove initial existence check
 
-    await prisma.donation.delete({
-      where: { id: donationId },
+    // TODO: Add check here if donation is from Stripe and disallow delete?
+    // const donationOrg = await prisma.donation.findFirst({...}); if (donationOrg) return ...
+
+    // 2. Use deleteMany with compound where clause to ensure ownership
+    const deleteResult = await prisma.donation.deleteMany({
+      where: { 
+        id: donationId, 
+        church: { clerkOrgId: orgId } // Ensure deletion only happens for the correct org
+        // Optional: Add stripePaymentIntentId: null check if needed
+      },
     });
 
+    // 3. Check if a record was actually deleted
+    if (deleteResult.count === 0) {
+      // Not found or doesn't belong to this org - considered success for idempotency
+      return new NextResponse(null, { status: 204 });
+    }
+
+    console.log(`Donation ${donationId} deleted successfully by user ${userId} (org ${orgId})`);
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
      console.error(`Error deleting donation ${params.donationId}:`, error);
+     // P2003 (FK constraint) is unlikely on delete unless schema changes
     return NextResponse.json({ error: 'Failed to delete donation' }, { status: 500 });
   }
 } 

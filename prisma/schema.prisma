@@ -36,6 +36,7 @@ enum ExpenseStatus {
 // Represents a Church organization/tenant
 model Church {
   id        String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
+  clerkOrgId String?  @unique // Added: Clerk Organization ID (initially optional, then required after sync)
   name      String   // Name of the church
   address   String?  // Added: Physical address of the church
   phone     String?  // Added: Primary phone number
@@ -44,33 +45,36 @@ model Church {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt // Keep @updatedAt, add @default(now()) for INSERT
 
+  // --- Connect Form Configuration ---
+  serviceTimesJson Json?    @db.Json
+  ministriesJson   Json?    @db.Json
+  settingsJson     Json?    @db.Json
+
   // --- Relationships ---
-  profiles Profile[]  // A church has many user profiles
+  // profiles Profile[]  // REMOVED - No longer a direct link from Church to Profile
   expenses Expense[]  // A church has many expenses
   donations Donation[] // A church has many donations
   members   Member[]   // A church has many members
   campaigns Campaign[] // A church has many campaigns
-
-  // --- Add inverse relation for InviteToken ---
-  inviteTokens InviteToken[]
 }
 
 // Represents an authenticated user within our application context
-// We link this to the Supabase auth.users table via the ID
+// We link this to the Clerk user via the ID
 model Profile {
-  id        String   @id @db.Uuid
+  id        String   @id 
   firstName String?
   lastName  String?
-  churchName String? 
-  role      Role     @default(STAFF) // Default to STAFF, ADMIN set manually or via specific logic
+  email     String? 
+  churchName String? // This might still be useful if set during onboarding?
+  role      Role     @default(STAFF) 
   onboardingComplete Boolean  @default(false)
 
-  // --- Link to Church --- (Now Optional)
-  churchId  String?  @db.Uuid // <-- Add @db.Uuid
-  church    Church?   @relation(fields: [churchId], references: [id]) // Made optional
+  // --- Link to Church --- (REMOVED)
+  // churchId  String?  @db.Uuid 
+  // church    Church?   @relation(fields: [churchId], references: [id])
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
+  updatedAt DateTime @default(now()) @updatedAt
 
   // User-specific expense relations (who submitted/approved)
   submittedExpenses Expense[] @relation("SubmittedExpenses")
@@ -79,10 +83,7 @@ model Profile {
   // Optional: Add email here if needed, though it's in auth.users
   // email     String   @unique 
 
-  // --- Add inverse relation for PasswordResetToken ---
-  passwordResetTokens PasswordResetToken[]
-
-  @@index([churchId]) // Index for faster lookups by church
+  // @@index([churchId]) // REMOVED
 }
 
 // Represents a member or visitor of the church
@@ -186,11 +187,11 @@ model Expense {
   status      ExpenseStatus @default(PENDING)
 
   // Link to the user who submitted the expense
-  submitterId String @db.Uuid
+  submitterId String // <-- Removed @db.Uuid
   submitter   Profile   @relation("SubmittedExpenses", fields: [submitterId], references: [id])
 
   // Link to the user who approved/rejected the expense (optional)
-  approverId  String? @db.Uuid
+  approverId  String? // <-- Removed @db.Uuid
   approver    Profile?  @relation("ApprovedExpenses", fields: [approverId], references: [id])
 
   // --- Link to Church --- (Now Required)
@@ -205,13 +206,14 @@ model Expense {
   @@index([churchId]) // Index for faster lookups by church
 }
 
-// --- Add InviteToken Model ---
+// --- Add InviteToken Model --- (REMOVED)
+/*
 model InviteToken {
   id        String   @id @default(cuid())
-  token     String   @unique // The secure random token
-  email     String   // Email address the invite was sent to
-  churchId  String   @db.Uuid // ID of the church the user is invited to
-  expiresAt DateTime // When the token becomes invalid
+  token     String   @unique 
+  email     String   
+  churchId  String   @db.Uuid 
+  expiresAt DateTime 
   createdAt DateTime @default(now())
 
   church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
@@ -219,19 +221,20 @@ model InviteToken {
   @@index([email])
   @@index([churchId])
 }
+*/
 
-// --- Add PasswordResetToken Model ---
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  token     String   @unique // The secure random token
-  userId    String   @db.Uuid // ID of the user requesting reset (references auth.users directly via Profile)
-  expiresAt DateTime // When the token becomes invalid
-  createdAt DateTime @default(now())
-
-  profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
+// --- PasswordResetToken Model Removed ---
+// model PasswordResetToken {
+//   id        String   @id @default(cuid())
+//   token     String   @unique // The secure random token
+//   userId    String   @db.Uuid // ID of the user requesting reset (references auth.users directly via Profile)
+//   expiresAt DateTime // When the token becomes invalid
+//   createdAt DateTime @default(now())
+//
+//   profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+//
+//   @@index([userId])
+// }
 
 
 

@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-helpers';
+import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 
 // Schema for validating new member data (POST)
@@ -22,32 +22,26 @@ const memberCreateSchema = z.object({
 });
 
 // GET /api/members - Fetch all members
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    // 1. Get authenticated user
-    const user = await getCurrentUser(); 
-    if (!user) {
+    // 1. Get authenticated user and organization context using getAuth
+    const { userId, orgId } = getAuth(request); 
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    // 2. Get user's churchId from their profile
-    const profile = await prisma.profile.findUnique({
-      where: { id: user.id }, 
-      select: { churchId: true }, 
-    });
-
-    if (!profile || !profile.churchId) {
-        console.error(`Profile or churchId not found for user: ${user.id} attempting to GET members.`);
-        // Return empty array or error? Returning empty for now, as user might not be fully onboarded.
-        // return NextResponse.json({ error: 'User profile or church association not found.' }, { status: 400 }); 
-        return NextResponse.json([], { status: 200 }); // Return empty array if no church found
+    if (!orgId) {
+      console.error(`User ${userId} attempted to GET members without an active organization.`);
+      // Return empty array or error? Returning empty for now, as user might need to select org.
+      return NextResponse.json([], { status: 200 }); 
+      // Alternative: return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 }); 
     }
-    const churchId = profile.churchId;
 
-    // 3. Fetch members ONLY for the user's church
+    // 2. Fetch members ONLY for the active organization
     const members = await prisma.member.findMany({
       where: { 
-        churchId: churchId // Filter by churchId
+        church: { // Filter via the related Church model
+          clerkOrgId: orgId // Use the Clerk Organization ID
+        } 
       },
       orderBy: {
         lastName: 'asc',
@@ -63,28 +57,28 @@ export async function GET(request: Request) {
 }
 
 // POST /api/members - Create a new member
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  let orgId: string | null | undefined = null; // Declare orgId outside try block, allowing undefined
   try {
-    // Ensure user is authenticated to create members
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Ensure user is authenticated and has an active organization using getAuth
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId; // Assign orgId here (can be string | null | undefined)
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    // Fetch the user's profile to get the church ID using the user's ID
-    const profile = await prisma.profile.findUnique({
-      where: { id: user.id }, // Use the user's Supabase ID which is the Profile ID
-      select: { churchId: true }, // Only select the churchId
-    });
-
-    if (!profile || !profile.churchId) {
-        console.error(`Profile or churchId not found for user: ${user.id}`);
-        return NextResponse.json({ error: 'User profile or church association not found.' }, { status: 400 });
+     // Explicitly check for null or undefined orgId before proceeding
+     if (!orgId) { 
+      console.error(`User ${userId} attempted to POST member without an active organization.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
+
+    // No need to fetch profile just for churchId anymore
 
     const body = await request.json();
     
-    // Validate input data
+    // 2. Validate input data
     const validation = memberCreateSchema.safeParse(body);
     if (!validation.success) {
         console.error("Member validation error:", validation.error.errors);
@@ -92,7 +86,7 @@ export async function POST(request: Request) {
     }
     const memberData = validation.data;
 
-    // Handle date conversions
+    // 3. Prepare data for creation
     const dataToCreate: any = {
         ...memberData,
         joinDate: memberData.joinDate ? new Date(memberData.joinDate) : null,
@@ -104,11 +98,17 @@ export async function POST(request: Request) {
       dataToCreate.email = null;
     }
     
-    // Add the churchId to the data being created
-    dataToCreate.churchId = profile.churchId;
-
+    // 4. Create the new member, connecting it to the church via clerkOrgId
+    // The check `if (!orgId)` above ensures orgId is a string here
     const newMember = await prisma.member.create({
-      data: dataToCreate,
+      data: {
+        ...dataToCreate,
+        church: { 
+          connect: { 
+            clerkOrgId: orgId // orgId is guaranteed to be a string here
+          }
+        }
+      },
     });
 
     return NextResponse.json(newMember, { status: 201 }); // 201 Created
@@ -116,15 +116,20 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating member:", error);
      // Handle potential Prisma errors (e.g., unique constraint on email)
-    // Check if it's a Prisma error with a code
-    if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code === 'P2002') { 
-        // Extract conflicting field if possible (requires parsing error meta)
+    if (error instanceof Error && 'code' in error && typeof error.code === 'string') {
+      if (error.code === 'P2002') { // Unique constraint violation
         let conflictingField = 'unique field';
         if ('meta' in error && typeof error.meta === 'object' && error.meta && 'target' in error.meta && Array.isArray(error.meta.target)) {
             conflictingField = error.meta.target.join(', ');
         }
         return NextResponse.json({ error: `Database constraint violation on ${conflictingField}. Value might already exist.` }, { status: 409 }); // Conflict
+      } else if (error.code === 'P2025') { // Referenced record not found (e.g., Church with clerkOrgId)
+        // orgId is accessible here from the outer scope
+        console.error(`Attempted to connect member to non-existent church with clerkOrgId: ${orgId}`); 
+        return NextResponse.json({ error: 'Organization not found for creating member.' }, { status: 404 });
+      }
     }
+    
     return NextResponse.json({ error: 'Failed to create member' }, { status: 500 });
   }
 } 

@@ -4,9 +4,15 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import I18nClientProvider from "@/components/i18n-client-provider"
+import { 
+  ClerkProvider,
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  UserButton
+} from '@clerk/nextjs'
 
 // Removed client-side Supabase imports
-import SupabaseListener from "@/components/supabase-listener"; // Import the new client component
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,26 +30,27 @@ export default function RootLayout({
   // Removed client-side Supabase setup logic
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Remove Google Maps Script */}
-        {/* 
-        <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-          strategy="beforeInteractive"
-        /> 
-        */}
-      </head>
-      <body className={inter.className}>
-        {/* Render the listener early inside body */}
-        <SupabaseListener /> 
-        <I18nClientProvider>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            {children}
-          </ThemeProvider>
-        </I18nClientProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <head>
+          {/* Comment block removed */}
+        </head>
+        <body className={inter.className}>
+          {/* REMOVED global simple header */}
+          {/* <header style={{...}}>
+            <SignedOut>...</SignedOut>
+            <SignedIn>...</SignedIn>
+          </header> */}
+          
+          {/* Providers and children */}
+          <I18nClientProvider>
+            <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+              {children}
+            </ThemeProvider>
+          </I18nClientProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }
 

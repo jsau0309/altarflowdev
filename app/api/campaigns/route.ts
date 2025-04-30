@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-helpers';
+import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 
@@ -13,17 +13,26 @@ const campaignCreateSchema = z.object({
   endDate: z.string().datetime({ message: "Invalid end date format" }).nullable().optional(),
 });
 
-// GET /api/campaigns - Fetch all campaigns
-export async function GET() {
+// GET /api/campaigns - Fetch all campaigns for the active organization
+export async function GET(request: NextRequest) {
   try {
-    // Ensure user is authenticated to view campaigns
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const { userId, orgId } = getAuth(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!orgId) {
+      console.error(`User ${userId} attempted to GET campaigns without an active organization.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
+    }
 
-    // TODO: Implement pagination later
+    // 2. Fetch campaigns ONLY for the user's active organization
     const campaigns = await prisma.campaign.findMany({
+      where: {
+        church: { // Filter by the related church
+          clerkOrgId: orgId // Using the Clerk Org ID
+        }
+      },
       orderBy: {
         createdAt: 'desc', // Show newest first
       },
@@ -38,28 +47,29 @@ export async function GET() {
 }
 
 // POST /api/campaigns - Create a new campaign
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  let orgId: string | null | undefined = null; // Declare orgId outside try
   try {
-    // Ensure user is authenticated to create campaigns
-    // TODO: Add role check (e.g., ADMIN only?)
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId; // Assign orgId
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    // Get user's profile to get church information
-    const userProfile = await prisma.profile.findUnique({
-      where: { id: user.id },
-      include: { church: true }
-    });
-
-    if (!userProfile?.church) {
-      return NextResponse.json({ error: 'User is not associated with a church' }, { status: 400 });
+    // TODO: Add role check (e.g., ADMIN only?) using authResult.orgRole
+    if (!orgId) {
+      console.error(`User ${userId} attempted to POST campaign without an active organization.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
+
+    // Remove profile fetch - no longer needed for churchId
+    // const userProfile = await prisma.profile.findUnique(...);
 
     const body = await request.json();
     
-    // Validate input data
+    // 2. Validate input data
     const validation = campaignCreateSchema.safeParse(body);
     if (!validation.success) {
         console.error("Campaign validation error:", validation.error.errors);
@@ -67,19 +77,20 @@ export async function POST(request: Request) {
     }
     const campaignData = validation.data;
 
-    // Handle date conversions and potential number conversion for goal
+    // 3. Prepare data for creation - connect church via clerkOrgId
     const dataToCreate: Prisma.CampaignCreateInput = {
         ...campaignData,
         startDate: campaignData.startDate ? new Date(campaignData.startDate) : null,
         endDate: campaignData.endDate ? new Date(campaignData.endDate) : null,
-        goalAmount: campaignData.goalAmount,
+        goalAmount: campaignData.goalAmount, // Already parsed by zod
         church: {
             connect: {
-                id: userProfile.church.id
+                clerkOrgId: orgId // Connect using Clerk Org ID
             }
         }
     };
 
+    // 4. Create the campaign
     const newCampaign = await prisma.campaign.create({
       data: dataToCreate,
     });
@@ -88,6 +99,11 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error("Error creating campaign:", error);
+    // Add specific check for P2025 (Foreign key constraint failed - church not found)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        console.error(`Attempted to connect campaign to non-existent church with clerkOrgId: ${orgId}`);
+        return NextResponse.json({ error: 'Organization not found for creating campaign.'}, { status: 404 });
+    }
     return NextResponse.json({ 
       error: 'Failed to create campaign',
       details: error instanceof Error ? error.message : 'Unknown error'

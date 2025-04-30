@@ -139,5 +139,5 @@
         },
         "inviteError": "Error al enviar invitación: {{message}}",
         "noUsers": "No se encontraron usuarios."
-      }
+    }
   } 

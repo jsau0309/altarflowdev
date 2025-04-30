@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-helpers';
+import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 
 // Schema for validating updated member data (PATCH)
@@ -22,29 +22,41 @@ const memberUpdateSchema = z.object({
   language: z.string().nullable().optional(),
 }).partial(); // .partial() makes all fields optional
 
-// GET /api/members/[memberId] - Fetch a single member
+// GET /api/members/[memberId] - Fetch a single member from the active organization
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { memberId: string } }
 ) {
   try {
-    // Ensure user is authenticated to view member details
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const { userId, orgId } = getAuth(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!orgId) {
+      console.error(`User ${userId} attempted GET on member ${params.memberId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
     const memberId = params.memberId;
-    const member = await prisma.member.findUnique({
-      where: { id: memberId },
+
+    // 2. Fetch the member *only if* it exists AND belongs to the active organization
+    const member = await prisma.member.findFirst({
+      where: {
+        id: memberId,
+        church: { // Check the relation
+          clerkOrgId: orgId
+        }
+      },
+      // include relations if needed for display
     });
 
     if (!member) {
-      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+      // Returns 404 if member doesn't exist or doesn't belong to this user's org
+      return NextResponse.json({ error: 'Member not found or access denied' }, { status: 404 });
     }
 
-    // Authorization: Current RLS allows any authenticated user to read.
-    // No additional API-level auth check needed for GET for now.
+    // Authorization check passed implicitly by the query
     return NextResponse.json(member);
 
   } catch (error) {
@@ -53,55 +65,34 @@ export async function GET(
   }
 }
 
-// PATCH /api/members/[memberId] - Update an existing member
+// PATCH /api/members/[memberId] - Update an existing member in the active organization
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { memberId: string } }
 ) {
+  let orgId: string | null | undefined = null; // Declare orgId outside try
   try {
-    // Ensure user is authenticated
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
+    
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    // Get user's churchId
-    let userChurchId: string;
-    try {
-      const profile = await prisma.profile.findUniqueOrThrow({
-        where: { id: user.id },
-        select: { churchId: true },
-      });
-      if (!profile.churchId) {
-        throw new Error('User profile is missing required churchId.');
-      }
-      userChurchId = profile.churchId;
-    } catch (profileError) {
-      console.error(`PATCH: Error fetching profile churchId for user ${user.id}:`, profileError);
-      return NextResponse.json({ error: 'Could not verify user church affiliation.' }, { status: 403 }); // Forbidden
+    if (!orgId) {
+      console.error(`User ${userId} attempted PATCH on member ${params.memberId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
+    // TODO: Add role-based check? (e.g., authResult.orgRole === 'admin')
 
     const memberId = params.memberId;
 
-    // Check if member exists AND belongs to the user's church before trying to update
-    const existingMember = await prisma.member.findUnique({
-      where: { 
-        id: memberId,
-        // Add churchId check here too, although update below also checks
-        // This provides an earlier, clearer 404 if mismatched
-        churchId: userChurchId, 
-      },
-      select: { id: true } 
-    });
-
-    if (!existingMember) {
-       // Member doesn't exist OR doesn't belong to this church
-       return NextResponse.json({ error: 'Member not found or access denied' }, { status: 404 });
-    }
+    // Remove profile fetch and initial existence check based on old churchId
 
     const body = await request.json();
     
-    // Validate input data
+    // 2. Validate input data
     const validation = memberUpdateSchema.safeParse(body);
     if (!validation.success) {
         console.error("Member update validation error:", validation.error.errors);
@@ -109,7 +100,7 @@ export async function PATCH(
     }
     const memberData = validation.data;
 
-    // Handle date conversions and potential null values
+    // 3. Prepare data for update
     const dataToUpdate: any = { ...memberData };
     if (memberData.joinDate !== undefined) {
       dataToUpdate.joinDate = memberData.joinDate ? new Date(memberData.joinDate) : null;
@@ -117,18 +108,32 @@ export async function PATCH(
     if (memberData.smsConsentDate !== undefined) {
       dataToUpdate.smsConsentDate = memberData.smsConsentDate ? new Date(memberData.smsConsentDate) : null;
     }
-    // Ensure email is null if explicitly set to empty string or null
     if (memberData.email !== undefined && memberData.email === '') {
       dataToUpdate.email = null;
     }
 
-    // Perform the update using a compound where clause
-    const updatedMember = await prisma.member.update({
+    // 4. Perform the update using updateMany with compound where clause
+    const updateResult = await prisma.member.updateMany({
       where: { 
         id: memberId,
-        churchId: userChurchId // <<< Ensure update only happens if churchId matches
+        church: { // Ensure update only happens for the correct org
+          clerkOrgId: orgId
+        }
       },
       data: dataToUpdate,
+    });
+
+    // 5. Check if the update was successful (if count is 0, member wasn't found in this org)
+    if (updateResult.count === 0) {
+      return NextResponse.json({ error: 'Member not found or access denied' }, { status: 404 });
+    }
+
+    // 6. Fetch the updated member to return it (optional, but good practice)
+    const updatedMember = await prisma.member.findFirst({
+      where: {
+        id: memberId,
+        church: { clerkOrgId: orgId }
+      }
     });
 
     return NextResponse.json(updatedMember);
@@ -147,55 +152,49 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/members/[memberId] - Delete a member
+// DELETE /api/members/[memberId] - Delete a member from the active organization
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { memberId: string } }
 ) {
+  let orgId: string | null | undefined = null; // Declare orgId outside try
   try {
-    // Ensure user is authenticated
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    // Get user's churchId
-    let userChurchId: string;
-    try {
-      const profile = await prisma.profile.findUniqueOrThrow({
-        where: { id: user.id },
-        select: { churchId: true },
-      });
-      if (!profile.churchId) {
-        throw new Error('User profile is missing required churchId.');
-      }
-      userChurchId = profile.churchId;
-    } catch (profileError) {
-      console.error(`DELETE: Error fetching profile churchId for user ${user.id}:`, profileError);
-      return NextResponse.json({ error: 'Could not verify user church affiliation.' }, { status: 403 }); // Forbidden if profile issue
+    if (!orgId) {
+      console.error(`User ${userId} attempted DELETE on member ${params.memberId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
+    // TODO: Add role-based check?
 
+    // Remove profile fetch
+    
     const memberId = params.memberId;
 
-    // Use deleteMany with compound where clause to ensure ownership
-    // deleteMany returns a count, which is useful
+    // 2. Use deleteMany with compound where clause to ensure ownership
     const deleteResult = await prisma.member.deleteMany({
       where: { 
         id: memberId, 
-        churchId: userChurchId // <<< Ensure member belongs to user's church
+        church: { // Ensure deletion only happens for the correct org
+          clerkOrgId: orgId
+        }
       },
     });
 
-    // Check if a record was actually deleted
+    // 3. Check if a record was actually deleted
     if (deleteResult.count === 0) {
-      // This means either the member didn't exist OR it didn't belong to the user's church
-      console.warn(`DELETE attempt failed for member ${memberId} by user ${user.id} (church ${userChurchId}). Count: ${deleteResult.count}`);
-      // Return 404 - Not Found, as the user shouldn't find/delete this resource
+      console.warn(`DELETE attempt failed for member ${memberId} by user ${userId} (org ${orgId}). Count: ${deleteResult.count}`);
       return NextResponse.json({ error: 'Member not found or access denied' }, { status: 404 });
     }
 
-    console.log(`Member ${memberId} deleted successfully by user ${user.id} (church ${userChurchId})`);
-    return new NextResponse(null, { status: 204 }); // No Content on successful deletion
+    console.log(`Member ${memberId} deleted successfully by user ${userId} (org ${orgId})`);
+    return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
     console.error(`Error deleting member ${params.memberId}:`, error);

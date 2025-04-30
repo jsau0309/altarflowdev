@@ -1,39 +1,37 @@
-import { NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+// import { createServerClient, type CookieOptions } from '@supabase/ssr'; // <-- Remove Supabase
+// import { cookies } from 'next/headers'; // <-- Remove if not used
 import { prisma } from '@/lib/prisma';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { getAuth } from '@clerk/nextjs/server'; // <-- Use getAuth for Route Handlers
 
 // Helper function to add delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // POST /api/expenses/refresh-receipt-url - Generate a fresh signed URL for a receipt
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   // Initialize Supabase Admin Client FIRST to check env vars early
   const supabaseAdmin = createAdminClient(); 
   console.log('Refresh Route: Supabase admin client initialized.');
+  let orgId: string | null | undefined = null; // Declare outside try
 
   try {
-    // Get cookies for Supabase auth (still needed for user check)
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {},
-          remove(name: string, options: CookieOptions) {},
-        },
-      }
-    );
+    // Get cookies for Supabase auth - REMOVED
+    // const cookieStore = cookies();
+    // const supabase = createServerClient(...);
 
-    // Verify authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Verify authentication using Clerk
+    const authResult = getAuth(request); // Use getAuth
+    const userId = authResult.userId;
+    orgId = authResult.orgId; // Assign orgId
+    
+    if (!userId) {
+      console.error("Refresh URL Auth Error: No Clerk userId found.");
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!orgId) {
+      console.error(`User ${userId} attempted refresh URL without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
     // Get request body
@@ -42,39 +40,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing expense ID' }, { status: 400 });
     }
 
-    // Find the expense
-    const expense = await prisma.expense.findUnique({
-      where: { id: expenseId },
+    // Find the expense, ensuring it belongs to the active org
+    const expense = await prisma.expense.findFirst({
+      where: { 
+        id: expenseId, 
+        church: { clerkOrgId: orgId } 
+      },
+      select: { id: true, submitterId: true, receiptPath: true } // Select only needed fields
     });
 
     if (!expense) {
-      return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
+      // Not found or doesn't belong to this org
+      return NextResponse.json({ error: 'Expense not found or access denied' }, { status: 404 });
     }
 
-    // Security check: only allow access to the user's own expenses
-    if (expense.submitterId !== user.id) {
+    // Security check: only allow access to the user's own expenses (using Clerk userId)
+    if (expense.submitterId !== userId) { 
+      console.warn(`User ${userId} attempted to refresh URL for expense ${expenseId} owned by ${expense.submitterId}.`);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Cast to the correct type with receiptPath
-    const expenseWithPath = expense as unknown as {
-      id: string;
-      receiptPath?: string | null;
-      receiptUrl?: string | null;
-    };
-
     // Make sure the receipt path exists
-    if (!expenseWithPath.receiptPath) {
+    if (!expense.receiptPath) {
       return NextResponse.json({ error: 'No receipt path associated with this expense' }, { status: 404 });
     }
     
-    const filePath = expenseWithPath.receiptPath;
+    const filePath = expense.receiptPath;
 
     // Add a small delay before trying to get the signed URL
     console.log("Waiting 0.5 second for Supabase to process access...");
     await delay(500);
 
-    let receiptUrl = null; // Default to null
+    let receiptUrl: string | null = null; // Variable to hold the generated URL
     try {
       console.log(`  >> Creating signed URL for path (admin): ${filePath}`);
       // Generate a fresh signed URL (15 minutes expiry for viewing) USING ADMIN CLIENT
@@ -98,11 +95,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Error generating signed URL', details: errorMessage }, { status: 500 });
     }
 
-    // Update the expense with the new URL
-    await prisma.expense.update({
-      where: { id: expenseId },
+    // Update the expense with the new URL, ensuring it still belongs to the org
+    const updateResult = await prisma.expense.updateMany({
+      where: { 
+        id: expenseId,
+        church: { clerkOrgId: orgId } // Ensure org match during update
+      },
       data: { receiptUrl }, // This will be the newly generated signed URL
     });
+
+    if (updateResult.count === 0) {
+       console.warn(`Refresh URL: Update failed for expense ${expenseId}. Count: ${updateResult.count}`);
+       // Expense might have been deleted between find and update
+       return NextResponse.json({ error: 'Failed to update expense record after URL generation' }, { status: 404 }); // Or 500?
+    }
 
     return NextResponse.json({ 
       receiptUrl,

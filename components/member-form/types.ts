@@ -99,3 +99,25 @@ export interface Option {
 export interface SelectFieldConfig {
   // ... existing code ...
 }
+
+// --- Add Default Exports --- 
+
+export const defaultServiceTimes: ServiceTime[] = [
+  { id: "1", day: "Sunday", time: "9:30 AM", isActive: true },
+  { id: "2", day: "Sunday", time: "11:00 AM", isActive: true },
+  { id: "3", day: "Thursday", time: "7:00 PM", isActive: true },
+];
+
+export const defaultMinistries: Ministry[] = [
+  { id: "1", name: "Starting Point", isActive: true },
+  { id: "2", name: "Growth Group", isActive: true },
+  { id: "3", name: "Talking to a Pastor", isActive: true },
+  { id: "4", name: "Partnership Workshop", isActive: true },
+  { id: "5", name: "Baptism", isActive: true },
+];
+
+export const defaultSettings: FormConfiguration['settings'] = {
+  enablePrayerRequests: true,
+  enableReferralTracking: true,
+  notificationEmails: [],
+};

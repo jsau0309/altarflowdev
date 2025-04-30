@@ -1,126 +1,170 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
-import type { FormConfiguration } from "../member-form/types"
-import { PlusCircle, Trash2, ExternalLink } from "lucide-react"
+import type { FormConfiguration, ServiceTime, Ministry } from "../member-form/types"
+import { defaultServiceTimes, defaultMinistries, defaultSettings } from "../member-form/types"
+import { PlusCircle, Trash2, ExternalLink, Loader2, AlertCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { getFormConfiguration, saveFormConfiguration } from "@/lib/actions/settings.actions"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-// Sample configuration for demonstration
-const defaultConfig: FormConfiguration = {
-  churchId: "default",
-  formVersion: "1.0.0",
-  serviceTimes: [
-    { id: "1", day: "Sunday", time: "9:30 AM", isActive: true },
-    { id: "2", day: "Sunday", time: "11:00 AM", isActive: true },
-    { id: "3", day: "Thursday", time: "7:00 PM", isActive: true },
-  ],
-  ministries: [
-    { id: "1", name: "Starting Point", isActive: true },
-    { id: "2", name: "Growth Group", isActive: true },
-    { id: "3", name: "Talking to a Pastor", isActive: true },
-    { id: "4", name: "Partnership Workshop", isActive: true },
-    { id: "5", name: "Baptism", isActive: true },
-  ],
-  customFields: [],
-  settings: {
-    enablePrayerRequests: true,
-    enableReferralTracking: true,
-    notificationEmails: [],
-  },
-}
+// Define the shape of the config state, excluding fields not directly managed here
+type ConfigState = Omit<FormConfiguration, 'churchId' | 'formVersion' | 'customFields'>;
 
 export function FormSettings() {
-  const [config, setConfig] = useState<FormConfiguration>(defaultConfig)
-  const [newServiceDay, setNewServiceDay] = useState("")
-  const [newServiceTime, setNewServiceTime] = useState("")
-  const [newMinistryName, setNewMinistryName] = useState("")
-  const { t } = useTranslation(['settings', 'common'])
+  // State for the configuration, loading, saving, and errors
+  const [config, setConfig] = useState<ConfigState | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, startSavingTransition] = useTransition();
+  const [saveResult, setSaveResult] = useState<{ success: boolean; message?: string } | null>(null);
+
+  // State for adding new items
+  const [newServiceDay, setNewServiceDay] = useState("");
+  const [newServiceTime, setNewServiceTime] = useState("");
+  const [newMinistryName, setNewMinistryName] = useState("");
+  
+  const { t } = useTranslation(['settings', 'common']);
   const formUrl = typeof window !== 'undefined' ? `${window.location.origin}/connect` : '';
 
+  // Fetch configuration on component mount
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const fetchedConfig = await getFormConfiguration();
+        setConfig(fetchedConfig);
+      } catch (err) {
+        console.error("Failed to fetch form configuration:", err);
+        setError(err instanceof Error ? err.message : "Failed to load configuration.");
+        // Set defaults on fetch error so UI doesn't break
+        setConfig({
+           serviceTimes: defaultServiceTimes,
+           ministries: defaultMinistries,
+           settings: defaultSettings
+        });
+      }
+      setIsLoading(false);
+    };
+    fetchConfig();
+  }, []); // Empty dependency array ensures this runs once on mount
+
+  // --- Event Handlers (Update local state) ---
+
   const handleAddService = () => {
-    if (newServiceDay && newServiceTime) {
+    if (newServiceDay && newServiceTime && config) {
       setConfig({
         ...config,
         serviceTimes: [
           ...config.serviceTimes,
-          {
-            id: Date.now().toString(),
-            day: newServiceDay,
-            time: newServiceTime,
-            isActive: true,
-          },
+          { id: Date.now().toString(), day: newServiceDay, time: newServiceTime, isActive: true },
         ],
-      })
-      setNewServiceDay("")
-      setNewServiceTime("")
+      });
+      setNewServiceDay("");
+      setNewServiceTime("");
+      setSaveResult(null); // Clear previous save result on edit
     }
-  }
+  };
 
   const handleRemoveService = (id: string) => {
-    setConfig({
-      ...config,
-      serviceTimes: config.serviceTimes.filter((service) => service.id !== id),
-    })
-  }
+    if (config) {
+      setConfig({
+        ...config,
+        serviceTimes: config.serviceTimes.filter((service) => service.id !== id),
+      });
+      setSaveResult(null);
+    }
+  };
 
   const handleToggleService = (id: string) => {
-    setConfig({
-      ...config,
-      serviceTimes: config.serviceTimes.map((service) =>
-        service.id === id ? { ...service, isActive: !service.isActive } : service,
-      ),
-    })
-  }
+    if (config) {
+      setConfig({
+        ...config,
+        serviceTimes: config.serviceTimes.map((service) =>
+          service.id === id ? { ...service, isActive: !service.isActive } : service,
+        ),
+      });
+      setSaveResult(null);
+    }
+  };
 
   const handleAddMinistry = () => {
-    if (newMinistryName) {
+    if (newMinistryName && config) {
       setConfig({
         ...config,
         ministries: [
           ...config.ministries,
-          {
-            id: Date.now().toString(),
-            name: newMinistryName,
-            isActive: true,
-          },
+          { id: Date.now().toString(), name: newMinistryName, isActive: true },
         ],
-      })
-      setNewMinistryName("")
+      });
+      setNewMinistryName("");
+      setSaveResult(null);
     }
-  }
+  };
 
   const handleRemoveMinistry = (id: string) => {
-    setConfig({
-      ...config,
-      ministries: config.ministries.filter((ministry) => ministry.id !== id),
-    })
-  }
+    if (config) {
+      setConfig({
+        ...config,
+        ministries: config.ministries.filter((ministry) => ministry.id !== id),
+      });
+      setSaveResult(null);
+    }
+  };
 
   const handleToggleMinistry = (id: string) => {
-    setConfig({
-      ...config,
-      ministries: config.ministries.map((ministry) =>
-        ministry.id === id ? { ...ministry, isActive: !ministry.isActive } : ministry,
-      ),
-    })
-  }
+    if (config) {
+      setConfig({
+        ...config,
+        ministries: config.ministries.map((ministry) =>
+          ministry.id === id ? { ...ministry, isActive: !ministry.isActive } : ministry,
+        ),
+      });
+      setSaveResult(null);
+    }
+  };
 
-  const handleToggleSetting = (setting: keyof typeof config.settings) => {
-    setConfig({
-      ...config,
-      settings: {
-        ...config.settings,
-        [setting]: !config.settings[setting as keyof typeof config.settings],
-      },
-    })
-  }
+  const handleToggleSetting = (setting: keyof ConfigState['settings']) => {
+    if (config) {
+      setConfig({
+        ...config,
+        settings: {
+          ...config.settings,
+          [setting]: !config.settings[setting],
+        },
+      });
+      setSaveResult(null);
+    }
+  };
 
+  // --- Save Handler --- 
+  const handleSaveChanges = () => {
+    if (!config) return;
+
+    startSavingTransition(async () => {
+      setSaveResult(null);
+      setError(null);
+      try {
+        const result = await saveFormConfiguration(config);
+        setSaveResult(result);
+        if (!result.success) {
+          console.error("Failed to save configuration:", result.message);
+        }
+      } catch (err) {
+        console.error("Error saving configuration:", err);
+        setSaveResult({ success: false, message: err instanceof Error ? err.message : "An unexpected error occurred during save." });
+      }
+    });
+  };
+
+  // --- Clipboard/Preview --- 
   const copyToClipboard = () => {
     if(formUrl){
         navigator.clipboard.writeText(formUrl)
@@ -130,6 +174,37 @@ export function FormSettings() {
 
   const openPreview = () => {
     if(formUrl) window.open(formUrl, "_blank");
+  }
+
+  // --- Render Logic --- 
+  if (isLoading) {
+    return (
+      <Card className="w-full flex justify-center items-center p-10">
+         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+         <span className="ml-2 text-muted-foreground">{t('common:loading')}</span>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+       <Card className="w-full">
+         <CardHeader><CardTitle>{t('common:error')}</CardTitle></CardHeader>
+         <CardContent>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{t('settings:formSettings.loadErrorTitle')}</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+         </CardContent>
+       </Card>
+    );
+  }
+  
+  // Ensure config is not null before rendering the main UI
+  if (!config) {
+     // This state should ideally not be reached if loading/error handled correctly
+     return <Card className="w-full p-4"><p>{t('common:error')}</p></Card>;
   }
 
   return (
@@ -156,6 +231,17 @@ export function FormSettings() {
               {t('settings:formSettings.formUrlDescription')}
             </p>
           </div>
+
+          {/* Display Save Result */} 
+          {saveResult && (
+            <Alert variant={saveResult.success ? "default" : "destructive"} className="mb-4">
+               <AlertCircle className="h-4 w-4" />
+               <AlertTitle>{saveResult.success ? t('common:success') : t('common:error')}</AlertTitle>
+               <AlertDescription>
+                 {saveResult.message || (saveResult.success ? t('settings:formSettings.saveSuccess') : t('settings:formSettings.saveError'))}
+               </AlertDescription>
+            </Alert>
+          )}
 
           <Tabs defaultValue="services">
             <TabsList className="grid w-full grid-cols-3">
@@ -277,7 +363,10 @@ export function FormSettings() {
           </Tabs>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button>{t('common:saveChanges', 'Save Changes')}</Button>
+          <Button onClick={handleSaveChanges} disabled={isSaving}>
+             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+             {t('common:saveChanges')}
+           </Button>
         </CardFooter>
       </Card>
     </div>

@@ -1,11 +1,12 @@
 // Revert to ESM imports
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 // Use namespace import
 import * as mindee from "mindee";
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+// import { createServerClient, type CookieOptions } from '@supabase/ssr'; // <-- Remove Supabase
+// import { cookies } from 'next/headers'; // <-- Remove if not used
 import { prisma } from '@/lib/prisma'; // Import Prisma client
 import { createAdminClient } from '@/utils/supabase/admin'; // Import the admin client creator
+import { getAuth } from '@clerk/nextjs/server'; // Use getAuth
 
 // Initialize the Mindee client using the namespace import
 const mindeeClient = new mindee.Client({ apiKey: process.env.MINDEE_API_KEY });
@@ -13,70 +14,39 @@ const mindeeClient = new mindee.Client({ apiKey: process.env.MINDEE_API_KEY });
 // Helper function to add delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function POST(request: Request) {
-  // Get cookies for Supabase auth
-  const cookieStore = cookies();
+export async function POST(request: NextRequest) {
+  // Get cookies for Supabase auth - REMOVED
+  // const cookieStore = cookies();
 
-  // Initialize Supabase client for Route Handler (used for auth check)
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        // We don't need set/remove in this read-only auth context for upload
-        set(name: string, value: string, options: CookieOptions) {},
-        remove(name: string, options: CookieOptions) {},
-      },
-    }
-  );
+  // Initialize Supabase client for Route Handler - REMOVED
+  // const supabase = createServerClient(...);
 
   // --- Log Environment Variable Before Initializing Admin Client ---
   console.log(`Checking SUPABASE_SERVICE_ROLE_KEY existence: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Exists' : 'MISSING or undefined'}`);
   // Add more detailed log if needed, but be careful not to log the actual key:
   // console.log(`SUPABASE_SERVICE_ROLE_KEY length: ${process.env.SUPABASE_SERVICE_ROLE_KEY?.length}`); 
 
-  // Initialize Supabase Admin Client (used for storage upload)
+  // Initialize Supabase Admin Client (used for storage upload) - REMAINS
   const supabaseAdmin = createAdminClient();
   console.log('Supabase admin client initialized successfully.'); // Log success
 
+  let orgId: string | null | undefined = null; // Declare outside try
+
   try {
-    // --- Get Authenticated User --- 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // 1. Get Authenticated User ID & Org ID using Clerk
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
     
-    if (authError || !user) {
-      console.error('Auth Error:', authError);
+    if (!userId) { 
+      console.error('Auth Error: No Clerk userId found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const userId = user.id;
-    console.log("User ID:", userId);
-
-    // --- Get User's Church ID --- 
-    let churchId: string;
-    try {
-      // Fetch the profile and cast the type to include churchId
-      const profileRecord = await prisma.profile.findUniqueOrThrow({
-        where: { id: userId },
-        // Select basic fields, we'll cast below
-        // select: { churchId: true }, // Removed select to fetch full object for casting
-      });
-
-      const profile = profileRecord as typeof profileRecord & { churchId: string | null };
-
-      // Since churchId is now required by schema, we expect it to be non-null
-      // Added check for robustness in case of data inconsistency
-      if (!profile.churchId) { 
-        throw new Error('User profile is missing required churchId.');
-      }
-      churchId = profile.churchId;
-      console.log(`User belongs to Church ID: ${churchId}`);
-    } catch (profileError) {
-      console.error(`Error fetching profile or churchId for user ${userId}:`, profileError);
-      const errorMessage = profileError instanceof Error ? profileError.message : 'Failed to retrieve user profile or church association.';
-      return NextResponse.json({ error: 'Server error: Could not verify user church affiliation.', details: errorMessage }, { status: 500 });
+    if (!orgId) {
+        console.error(`Auth Error: User ${userId} has no active organization.`);
+        return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
+    console.log(`Authenticated Clerk User ID: ${userId}, Org ID: ${orgId}`);
 
     // --- Process Form Data --- 
     const formData = await request.formData();
@@ -137,14 +107,12 @@ export async function POST(request: Request) {
     // --- Supabase Storage Upload (USING ADMIN CLIENT) ---
     console.log("Step 7: Attempting Supabase upload (using admin client)...");
     const timestamp = Date.now();
-    // Sanitize more thoroughly: replace spaces AND other non-allowed chars with underscores
-    // Allowed: letters (a-z, A-Z), numbers (0-9), underscore (_), hyphen (-), period (.)
     const sanitizedFilename = originalFilename.replace(/[^a-zA-Z0-9_.-]/g, '_'); 
-    const filePath = `${churchId}/receipts/${userId}/${timestamp}_${sanitizedFilename}`;
+    const filePath = `${orgId}/receipts/${userId}/${timestamp}_${sanitizedFilename}`;
 
     console.log(`  >> Uploading to path: ${filePath}`);
 
-    // Use supabaseAdmin client here to bypass RLS for the upload
+    // Use supabaseAdmin client here
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('receipts')
       .upload(filePath, fileBuffer, {
@@ -153,34 +121,26 @@ export async function POST(request: Request) {
       });
 
     if (uploadError) {
-      // Log the specific error from Supabase Admin client
       console.error('Supabase Admin Upload Error:', uploadError);
       const errorMessage = uploadError.message || 'Failed to upload receipt to storage via admin';
-      const errorDetails = uploadError.stack || undefined; // Include stack if available
+      const errorDetails = uploadError.stack || undefined;
       return NextResponse.json({ error: errorMessage, details: errorDetails }, { status: 500 });
     }
     console.log("Step 8: Supabase upload successful (via admin):", uploadData);
 
     // --- Get Signed URL (USING ADMIN CLIENT) ---
-    // Using admin client here to bypass potential SELECT RLS issues or timing delays
-    // after admin upload.
     console.log("Step 9: Getting signed URL (using admin client)...");
-    
-    // Add a delay before requesting the signed URL to give Supabase time to process the file
-    // Keeping a small delay might still be beneficial, but less critical with admin client.
     console.log("Waiting 0.5 second for Supabase to process the file...");
-    await delay(500); // Reduced delay
+    await delay(500); 
     
-    let receiptUrl = null; // Default to null
+    let receiptUrl: string | null = null; // Default to null
     try {
       console.log(`  >> Creating signed URL for path: ${filePath}`);
-      // Use the supabaseAdmin client here
       const { data: urlData, error: signedUrlError } = await supabaseAdmin.storage
         .from('receipts')
-        .createSignedUrl(filePath, 86400); // 24 hours in seconds
+        .createSignedUrl(filePath, 86400); // 24 hours
         
       if (signedUrlError) {
-        // Log error even with admin client
         console.error('Supabase Admin Signed URL Error:', signedUrlError);
       } else if (urlData?.signedUrl) {
         receiptUrl = urlData.signedUrl;
@@ -192,12 +152,10 @@ export async function POST(request: Request) {
       console.error('Error generating signed URL (admin client catch):', urlError);
     }
     
-    // Store the file path alongside the (potentially null) signed URL
-    // This will allow regenerating signed URLs when needed
+    // Store the file path (using orgId) and the URL
     const finalData = {
       ...extractedData,
-      receiptUrl: receiptUrl, // This might be null if signed URL failed
-      // Store the path for future URL generation (USING THE NEW FORMAT)
+      receiptUrl: receiptUrl, 
       receiptPath: filePath,
     };
 
@@ -205,7 +163,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: finalData });
 
   } catch (error) {
-    // Add specific log if admin client init fails
     if (!supabaseAdmin) {
       console.error('Failed to initialize Supabase admin client. Error likely occurred during createAdminClient().');
     }

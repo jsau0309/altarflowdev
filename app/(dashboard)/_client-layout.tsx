@@ -6,6 +6,7 @@ import { useTheme } from "next-themes"
 import { Menu, Moon, Sun } from "lucide-react"
 import Link from "next/link"
 import { useTranslation } from 'react-i18next';
+import { UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -69,7 +70,6 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
           </Link>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-muted-foreground hidden md:block">{t('churchAddressPlaceholder', 'Church Address Placeholder')}</div>
           <LanguageToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -83,10 +83,8 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
               <DropdownMenuItem onClick={() => setTheme("dark")}>{t('themeToggle.dark', 'Dark')}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* Placeholder User button */}
-          <Button variant="ghost" size="icon" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
-            <span className="flex h-9 w-9 items-center justify-center font-semibold">U</span> 
-          </Button>
+          <OrganizationSwitcher />
+          <UserButton afterSignOutUrl="/" />
         </div>
       </header>
       <div className="flex flex-1">

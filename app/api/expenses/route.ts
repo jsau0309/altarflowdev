@@ -1,79 +1,39 @@
-import { NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+// import { createServerClient, type CookieOptions } from '@supabase/ssr'; // <-- Remove Supabase
+// import { cookies } from 'next/headers'; // <-- Remove if not used
 import { prisma } from '@/lib/prisma';
+import { getAuth } from '@clerk/nextjs/server'; // <-- Use getAuth
 
-// Helper to create Supabase client for the API route
-async function getUser(request: Request) {
-  // Get the cookies from the request
-  const cookieStore = cookies();
+// Removed Supabase getUser helper function
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          // We don't need to set cookies in an API route
-        },
-        remove(name: string, options: CookieOptions) {
-          // We don't need to remove cookies in an API route
-        },
-      },
-    }
-  );
-
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
-    console.error("Auth error:", error?.message || "No user found");
-    return null;
-  }
-
-  return user;
-}
-
-// GET /api/expenses - Fetch expenses for the logged-in user's CHURCH
-export async function GET(request: Request) {
+// GET /api/expenses - Fetch expenses for the user's active organization
+export async function GET(request: NextRequest) {
   try {
-    const user = await getUser(request);
+    // 1. Get user and organization context
+    const { userId, orgId } = getAuth(request); 
 
-    if (!user) {
+    if (!userId) { 
       return NextResponse.json(
         { error: 'Unauthorized - Please log in again' }, 
         { status: 401 }
       );
     }
-
-    // Fetch the user's profile to get their churchId
-    let userChurchId: string;
-    try {
-      const profile = await prisma.profile.findUniqueOrThrow({
-        where: { id: user.id },
-        select: { churchId: true },
-      });
-      if (!profile.churchId) {
-        throw new Error('User profile is missing required churchId.');
-      }
-      userChurchId = profile.churchId;
-    } catch (profileError) {
-      console.error(`Error fetching profile churchId for user ${user.id}:`, profileError);
-      // Return empty array if profile/church is missing, similar to members GET
+    if (!orgId) {
+      console.error(`User ${userId} attempted GET expenses without active org.`);
+      // Return empty array if no org selected, prevents errors downstream
       return NextResponse.json([], { status: 200 }); 
     }
 
-    // Fetch expenses associated with the user's church
+    // 2. Fetch expenses associated with the active organization
     const expenses = await prisma.expense.findMany({
       where: {
-        // Filter by the churchId associated with the expense
-        churchId: userChurchId,
+        church: { // Filter by the related church using clerkOrgId
+          clerkOrgId: orgId
+        }
       },
-      // Optional: Include submitter details if needed on the frontend
       include: {
         submitter: {
-          select: { firstName: true, lastName: true }, // Select only needed fields
+          select: { firstName: true, lastName: true }, 
         },
       },
       orderBy: {
@@ -92,42 +52,32 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/expenses - Create a new expense for the logged-in user
-export async function POST(request: Request) {
+// POST /api/expenses - Create a new expense for the active organization
+export async function POST(request: NextRequest) {
+  let orgId: string | null | undefined = null; // Declare outside try
   try {
-    const user = await getUser(request);
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
 
-    if (!user) {
+    if (!userId) { 
       return NextResponse.json(
         { error: 'Unauthorized - Please log in again' }, 
         { status: 401 }
       );
     }
-
-    // Fetch user's profile to get their churchId
-    let userChurchId: string;
-    try {
-      const profile = await prisma.profile.findUniqueOrThrow({
-        where: { id: user.id },
-        select: { churchId: true },
-      });
-      // Ensure churchId exists (should be guaranteed by schema/previous steps)
-      if (!profile.churchId) {
-        throw new Error('User profile is missing required churchId.');
-      }
-      userChurchId = profile.churchId;
-    } catch (profileError) {
-      console.error(`Error fetching profile churchId for user ${user.id}:`, profileError);
-      // Provide a more specific error message
+    if (!orgId) {
+      console.error(`User ${userId} attempted POST expense without active org.`);
       return NextResponse.json(
-        { error: 'Failed to retrieve user church affiliation. Profile might be incomplete.' }, 
-        { status: 400 } // Bad request as profile is needed
+        { error: 'No active organization selected.' }, 
+        { status: 400 }
       );
     }
 
     const body = await request.json();
     
-    // Validate required fields
+    // 2. Validate required fields
     const { amount, expenseDate, category, vendor, description, receiptUrl, receiptPath } = body;
     if (!amount || !expenseDate || !category) {
       return NextResponse.json(
@@ -136,7 +86,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create the expense
+    // 3. Create the expense, connecting church via clerkOrgId
     const newExpense = await prisma.expense.create({
       data: {
         amount: parseFloat(amount),
@@ -146,17 +96,14 @@ export async function POST(request: Request) {
         description: description || null,
         receiptUrl: receiptUrl || null,
         receiptPath: receiptPath || null,
-        status: 'PENDING', // Explicit default
-        currency: 'USD',   // Default currency
-        // Connect the submitter relation using the user's ID
+        status: 'PENDING', 
+        currency: 'USD',   
         submitter: {
-          connect: { id: user.id },
+          connect: { id: userId }, // Connect submitter using Clerk userId
         },
-        // Connect the church relation using the fetched userChurchId
         church: {
-          connect: { id: userChurchId },
+          connect: { clerkOrgId: orgId }, // Connect church using Clerk orgId
         },
-        // approverId is optional/nullable, so no need to connect here
       },
     });
 
@@ -166,22 +113,24 @@ export async function POST(request: Request) {
     console.error("Error creating expense:", error);
     
     // Handle specific Prisma errors
-    if (error instanceof Error) {
-      if ('code' in error) {
-        switch (error.code) {
-          case 'P2002':
-            return NextResponse.json(
-              { error: 'Database constraint violation.' }, 
-              { status: 409 }
-            );
-          case 'P2003':
-            return NextResponse.json(
-              { error: 'Associated user profile not found. Please complete your profile setup.' }, 
-              { status: 400 }
-            );
-          default:
-            break;
-        }
+    if (error instanceof Error && 'code' in error) {
+      switch (error.code) {
+        case 'P2002': // Unique constraint violation
+          return NextResponse.json(
+            { error: 'Database constraint violation.' }, 
+            { status: 409 }
+          );
+        case 'P2003': // Foreign key constraint failed (e.g., submitterId not in Profile)
+          // This should be less likely now if user.created webhook works
+          return NextResponse.json(
+            { error: 'Associated user profile not found.' }, 
+            { status: 400 }
+          );
+        case 'P2025': // Referenced record not found (e.g., Church with clerkOrgId)
+           console.error(`Attempted to connect expense to non-existent church with clerkOrgId: ${orgId}`);
+           return NextResponse.json({ error: 'Organization not found for creating expense.' }, { status: 404 });
+        default:
+          break;
       }
     }
 

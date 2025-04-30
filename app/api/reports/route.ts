@@ -1,30 +1,43 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-helpers';
+import { getAuth } from '@clerk/nextjs/server';
 import { Prisma } from '@prisma/client'; // Import Prisma namespace for types
 
-// GET /api/reports - Fetch basic financial summary
-export async function GET(request: Request) {
+// GET /api/reports - Fetch basic financial summary for the active organization
+export async function GET(request: NextRequest) {
   try {
-    // Authentication & Authorization check
-    // TODO: Implement role-based access (e.g., only ADMIN or specific STAFF)
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Authentication & Authorization check
+    const { userId, orgId, orgRole } = getAuth(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!orgId) {
+      console.error(`User ${userId} attempted to GET reports without an active organization.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
+    }
+    // TODO: Implement role-based access (e.g., only ADMIN or specific STAFF)
+    // Example: if (orgRole !== 'admin') { return NextResponse.json({ error: 'Forbidden' }, { status: 403 }); }
 
-    // --- Data Fetching (TODO: Add date range filters later) ---
+    // --- Data Fetching for the active organization (TODO: Add date range filters later) ---
 
-    // Fetch Donations
+    // Fetch Donations for the specific org
     const donations = await prisma.donation.findMany({
-      // where: { donationDate: { gte: startDate, lte: endDate } } // Example date filter
+      where: {
+        church: { 
+          clerkOrgId: orgId 
+        }
+        // , donationDate: { gte: startDate, lte: endDate } // Example date filter
+      }
     });
 
-    // Fetch Approved Expenses
+    // Fetch Approved Expenses for the specific org
     const expenses = await prisma.expense.findMany({
        where: { 
-         status: 'APPROVED' // Only consider approved expenses for summary
-         // expenseDate: { gte: startDate, lte: endDate } // Example date filter
+         status: 'APPROVED', 
+         church: { 
+           clerkOrgId: orgId 
+         }
+         // , expenseDate: { gte: startDate, lte: endDate } // Example date filter
        }
     });
 

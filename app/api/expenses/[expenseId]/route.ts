@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-helpers';
+import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod'; // Using Zod for validation
 import { createClient } from '@supabase/supabase-js'; // Import standard Supabase client
 
@@ -17,29 +17,43 @@ const expenseUpdateSchema = z.object({
   // status: z.nativeEnum(ExpenseStatus).optional(), 
 });
 
-// GET /api/expenses/[expenseId] - Fetch a single expense
+// GET /api/expenses/[expenseId] - Fetch a single expense from the active organization
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { expenseId: string } }
 ) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const { userId, orgId } = getAuth(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!orgId) {
+      console.error(`User ${userId} attempted GET on expense ${params.expenseId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
     const expenseId = params.expenseId;
-    const expense = await prisma.expense.findUnique({
-      where: { id: expenseId },
+
+    // 2. Fetch the expense only if it belongs to the active org
+    const expense = await prisma.expense.findFirst({
+      where: { 
+        id: expenseId, 
+        church: { clerkOrgId: orgId } 
+      },
+      // Include submitter info if needed for auth check below
+      // include: { submitter: { select: { id: true } } } // Not strictly needed if using expense.submitterId
     });
 
     if (!expense) {
-      return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
+      // Returns 404 if expense doesn't exist or doesn't belong to this org
+      return NextResponse.json({ error: 'Expense not found or access denied' }, { status: 404 });
     }
 
-    // Authorization check: Ensure the user is the submitter (basic check)
-    // We might need more complex logic later for admins/approvers
-    if (expense.submitterId !== user.id) {
+    // 3. Authorization check: Ensure the user is the submitter (or has other permissions)
+    // TODO: Implement more complex logic later for admins/approvers (using orgRole?)
+    if (expense.submitterId !== userId) {
+      // Check against userId from getAuth()
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -51,28 +65,44 @@ export async function GET(
   }
 }
 
-// PATCH /api/expenses/[expenseId] - Update an existing expense
+// PATCH /api/expenses/[expenseId] - Update an existing expense in the active organization
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { expenseId: string } }
 ) {
+  let orgId: string | null | undefined = null; // Declare outside try
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!orgId) {
+      console.error(`User ${userId} attempted PATCH on expense ${params.expenseId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
     const expenseId = params.expenseId;
-    const existingExpense = await prisma.expense.findUnique({
-      where: { id: expenseId },
+
+    // 2. Fetch expense minimal data for auth check before update
+    const existingExpense = await prisma.expense.findFirst({
+      where: { 
+        id: expenseId, 
+        church: { clerkOrgId: orgId } 
+      },
+      select: { submitterId: true, status: true } // Select only needed fields
     });
 
     if (!existingExpense) {
-      return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Expense not found or access denied' }, { status: 404 });
     }
 
-    // Authorization: Only allow submitter to update PENDING expenses (initial logic)
-    if (existingExpense.submitterId !== user.id) {
+    // 3. Authorization: Only allow submitter to update PENDING expenses
+    // TODO: Refine roles later (e.g., using authResult.orgRole)
+    if (existingExpense.submitterId !== userId) {
         return NextResponse.json({ error: 'Forbidden: Not submitter' }, { status: 403 });
     }
     if (existingExpense.status !== 'PENDING') {
@@ -81,21 +111,44 @@ export async function PATCH(
 
     const body = await request.json();
     
-    // Validate input data
+    // 4. Validate input data
     const validation = expenseUpdateSchema.safeParse(body);
     if (!validation.success) {
         return NextResponse.json({ error: 'Invalid input data', details: validation.error.errors }, { status: 400 });
     }
-    const dataToUpdate = validation.data;
+    let dataToUpdate = validation.data as any; // Type assertion after validation
 
     // Ensure date is handled correctly
     if(dataToUpdate.expenseDate) {
-        dataToUpdate.expenseDate = new Date(dataToUpdate.expenseDate) as any;
+        dataToUpdate.expenseDate = new Date(dataToUpdate.expenseDate);
     }
 
-    const updatedExpense = await prisma.expense.update({
-      where: { id: expenseId },
+    // 5. Perform the update using updateMany to ensure org boundary
+    const updateResult = await prisma.expense.updateMany({
+      where: { 
+        id: expenseId,
+        church: { clerkOrgId: orgId },
+        // Optional: Add status/submitter checks again for extra safety, though checked above
+        // submitterId: userId, 
+        // status: 'PENDING' 
+      },
       data: dataToUpdate,
+    });
+
+    // 6. Check if the update was successful
+    if (updateResult.count === 0) {
+      // This could happen if the expense was modified between the fetch and update (race condition)
+      // or if the initial check somehow passed incorrectly.
+      console.warn(`PATCH failed for expense ${expenseId} by user ${userId}. Count: ${updateResult.count}`);
+      return NextResponse.json({ error: 'Expense update failed or access denied' }, { status: 404 });
+    }
+
+    // 7. Fetch the updated expense to return it
+    const updatedExpense = await prisma.expense.findFirst({
+      where: {
+        id: expenseId,
+        church: { clerkOrgId: orgId } 
+      }
     });
 
     return NextResponse.json(updatedExpense);
@@ -106,94 +159,100 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/expenses/[expenseId] - Delete an expense
+// DELETE /api/expenses/[expenseId] - Delete an expense from the active organization
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { expenseId: string } }
 ) {
+  let orgId: string | null | undefined = null; // Declare outside try
   try {
-    // Check user authentication first
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!orgId) {
+      console.error(`User ${userId} attempted DELETE on expense ${params.expenseId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
     const expenseId = params.expenseId;
 
-    // 1. Fetch the expense to get details BEFORE deleting
-    const expenseRecord = await prisma.expense.findUnique({
-      where: { id: expenseId },
+    // 2. Fetch the expense to get details (like receiptPath) AND verify ownership/org
+    const existingExpense = await prisma.expense.findFirst({
+      where: { 
+        id: expenseId, 
+        church: { clerkOrgId: orgId } 
+      },
+      select: { submitterId: true, receiptPath: true } // Select needed fields
     });
 
-    if (!expenseRecord) {
-      // Already deleted or never existed, idempotency suggests returning success
-      return new NextResponse(null, { status: 204 }); // No Content
+    if (!existingExpense) {
+      // Already deleted, not found, or doesn't belong to this org
+      return new NextResponse(null, { status: 204 }); // Idempotent: No Content
     }
 
-    // Explicitly cast to include receiptPath
-    const existingExpense = expenseRecord as typeof expenseRecord & { receiptPath?: string | null };
-
-    // Authorization: Only allow submitter to delete (adjust as needed for roles)
-    if (existingExpense.submitterId !== user.id) {
+    // 3. Authorization: Only allow submitter to delete (adjust as needed)
+    // TODO: Refine roles later
+    if (existingExpense.submitterId !== userId) {
         return NextResponse.json({ error: 'Forbidden: Not submitter' }, { status: 403 });
     }
-    // Add any other conditions (e.g., status check) if necessary
-    // if (existingExpense.status !== 'PENDING') {
-    //     return NextResponse.json({ error: 'Forbidden: Can only delete pending expenses' }, { status: 403 });
-    // }
+    // Add status checks if needed
 
-    // 2. Attempt to delete file from Supabase Storage if path exists
+    // 4. Attempt to delete file from Supabase Storage if path exists
     if (existingExpense.receiptPath) {
         console.log(`Attempting to delete storage file: ${existingExpense.receiptPath}`);
         try {
-            // Create a Supabase client with SERVICE_ROLE_KEY for admin privileges
             if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
               throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set in environment variables.');
             }
             const supabaseAdmin = createClient(
               process.env.NEXT_PUBLIC_SUPABASE_URL!,
               process.env.SUPABASE_SERVICE_ROLE_KEY,
-              { auth: { persistSession: false } } // Important: prevent server-side session persistence
+              { auth: { persistSession: false } } 
             );
-
-            // Capture the full response
             const { data: storageData, error: storageError } = await supabaseAdmin.storage
                 .from('receipts')
                 .remove([existingExpense.receiptPath]);
-
-            // Log both data and error regardless
             console.log(`Storage deletion response - Data:`, storageData);
             console.log(`Storage deletion response - Error:`, storageError);
-
             if (storageError) {
-                // Log the error but don't stop the DB deletion
                 console.warn(`Failed to delete storage file ${existingExpense.receiptPath}:`, storageError);
-            } else if (storageData) { // Check if data exists
-                console.log(`Successfully deleted storage file: ${existingExpense.receiptPath}`);
-                // Optionally log more details from storageData if available, e.g., number of files deleted
-                console.log(`  Deletion details:`, storageData);
             } else {
-                // This case might indicate success but no specific data returned, which is possible
-                console.log(`Storage deletion call completed for ${existingExpense.receiptPath}, but no specific data returned in response.`);
+                console.log(`Successfully deleted storage file or file did not exist: ${existingExpense.receiptPath}`);
             }
-
         } catch (storageCatchError) {
-            // Catch any unexpected errors during storage interaction
             console.error(`Unexpected error deleting storage file ${existingExpense.receiptPath}:`, storageCatchError);
         }
     }
 
-    // 3. Delete the expense record from the database
-    await prisma.expense.delete({
-      where: { id: expenseId },
+    // 5. Delete the expense record using deleteMany for org safety
+    const deleteResult = await prisma.expense.deleteMany({
+      where: { 
+        id: expenseId, 
+        church: { clerkOrgId: orgId },
+        // Optional: Add submitter check again for extra safety
+        // submitterId: userId 
+      },
     });
+
+    // 6. Check count (should be 1 if initial findFirst succeeded)
+    if (deleteResult.count === 0) {
+        // Should not happen if findFirst succeeded, but log defensively
+        console.warn(`DELETE inconsistency for expense ${expenseId} by user ${userId}. Count: ${deleteResult.count}`);
+        // Return error as state might be inconsistent
+        return NextResponse.json({ error: 'Failed to delete expense record after check' }, { status: 500 });
+    }
+    
     console.log(`Successfully deleted expense record: ${expenseId}`);
 
-    // 4. Return success response
+    // 7. Return success response
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
-    // Catch errors from Prisma client or other parts of the process
     console.error(`Error deleting expense ${params.expenseId}:`, error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to delete expense';
     return NextResponse.json({ error: errorMessage }, { status: 500 });

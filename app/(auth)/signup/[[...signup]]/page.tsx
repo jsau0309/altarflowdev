@@ -1,6 +1,7 @@
 'use client';
 
-import { SignUpForm } from "@/components/sign-up-form"
+// import { SignUpForm } from "@/components/sign-up-form"; // <-- Remove old form import
+import { SignUp } from '@clerk/nextjs'; // <-- Import Clerk component
 import { Building2 } from "lucide-react"
 import Link from "next/link"
 import { useTranslation } from 'react-i18next'
@@ -21,7 +22,7 @@ export default function SignUpPage() {
           <p className="text-muted-foreground mt-2">{t('auth:signUpSubtitle', 'Sign up to start managing your church')}</p>
         </div>
 
-        <SignUpForm />
+        <SignUp routing="path" path="/signup" afterSignUpUrl="/onboarding/step-1" />
       </div>
     </div>
   )

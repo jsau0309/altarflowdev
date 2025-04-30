@@ -1,6 +1,7 @@
 'use client';
 
-import { SignInForm } from "@/components/sign-in-form"
+// import { SignInForm } from "@/components/sign-in-form"
+import { SignIn } from '@clerk/nextjs';
 import { Building2 } from "lucide-react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -27,7 +28,8 @@ export default function SignInPage() {
           <p className="text-muted-foreground mt-2">{t('auth:loginButton')}</p>
         </div>
 
-        <SignInForm />
+        {/* <SignInForm /> */ }
+        <SignIn routing="path" path="/signin" afterSignInUrl="/dashboard" />
       </div>
     </div>
   )

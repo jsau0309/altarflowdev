@@ -1,33 +1,28 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // Corrected import
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getAuth } from '@clerk/nextjs/server';
+import { Prisma } from '@prisma/client';
 
-export async function GET(request: Request) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+export async function GET(request: NextRequest) {
+  // Get user and organization context
+  const { userId, orgId } = getAuth(request);
 
-  if (authError || !user) {
-    console.error("GET Church Profile Auth Error:", authError);
+  if (!userId) { 
+    console.error("GET Church Profile Auth Error: No Clerk userId found.");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!orgId) {
+    console.error(`User ${userId} GET /church-profile without active org.`);
+    return NextResponse.json({ error: "No active organization selected" }, { status: 400 });
   }
 
   try {
-    // Find the user's profile to get their churchId
-    const userProfile = await prisma.profile.findUnique({
-      where: { id: user.id },
-      select: { churchId: true },
-    });
-
-    if (!userProfile || !userProfile.churchId) {
-      console.error(`User ${user.id} profile or churchId not found.`);
-      return NextResponse.json({ error: "User profile or church association not found" }, { status: 404 });
-    }
-
-    // Fetch the church details using the churchId
+    // Fetch the church details using the clerkOrgId
     const church = await prisma.church.findUnique({
-      where: { id: userProfile.churchId },
+      where: { clerkOrgId: orgId },
       select: {
-        id: true, // Include id for potential future use
+        id: true,
+        clerkOrgId: true,
         name: true,
         phone: true,
         address: true,
@@ -36,8 +31,8 @@ export async function GET(request: Request) {
     });
 
     if (!church) {
-      console.error(`Church not found for churchId: ${userProfile.churchId}`);
-      return NextResponse.json({ error: "Church not found" }, { status: 404 });
+      console.error(`Church not found for clerkOrgId: ${orgId}`);
+      return NextResponse.json({ error: "Church profile not found for the active organization" }, { status: 404 });
     }
 
     return NextResponse.json(church);
@@ -48,59 +43,57 @@ export async function GET(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    console.error("PUT Church Profile Auth Error:", authError);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let churchData;
+export async function PUT(request: NextRequest) {
+  let orgId: string | null | undefined = null;
   try {
-    churchData = await request.json();
-  } catch (error) {
-    console.error("PUT Church Profile - Invalid JSON:", error);
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
+    const orgRole = authResult.orgRole;
 
-  // Basic validation (can be enhanced with Zod)
-  if (!churchData || typeof churchData.name !== 'string' || churchData.name.trim() === '') {
-    return NextResponse.json({ error: "Invalid data: Church name is required" }, { status: 400 });
-  }
-
-  try {
-    // Find the user's profile to get their churchId and potentially role for validation
-    const userProfile = await prisma.profile.findUnique({
-      where: { id: user.id },
-      select: { churchId: true, role: true }, // Include role if needed for permission checks
-    });
-
-    if (!userProfile || !userProfile.churchId) {
-      console.error(`User ${user.id} profile or churchId not found for update.`);
-      return NextResponse.json({ error: "User profile or church association not found" }, { status: 404 });
+    if (!userId) { 
+      console.error("PUT Church Profile Auth Error: No Clerk userId found.");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!orgId) {
+      console.error(`User ${userId} PUT /church-profile without active org.`);
+      return NextResponse.json({ error: "No active organization selected" }, { status: 400 });
     }
 
-    // Optional: Add role-based permission check here if needed
-    // if (userProfile.role !== 'ADMIN') { 
-    //   return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
-    // }
+    // 2. Authorization Check (e.g., only admins can update)
+    if (orgRole !== 'admin') { 
+       console.warn(`User ${userId} with role ${orgRole} attempted to update church profile.`);
+       return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
+    }
 
-    // Prepare data for update (ensure only allowed fields are updated)
+    // 3. Parse and validate body
+    let churchData;
+    try {
+      churchData = await request.json();
+    } catch (error) {
+      console.error("PUT Church Profile - Invalid JSON:", error);
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    if (!churchData || typeof churchData.name !== 'string' || churchData.name.trim() === '') {
+      return NextResponse.json({ error: "Invalid data: Church name is required" }, { status: 400 });
+    }
+
+    // 4. Prepare data for update
     const dataToUpdate = {
       name: churchData.name,
-      phone: churchData.phone || null, // Set to null if empty/undefined
+      phone: churchData.phone || null, 
       address: churchData.address || null,
       website: churchData.website || null,
     };
 
-    // Update the church details
+    // 5. Update the church details using clerkOrgId
     const updatedChurch = await prisma.church.update({
-      where: { id: userProfile.churchId },
+      where: { clerkOrgId: orgId },
       data: dataToUpdate,
-      select: { // Return the updated data
+      select: { 
         id: true,
+        clerkOrgId: true,
         name: true,
         phone: true,
         address: true,
@@ -112,7 +105,10 @@ export async function PUT(request: Request) {
 
   } catch (error) {
     console.error("PUT Church Profile Error:", error);
-    // Handle potential Prisma errors like unique constraint violations if necessary
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        console.error(`Church update failed: Record not found for clerkOrgId ${orgId}`);
+        return NextResponse.json({ error: 'Church profile not found for the active organization to update.' }, { status: 404 });
+    }
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 } 

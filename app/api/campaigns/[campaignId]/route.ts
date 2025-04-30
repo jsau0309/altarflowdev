@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-helpers';
+import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
 // Schema for validating updated campaign data (PATCH)
 const campaignUpdateSchema = z.object({
@@ -12,28 +13,38 @@ const campaignUpdateSchema = z.object({
   endDate: z.string().datetime().nullable().optional(),
 }).partial(); // Make all fields optional for PATCH
 
-// GET /api/campaigns/[campaignId] - Fetch a single campaign
+// GET /api/campaigns/[campaignId] - Fetch a single campaign from the active organization
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { campaignId: string } }
 ) {
   try {
-    // Authentication check
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const { userId, orgId } = getAuth(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!orgId) {
+      console.error(`User ${userId} attempted GET on campaign ${params.campaignId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
     const campaignId = params.campaignId;
-    const campaign = await prisma.campaign.findUnique({
-      where: { id: campaignId },
+
+    // 2. Fetch campaign only if it belongs to the active org
+    const campaign = await prisma.campaign.findFirst({
+      where: { 
+        id: campaignId, 
+        church: { clerkOrgId: orgId } 
+      },
     });
 
     if (!campaign) {
-      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+      // Not found or doesn't belong to this org
+      return NextResponse.json({ error: 'Campaign not found or access denied' }, { status: 404 });
     }
 
-    // Authorization: Current RLS allows authenticated read. No extra API check needed for now.
+    // Authorization check passed implicitly by the query
     return NextResponse.json(campaign);
 
   } catch (error) {
@@ -42,30 +53,35 @@ export async function GET(
   }
 }
 
-// PATCH /api/campaigns/[campaignId] - Update an existing campaign
+// PATCH /api/campaigns/[campaignId] - Update an existing campaign in the active organization
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { campaignId: string } }
 ) {
+  let orgId: string | null | undefined = null; // Declare outside try
   try {
-    // Authentication & Authorization check
-    // TODO: Implement role-based access (e.g., only ADMIN)
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!orgId) {
+      console.error(`User ${userId} attempted PATCH on campaign ${params.campaignId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
+    }
+    // TODO: Implement role-based access (e.g., only ADMIN using authResult.orgRole)
 
     const campaignId = params.campaignId;
 
-    // Check existence first
-    const existingCampaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { id: true } });
-    if (!existingCampaign) {
-       return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
-    }
+    // Remove initial existence check - updateMany handles this implicitly with the org check
+    // const existingCampaign = await prisma.campaign.findUnique(...);
 
     const body = await request.json();
     
-    // Validate input data
+    // 2. Validate input data
     const validation = campaignUpdateSchema.safeParse(body);
     if (!validation.success) {
         console.error("Campaign update validation error:", validation.error.errors);
@@ -73,8 +89,10 @@ export async function PATCH(
     }
     const campaignData = validation.data;
 
-    // Handle date conversions and potential nulls
-    const dataToUpdate: any = { ...campaignData };
+    // 3. Prepare data for update
+    const dataToUpdate: Prisma.CampaignUpdateInput = {}; // Use Prisma type for better safety
+    if (campaignData.name !== undefined) dataToUpdate.name = campaignData.name;
+    if (campaignData.description !== undefined) dataToUpdate.description = campaignData.description;
     if (campaignData.startDate !== undefined) {
       dataToUpdate.startDate = campaignData.startDate ? new Date(campaignData.startDate) : null;
     }
@@ -82,12 +100,35 @@ export async function PATCH(
       dataToUpdate.endDate = campaignData.endDate ? new Date(campaignData.endDate) : null;
     }
     if (campaignData.goalAmount !== undefined) {
-      dataToUpdate.goalAmount = campaignData.goalAmount;
+      // Ensure null is handled correctly if goalAmount is optional & nullable
+      dataToUpdate.goalAmount = campaignData.goalAmount === null ? null : campaignData.goalAmount; 
     }
 
-    const updatedCampaign = await prisma.campaign.update({
-      where: { id: campaignId },
+    // Check if there's actually anything to update
+    if (Object.keys(dataToUpdate).length === 0) {
+      return NextResponse.json({ error: 'No valid fields provided for update' }, { status: 400 });
+    }
+
+    // 4. Perform the update using updateMany to ensure org boundary
+    const updateResult = await prisma.campaign.updateMany({
+      where: { 
+        id: campaignId, 
+        church: { clerkOrgId: orgId } // Ensure update only happens for the correct org
+      },
       data: dataToUpdate,
+    });
+
+    // 5. Check if the update was successful
+    if (updateResult.count === 0) {
+      return NextResponse.json({ error: 'Campaign not found or access denied' }, { status: 404 });
+    }
+
+    // 6. Fetch the updated campaign to return it
+    const updatedCampaign = await prisma.campaign.findFirst({
+       where: { 
+         id: campaignId, 
+         church: { clerkOrgId: orgId } 
+       }
     });
 
     return NextResponse.json(updatedCampaign);
@@ -98,38 +139,52 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/campaigns/[campaignId] - Delete a campaign
+// DELETE /api/campaigns/[campaignId] - Delete a campaign from the active organization
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { campaignId: string } }
 ) {
+  let orgId: string | null | undefined = null; // Declare outside try
   try {
-    // Authentication & Authorization check
-    // TODO: Implement role-based access (e.g., only ADMIN)
-    const user = await getCurrentUser();
-    if (!user) {
+    // 1. Get user and organization context
+    const authResult = getAuth(request);
+    const userId = authResult.userId;
+    orgId = authResult.orgId;
+    
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!orgId) {
+      console.error(`User ${userId} attempted DELETE on campaign ${params.campaignId} without active org.`);
+      return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
+    }
+    // TODO: Implement role-based access (e.g., only ADMIN using authResult.orgRole)
 
     const campaignId = params.campaignId;
 
-    // Check existence first
-    const existingCampaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { id: true } });
-    if (!existingCampaign) {
-      return new NextResponse(null, { status: 204 }); // Already deleted
-    }
+    // Remove initial existence check
 
-    // Authorization: Currently allows any authenticated user. Add role checks later.
-    await prisma.campaign.delete({
-      where: { id: campaignId },
+    // 2. Use deleteMany with compound where clause to ensure ownership
+    const deleteResult = await prisma.campaign.deleteMany({
+      where: { 
+        id: campaignId, 
+        church: { clerkOrgId: orgId } // Ensure deletion only happens for the correct org
+      },
     });
 
+    // 3. Check if a record was actually deleted
+    if (deleteResult.count === 0) {
+      // Not found or doesn't belong to this org - considered success for idempotency
+      return new NextResponse(null, { status: 204 }); 
+    }
+
+    console.log(`Campaign ${campaignId} deleted successfully by user ${userId} (org ${orgId})`);
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
      console.error(`Error deleting campaign ${params.campaignId}:`, error);
      // Handle potential Prisma errors (e.g., foreign key constraint if campaign has related donations)
-     if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code === 'P2003') { 
+     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') { 
          return NextResponse.json({ error: 'Cannot delete campaign due to existing related records (e.g., donations).' }, { status: 409 }); // Conflict
      }
     return NextResponse.json({ error: 'Failed to delete campaign' }, { status: 500 });
