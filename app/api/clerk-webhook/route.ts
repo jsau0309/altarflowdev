@@ -194,6 +194,44 @@ export async function POST(req: Request) {
     } // End inner type check
   }
 
+  // Handle organization membership deletion
+  if (eventType === 'organizationMembership.deleted') {
+    // Cast event to the specific type for safety, though data structure might be simpler
+    // Check Clerk docs if OrganizationMembershipWebhookEvent covers deleted structure accurately
+    const membershipEvent = evt as OrganizationMembershipWebhookEvent; 
+    const userId = membershipEvent.data.public_user_data?.user_id;
+    const orgId = membershipEvent.data.organization?.id; // Get orgId for logging
+
+    if (!userId) {
+      console.error('User ID missing in organizationMembership.deleted event');
+      // Return 400, as we cannot identify which profile to delete
+      return new Response('Error occurred -- missing user ID', { status: 400 });
+    }
+
+    console.log(`Processing organizationMembership.deleted for Org ID: ${orgId || 'N/A'}, User ID: ${userId}`);
+
+    try {
+      // Attempt to delete the corresponding profile
+      await prisma.profile.delete({
+        where: { id: userId },
+      });
+      console.log(`Successfully deleted profile for User ID: ${userId} due to org membership deletion.`);
+    
+    } catch (error) {
+       // Handle cases where the profile might not exist (e.g., already deleted)
+       // Prisma throws P2025 for record not found on delete
+      if ((error as any).code === 'P2025') { 
+        console.warn(`Profile deletion skipped: Profile for User ID ${userId} not found (might be already deleted).`);
+        // Return 200 OK because the desired state (no profile link) is achieved
+        return new Response('', { status: 200 });
+      } else {
+        // Handle other potential database errors
+        console.error(`Error deleting profile for User ID ${userId} after org membership deletion:`, error);
+        return new Response('Error occurred -- deleting profile', { status: 500 });
+      }
+    }
+  }
+
   // TODO: Handle user.deleted event if needed later
   // TODO: Handle organization.updated/deleted and membership.updated/deleted
 

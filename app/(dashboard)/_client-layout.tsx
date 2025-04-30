@@ -83,7 +83,9 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
               <DropdownMenuItem onClick={() => setTheme("dark")}>{t('themeToggle.dark', 'Dark')}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <OrganizationSwitcher />
+          <OrganizationSwitcher 
+             hidePersonal={true}
+          />
           <UserButton afterSignOutUrl="/" />
         </div>
       </header>
