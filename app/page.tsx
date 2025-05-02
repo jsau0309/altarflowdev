@@ -17,8 +17,8 @@ export default async function RootPage() {
       
       <SignedOut>
         <p className="text-lg text-muted-foreground mb-6">
-          Please log in or sign up to continue.
-        </p>
+        Please log in or sign up to continue.
+      </p>
         <div className="flex gap-4">
           <SignInButton mode="modal">
              <Button variant="outline">Log In</Button>

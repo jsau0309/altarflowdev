@@ -174,7 +174,7 @@ export async function DELETE(
     // TODO: Add role-based check?
 
     // Remove profile fetch
-    
+
     const memberId = params.memberId;
 
     // 2. Use deleteMany with compound where clause to ensure ownership

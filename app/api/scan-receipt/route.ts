@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (!orgId) {
         console.error(`Auth Error: User ${userId} has no active organization.`);
         return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
-    }
+      }
     console.log(`Authenticated Clerk User ID: ${userId}, Org ID: ${orgId}`);
 
     // --- Process Form Data --- 

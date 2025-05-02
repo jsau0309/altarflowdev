@@ -1,0 +1,40 @@
+{
+  "title": "Flujos",
+  "subtitle": "Configura y gestiona los formularios y flujos de tu iglesia.",
+  "tabs": {
+    "flowConfiguration": "Configuración de Flujo"
+  },
+  "config": {
+    "title": "Configuración de Flujo de Nuevo Miembro",
+    "description": "Configura el flujo de recopilación de información para nuevos miembros.",
+    "formUrlLabel": "URL del Formulario",
+    "formUrlDescription": "Comparte este enlace con los visitantes o úsalo para generar códigos QR.",
+    "tabs": {
+      "services": "Horarios de Servicio",
+      "ministries": "Ministerios",
+      "settings": "Configuración General"
+    },
+    "services": {
+      "title": "Horarios de Servicio",
+      "description": "Añade los horarios de servicio que los visitantes pueden seleccionar en el formulario.",
+      "dayPlaceholder": "Día (ej., Domingo)",
+      "timePlaceholder": "Hora (ej., 10:00 AM)"
+    },
+    "ministries": {
+      "title": "Ministerios",
+      "description": "Añade los ministerios en los que los visitantes pueden expresar interés.",
+      "namePlaceholder": "Nombre del Ministerio"
+    },
+    "settings": {
+      "title": "Configuración General",
+      "description": "Configura las opciones generales para este flujo.",
+      "prayerLabel": "Habilitar Peticiones de Oración",
+      "prayerDescription": "Permitir a los visitantes enviar peticiones de oración.",
+      "referralLabel": "Habilitar Seguimiento de Referidos",
+      "referralDescription": "Preguntar a los visitantes cómo se enteraron de la iglesia."
+    },
+    "saveSuccess": "¡Configuración guardada exitosamente!",
+    "saveError": "Error al guardar la configuración.",
+    "loadErrorTitle": "Error al Cargar Configuración"
+  }
+} 

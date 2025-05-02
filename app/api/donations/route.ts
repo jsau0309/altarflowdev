@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
             console.warn(`Failed donation creation because referenced ${target} not found.`);
             return NextResponse.json({ error: `Referenced ${target} not found.` }, { status: 404 });
         }
-    }
+    } 
     return NextResponse.json({ error: 'Failed to create donation' }, { status: 500 });
   }
 } 

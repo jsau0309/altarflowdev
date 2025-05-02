@@ -231,7 +231,7 @@ export async function POST(req: Request) {
       }
     }
   }
-
+  
   // TODO: Handle user.deleted event if needed later
   // TODO: Handle organization.updated/deleted and membership.updated/deleted
 

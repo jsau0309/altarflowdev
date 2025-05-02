@@ -19,6 +19,7 @@ import enOnboarding from '../locales/en/onboarding.json';
 import enReceiptScanner from '../locales/en/receiptScanner.json';
 import enCharts from '../locales/en/charts.json';
 import enNfc from '../locales/en/nfc.json';
+import enFlows from '../locales/en/flows.json';
 
 // Import all Spanish locale files
 import esCommon from '../locales/es/common.json';
@@ -36,6 +37,7 @@ import esOnboarding from '../locales/es/onboarding.json';
 import esReceiptScanner from '../locales/es/receiptScanner.json';
 import esCharts from '../locales/es/charts.json';
 import esNfc from '../locales/es/nfc.json';
+import esFlows from '../locales/es/flows.json';
 
 // Define resources structured by language and namespace
 const resources: Resource = {
@@ -54,7 +56,8 @@ const resources: Resource = {
     onboarding: enOnboarding,
     receiptScanner: enReceiptScanner,
     charts: enCharts,
-    nfc: enNfc
+    nfc: enNfc,
+    flows: enFlows
   },
   es: { 
     common: esCommon,
@@ -71,7 +74,8 @@ const resources: Resource = {
     onboarding: esOnboarding,
     receiptScanner: esReceiptScanner,
     charts: esCharts,
-    nfc: esNfc
+    nfc: esNfc,
+    flows: esFlows
   }
 };
 
@@ -101,7 +105,8 @@ i18n
       'onboarding',
       'receiptScanner',
       'charts',
-      'nfc'
+      'nfc',
+      'flows'
     ],
     defaultNS: 'common',
     interpolation: {

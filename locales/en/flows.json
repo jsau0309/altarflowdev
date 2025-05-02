@@ -1,0 +1,40 @@
+{
+  "title": "Flows",
+  "subtitle": "Configure and manage your church forms and flows.",
+  "tabs": {
+    "flowConfiguration": "Flow Configuration"
+  },
+  "config": {
+    "title": "New Member Flow Settings",
+    "description": "Configure the new member information collection flow.",
+    "formUrlLabel": "Form URL",
+    "formUrlDescription": "Share this link with visitors or use it to generate QR codes.",
+    "tabs": {
+      "services": "Service Times",
+      "ministries": "Ministries",
+      "settings": "General Settings"
+    },
+    "services": {
+      "title": "Service Times",
+      "description": "Add the service times that visitors can select on the form.",
+      "dayPlaceholder": "Day (e.g., Sunday)",
+      "timePlaceholder": "Time (e.g., 10:00 AM)"
+    },
+    "ministries": {
+      "title": "Ministries",
+      "description": "Add the ministries visitors can express interest in.",
+      "namePlaceholder": "Ministry Name"
+    },
+    "settings": {
+      "title": "General Settings",
+      "description": "Configure general settings for this flow.",
+      "prayerLabel": "Enable Prayer Requests",
+      "prayerDescription": "Allow visitors to submit prayer requests.",
+      "referralLabel": "Enable Referral Tracking",
+      "referralDescription": "Ask visitors how they heard about the church."
+    },
+    "saveSuccess": "Configuration saved successfully!",
+    "saveError": "Failed to save configuration.",
+    "loadErrorTitle": "Error Loading Configuration"
+  }
+} 

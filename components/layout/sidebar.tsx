@@ -44,8 +44,8 @@ export function Sidebar() {
       icon: <CreditCard className="h-5 w-5" />,
     },
     {
-      name: t('sidebar.settings'),
-      path: "/settings",
+      name: t('sidebar.flows', 'Flows'),
+      path: "/flows",
       icon: <Settings className="h-5 w-5" />,
     },
   ]

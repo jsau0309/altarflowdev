@@ -114,23 +114,23 @@ export async function POST(request: NextRequest) {
     
     // Handle specific Prisma errors
     if (error instanceof Error && 'code' in error) {
-      switch (error.code) {
+        switch (error.code) {
         case 'P2002': // Unique constraint violation
-          return NextResponse.json(
-            { error: 'Database constraint violation.' }, 
-            { status: 409 }
-          );
+            return NextResponse.json(
+              { error: 'Database constraint violation.' }, 
+              { status: 409 }
+            );
         case 'P2003': // Foreign key constraint failed (e.g., submitterId not in Profile)
           // This should be less likely now if user.created webhook works
-          return NextResponse.json(
+            return NextResponse.json(
             { error: 'Associated user profile not found.' }, 
-            { status: 400 }
-          );
+              { status: 400 }
+            );
         case 'P2025': // Referenced record not found (e.g., Church with clerkOrgId)
            console.error(`Attempted to connect expense to non-existent church with clerkOrgId: ${orgId}`);
            return NextResponse.json({ error: 'Organization not found for creating expense.' }, { status: 404 });
-        default:
-          break;
+          default:
+            break;
       }
     }
 

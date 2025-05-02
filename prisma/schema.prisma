@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 // Correctly formatted datasource block
@@ -29,6 +30,13 @@ enum ExpenseStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum FlowType {
+  NEW_MEMBER
+  EVENT_SIGNUP
+  SURVEY
+  // Add more types later
 }
 
 // --- Models ---
@@ -56,6 +64,7 @@ model Church {
   donations Donation[] // A church has many donations
   members   Member[]   // A church has many members
   campaigns Campaign[] // A church has many campaigns
+  flows        Flow[]      // Add back-relation for flows
 }
 
 // Represents an authenticated user within our application context
@@ -113,6 +122,7 @@ model Member {
   updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
 
   donations Donation[] // Relation to donations made by this member
+  submissions Submission[] // Add back-relation for submissions
 
   @@index([churchId]) // Index for faster lookups by church
 }
@@ -235,6 +245,42 @@ model InviteToken {
 //
 //   @@index([userId])
 // }
+
+// --- Add Flow Model ---
+model Flow {
+  id           String    @id @default(cuid())
+  name         String    // e.g., "New Visitor Connect", "VBS 2025 Signup"
+  type         FlowType  @default(NEW_MEMBER) // Enum for different flow types
+  slug         String    @unique // Public URL segment (e.g., /connect/[slug])
+  configJson   Json      // Stores form fields, settings, steps etc. specific to this flow
+  isEnabled    Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  churchId     String    @db.Uuid
+  church       Church    @relation(fields: [churchId], references: [id], onDelete: Cascade) // Cascade delete flows if church is deleted
+
+  submissions  Submission[] // Relation to form submissions for this flow
+
+  @@index([churchId])
+  @@index([churchId, slug]) // Index for quick public lookup
+}
+
+// --- Add Submission Model ---
+model Submission {
+  id            String   @id @default(cuid())
+  submittedAt   DateTime @default(now())
+  formDataJson  Json     // Stores the actual submitted data
+  // Optional: Link to Member if identified/created during submission
+  memberId      String?  @db.Uuid
+  member        Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull) // SetNull if member deleted
+
+  flowId        String
+  flow          Flow     @relation(fields: [flowId], references: [id], onDelete: Cascade) // Cascade delete submissions if flow is deleted
+
+  @@index([flowId])
+  @@index([memberId])
+}
 
 
 

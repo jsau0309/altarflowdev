@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   if (!orgId) {
     console.error(`User ${userId} GET /church-profile without active org.`);
     return NextResponse.json({ error: "No active organization selected" }, { status: 400 });
-  }
+    }
 
   try {
     // Fetch the church details using the clerkOrgId
@@ -53,9 +53,9 @@ export async function PUT(request: NextRequest) {
     const orgRole = authResult.orgRole;
 
     if (!userId) { 
-      console.error("PUT Church Profile Auth Error: No Clerk userId found.");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    console.error("PUT Church Profile Auth Error: No Clerk userId found.");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
     if (!orgId) {
       console.error(`User ${userId} PUT /church-profile without active org.`);
       return NextResponse.json({ error: "No active organization selected" }, { status: 400 });
@@ -68,16 +68,16 @@ export async function PUT(request: NextRequest) {
     }
 
     // 3. Parse and validate body
-    let churchData;
-    try {
-      churchData = await request.json();
-    } catch (error) {
-      console.error("PUT Church Profile - Invalid JSON:", error);
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-    }
-    if (!churchData || typeof churchData.name !== 'string' || churchData.name.trim() === '') {
-      return NextResponse.json({ error: "Invalid data: Church name is required" }, { status: 400 });
-    }
+  let churchData;
+  try {
+    churchData = await request.json();
+  } catch (error) {
+    console.error("PUT Church Profile - Invalid JSON:", error);
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  if (!churchData || typeof churchData.name !== 'string' || churchData.name.trim() === '') {
+    return NextResponse.json({ error: "Invalid data: Church name is required" }, { status: 400 });
+  }
 
     // 4. Prepare data for update
     const dataToUpdate = {

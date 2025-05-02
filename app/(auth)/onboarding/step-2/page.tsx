@@ -54,7 +54,7 @@ export default function ChurchDetailsStep() {
             <Button type="button" variant="outline" onClick={prevStep}>
               {t('back', 'Back')}
             </Button>
-        </div>
+          </div>
       </div>
     </div>
   )

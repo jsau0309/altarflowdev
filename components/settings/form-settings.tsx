@@ -30,7 +30,9 @@ export function FormSettings() {
   const [newServiceTime, setNewServiceTime] = useState("");
   const [newMinistryName, setNewMinistryName] = useState("");
   
-  const { t } = useTranslation(['settings', 'common']);
+  // Load 'flows' and 'common' namespaces
+  const { t } = useTranslation(['flows', 'common']); 
+
   const formUrl = typeof window !== 'undefined' ? `${window.location.origin}/connect` : '';
 
   // Fetch configuration on component mount
@@ -75,24 +77,24 @@ export function FormSettings() {
 
   const handleRemoveService = (id: string) => {
     if (config) {
-      setConfig({
-        ...config,
-        serviceTimes: config.serviceTimes.filter((service) => service.id !== id),
+    setConfig({
+      ...config,
+      serviceTimes: config.serviceTimes.filter((service) => service.id !== id),
       });
       setSaveResult(null);
-    }
+  }
   };
 
   const handleToggleService = (id: string) => {
     if (config) {
-      setConfig({
-        ...config,
-        serviceTimes: config.serviceTimes.map((service) =>
-          service.id === id ? { ...service, isActive: !service.isActive } : service,
-        ),
+    setConfig({
+      ...config,
+      serviceTimes: config.serviceTimes.map((service) =>
+        service.id === id ? { ...service, isActive: !service.isActive } : service,
+      ),
       });
       setSaveResult(null);
-    }
+  }
   };
 
   const handleAddMinistry = () => {
@@ -111,32 +113,32 @@ export function FormSettings() {
 
   const handleRemoveMinistry = (id: string) => {
     if (config) {
-      setConfig({
-        ...config,
-        ministries: config.ministries.filter((ministry) => ministry.id !== id),
+    setConfig({
+      ...config,
+      ministries: config.ministries.filter((ministry) => ministry.id !== id),
       });
       setSaveResult(null);
-    }
+  }
   };
 
   const handleToggleMinistry = (id: string) => {
     if (config) {
-      setConfig({
-        ...config,
-        ministries: config.ministries.map((ministry) =>
-          ministry.id === id ? { ...ministry, isActive: !ministry.isActive } : ministry,
-        ),
+    setConfig({
+      ...config,
+      ministries: config.ministries.map((ministry) =>
+        ministry.id === id ? { ...ministry, isActive: !ministry.isActive } : ministry,
+      ),
       });
       setSaveResult(null);
-    }
+  }
   };
 
   const handleToggleSetting = (setting: keyof ConfigState['settings']) => {
     if (config) {
-      setConfig({
-        ...config,
-        settings: {
-          ...config.settings,
+    setConfig({
+      ...config,
+      settings: {
+        ...config.settings,
           [setting]: !config.settings[setting],
         },
       });
@@ -156,10 +158,12 @@ export function FormSettings() {
         setSaveResult(result);
         if (!result.success) {
           console.error("Failed to save configuration:", result.message);
+          setSaveResult({ success: false, message: result.message || t('flows:config.saveError', 'Failed to save configuration.') });
         }
       } catch (err) {
         console.error("Error saving configuration:", err);
-        setSaveResult({ success: false, message: err instanceof Error ? err.message : "An unexpected error occurred during save." });
+        const errMsg = err instanceof Error ? err.message : t('common:errors.unexpected', 'An unexpected error occurred');
+        setSaveResult({ success: false, message: errMsg });
       }
     });
   };
@@ -168,7 +172,7 @@ export function FormSettings() {
   const copyToClipboard = () => {
     if(formUrl){
         navigator.clipboard.writeText(formUrl)
-        alert(t('settings:formSettings.urlCopied', "Form URL copied to clipboard!"))
+        alert(t('common:urlCopied', "Form URL copied to clipboard!"))
     }
   }
 
@@ -189,11 +193,11 @@ export function FormSettings() {
   if (error) {
     return (
        <Card className="w-full">
-         <CardHeader><CardTitle>{t('common:error')}</CardTitle></CardHeader>
+         <CardHeader><CardTitle>{t('flows:config.loadErrorTitle', 'Error Loading Configuration')}</CardTitle></CardHeader>
          <CardContent>
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>{t('settings:formSettings.loadErrorTitle')}</AlertTitle>
+              <AlertTitle>{t('common:error', 'Error')}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
          </CardContent>
@@ -211,24 +215,24 @@ export function FormSettings() {
     <div className="w-full overflow-x-hidden">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>{t('settings:formSettings.title')}</CardTitle>
-          <CardDescription>{t('settings:formSettings.description')}</CardDescription>
+          <CardTitle>{t('flows:config.title', 'New Member Flow Settings')}</CardTitle>
+          <CardDescription>{t('flows:config.description', 'Configure the new member information collection flow.')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-6">
-            <Label htmlFor="form-url">{t('settings:formSettings.formUrlLabel')}</Label>
+            <Label htmlFor="form-url">{t('flows:config.formUrlLabel', 'Form URL')}</Label>
             <div className="flex mt-1.5">
               <Input id="form-url" value={formUrl} readOnly className="flex-1" />
               <Button variant="outline" className="ml-2" onClick={copyToClipboard}>
-                {t('common:copy')}
+                {t('common:copy', 'Copy')}
               </Button>
               <Button variant="outline" className="ml-2" onClick={openPreview}>
                 <ExternalLink className="h-4 w-4 mr-2" />
-                {t('common:preview')}
+                {t('common:preview', 'Preview')}
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
-              {t('settings:formSettings.formUrlDescription')}
+              {t('flows:config.formUrlDescription', 'Share this link with visitors or use it to generate QR codes.')}
             </p>
           </div>
 
@@ -236,25 +240,25 @@ export function FormSettings() {
           {saveResult && (
             <Alert variant={saveResult.success ? "default" : "destructive"} className="mb-4">
                <AlertCircle className="h-4 w-4" />
-               <AlertTitle>{saveResult.success ? t('common:success') : t('common:error')}</AlertTitle>
+               <AlertTitle>{saveResult.success ? t('common:success', 'Success') : t('common:error', 'Error')}</AlertTitle>
                <AlertDescription>
-                 {saveResult.message || (saveResult.success ? t('settings:formSettings.saveSuccess') : t('settings:formSettings.saveError'))}
+                 {saveResult.message || (saveResult.success ? t('flows:config.saveSuccess', 'Configuration saved successfully!') : t('flows:config.saveError', 'Failed to save configuration.'))}
                </AlertDescription>
             </Alert>
           )}
 
           <Tabs defaultValue="services">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="services">{t('settings:formSettings.tabs.services')}</TabsTrigger>
-              <TabsTrigger value="ministries">{t('settings:formSettings.tabs.ministries')}</TabsTrigger>
-              <TabsTrigger value="settings">{t('settings:formSettings.tabs.settings')}</TabsTrigger>
+              <TabsTrigger value="services">{t('flows:config.tabs.services', 'Service Times')}</TabsTrigger>
+              <TabsTrigger value="ministries">{t('flows:config.tabs.ministries', 'Ministries')}</TabsTrigger>
+              <TabsTrigger value="settings">{t('flows:config.tabs.settings', 'General Settings')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="services" className="space-y-4 mt-4">
               <div>
-                <h3 className="text-lg font-medium">{t('settings:formSettings.services.title')}</h3>
+                <h3 className="text-lg font-medium">{t('flows:config.services.title', 'Service Times')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {t('settings:formSettings.services.description')}
+                  {t('flows:config.services.description', 'Add the service times that visitors can select on the form.')}
                 </p>
               </div>
 
@@ -276,27 +280,27 @@ export function FormSettings() {
 
               <div className="flex space-x-2">
                 <Input
-                  placeholder={t('settings:formSettings.services.dayPlaceholder')}
+                  placeholder={t('flows:config.services.dayPlaceholder', 'Day (e.g., Sunday)')}
                   value={newServiceDay}
                   onChange={(e) => setNewServiceDay(e.target.value)}
                 />
                 <Input
-                  placeholder={t('settings:formSettings.services.timePlaceholder')}
+                  placeholder={t('flows:config.services.timePlaceholder', 'Time (e.g., 10:00 AM)')}
                   value={newServiceTime}
                   onChange={(e) => setNewServiceTime(e.target.value)}
                 />
                 <Button onClick={handleAddService}>
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  {t('common:add')}
+                  {t('common:add', 'Add')}
                 </Button>
               </div>
             </TabsContent>
 
             <TabsContent value="ministries" className="space-y-4 mt-4">
               <div>
-                <h3 className="text-lg font-medium">{t('settings:formSettings.ministries.title')}</h3>
+                <h3 className="text-lg font-medium">{t('flows:config.ministries.title', 'Ministries')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {t('settings:formSettings.ministries.description')}
+                  {t('flows:config.ministries.description', 'Add the ministries visitors can express interest in.')}
                 </p>
               </div>
 
@@ -316,29 +320,29 @@ export function FormSettings() {
 
               <div className="flex space-x-2">
                 <Input
-                  placeholder={t('settings:formSettings.ministries.namePlaceholder')}
+                  placeholder={t('flows:config.ministries.namePlaceholder', 'Ministry Name')}
                   value={newMinistryName}
                   onChange={(e) => setNewMinistryName(e.target.value)}
                   className="flex-1"
                 />
                 <Button onClick={handleAddMinistry}>
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  {t('common:add')}
+                  {t('common:add', 'Add')}
                 </Button>
               </div>
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-4 mt-4">
               <div>
-                <h3 className="text-lg font-medium">{t('settings:formSettings.settings.title')}</h3>
-                <p className="text-sm text-muted-foreground">{t('settings:formSettings.settings.description')}</p>
+                <h3 className="text-lg font-medium">{t('flows:config.settings.title', 'General Settings')}</h3>
+                <p className="text-sm text-muted-foreground">{t('flows:config.settings.description', 'Configure general settings for this flow.')}</p>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="prayer-requests">{t('settings:formSettings.settings.prayerLabel')}</Label>
-                    <p className="text-sm text-muted-foreground">{t('settings:formSettings.settings.prayerDescription')}</p>
+                    <Label htmlFor="prayer-requests">{t('flows:config.settings.prayerLabel', 'Enable Prayer Requests')}</Label>
+                    <p className="text-sm text-muted-foreground">{t('flows:config.settings.prayerDescription', 'Allow visitors to submit prayer requests.')}</p>
                   </div>
                   <Switch
                     id="prayer-requests"
@@ -349,8 +353,8 @@ export function FormSettings() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="referral-tracking">{t('settings:formSettings.settings.referralLabel')}</Label>
-                    <p className="text-sm text-muted-foreground">{t('settings:formSettings.settings.referralDescription')}</p>
+                    <Label htmlFor="referral-tracking">{t('flows:config.settings.referralLabel', 'Enable Referral Tracking')}</Label>
+                    <p className="text-sm text-muted-foreground">{t('flows:config.settings.referralDescription', 'Ask visitors how they heard about the church.')}</p>
                   </div>
                   <Switch
                     id="referral-tracking"
@@ -365,7 +369,7 @@ export function FormSettings() {
         <CardFooter className="flex justify-end">
           <Button onClick={handleSaveChanges} disabled={isSaving}>
              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-             {t('common:saveChanges')}
+             {t('common:saveChanges', 'Save Changes')}
            </Button>
         </CardFooter>
       </Card>
