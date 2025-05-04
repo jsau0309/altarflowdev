@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from '@clerk/nextjs/server';
 import { FormConfiguration, defaultServiceTimes, defaultMinistries, defaultSettings } from "@/components/member-form/types"; // Adjust path if necessary
 import { FlowType, Prisma } from '@prisma/client'; // Import Prisma namespace for Prisma.JsonObject and FlowType
+import type { ServiceTime, Ministry, LifeStage, RelationshipStatus, MemberFormData } from '../../components/member-form/types'; // Ensure MemberFormData is imported if used
 
 /**
  * Fetches the configuration for a specific flow type 
@@ -264,65 +265,120 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
     }
 }
 
-/**
- * Handles the submission of a public flow form.
- * Performs server-side validation (using Zod recommended) and creates a Submission record.
- * Does not require authentication.
- * Defers linking to a Member record for MVP.
- * @param flowId - The ID of the flow being submitted.
- * @param formData - The raw form data submitted by the user.
- */
+// Use MemberFormData for stricter typing if applicable, or keep as any/Partial<FormData>
+// Type for data structure within the action
+interface SubmissionData extends Partial<FormData> { 
+     firstName: string;
+     lastName: string;
+     email: string;
+     phone?: string; // Add optional phone field
+     relationshipStatus: RelationshipStatus; 
+}
+
 export async function submitFlow(
     flowId: string, 
-    formData: any // Use a Zod schema type here ideally
+    formData: SubmissionData // Use a more specific type if possible
 ): Promise<{ success: boolean; message?: string }> {
     
-    // --- 1. Validation (CRUCIAL - Implement with Zod later) ---
-    // TODO: Implement robust server-side validation using Zod
-    // Example placeholder:
-    if (!formData || typeof formData !== 'object') {
+    // --- 1. Validation (Placeholder - Zod validation happens before calling usually) ---
+    // Assuming formData is already validated by Zod resolver on client, 
+    // but adding basic checks here for safety.
+    if (!formData || typeof formData !== 'object' || !formData.email || !formData.firstName || !formData.lastName || !formData.relationshipStatus) {
+        console.error("submitFlow Error: Invalid or incomplete form data received.", formData);
         return { success: false, message: "Invalid form data submitted." };
     }
     if (!flowId) {
         return { success: false, message: "Missing flow identifier." };
     }
-    // Add checks for required fields, data types, formats etc.
-    const validatedFormData = formData; // Replace with Zod validated output
+    // Use validated data directly
+    const validatedFormData = formData; 
 
-    // --- 2. Check if Flow exists (optional but good practice) ---
+    let churchId: string;
+    let memberId: string;
+    const submissionTimestamp = new Date(); // Use consistent timestamp
+
     try {
-        const flowExists = await prisma.flow.findUnique({
-            where: { id: flowId },
-            select: { id: true }
+        // --- 2. Get Church ID from Flow ID ---
+         const flow = await prisma.flow.findUniqueOrThrow({
+             where: { id: flowId },
+             select: { churchId: true }
+         });
+         churchId = flow.churchId;
+
+        // --- 3. Find Existing Member --- 
+        console.log(`Searching for member with email ${validatedFormData.email} in church ${churchId}`);
+        const existingMember = await prisma.member.findFirst({
+            where: { 
+                // Use lowercased email for case-insensitive comparison if desired & schema allows
+                // email: validatedFormData.email.toLowerCase(), 
+                email: validatedFormData.email,
+                churchId: churchId 
+            },
+            select: { id: true } // Only need the ID
         });
-        if (!flowExists) {
-            console.error(`submitFlow Error: Attempt to submit to non-existent Flow ID: ${flowId}`);
-            return { success: false, message: "Target flow not found." };
-        }
-    } catch (error) {
-        console.error(`submitFlow Error checking flow existence for ID ${flowId}:`, error);
-        return { success: false, message: "Error verifying flow." };
-    }
 
-    // --- 3. Create Submission Record ---
-    try {
+        // --- 4. Create or Update Member --- 
+        if (existingMember) {
+            // Member Found - Update
+            console.log(`Found existing member (ID: ${existingMember.id}). Updating...`);
+            const updatedMember = await prisma.member.update({
+                where: { id: existingMember.id },
+                data: {
+                    // Overwrite specific fields based on Plan (Option A)
+                    firstName: validatedFormData.firstName,
+                    lastName: validatedFormData.lastName,
+                    phone: validatedFormData.phone || null, // Use null if phone is empty/undefined
+                    lastSubmittedConnectFormAt: submissionTimestamp,
+                     // Do NOT update membershipStatus based on submission
+                },
+                select: { id: true }
+            });
+            memberId = updatedMember.id;
+            console.log(`Member ${memberId} updated successfully.`);
+
+        } else {
+            // Member Not Found - Create
+            console.log(`No existing member found for email ${validatedFormData.email}. Creating new member...`);
+            // Map form status to DB status - adjust strings as needed for your Member model
+            const initialStatus = validatedFormData.relationshipStatus === 'regular' ? 'Regular Attendee' : 'Visitor';
+            
+            const createdMember = await prisma.member.create({
+                data: {
+                    churchId: churchId,
+                    firstName: validatedFormData.firstName,
+                    lastName: validatedFormData.lastName,
+                    email: validatedFormData.email, // Store original case or lowercase?
+                    phone: validatedFormData.phone || null,
+                    membershipStatus: initialStatus, 
+                    lastSubmittedConnectFormAt: submissionTimestamp,
+                    // Ensure all other non-nullable Member fields have defaults or are handled
+                    // language: ??? // Need a default or pass from form?
+                    // smsConsent: false, // Default likely set in schema?
+                },
+                select: { id: true }
+            });
+            memberId = createdMember.id;
+            console.log(`New member ${memberId} created successfully.`);
+        }
+
+        // --- 5. Create Submission Record with Link to Member ---
         await prisma.submission.create({
             data: {
                 flowId: flowId,
                 formDataJson: validatedFormData as unknown as Prisma.JsonObject,
-                // memberId: null, // Explicitly null for MVP - defer member linking
+                memberId: memberId // Link to the created/updated member
             },
         });
 
-        console.log(`Submission successful for Flow ID: ${flowId}`);
-        return { success: true, message: "Submission received successfully!" }; // Or a more user-friendly message
+        console.log(`Submission successful for Flow ID: ${flowId}, linked to Member ID: ${memberId}`);
+        return { success: true, message: "Submission received successfully!" };
 
     } catch (error) {
-        console.error(`Error creating submission for Flow ID ${flowId}:`, error);
+        console.error(`Error during submitFlow process for flow ${flowId} and email ${validatedFormData.email}:`, error);
+        // Provide a more generic error to the frontend
         return { 
             success: false, 
-            message: "An error occurred while processing your submission. Please try again."
-            // More specific message based on error type? Maybe not for public.
+            message: "An error occurred while processing your submission. Please try again or contact support."
         };
     }
 }

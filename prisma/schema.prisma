@@ -113,6 +113,7 @@ model Member {
   smsConsentDate      DateTime? // When consent was given
   smsConsentMethod    String? // How consent was obtained (e.g., "Web Form", "Paper Card")
   language            String? // Add preferred language field
+  lastSubmittedConnectFormAt DateTime? // Add timestamp for last connect form submission
 
   // --- Link to Church --- (Now Required)
   churchId String @db.Uuid // <-- Add @db.Uuid
