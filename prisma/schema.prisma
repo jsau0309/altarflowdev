@@ -43,40 +43,40 @@ enum FlowType {
 
 // Represents a Church organization/tenant
 model Church {
-  id        String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
+  id         String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
   clerkOrgId String?  @unique // Added: Clerk Organization ID (initially optional, then required after sync)
-  name      String   // Name of the church
-  address   String?  // Added: Physical address of the church
-  phone     String?  // Added: Primary phone number
-  email     String?  // Added: Primary contact email
-  website   String?  // Added: Church website URL
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt // Keep @updatedAt, add @default(now()) for INSERT
+  name       String // Name of the church
+  address    String? // Added: Physical address of the church
+  phone      String? // Added: Primary phone number
+  email      String? // Added: Primary contact email
+  website    String? // Added: Church website URL
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt // Keep @updatedAt, add @default(now()) for INSERT
 
   // --- Connect Form Configuration ---
-  serviceTimesJson Json?    @db.Json
-  ministriesJson   Json?    @db.Json
-  settingsJson     Json?    @db.Json
+  serviceTimesJson Json? @db.Json
+  ministriesJson   Json? @db.Json
+  settingsJson     Json? @db.Json
 
   // --- Relationships ---
   // profiles Profile[]  // REMOVED - No longer a direct link from Church to Profile
-  expenses Expense[]  // A church has many expenses
+  expenses  Expense[] // A church has many expenses
   donations Donation[] // A church has many donations
-  members   Member[]   // A church has many members
+  members   Member[] // A church has many members
   campaigns Campaign[] // A church has many campaigns
-  flows        Flow[]      // Add back-relation for flows
+  flows     Flow[] // Add back-relation for flows
 }
 
 // Represents an authenticated user within our application context
 // We link this to the Clerk user via the ID
 model Profile {
-  id        String   @id 
-  firstName String?
-  lastName  String?
-  email     String? 
-  churchName String? // This might still be useful if set during onboarding?
-  role      Role     @default(STAFF) 
-  onboardingComplete Boolean  @default(false)
+  id                 String  @id
+  firstName          String?
+  lastName           String?
+  email              String?
+  churchName         String? // This might still be useful if set during onboarding?
+  role               Role    @default(STAFF)
+  onboardingComplete Boolean @default(false)
 
   // --- Link to Church --- (REMOVED)
   // churchId  String?  @db.Uuid 
@@ -97,31 +97,31 @@ model Profile {
 
 // Represents a member or visitor of the church
 model Member {
-  id        String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
-  firstName String
-  lastName  String
-  email     String?  @unique // Email is optional but should be unique if provided
-  phone     String?
-  address   String?
-  city      String?
-  state     String?
-  zipCode   String?
-  membershipStatus String?  // e.g., "Visitor", "Member", "Inactive"
-  joinDate  DateTime? // Date they officially became a member
+  id                  String    @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
+  firstName           String
+  lastName            String
+  email               String?   @unique // Email is optional but should be unique if provided
+  phone               String?
+  address             String?
+  city                String?
+  state               String?
+  zipCode             String?
+  membershipStatus    String? // e.g., "Visitor", "Member", "Inactive"
+  joinDate            DateTime? // Date they officially became a member
   ministryInvolvement String? // Text area for notes on involvement
-  smsConsent        Boolean  @default(false)
-  smsConsentDate    DateTime? // When consent was given
-  smsConsentMethod  String?  // How consent was obtained (e.g., "Web Form", "Paper Card")
-  language          String? // Add preferred language field
+  smsConsent          Boolean   @default(false)
+  smsConsentDate      DateTime? // When consent was given
+  smsConsentMethod    String? // How consent was obtained (e.g., "Web Form", "Paper Card")
+  language            String? // Add preferred language field
 
   // --- Link to Church --- (Now Required)
-  churchId  String   @db.Uuid // <-- Add @db.Uuid
-  church    Church   @relation(fields: [churchId], references: [id])
+  churchId String @db.Uuid // <-- Add @db.Uuid
+  church   Church @relation(fields: [churchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
 
-  donations Donation[] // Relation to donations made by this member
+  donations   Donation[] // Relation to donations made by this member
   submissions Submission[] // Add back-relation for submissions
 
   @@index([churchId]) // Index for faster lookups by church
@@ -137,11 +137,11 @@ model Campaign {
   endDate     DateTime?
 
   // --- Link to Church --- (Now Required)
-  churchId  String   @db.Uuid // <-- Add @db.Uuid
-  church    Church   @relation(fields: [churchId], references: [id])
+  churchId String @db.Uuid // <-- Add @db.Uuid
+  church   Church @relation(fields: [churchId], references: [id])
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt // Add @default(now()) for INSERT
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
 
   donations Donation[] // Relation to donations for this campaign
 
@@ -150,31 +150,31 @@ model Campaign {
 
 // Represents a single donation transaction
 model Donation {
-  id        String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
-  amount    Decimal  @db.Decimal(10, 2)
-  currency  String   @default("USD")
+  id           String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
+  amount       Decimal  @db.Decimal(10, 2)
+  currency     String   @default("USD")
   donationDate DateTime @default(now())
-  
+
   // Optional donor info (if not linked to a Member)
   donorFirstName String?
   donorLastName  String?
   donorEmail     String?
 
   // Link to Member (if the donor is a known member)
-  memberId  String? @db.Uuid // <-- Add @db.Uuid
-  member    Member?  @relation(fields: [memberId], references: [id])
+  memberId String? @db.Uuid // <-- Add @db.Uuid
+  member   Member? @relation(fields: [memberId], references: [id])
 
   // Link to Campaign (if the donation is for a specific campaign)
-  campaignId String? @db.Uuid // <-- Add @db.Uuid
+  campaignId String?   @db.Uuid // <-- Add @db.Uuid
   campaign   Campaign? @relation(fields: [campaignId], references: [id])
 
   // --- Link to Church --- (Now Required)
-  churchId  String   @db.Uuid // <-- Add @db.Uuid
-  church    Church   @relation(fields: [churchId], references: [id])
+  churchId String @db.Uuid // <-- Add @db.Uuid
+  church   Church @relation(fields: [churchId], references: [id])
 
   // Stripe details
   stripePaymentIntentId String? @unique // Store the Stripe PaymentIntent ID
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
 
@@ -185,31 +185,31 @@ model Donation {
 
 // Represents an expense submitted by staff/admin
 model Expense {
-  id          String    @id @default(cuid()) // Expense ID is still CUID, didn't change its default
-  amount      Decimal   @db.Decimal(10, 2)
-  currency    String    @default("USD")
+  id          String        @id @default(cuid()) // Expense ID is still CUID, didn't change its default
+  amount      Decimal       @db.Decimal(10, 2)
+  currency    String        @default("USD")
   expenseDate DateTime
-  category    String    // e.g., "Utilities", "Supplies", "Events", "Ministry"
+  category    String // e.g., "Utilities", "Supplies", "Events", "Ministry"
   vendor      String?
   description String?
-  receiptUrl  String?   // URL to the uploaded receipt image/file (now a signed URL with expiration)
-  receiptPath String?   // Storage path to the receipt file (for generating fresh signed URLs)
+  receiptUrl  String? // URL to the uploaded receipt image/file (now a signed URL with expiration)
+  receiptPath String? // Storage path to the receipt file (for generating fresh signed URLs)
   status      ExpenseStatus @default(PENDING)
 
   // Link to the user who submitted the expense
   submitterId String // <-- Removed @db.Uuid
-  submitter   Profile   @relation("SubmittedExpenses", fields: [submitterId], references: [id])
+  submitter   Profile @relation("SubmittedExpenses", fields: [submitterId], references: [id])
 
   // Link to the user who approved/rejected the expense (optional)
-  approverId  String? // <-- Removed @db.Uuid
-  approver    Profile?  @relation("ApprovedExpenses", fields: [approverId], references: [id])
+  approverId String? // <-- Removed @db.Uuid
+  approver   Profile? @relation("ApprovedExpenses", fields: [approverId], references: [id])
 
   // --- Link to Church --- (Now Required)
-  churchId  String   @db.Uuid
-  church    Church   @relation(fields: [churchId], references: [id])
+  churchId String @db.Uuid
+  church   Church @relation(fields: [churchId], references: [id])
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt // Add @default(now()) for INSERT
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
 
   @@index([submitterId])
   @@index([approverId])
@@ -217,21 +217,19 @@ model Expense {
 }
 
 // --- Add InviteToken Model --- (REMOVED)
-/*
-model InviteToken {
-  id        String   @id @default(cuid())
-  token     String   @unique 
-  email     String   
-  churchId  String   @db.Uuid 
-  expiresAt DateTime 
-  createdAt DateTime @default(now())
-
-  church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
-
-  @@index([email])
-  @@index([churchId])
-}
-*/
+/**
+ * model InviteToken {
+ * id        String   @id @default(cuid())
+ * token     String   @unique
+ * email     String
+ * churchId  String   @db.Uuid
+ * expiresAt DateTime
+ * createdAt DateTime @default(now())
+ * church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+ * @@index([email])
+ * @@index([churchId])
+ * }
+ */
 
 // --- PasswordResetToken Model Removed ---
 // model PasswordResetToken {
@@ -248,51 +246,38 @@ model InviteToken {
 
 // --- Add Flow Model ---
 model Flow {
-  id           String    @id @default(cuid())
-  name         String    // e.g., "New Visitor Connect", "VBS 2025 Signup"
-  type         FlowType  @default(NEW_MEMBER) // Enum for different flow types
-  slug         String    @unique // Public URL segment (e.g., /connect/[slug])
-  configJson   Json      // Stores form fields, settings, steps etc. specific to this flow
-  isEnabled    Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  name       String // User-friendly name (e.g., "New Visitor Connect Form")
+  type       FlowType @default(NEW_MEMBER)
+  slug       String   @unique // URL identifier (e.g., "new-visitor-connect")
+  configJson Json // Stores { serviceTimes: [], ministries: [], settings: { enablePrayer: true, ... } }
+  isEnabled  Boolean  @default(true) // Allows disabling public access
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  churchId     String    @db.Uuid
-  church       Church    @relation(fields: [churchId], references: [id], onDelete: Cascade) // Cascade delete flows if church is deleted
+  churchId String @db.Uuid
+  church   Church @relation(fields: [churchId], references: [id], onDelete: Cascade)
 
-  submissions  Submission[] // Relation to form submissions for this flow
+  submissions Submission[] // Relation to submissions
 
   @@index([churchId])
-  @@index([churchId, slug]) // Index for quick public lookup
+  @@index([churchId, slug])
+  @@unique([churchId, type], name: "church_flow_type_unique") // Add unique constraint
 }
 
 // --- Add Submission Model ---
 model Submission {
-  id            String   @id @default(cuid())
-  submittedAt   DateTime @default(now())
-  formDataJson  Json     // Stores the actual submitted data
-  // Optional: Link to Member if identified/created during submission
-  memberId      String?  @db.Uuid
-  member        Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull) // SetNull if member deleted
+  id           String   @id @default(cuid())
+  submittedAt  DateTime @default(now())
+  formDataJson Json // Submitted field data { firstName: "...", email: "...", ... }
 
-  flowId        String
-  flow          Flow     @relation(fields: [flowId], references: [id], onDelete: Cascade) // Cascade delete submissions if flow is deleted
+  // Optional: Link to Member if one is created/found from this submission
+  memberId String? @db.Uuid
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  flowId String // Link submission to the specific flow
+  flow   Flow   @relation(fields: [flowId], references: [id], onDelete: Cascade)
 
   @@index([flowId])
   @@index([memberId])
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

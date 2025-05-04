@@ -82,6 +82,7 @@
     "passwordChanged": "Password changed successfully",
     "emailVerified": "Email verified successfully"
   },
+  "successTitle": "Success",
   "pagination": {
     "showing": "Showing {{start}} to {{end}} of {{total}} items",
     "first": "First page",

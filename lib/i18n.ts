@@ -20,6 +20,7 @@ import enReceiptScanner from '../locales/en/receiptScanner.json';
 import enCharts from '../locales/en/charts.json';
 import enNfc from '../locales/en/nfc.json';
 import enFlows from '../locales/en/flows.json';
+import enConnectForm from '../locales/en/connect-form.json';
 
 // Import all Spanish locale files
 import esCommon from '../locales/es/common.json';
@@ -38,6 +39,7 @@ import esReceiptScanner from '../locales/es/receiptScanner.json';
 import esCharts from '../locales/es/charts.json';
 import esNfc from '../locales/es/nfc.json';
 import esFlows from '../locales/es/flows.json';
+import esConnectForm from '../locales/es/connect-form.json';
 
 // Define resources structured by language and namespace
 const resources: Resource = {
@@ -57,7 +59,8 @@ const resources: Resource = {
     receiptScanner: enReceiptScanner,
     charts: enCharts,
     nfc: enNfc,
-    flows: enFlows
+    flows: enFlows,
+    'connect-form': enConnectForm
   },
   es: { 
     common: esCommon,
@@ -75,7 +78,8 @@ const resources: Resource = {
     receiptScanner: esReceiptScanner,
     charts: esCharts,
     nfc: esNfc,
-    flows: esFlows
+    flows: esFlows,
+    'connect-form': esConnectForm
   }
 };
 
@@ -106,7 +110,8 @@ i18n
       'receiptScanner',
       'charts',
       'nfc',
-      'flows'
+      'flows',
+      'connect-form'
     ],
     defaultNS: 'common',
     interpolation: {

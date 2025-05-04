@@ -82,6 +82,7 @@
     "passwordChanged": "Contraseña cambiada exitosamente",
     "emailVerified": "Correo electrónico verificado exitosamente"
   },
+  "successTitle": "Éxito",
   "pagination": {
     "showing": "Mostrando {{start}} a {{end}} de {{total}} elementos",
     "first": "Primera página",
@@ -171,7 +172,8 @@
     "STAFF": "Personal"
   },
   "searchPlaceholderMembers": "Buscar miembros...",
-  "retry": "Intentar de Nuevo"
+  "retry": "Intentar de Nuevo",
+  "saveChanges": "Guardar Cambios"
 } 
 
 

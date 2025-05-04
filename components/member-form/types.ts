@@ -47,6 +47,7 @@ export interface FormConfiguration {
   settings: {
     enablePrayerRequests: boolean
     enableReferralTracking: boolean
+    enableLifeStage: boolean
     redirectUrl?: string
     notificationEmails: string[]
   }
@@ -119,5 +120,6 @@ export const defaultMinistries: Ministry[] = [
 export const defaultSettings: FormConfiguration['settings'] = {
   enablePrayerRequests: true,
   enableReferralTracking: true,
+  enableLifeStage: false,
   notificationEmails: [],
 };

@@ -7,19 +7,22 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
-import type { FormConfiguration, ServiceTime, Ministry } from "../member-form/types"
-import { defaultServiceTimes, defaultMinistries, defaultSettings } from "../member-form/types"
+import type { FormConfiguration, ServiceTime, Ministry } from "../member-form/types" // Might need adjustment if types move
+import { defaultServiceTimes, defaultMinistries, defaultSettings } from "../member-form/types" // Might need adjustment if types move
 import { PlusCircle, Trash2, ExternalLink, Loader2, AlertCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { getFormConfiguration, saveFormConfiguration } from "@/lib/actions/settings.actions"
+// Use actions from the new file
+import { getFlowConfiguration, saveFlowConfiguration } from "@/lib/actions/flows.actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { FlowType } from "@prisma/client" // Import FlowType
 
 // Define the shape of the config state, excluding fields not directly managed here
 type ConfigState = Omit<FormConfiguration, 'churchId' | 'formVersion' | 'customFields'>;
 
-export function FormSettings() {
+export function NewMemberFlowSettings() { // Renamed component
   // State for the configuration, loading, saving, and errors
   const [config, setConfig] = useState<ConfigState | null>(null);
+  const [flowSlug, setFlowSlug] = useState<string | null>(null); // Add state for the slug
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, startSavingTransition] = useTransition();
@@ -33,18 +36,27 @@ export function FormSettings() {
   // Load 'flows' and 'common' namespaces
   const { t } = useTranslation(['flows', 'common']); 
 
-  const formUrl = typeof window !== 'undefined' ? `${window.location.origin}/connect` : '';
+  // Construct formUrl based on fetched slug or show placeholder
+  const formUrl = typeof window !== 'undefined' 
+      ? flowSlug 
+          ? `${window.location.origin}/connect/${flowSlug}` 
+          : `${window.location.origin}/connect/` // Or show placeholder/message if no slug yet
+      : '';
 
   // Fetch configuration on component mount
   useEffect(() => {
     const fetchConfig = async () => {
       setIsLoading(true);
       setError(null);
+      setFlowSlug(null); // Reset slug on fetch
       try {
-        const fetchedConfig = await getFormConfiguration();
-        setConfig(fetchedConfig);
+        const fetchedData = await getFlowConfiguration(FlowType.NEW_MEMBER);
+        // Separate config and slug
+        const { slug, ...restConfig } = fetchedData;
+        setConfig(restConfig); 
+        setFlowSlug(slug); // Set the fetched slug
       } catch (err) {
-        console.error("Failed to fetch form configuration:", err);
+        console.error("Failed to fetch NEW_MEMBER flow configuration:", err);
         setError(err instanceof Error ? err.message : "Failed to load configuration.");
         // Set defaults on fetch error so UI doesn't break
         setConfig({
@@ -52,6 +64,7 @@ export function FormSettings() {
            ministries: defaultMinistries,
            settings: defaultSettings
         });
+        setFlowSlug(null); // Ensure slug is null on error
       }
       setIsLoading(false);
     };
@@ -154,7 +167,8 @@ export function FormSettings() {
       setSaveResult(null);
       setError(null);
       try {
-        const result = await saveFormConfiguration(config);
+        // Save NEW_MEMBER flow specifically
+        const result = await saveFlowConfiguration(FlowType.NEW_MEMBER, config);
         setSaveResult(result);
         if (!result.success) {
           console.error("Failed to save configuration:", result.message);
@@ -222,11 +236,11 @@ export function FormSettings() {
           <div className="mb-6">
             <Label htmlFor="form-url">{t('flows:config.formUrlLabel', 'Form URL')}</Label>
             <div className="flex mt-1.5">
-              <Input id="form-url" value={formUrl} readOnly className="flex-1" />
-              <Button variant="outline" className="ml-2" onClick={copyToClipboard}>
+              <Input id="form-url" value={flowSlug ? formUrl : t('flows:config.urlNotGenerated', 'URL generated after first save')} readOnly className="flex-1" />
+              <Button variant="outline" className="ml-2" onClick={copyToClipboard} disabled={!flowSlug}>
                 {t('common:copy', 'Copy')}
               </Button>
-              <Button variant="outline" className="ml-2" onClick={openPreview}>
+              <Button variant="outline" className="ml-2" onClick={openPreview} disabled={!flowSlug}>
                 <ExternalLink className="h-4 w-4 mr-2" />
                 {t('common:preview', 'Preview')}
               </Button>
@@ -240,7 +254,7 @@ export function FormSettings() {
           {saveResult && (
             <Alert variant={saveResult.success ? "default" : "destructive"} className="mb-4">
                <AlertCircle className="h-4 w-4" />
-               <AlertTitle>{saveResult.success ? t('common:success', 'Success') : t('common:error', 'Error')}</AlertTitle>
+               <AlertTitle>{saveResult.success ? t('common:successTitle', 'Success') : t('common:errorTitle', 'Error')}</AlertTitle>
                <AlertDescription>
                  {saveResult.message || (saveResult.success ? t('flows:config.saveSuccess', 'Configuration saved successfully!') : t('flows:config.saveError', 'Failed to save configuration.'))}
                </AlertDescription>
@@ -362,6 +376,19 @@ export function FormSettings() {
                     onCheckedChange={() => handleToggleSetting("enableReferralTracking")}
                   />
                 </div>
+                
+                {/* Add the new Life Stage toggle here */}
+                 <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="life-stage">{t('flows:config.settings.lifeStageLabel', 'Enable Life Stage Field')}</Label>
+                    <p className="text-sm text-muted-foreground">{t('flows:config.settings.lifeStageDescription', 'Ask visitors for their life stage (e.g., Youth, Young Adult).')}</p>
+                  </div>
+                  <Switch
+                    id="life-stage"
+                    checked={config.settings.enableLifeStage}
+                    onCheckedChange={() => handleToggleSetting("enableLifeStage")}
+                  />
+                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -375,4 +402,4 @@ export function FormSettings() {
       </Card>
     </div>
   )
-}
+} 

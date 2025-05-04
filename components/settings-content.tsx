@@ -1,7 +1,7 @@
 "use client"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FormSettings } from "./settings/form-settings"
+import { NewMemberFlowSettings } from "./flows/new-member-flow-settings"
 import { useState } from "react"
 import { useTranslation } from 'react-i18next'
 // Assuming react-hot-toast is used, adjust if necessary
@@ -52,7 +52,7 @@ export function SettingsContent() {
         </div>
 
         <TabsContent value="flow-config">
-          <FormSettings /> 
+          <NewMemberFlowSettings /> 
         </TabsContent>
       </Tabs>
     </div>
