@@ -23,5 +23,6 @@
   "successCardTitle": "¡Gracias!",
   "successMessage": "Tu información ha sido recibida. ¡Nos pondremos en contacto pronto!",
   "errorMessageDefault": "Ocurrió un error. Por favor, revisa tus datos e intenta de nuevo.",
-  "validationRelationshipStatusRequired": "Por favor, selecciona tu estado de relación."
+  "validationRelationshipStatusRequired": "Por favor, selecciona tu estado de relación.",
+  "labelSmsConsent": "Envíame un mensaje de bienvenida con los horarios de servicio."
 } 

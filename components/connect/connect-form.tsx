@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { submitFlow } from '@/lib/actions/flows.actions';
@@ -53,6 +53,7 @@ const createFormSchema = (t: (key: string) => string) => z.object({
     prayerRequested: z.boolean().optional().default(false),
     // Add validation for prayerRequest if prayerRequested is true
     prayerRequest: z.string().optional(),
+    smsConsent: z.boolean().optional().default(false),
 }).refine(data => !data.prayerRequested || (data.prayerRequested && data.prayerRequest && data.prayerRequest.length > 0), {
     message: t('common:errors.required'), // Reuse common required message
     path: ["prayerRequest"], // Apply validation to prayerRequest field
@@ -69,7 +70,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
     const [showPrayerInput, setShowPrayerInput] = useState(false);
     const currentLanguage = i18n.language.split('-')[0]; // Get base language (e.g., 'en' from 'en-US')
 
-    const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({
+    const { register, handleSubmit, formState: { errors }, setValue, watch, control } = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             firstName: "",
@@ -83,6 +84,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
             referralSource: "",
             prayerRequested: false,
             prayerRequest: "",
+            smsConsent: false,
         },
     });
 
@@ -104,6 +106,8 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                      email: data.email,
                      phone: data.phone, // Now required
                      relationshipStatus: data.relationshipStatus,
+                     smsConsent: data.smsConsent,
+                     language: i18n.language,
                      // Initialize optional fields as undefined initially
                      serviceTimes: undefined as string[] | undefined,
                      interestedMinistries: undefined as string[] | undefined,
@@ -123,7 +127,10 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                      dataToSubmit.prayerRequest = data.prayerRequested ? data.prayerRequest : undefined;
                  }
 
-                // Pass the structured object
+                // Log the data being sent
+                console.log('Submitting data to backend:', dataToSubmit); 
+                
+                // Pass the structured object including language
                 const result = await submitFlow(flowId, dataToSubmit);
                 setSubmitResult(result);
 
@@ -220,12 +227,32 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                         <Label htmlFor="phone">{t('common:phone')}</Label>
                         <Input 
                             id="phone" 
-                            type="tel" // Keep type="tel" for semantics/mobile keyboards
-                            {...register("phone")} // Register handles default value and validation state
-                            onChange={handlePhoneChange} // Apply custom filtering on change
+                            type="tel" 
+                            {...register("phone")} 
+                            onChange={handlePhoneChange} 
                             placeholder={t('common:placeholders.phoneExample', '(555) 123-4567')} 
                         />
                          {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                         <Controller
+                            name="smsConsent"
+                            control={control}
+                            render={({ field }) => (
+                                <Checkbox 
+                                    id="smsConsent"
+                                    checked={field.value} 
+                                    onCheckedChange={field.onChange} 
+                                    ref={field.ref}
+                                />
+                            )}
+                        />
+                        <Label 
+                            htmlFor="smsConsent" 
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                           {t('connect-form:labelSmsConsent', 'Send me a welcome text with service times.')} 
+                        </Label>
                     </div>
                     <div className="space-y-2">
                          <Label>{t('connect-form:labelRelationshipStatus')}</Label>

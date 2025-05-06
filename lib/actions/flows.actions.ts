@@ -5,6 +5,11 @@ import { auth } from '@clerk/nextjs/server';
 import { FormConfiguration, defaultServiceTimes, defaultMinistries, defaultSettings } from "@/components/member-form/types"; // Adjust path if necessary
 import { FlowType, Prisma } from '@prisma/client'; // Import Prisma namespace for Prisma.JsonObject and FlowType
 import type { ServiceTime, Ministry, LifeStage, RelationshipStatus, MemberFormData } from '../../components/member-form/types'; // Ensure MemberFormData is imported if used
+import { i18n } from 'i18next'; // Import i18n instance if configured for backend use
+// OR manage translations directly if i18n backend setup is complex
+import enSmsMessages from '../../locales/en/sms.json'; // Assume sms.json exists
+import esSmsMessages from '../../locales/es/sms.json'; // Assume sms.json exists
+import twilio from 'twilio'; // Import twilio library
 
 // Define the specific input type expected by the submitFlow action
 // Based on the Zod schema in ConnectForm.tsx
@@ -14,6 +19,8 @@ interface SubmitFlowInput {
     email: string;
     phone: string; // Required now
     relationshipStatus: RelationshipStatus;
+    smsConsent?: boolean; // Add optional consent flag
+    language: string;    // Add language
     // Include optional fields that might be passed
     serviceTimes?: string[];
     interestedMinistries?: string[];
@@ -282,39 +289,47 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
     }
 }
 
+// Helper function to format service times (example)
+function formatServiceTimes(serviceTimes: ServiceTime[]): string {
+    const activeTimes = serviceTimes?.filter(st => st.isActive) ?? [];
+    if (activeTimes.length === 0) return "No scheduled services found."; // Or empty string
+    return activeTimes.map(st => `${st.day} at ${st.time}`).join(', ');
+}
+
+// Helper function for E.164 format (basic North America example)
+function formatE164(phone: string): string {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
+        return `+1${digits}`;
+    }
+    // Basic fallback/error handling - might need refinement for international
+    console.warn(`Could not format phone number to E.164: ${phone}`);
+    return phone; // Return original or throw error?
+}
+
 export async function submitFlow(
     flowId: string, 
-    // Use the specific input type
-    formData: SubmitFlowInput 
+    formData: SubmitFlowInput
 ): Promise<{ success: boolean; message?: string }> {
-    
-    // Basic validation can be simplified as type guarantees required fields
-    if (!formData || typeof formData !== 'object') {
-        console.error("submitFlow Error: Invalid form data object received.", formData);
-        return { success: false, message: "Invalid form data submitted." };
-    }
-     if (!flowId) {
-        return { success: false, message: "Missing flow identifier." };
-    }
-
-    // No need for basic checks on required fields like email, phone etc.
-    // as the type SubmitFlowInput enforces their presence.
+    // ... validation and churchId fetch remain the same ...
     const validatedFormData = formData; 
-
-    let churchId: string;
-    let memberId: string;
+    let churchId: string; 
+    let memberId: string = ""; // Initialize to satisfy linter
     const submissionTimestamp = new Date();
+    let flowDataForSms: { churchName: string; configJson: Prisma.JsonValue } | null = null;
 
     try {
-        // --- 2. Get Church ID from Flow ID ---
-         const flow = await prisma.flow.findUniqueOrThrow({
-             where: { id: flowId },
-             select: { churchId: true }
-         });
-         churchId = flow.churchId;
+        // Fetch Flow details (including config and church name for SMS)
+        const flow = await prisma.flow.findUniqueOrThrow({
+            where: { id: flowId },
+            select: { churchId: true, configJson: true, church: { select: { name: true } } }
+        });
+        churchId = flow.churchId;
+        // Store necessary data for potential SMS later
+        flowDataForSms = { churchName: flow.church.name, configJson: flow.configJson }; 
 
-        // --- 3. Find Existing Member --- 
-        // Accessing formData fields is now type-safe
+        // Remove Debug Log
+        // console.log(`[Debug] Attempting to find/update/create member for email: ${validatedFormData.email}`);
         const existingMember = await prisma.member.findFirst({ 
             where: { email: validatedFormData.email, churchId: churchId }, 
             select: { id: true } 
@@ -323,43 +338,121 @@ export async function submitFlow(
         // --- 4. Create or Update Member --- 
         if (existingMember) {
             // Member Found - Update
-            const updatedMember = await prisma.member.update({
-                where: { id: existingMember.id },
-                data: {
-                    firstName: validatedFormData.firstName,
-                    lastName: validatedFormData.lastName,
-                    phone: validatedFormData.phone, // Known to be string
-                    lastSubmittedConnectFormAt: submissionTimestamp,
-                },
-                select: { id: true }
-            });
-            memberId = updatedMember.id;
-            console.log(`Member ${memberId} updated successfully.`);
-
+            // Remove Debug Log
+            // console.log(`[Debug] Existing member found (ID: ${existingMember.id}). Attempting update...`);
+            try { // Keep specific try/catch for DB ops if desired, or merge into main catch
+                const updatedMember = await prisma.member.update({
+                    where: { id: existingMember.id },
+                    data: {
+                        firstName: validatedFormData.firstName,
+                        lastName: validatedFormData.lastName,
+                        phone: validatedFormData.phone, 
+                        lastSubmittedConnectFormAt: submissionTimestamp,
+                        smsConsent: validatedFormData.smsConsent ?? false 
+                    },
+                    select: { id: true }
+                });
+                // Remove Debug Logs
+                // console.log(`[Debug] Member update successful. Result:`, updatedMember); 
+                memberId = updatedMember.id;
+                // console.log(`[Debug] Assigned memberId from update: ${memberId}`); 
+            } catch (updateError) {
+                // Remove Debug Log
+                // console.error(`[Debug] Error during prisma.member.update:`, updateError);
+                throw updateError; // Re-throw
+            }
         } else {
             // Member Not Found - Create
-            const initialStatus = validatedFormData.relationshipStatus === 'regular' ? 'Regular Attendee' : 'Visitor';
-            const createdMember = await prisma.member.create({
-                data: {
-                    churchId: churchId,
-                    firstName: validatedFormData.firstName,
-                    lastName: validatedFormData.lastName,
-                    email: validatedFormData.email,
-                    phone: validatedFormData.phone, // Known to be string
-                    membershipStatus: initialStatus, 
-                    lastSubmittedConnectFormAt: submissionTimestamp,
-                },
-                select: { id: true }
-            });
-            memberId = createdMember.id;
-            console.log(`New member ${memberId} created successfully.`);
+            // Remove Debug Log
+            // console.log(`[Debug] No existing member found. Attempting create...`);
+            try { // Keep specific try/catch for DB ops if desired
+                const initialStatus = validatedFormData.relationshipStatus === 'regular' ? 'Regular Attendee' : 'Visitor';
+                const createdMember = await prisma.member.create({
+                    data: {
+                        churchId: churchId,
+                        firstName: validatedFormData.firstName,
+                        lastName: validatedFormData.lastName,
+                        email: validatedFormData.email,
+                        phone: validatedFormData.phone, 
+                        membershipStatus: initialStatus, 
+                        lastSubmittedConnectFormAt: submissionTimestamp,
+                        smsConsent: validatedFormData.smsConsent ?? false
+                    },
+                    select: { id: true }
+                });
+                // Remove Debug Logs
+                // console.log(`[Debug] Member create successful. Result:`, createdMember);
+                memberId = createdMember.id;
+                // console.log(`[Debug] Assigned memberId from create: ${memberId}`); 
+            } catch (createError) {
+                 // Remove Debug Log
+                 // console.error(`[Debug] Error during prisma.member.create:`, createError);
+                throw createError; // Re-throw
+            }
         }
 
-        // --- 5. Create Submission Record with Link to Member ---
+        // --- 5. Send Welcome SMS if Consent Given --- 
+        // Remove Debug Log
+        // console.log(`[Debug] Reached SMS block. Current memberId: ${memberId}`); 
+        if (validatedFormData.smsConsent) {
+            // Add check to ensure memberId was set (should always be true)
+             if (!memberId) {
+                 console.error("Critical Error: memberId not set before SMS attempt.");
+                 // Potentially throw or return error here if this state is reachable
+             } else {
+                 console.log(`SMS consent given for member ${memberId}. Preparing welcome SMS.`);
+                 if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+                    console.error("Twilio credentials missing in environment variables. Skipping SMS.");
+                 } else if (!flowDataForSms) {
+                     console.error("Flow data for SMS not available. Skipping SMS.");
+                 } else {
+                     try {
+                        // Initialize Twilio Client
+                        const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+                        
+                        // Format Phone Number
+                        const recipientPhoneNumber = formatE164(validatedFormData.phone);
+
+                        // Get Service Times from config
+                         let serviceTimes: ServiceTime[] = [];
+                         if (flowDataForSms.configJson && typeof flowDataForSms.configJson === 'object' && 'serviceTimes' in flowDataForSms.configJson && Array.isArray(flowDataForSms.configJson.serviceTimes)) {
+                             // Use pragmatic type assertion
+                             serviceTimes = flowDataForSms.configJson.serviceTimes as any as ServiceTime[]; 
+                         }
+                        const serviceTimesString = formatServiceTimes(serviceTimes);
+
+                        // Select Language and Message Template
+                        const lang = validatedFormData.language.startsWith('es') ? 'es' : 'en';
+                        const messages = lang === 'es' ? esSmsMessages : enSmsMessages;
+                        // Assuming key `welcomeMessage` in sms.json like: "Welcome to {{churchName}}! Services: {{serviceTimes}}"
+                        let messageBody = messages.welcomeMessage || "Welcome to {{churchName}}!"; 
+                        messageBody = messageBody.replace("{{churchName}}", flowDataForSms.churchName);
+                        messageBody = messageBody.replace("{{serviceTimes}}", serviceTimesString);
+
+                        // Send SMS
+                        console.log(`Sending SMS to ${recipientPhoneNumber}: ${messageBody}`);
+                        await twilioClient.messages.create({
+                            body: messageBody,
+                            from: process.env.TWILIO_PHONE_NUMBER,
+                            to: recipientPhoneNumber
+                        });
+                        console.log(`SMS sent successfully to ${recipientPhoneNumber}.`);
+
+                    } catch (smsError) {
+                        // Log SMS error but don't fail the whole submission
+                        console.error(`Failed to send welcome SMS to ${validatedFormData.phone} for member ${memberId}:`, smsError);
+                    }
+                 }
+            }
+        }
+        
+        // --- 6. Create Submission Record --- 
+        // Remove Debug Log
+        // console.log(`[Debug] Reached Submission create block. Current memberId: ${memberId}`); 
+        if (!memberId) throw new Error("memberId is unexpectedly missing before creating submission."); // Keep safety check
         await prisma.submission.create({
             data: {
                 flowId: flowId,
-                // Pass the full validated form data for storage
                 formDataJson: validatedFormData as unknown as Prisma.JsonObject,
                 memberId: memberId 
             },
