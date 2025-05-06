@@ -24,7 +24,7 @@ export function BankingContent() {
   const { t } = useTranslation(['banking', 'common'])
 
   return (
-    <div className="flex flex-col gap-8 pb-8 px-6 md:px-8 lg:px-10 pt-6">
+    <div className="container mx-auto py-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 mt-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('banking:bankingContent.title')}</h1>

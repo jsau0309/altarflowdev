@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { GeistSans } from 'geist/font/sans'
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import I18nClientProvider from "@/components/i18n-client-provider"
@@ -13,8 +13,6 @@ import {
 } from '@clerk/nextjs'
 
 // Removed client-side Supabase imports
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Altarflow - Church Management Platform",
@@ -35,7 +33,7 @@ export default function RootLayout({
         <head>
           {/* Comment block removed */}
         </head>
-        <body className={inter.className}>
+        <body className={GeistSans.className}>
           {/* REMOVED global simple header */}
           {/* <header style={{...}}>
             <SignedOut>...</SignedOut>

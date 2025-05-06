@@ -25,15 +25,15 @@
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
 
-    /* Sidebar variables */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 221.2 83.2% 53.3%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 221.2 83.2% 53.3%;
+    /* Add Light Sidebar variables from reference */
+    --sidebar-background: 0 0% 98%; /* Light gray */
+    --sidebar-foreground: 240 5.3% 26.1%; /* Dark gray */
+    --sidebar-primary: 240 5.9% 10%; /* Almost black */
+    --sidebar-primary-foreground: 0 0% 98%; /* Very light gray */
+    --sidebar-accent: 240 4.8% 95.9%; /* Lighter gray */
+    --sidebar-accent-foreground: 240 5.9% 10%; /* Almost black */
+    --sidebar-border: 220 13% 91%; /* Light gray */
+    --sidebar-ring: 217.2 91.2% 59.8%; /* Blue */
   }
 
   .dark {
@@ -57,15 +57,15 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
 
-    /* Sidebar variables for dark mode */
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 224.3 76.3% 48%;
+    /* Add Dark Sidebar variables from reference */
+    --sidebar-background: 240 5.9% 10%; /* Almost black */
+    --sidebar-foreground: 240 4.8% 95.9%; /* Very light gray */
+    --sidebar-primary: 224.3 76.3% 48%; /* Blue */
+    --sidebar-primary-foreground: 0 0% 100%; /* White */
+    --sidebar-accent: 240 3.7% 15.9%; /* Dark gray */
+    --sidebar-accent-foreground: 240 4.8% 95.9%; /* Very light gray */
+    --sidebar-border: 240 3.7% 15.9%; /* Dark gray */
+    --sidebar-ring: 217.2 91.2% 59.8%; /* Blue */
   }
 }
 

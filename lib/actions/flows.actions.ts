@@ -6,6 +6,23 @@ import { FormConfiguration, defaultServiceTimes, defaultMinistries, defaultSetti
 import { FlowType, Prisma } from '@prisma/client'; // Import Prisma namespace for Prisma.JsonObject and FlowType
 import type { ServiceTime, Ministry, LifeStage, RelationshipStatus, MemberFormData } from '../../components/member-form/types'; // Ensure MemberFormData is imported if used
 
+// Define the specific input type expected by the submitFlow action
+// Based on the Zod schema in ConnectForm.tsx
+interface SubmitFlowInput {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string; // Required now
+    relationshipStatus: RelationshipStatus;
+    // Include optional fields that might be passed
+    serviceTimes?: string[];
+    interestedMinistries?: string[];
+    lifeStage?: LifeStage;
+    referralSource?: string;
+    prayerRequested?: boolean;
+    prayerRequest?: string;
+}
+
 /**
  * Fetches the configuration for a specific flow type 
  * associated with the active organization.
@@ -265,37 +282,28 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
     }
 }
 
-// Use MemberFormData for stricter typing if applicable, or keep as any/Partial<FormData>
-// Type for data structure within the action
-interface SubmissionData extends Partial<FormData> { 
-     firstName: string;
-     lastName: string;
-     email: string;
-     phone?: string; // Add optional phone field
-     relationshipStatus: RelationshipStatus; 
-}
-
 export async function submitFlow(
     flowId: string, 
-    formData: SubmissionData // Use a more specific type if possible
+    // Use the specific input type
+    formData: SubmitFlowInput 
 ): Promise<{ success: boolean; message?: string }> {
     
-    // --- 1. Validation (Placeholder - Zod validation happens before calling usually) ---
-    // Assuming formData is already validated by Zod resolver on client, 
-    // but adding basic checks here for safety.
-    if (!formData || typeof formData !== 'object' || !formData.email || !formData.firstName || !formData.lastName || !formData.relationshipStatus) {
-        console.error("submitFlow Error: Invalid or incomplete form data received.", formData);
+    // Basic validation can be simplified as type guarantees required fields
+    if (!formData || typeof formData !== 'object') {
+        console.error("submitFlow Error: Invalid form data object received.", formData);
         return { success: false, message: "Invalid form data submitted." };
     }
-    if (!flowId) {
+     if (!flowId) {
         return { success: false, message: "Missing flow identifier." };
     }
-    // Use validated data directly
+
+    // No need for basic checks on required fields like email, phone etc.
+    // as the type SubmitFlowInput enforces their presence.
     const validatedFormData = formData; 
 
     let churchId: string;
     let memberId: string;
-    const submissionTimestamp = new Date(); // Use consistent timestamp
+    const submissionTimestamp = new Date();
 
     try {
         // --- 2. Get Church ID from Flow ID ---
@@ -306,30 +314,22 @@ export async function submitFlow(
          churchId = flow.churchId;
 
         // --- 3. Find Existing Member --- 
-        console.log(`Searching for member with email ${validatedFormData.email} in church ${churchId}`);
-        const existingMember = await prisma.member.findFirst({
-            where: { 
-                // Use lowercased email for case-insensitive comparison if desired & schema allows
-                // email: validatedFormData.email.toLowerCase(), 
-                email: validatedFormData.email,
-                churchId: churchId 
-            },
-            select: { id: true } // Only need the ID
+        // Accessing formData fields is now type-safe
+        const existingMember = await prisma.member.findFirst({ 
+            where: { email: validatedFormData.email, churchId: churchId }, 
+            select: { id: true } 
         });
 
         // --- 4. Create or Update Member --- 
         if (existingMember) {
             // Member Found - Update
-            console.log(`Found existing member (ID: ${existingMember.id}). Updating...`);
             const updatedMember = await prisma.member.update({
                 where: { id: existingMember.id },
                 data: {
-                    // Overwrite specific fields based on Plan (Option A)
                     firstName: validatedFormData.firstName,
                     lastName: validatedFormData.lastName,
-                    phone: validatedFormData.phone || null, // Use null if phone is empty/undefined
+                    phone: validatedFormData.phone, // Known to be string
                     lastSubmittedConnectFormAt: submissionTimestamp,
-                     // Do NOT update membershipStatus based on submission
                 },
                 select: { id: true }
             });
@@ -338,22 +338,16 @@ export async function submitFlow(
 
         } else {
             // Member Not Found - Create
-            console.log(`No existing member found for email ${validatedFormData.email}. Creating new member...`);
-            // Map form status to DB status - adjust strings as needed for your Member model
             const initialStatus = validatedFormData.relationshipStatus === 'regular' ? 'Regular Attendee' : 'Visitor';
-            
             const createdMember = await prisma.member.create({
                 data: {
                     churchId: churchId,
                     firstName: validatedFormData.firstName,
                     lastName: validatedFormData.lastName,
-                    email: validatedFormData.email, // Store original case or lowercase?
-                    phone: validatedFormData.phone || null,
+                    email: validatedFormData.email,
+                    phone: validatedFormData.phone, // Known to be string
                     membershipStatus: initialStatus, 
                     lastSubmittedConnectFormAt: submissionTimestamp,
-                    // Ensure all other non-nullable Member fields have defaults or are handled
-                    // language: ??? // Need a default or pass from form?
-                    // smsConsent: false, // Default likely set in schema?
                 },
                 select: { id: true }
             });
@@ -365,8 +359,9 @@ export async function submitFlow(
         await prisma.submission.create({
             data: {
                 flowId: flowId,
+                // Pass the full validated form data for storage
                 formDataJson: validatedFormData as unknown as Prisma.JsonObject,
-                memberId: memberId // Link to the created/updated member
+                memberId: memberId 
             },
         });
 

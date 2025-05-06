@@ -36,8 +36,8 @@ export function SettingsContent() {
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
-        {/* Use explicit namespace prefix and add default value */}
-        <h1 className="text-3xl font-bold">{t('flows:title', 'Flows')}</h1> 
+        {/* Add mb-2 to the h1 */}
+        <h1 className="text-3xl font-bold mb-2">{t('flows:title', 'Flows')}</h1> 
         <p className="text-muted-foreground">{t('flows:subtitle', 'Configure and manage your church forms and flows.')}</p>
       </div>
 

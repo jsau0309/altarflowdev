@@ -42,7 +42,9 @@ const createFormSchema = (t: (key: string) => string) => z.object({
     firstName: z.string().min(1, { message: t('common:errors.required') }),
     lastName: z.string().min(1, { message: t('common:errors.required') }),
     email: z.string().email({ message: t('common:errors.invalidEmail') }),
-    phone: z.string().optional(), 
+    phone: z.string()
+             .transform(val => val.replace(/\D/g, '')) // Remove non-digit characters
+             .pipe(z.string().length(10, { message: t('common:errors.invalidPhoneDigits') })), // Check for exactly 10 digits
     relationshipStatus: z.enum(["visitor", "regular"], { message: t('connect-form:validationRelationshipStatusRequired') }),
     serviceTimes: z.array(z.string()).optional(),
     interestedMinistries: z.array(z.string()).optional(),
@@ -67,7 +69,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
     const [showPrayerInput, setShowPrayerInput] = useState(false);
     const currentLanguage = i18n.language.split('-')[0]; // Get base language (e.g., 'en' from 'en-US')
 
-    const form = useForm<FormData>({
+    const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             firstName: "",
@@ -94,15 +96,24 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
         setSubmitResult(null);
         startSubmitTransition(async () => {
             try {
-                 // Prepare data for submission - include conditional fields only if enabled
-                 const dataToSubmit: Partial<FormData> = {
+                 // Prepare data for submission.
+                 // Type inference from 'data: FormData' is sufficient.
+                 const dataToSubmit = {
                      firstName: data.firstName,
                      lastName: data.lastName,
                      email: data.email,
-                     phone: data.phone,
+                     phone: data.phone, // Now required
                      relationshipStatus: data.relationshipStatus,
+                     // Initialize optional fields as undefined initially
+                     serviceTimes: undefined as string[] | undefined,
+                     interestedMinistries: undefined as string[] | undefined,
+                     lifeStage: undefined as LifeStage | undefined,
+                     referralSource: undefined as string | undefined,
+                     prayerRequested: undefined as boolean | undefined,
+                     prayerRequest: undefined as string | undefined,
                  };
 
+                 // Add optional fields conditionally
                  if (activeServiceTimes.length > 0) dataToSubmit.serviceTimes = data.serviceTimes;
                  if (activeMinistries.length > 0) dataToSubmit.interestedMinistries = data.interestedMinistries;
                  if (settings.enableLifeStage) dataToSubmit.lifeStage = data.lifeStage;
@@ -112,6 +123,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                      dataToSubmit.prayerRequest = data.prayerRequested ? data.prayerRequest : undefined;
                  }
 
+                // Pass the structured object
                 const result = await submitFlow(flowId, dataToSubmit);
                 setSubmitResult(result);
 
@@ -132,6 +144,14 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
             i18n.changeLanguage(lang);
             // Optional: Force re-render if needed, though i18next usually handles it
         }
+    };
+
+    // --- Phone Input Filtering Logic ---
+    const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = event.target.value;
+        const digitsOnly = rawValue.replace(/\D/g, ''); // Remove non-digits
+        const truncatedValue = digitsOnly.slice(0, 10); // Limit to 10 digits
+        setValue('phone', truncatedValue, { shouldValidate: true }); // Update form state and trigger validation
     };
 
     // If submission was successful, show message and hide form
@@ -176,36 +196,42 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                 <CardTitle>{t('connect-form:title', { churchName: churchName })}</CardTitle>
                 <CardDescription>{t('connect-form:description')}</CardDescription>
             </CardHeader>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={handleSubmit(onSubmit)}>
                 <CardContent className="space-y-6">
                     {/* --- Standard Fields --- */} 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="firstName">{t('connect-form:labelFirstName')}</Label>
-                            <Input id="firstName" {...form.register("firstName")} />
-                            {form.formState.errors.firstName && <p className="text-sm text-destructive">{form.formState.errors.firstName.message}</p>}
+                            <Input id="firstName" {...register("firstName")} />
+                            {errors.firstName && <p className="text-sm text-destructive">{errors.firstName.message}</p>}
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="lastName">{t('connect-form:labelLastName')}</Label>
-                            <Input id="lastName" {...form.register("lastName")} />
-                            {form.formState.errors.lastName && <p className="text-sm text-destructive">{form.formState.errors.lastName.message}</p>}
+                            <Input id="lastName" {...register("lastName")} />
+                            {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">{t('common:email')}</Label>
-                        <Input id="email" type="email" {...form.register("email")} />
-                         {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
+                        <Input id="email" type="email" {...register("email")} />
+                         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="phone">{t('common:phone')} ({t('common:optional')})</Label>
-                        <Input id="phone" type="tel" {...form.register("phone")} />
-                         {form.formState.errors.phone && <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>}
+                        <Label htmlFor="phone">{t('common:phone')}</Label>
+                        <Input 
+                            id="phone" 
+                            type="tel" // Keep type="tel" for semantics/mobile keyboards
+                            {...register("phone")} // Register handles default value and validation state
+                            onChange={handlePhoneChange} // Apply custom filtering on change
+                            placeholder={t('common:placeholders.phoneExample', '(555) 123-4567')} 
+                        />
+                         {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
                     </div>
                     <div className="space-y-2">
                          <Label>{t('connect-form:labelRelationshipStatus')}</Label>
                         <RadioGroup 
-                            onValueChange={(value) => form.setValue("relationshipStatus", value as RelationshipStatus)}
-                            defaultValue={form.watch("relationshipStatus")}
+                            onValueChange={(value) => setValue("relationshipStatus", value as RelationshipStatus)}
+                            defaultValue={watch("relationshipStatus")}
                             className="flex space-x-4"
                          >
                             <div className="flex items-center space-x-2">
@@ -217,7 +243,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                                 <Label htmlFor="regular">{t('connect-form:optionRegular')}</Label>
                             </div>
                         </RadioGroup>
-                         {form.formState.errors.relationshipStatus && <p className="text-sm text-destructive">{form.formState.errors.relationshipStatus.message}</p>}
+                         {errors.relationshipStatus && <p className="text-sm text-destructive">{errors.relationshipStatus.message}</p>}
                     </div>
 
                      {/* --- Conditional Fields --- */}
@@ -232,11 +258,11 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                                         id={`service-${st.id}`}
                                         value={st.id}
                                         onCheckedChange={(checked) => {
-                                            const currentSelection = form.getValues("serviceTimes") || [];
+                                            const currentSelection = watch("serviceTimes") || [];
                                             const newSelection = checked
                                                 ? [...currentSelection, st.id]
                                                 : currentSelection.filter(id => id !== st.id);
-                                            form.setValue("serviceTimes", newSelection);
+                                            setValue("serviceTimes", newSelection);
                                         }}
                                     />
                                     <Label htmlFor={`service-${st.id}`}>{st.day} {st.time}</Label>
@@ -256,11 +282,11 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                                          id={`ministry-${m.id}`}
                                          value={m.id}
                                         onCheckedChange={(checked) => {
-                                            const currentSelection = form.getValues("interestedMinistries") || [];
+                                            const currentSelection = watch("interestedMinistries") || [];
                                             const newSelection = checked
                                                 ? [...currentSelection, m.id]
                                                 : currentSelection.filter(id => id !== m.id);
-                                            form.setValue("interestedMinistries", newSelection);
+                                            setValue("interestedMinistries", newSelection);
                                         }}
                                      />
                                     <Label htmlFor={`ministry-${m.id}`}>{m.name}</Label>
@@ -275,8 +301,8 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                         <div className="space-y-2">
                             <Label>{t('connect-form:labelLifeStage')}</Label>
                              <RadioGroup 
-                                onValueChange={(value) => form.setValue("lifeStage", value as LifeStage)}
-                                defaultValue={form.watch("lifeStage")}
+                                onValueChange={(value) => setValue("lifeStage", value as LifeStage)}
+                                defaultValue={watch("lifeStage")}
                                 className="grid grid-cols-2 gap-2"
                              >
                                  {(["teens", "20s", "30s", "40s", "50s", "60s", "70plus"] as LifeStage[]).map(stage => (
@@ -288,7 +314,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                                     </div>
                                  ))}
                              </RadioGroup>
-                             {form.formState.errors.lifeStage && <p className="text-sm text-destructive">{form.formState.errors.lifeStage.message}</p>}
+                             {errors.lifeStage && <p className="text-sm text-destructive">{errors.lifeStage.message}</p>}
                         </div>
                     )}
                     
@@ -296,8 +322,8 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                     {settings.enableReferralTracking && (
                         <div className="space-y-2">
                             <Label htmlFor="referralSource">{t('connect-form:labelReferralSource')}</Label>
-                            <Input id="referralSource" {...form.register("referralSource")} />
-                             {form.formState.errors.referralSource && <p className="text-sm text-destructive">{form.formState.errors.referralSource.message}</p>}
+                            <Input id="referralSource" {...register("referralSource")} />
+                             {errors.referralSource && <p className="text-sm text-destructive">{errors.referralSource.message}</p>}
                         </div>
                     )}
 
@@ -307,13 +333,13 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                             <div className="flex items-center space-x-2">
                                 <Checkbox 
                                     id="prayerRequested"
-                                    checked={form.watch("prayerRequested")} 
+                                    checked={watch("prayerRequested")} 
                                     onCheckedChange={(checked) => {
                                         const isChecked = !!checked;
-                                         form.setValue("prayerRequested", isChecked);
+                                         setValue("prayerRequested", isChecked);
                                          setShowPrayerInput(isChecked);
                                          if (!isChecked) {
-                                             form.setValue("prayerRequest", ""); // Clear text if unchecked
+                                             setValue("prayerRequest", ""); // Clear text if unchecked
                                          }
                                     }}
                                 />
@@ -324,7 +350,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                                     <Label htmlFor="prayerRequest">{t('connect-form:labelPrayerRequest')}</Label>
                                     <Textarea 
                                         id="prayerRequest"
-                                         {...form.register("prayerRequest")} 
+                                         {...register("prayerRequest")} 
                                          placeholder={t('connect-form:placeholderPrayer')} 
                                      />
                                      {/* Add error display if needed */}

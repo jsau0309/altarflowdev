@@ -351,470 +351,474 @@ export function DonationsContent() {
   }
 
   return (
-    <TooltipProvider>
-      <div className="flex flex-col gap-8 p-4 md:p-8">
-        <div className="flex flex-col gap-2">
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('donations:title', 'Donation Management')}</h1>
           <p className="text-muted-foreground">{t('donations:donationsContent.subtitle', 'Track and manage your church donations')}</p>
         </div>
+        <Button onClick={() => handleNewDonationClick()} className="gap-2">
+          <Plus className="h-4 w-4" />
+          {t('donations:newDonation', 'New Donation')}
+        </Button>
+      </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all-donations">{t('donations:donationsContent.tabs.allDonations', 'All Donations')}</TabsTrigger>
-            <TabsTrigger value="campaigns">{t('donations:campaigns', 'Campaigns')}</TabsTrigger>
-            <TabsTrigger value="donors">{t('donations:donor', 'Donors')}</TabsTrigger>
-          </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="all-donations">{t('donations:donationsContent.tabs.allDonations', 'All Donations')}</TabsTrigger>
+          <TabsTrigger value="campaigns">{t('donations:campaigns', 'Campaigns')}</TabsTrigger>
+          <TabsTrigger value="donors">{t('donations:donor', 'Donors')}</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="all-donations">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-              <div className="p-6 flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    {t('donations:donationsContent.tabs.allDonations', 'All Donations')}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">{t('donations:donationsContent.allDonations.subtitle', 'View, search, and filter all donations')}</p>
-                </div>
-                <Button onClick={() => handleNewDonationClick()} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  {t('donations:newDonation', 'New Donation')}
-                </Button>
+        <TabsContent value="all-donations">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="p-6 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  {t('donations:donationsContent.tabs.allDonations', 'All Donations')}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">{t('donations:donationsContent.allDonations.subtitle', 'View, search, and filter all donations')}</p>
               </div>
-
-              <div className="p-4">
-                <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                  <div className="relative w-full sm:flex-grow">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder={t('donations:donationsContent.allDonations.searchPlaceholder', 'Search donations (donor, campaign, amount...)')}
-                      className="w-full rounded-md pl-8"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full sm:w-auto gap-2">
-                        <Filter className="h-4 w-4" />
-                        {t('common:filter', 'Filter')}
-                        {getActiveFilterCount() > 0 && (
-                          <Badge variant="secondary" className="ml-2 rounded-full px-1.5">
-                            {getActiveFilterCount()}
-                          </Badge>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-4" align="end">
-                      <div className="space-y-4">
-                        <h4 className="font-medium">{t('donations:donationsContent.filter.title', 'Filter Donations')}</h4>
-
-                        <div className="space-y-1">
-                          <Label>{t('donations:dateRange', 'Date Range')}</Label>
-                          <Input type="text" placeholder={t('donations:startDate', 'Start Date')} />
-                          <Input type="text" placeholder={t('donations:endDate', 'End Date')} />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>{t('donations:type', 'Donation Type')}</Label>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="traditional"
-                              checked={selectedDonationTypes.includes("traditional")}
-                              onCheckedChange={() => handleDonationTypeFilterChange("traditional")}
-                            />
-                            <Label htmlFor="traditional">{t('common:traditional', 'Traditional')}</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="digital"
-                              checked={selectedDonationTypes.includes("digital")}
-                              onCheckedChange={() => handleDonationTypeFilterChange("digital")}
-                            />
-                            <Label htmlFor="digital">{t('common:digital', 'Digital')}</Label>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>{t('donations:campaign', 'Campaign')}</Label>
-                          <ScrollArea className="h-[150px]">
-                            {campaigns.map((campaign) => (
-                              <div key={campaign.id} className="flex items-center space-x-2 p-1">
-                                <Checkbox
-                                  id={`campaign-${campaign.id}`}
-                                  checked={selectedCampaigns.includes(campaign.id)}
-                                  onCheckedChange={() => handleCampaignFilterChange(campaign.id)}
-                                />
-                                <Label htmlFor={`campaign-${campaign.id}`}>{campaign.name}</Label>
-                              </div>
-                            ))}
-                          </ScrollArea>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>{t('donations:method', 'Payment Method')}</Label>
-                          <ScrollArea className="h-[100px]">
-                            {[
-                              { value: "cash", label: t('donations:methods.cash', 'Cash') },
-                              { value: "check", label: t('donations:methods.check', 'Check') },
-                              { value: "credit-card", label: t('donations:methods.card', 'Credit Card') },
-                              { value: "bank-transfer", label: t('donations:methods.bankTransfer', 'Bank Transfer') },
-                            ].map((method) => (
-                              <div key={method.value} className="flex items-center space-x-2 p-1">
-                                <Checkbox
-                                  id={`method-${method.value}`}
-                                  checked={selectedDonationMethods.includes(method.value)}
-                                  onCheckedChange={() => handleDonationMethodFilterChange(method.value)}
-                                />
-                                <Label htmlFor={`method-${method.value}`}>{method.label}</Label>
-                              </div>
-                            ))}
-                          </ScrollArea>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>{t('donations:donor', 'Donor')}</Label>
-                          <ScrollArea className="h-[150px]">
-                            {members.map((member) => (
-                              <div key={member.id} className="flex items-center space-x-2 p-1">
-                                <Checkbox
-                                  id={`donor-${member.id}`}
-                                  checked={selectedDonors.includes(member.id)}
-                                  onCheckedChange={() => handleDonorFilterChange(member.id)}
-                                />
-                                <Label htmlFor={`donor-${member.id}`}>
-                                  {member.firstName} {member.lastName}
-                                </Label>
-                              </div>
-                            ))}
-                          </ScrollArea>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                {renderFilterBadges()}
-
-                {isLoading ? (
-                  <div className="space-y-3">
-                    {[...Array(itemsPerPage)].map((_, i) => (
-                      <div key={i} className="h-10 bg-muted animate-pulse rounded-md"></div>
-                    ))}
-                  </div>
-                ) : currentDonations.length > 0 ? (
-                  <>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('donations:date', 'Date')}</TableHead>
-                          <TableHead>{t('donations:donor', 'Donor')}</TableHead>
-                          <TableHead>{t('donations:campaign', 'Campaign')}</TableHead>
-                          <TableHead>{t('donations:method', 'Method')}</TableHead>
-                          <TableHead>{t('donations:type', 'Type')}</TableHead>
-                          <TableHead className="text-right">{t('donations:amount', 'Amount')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {currentDonations.map((donation) => (
-                          <TableRow
-                            key={donation.id}
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => handleViewDonationDetails(donation.id)}
-                          >
-                            <TableCell>{format(parseISO(donation.date), "PP")}</TableCell>
-                            <TableCell>{getDonorName(donation.donorId)}</TableCell>
-                            <TableCell>{getCampaignName(donation.campaignId)}</TableCell>
-                            <TableCell className="capitalize">{donation.paymentMethod.replace("-", " ")}</TableCell>
-                            <TableCell>
-                              <Badge variant={donation.isDigital ? "secondary" : "outline"}>
-                                {donation.isDigital ? t('common:digital', 'Digital') : t('common:traditional', 'Traditional')}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              ${donation.amount.toLocaleString()}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <div className="mt-4">
-                      <TablePagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                        itemsPerPage={itemsPerPage}
-                        onItemsPerPageChange={(value) => {
-                          setItemsPerPage(value)
-                          setCurrentPage(1)
-                        }}
-                        totalItems={totalItems}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
-                    <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-                      <h3 className="mt-4 text-lg font-semibold">{t('donations:donationsContent.empty.title', 'No donations found')}</h3>
-                      <p className="mb-4 mt-2 text-sm text-muted-foreground">
-                        {searchTerm || getActiveFilterCount() > 0
-                          ? t('donations:donationsContent.empty.adjustFilters', 'Try adjusting your search or filters.')
-                          : t('donations:donationsContent.empty.addFirst', 'Add your first donation to get started.')}
-                      </p>
-                      <Button onClick={() => handleNewDonationClick()}>{t('donations:newDonation', 'Add New Donation')}</Button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <Button onClick={() => handleNewDonationClick()} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {t('donations:newDonation', 'New Donation')}
+              </Button>
             </div>
-          </TabsContent>
 
-          <TabsContent value="campaigns">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-              <div className="p-6 flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    {t('donations:campaigns', 'Campaigns')}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">{t('campaigns:campaignsContent.subtitle', 'Manage your donation campaigns')}</p>
-                </div>
-                <Button onClick={() => setShowCampaignModal(true)} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  {t('campaigns:newCampaign', 'New Campaign')}
-                </Button>
-              </div>
-              <div className="p-4">
-                <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                  <div className="relative w-full sm:flex-grow">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder={t('campaigns:campaignsContent.searchPlaceholder', 'Search campaigns...')}
-                      className="w-full rounded-md pl-8"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  <Select value={campaignFilter} onValueChange={(value) => setCampaignFilter(value as any)}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder={t('campaigns:campaignsContent.filterPlaceholder', 'Filter by status')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('campaigns:campaignsContent.filter.all', 'All Campaigns')}</SelectItem>
-                      <SelectItem value="active">{t('campaigns:statuses.active', 'Active Campaigns')}</SelectItem>
-                      <SelectItem value="inactive">{t('campaigns:campaignsContent.filter.inactive', 'Inactive Campaigns')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {isLoading ? (
-                  <div className="space-y-3">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="h-10 bg-muted animate-pulse rounded-md"></div>
-                    ))}
-                  </div>
-                ) : filteredCampaigns.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('campaigns:name', 'Name')}</TableHead>
-                        <TableHead>{t('common:goal', 'Goal')}</TableHead>
-                        <TableHead>{t('common:raised', 'Raised')}</TableHead>
-                        <TableHead>{t('campaigns:startDate', 'Start Date')}</TableHead>
-                        <TableHead>{t('campaigns:endDate', 'End Date')}</TableHead>
-                        <TableHead>{t('campaigns:status', 'Status')}</TableHead>
-                        <TableHead className="text-right">{t('common:actions', 'Actions')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredCampaigns.map((campaign) => (
-                        <TableRow key={campaign.id}>
-                          <TableCell className="font-medium">{campaign.name}</TableCell>
-                          <TableCell>${campaign.goal.toLocaleString()}</TableCell>
-                          <TableCell>${campaign.raised.toLocaleString()}</TableCell>
-                          <TableCell>{format(parseISO(campaign.startDate), "PP")}</TableCell>
-                          <TableCell>{campaign.endDate ? format(parseISO(campaign.endDate), "PP") : t('common:ongoing', 'Ongoing')}</TableCell>
-                          <TableCell>
-                            <Badge variant={campaign.isActive ? "default" : "secondary"}>
-                              {campaign.isActive ? t('campaigns:statuses.active', 'Active') : t('campaigns:statuses.inactive', 'Inactive')} 
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => handleEditCampaign(campaign.id)}>
-                              {t('common:edit', 'Edit')}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleToggleCampaignStatus(campaign.id, campaign.isActive)}
-                              className="ml-2"
-                            >
-                              {campaign.isActive ? t('common:deactivate', 'Deactivate') : t('common:activate', 'Activate')}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
-                    <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-                      <h3 className="mt-4 text-lg font-semibold">{t('campaigns:campaignsContent.empty.title', 'No campaigns found')}</h3>
-                      <p className="mb-4 mt-2 text-sm text-muted-foreground">
-                        {searchTerm || campaignFilter !== "all"
-                          ? t('campaigns:campaignsContent.empty.adjustFilters', 'Try adjusting your search or filters.')
-                          : t('campaigns:campaignsContent.empty.addFirst', 'Add your first campaign to get started.')}
-                      </p>
-                      <Button onClick={() => setShowCampaignModal(true)}>{t('campaigns:newCampaign', 'Add New Campaign')}</Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="donors">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-              <div className="p-6 flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    {t('donations:donor', 'Donors')}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">{t('donations:donorsContent.subtitle', 'Manage your donors')}</p>
-                </div>
-                <Button onClick={handleAddDonorClick} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  {t('donations:donorsContent.addDonorButton', 'Add Donor')}
-                </Button>
-              </div>
-              <div className="p-4">
-                <div className="relative w-full max-w-sm mb-4">
+            <div className="p-4">
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                <div className="relative w-full sm:flex-grow">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder={t('donations:donorsContent.searchPlaceholder', 'Search donors (name, email, phone)...')}
+                    placeholder={t('donations:donationsContent.allDonations.searchPlaceholder', 'Search donations (donor, campaign, amount...)')}
                     className="w-full rounded-md pl-8"
-                    value={donorSearchTerm}
-                    onChange={(e) => setDonorSearchTerm(e.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-auto gap-2">
+                      <Filter className="h-4 w-4" />
+                      {t('common:filter', 'Filter')}
+                      {getActiveFilterCount() > 0 && (
+                        <Badge variant="secondary" className="ml-2 rounded-full px-1.5">
+                          {getActiveFilterCount()}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-4" align="end">
+                    <div className="space-y-4">
+                      <h4 className="font-medium">{t('donations:donationsContent.filter.title', 'Filter Donations')}</h4>
 
-                {isLoading ? (
-                  <div className="space-y-3">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="h-10 bg-muted animate-pulse rounded-md"></div>
-                    ))}
-                  </div>
-                ) : filteredDonors.length > 0 ? (
+                      <div className="space-y-1">
+                        <Label>{t('donations:dateRange', 'Date Range')}</Label>
+                        <Input type="text" placeholder={t('donations:startDate', 'Start Date')} />
+                        <Input type="text" placeholder={t('donations:endDate', 'End Date')} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>{t('donations:type', 'Donation Type')}</Label>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="traditional"
+                            checked={selectedDonationTypes.includes("traditional")}
+                            onCheckedChange={() => handleDonationTypeFilterChange("traditional")}
+                          />
+                          <Label htmlFor="traditional">{t('common:traditional', 'Traditional')}</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="digital"
+                            checked={selectedDonationTypes.includes("digital")}
+                            onCheckedChange={() => handleDonationTypeFilterChange("digital")}
+                          />
+                          <Label htmlFor="digital">{t('common:digital', 'Digital')}</Label>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>{t('donations:campaign', 'Campaign')}</Label>
+                        <ScrollArea className="h-[150px]">
+                          {campaigns.map((campaign) => (
+                            <div key={campaign.id} className="flex items-center space-x-2 p-1">
+                              <Checkbox
+                                id={`campaign-${campaign.id}`}
+                                checked={selectedCampaigns.includes(campaign.id)}
+                                onCheckedChange={() => handleCampaignFilterChange(campaign.id)}
+                              />
+                              <Label htmlFor={`campaign-${campaign.id}`}>{campaign.name}</Label>
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>{t('donations:method', 'Payment Method')}</Label>
+                        <ScrollArea className="h-[100px]">
+                          {[
+                            { value: "cash", label: t('donations:methods.cash', 'Cash') },
+                            { value: "check", label: t('donations:methods.check', 'Check') },
+                            { value: "credit-card", label: t('donations:methods.card', 'Credit Card') },
+                            { value: "bank-transfer", label: t('donations:methods.bankTransfer', 'Bank Transfer') },
+                          ].map((method) => (
+                            <div key={method.value} className="flex items-center space-x-2 p-1">
+                              <Checkbox
+                                id={`method-${method.value}`}
+                                checked={selectedDonationMethods.includes(method.value)}
+                                onCheckedChange={() => handleDonationMethodFilterChange(method.value)}
+                              />
+                              <Label htmlFor={`method-${method.value}`}>{method.label}</Label>
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>{t('donations:donor', 'Donor')}</Label>
+                        <ScrollArea className="h-[150px]">
+                          {members.map((member) => (
+                            <div key={member.id} className="flex items-center space-x-2 p-1">
+                              <Checkbox
+                                id={`donor-${member.id}`}
+                                checked={selectedDonors.includes(member.id)}
+                                onCheckedChange={() => handleDonorFilterChange(member.id)}
+                              />
+                              <Label htmlFor={`donor-${member.id}`}>
+                                {member.firstName} {member.lastName}
+                              </Label>
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {renderFilterBadges()}
+
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[...Array(itemsPerPage)].map((_, i) => (
+                    <div key={i} className="h-10 bg-muted animate-pulse rounded-md"></div>
+                  ))}
+                </div>
+              ) : currentDonations.length > 0 ? (
+                <>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t('members:firstName', 'Name')}</TableHead>
-                        <TableHead>{t('members:email', 'Email')}</TableHead>
-                        <TableHead>{t('members:phone', 'Phone')}</TableHead>
-                        <TableHead>{t('common:joined', 'Joined')}</TableHead>
-                        <TableHead className="text-right">{t('common:actions', 'Actions')}</TableHead>
+                        <TableHead>{t('donations:date', 'Date')}</TableHead>
+                        <TableHead>{t('donations:donor', 'Donor')}</TableHead>
+                        <TableHead>{t('donations:campaign', 'Campaign')}</TableHead>
+                        <TableHead>{t('donations:method', 'Method')}</TableHead>
+                        <TableHead>{t('donations:type', 'Type')}</TableHead>
+                        <TableHead className="text-right">{t('donations:amount', 'Amount')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredDonors.map((member) => (
+                      {currentDonations.map((donation) => (
                         <TableRow
-                          key={member.id}
+                          key={donation.id}
                           className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleViewDonorDetails(member.id)}
+                          onClick={() => handleViewDonationDetails(donation.id)}
                         >
-                          <TableCell className="font-medium">
-                            {member.firstName} {member.lastName}
-                          </TableCell>
+                          <TableCell>{format(parseISO(donation.date), "PP")}</TableCell>
+                          <TableCell>{getDonorName(donation.donorId)}</TableCell>
+                          <TableCell>{getCampaignName(donation.campaignId)}</TableCell>
+                          <TableCell className="capitalize">{donation.paymentMethod.replace("-", " ")}</TableCell>
                           <TableCell>
-                            {member.email ? (
-                              <a
-                                href={`mailto:${member.email}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-blue-600 hover:underline flex items-center gap-1"
-                              >
-                                <Mail className="h-3 w-3" /> {member.email}
-                              </a>
-                            ) : (
-                              "-"
-                            )}
+                            <Badge variant={donation.isDigital ? "secondary" : "outline"}>
+                              {donation.isDigital ? t('common:digital', 'Digital') : t('common:traditional', 'Traditional')}
+                            </Badge>
                           </TableCell>
-                          <TableCell>
-                            {member.phone ? (
-                              <a
-                                href={`tel:${member.phone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-blue-600 hover:underline flex items-center gap-1"
-                              >
-                                <Phone className="h-3 w-3" /> {member.phone}
-                              </a>
-                            ) : (
-                              "-"
-                            )}
-                          </TableCell>
-                          <TableCell>{member.joinDate ? format(parseISO(member.joinDate), "PP") : "-"}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedDonorId(member.id);
-                              setShowEditDonorModal(true);
-                            }}>
-                              {t('common:edit', 'Edit')}
-                            </Button>
+                          <TableCell className="text-right font-medium">
+                            ${donation.amount.toLocaleString()}
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                ) : (
-                  <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
-                    <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-                      <h3 className="mt-4 text-lg font-semibold">{t('donations:donorsContent.empty.title', 'No donors found')}</h3>
-                      <p className="mb-4 mt-2 text-sm text-muted-foreground">
-                        {donorSearchTerm
-                          ? t('donations:donorsContent.empty.adjustFilters', 'Try adjusting your search.')
-                          : t('donations:donorsContent.empty.addFirst', 'Add your first donor to get started.')}
-                      </p>
-                      <Button onClick={handleAddDonorClick}>{t('donations:donorsContent.addDonorButton', 'Add Donor')}</Button>
-                    </div>
+                  <div className="mt-4">
+                    <TablePagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      itemsPerPage={itemsPerPage}
+                      onItemsPerPageChange={(value) => {
+                        setItemsPerPage(value)
+                        setCurrentPage(1)
+                      }}
+                      totalItems={totalItems}
+                    />
                   </div>
-                )}
-              </div>
+                </>
+              ) : (
+                <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
+                  <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
+                    <h3 className="mt-4 text-lg font-semibold">{t('donations:donationsContent.empty.title', 'No donations found')}</h3>
+                    <p className="mb-4 mt-2 text-sm text-muted-foreground">
+                      {searchTerm || getActiveFilterCount() > 0
+                        ? t('donations:donationsContent.empty.adjustFilters', 'Try adjusting your search or filters.')
+                        : t('donations:donationsContent.empty.addFirst', 'Add your first donation to get started.')}
+                    </p>
+                    <Button onClick={() => handleNewDonationClick()}>{t('donations:newDonation', 'Add New Donation')}</Button>
+                  </div>
+                </div>
+              )}
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </TabsContent>
 
-        <NewDonationModal isOpen={showModal} onClose={handleModalClose} />
-        <CampaignModal
-          isOpen={showCampaignModal}
-          onClose={handleCampaignModalClose}
-          campaignId={selectedCampaignId}
+        <TabsContent value="campaigns">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="p-6 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  {t('donations:campaigns', 'Campaigns')}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">{t('campaigns:campaignsContent.subtitle', 'Manage your donation campaigns')}</p>
+              </div>
+              <Button onClick={() => setShowCampaignModal(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {t('campaigns:newCampaign', 'New Campaign')}
+              </Button>
+            </div>
+            <div className="p-4">
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                <div className="relative w-full sm:flex-grow">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder={t('campaigns:campaignsContent.searchPlaceholder', 'Search campaigns...')}
+                    className="w-full rounded-md pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Select value={campaignFilter} onValueChange={(value) => setCampaignFilter(value as any)}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder={t('campaigns:campaignsContent.filterPlaceholder', 'Filter by status')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('campaigns:campaignsContent.filter.all', 'All Campaigns')}</SelectItem>
+                    <SelectItem value="active">{t('campaigns:statuses.active', 'Active Campaigns')}</SelectItem>
+                    <SelectItem value="inactive">{t('campaigns:campaignsContent.filter.inactive', 'Inactive Campaigns')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-10 bg-muted animate-pulse rounded-md"></div>
+                  ))}
+                </div>
+              ) : filteredCampaigns.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('campaigns:name', 'Name')}</TableHead>
+                      <TableHead>{t('common:goal', 'Goal')}</TableHead>
+                      <TableHead>{t('common:raised', 'Raised')}</TableHead>
+                      <TableHead>{t('campaigns:startDate', 'Start Date')}</TableHead>
+                      <TableHead>{t('campaigns:endDate', 'End Date')}</TableHead>
+                      <TableHead>{t('campaigns:status', 'Status')}</TableHead>
+                      <TableHead className="text-right">{t('common:actions', 'Actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCampaigns.map((campaign) => (
+                      <TableRow key={campaign.id}>
+                        <TableCell className="font-medium">{campaign.name}</TableCell>
+                        <TableCell>${campaign.goal.toLocaleString()}</TableCell>
+                        <TableCell>${campaign.raised.toLocaleString()}</TableCell>
+                        <TableCell>{format(parseISO(campaign.startDate), "PP")}</TableCell>
+                        <TableCell>{campaign.endDate ? format(parseISO(campaign.endDate), "PP") : t('common:ongoing', 'Ongoing')}</TableCell>
+                        <TableCell>
+                          <Badge variant={campaign.isActive ? "default" : "secondary"}>
+                            {campaign.isActive ? t('campaigns:statuses.active', 'Active') : t('campaigns:statuses.inactive', 'Inactive')} 
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditCampaign(campaign.id)}>
+                            {t('common:edit', 'Edit')}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleCampaignStatus(campaign.id, campaign.isActive)}
+                            className="ml-2"
+                          >
+                            {campaign.isActive ? t('common:deactivate', 'Deactivate') : t('common:activate', 'Activate')}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
+                  <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
+                    <h3 className="mt-4 text-lg font-semibold">{t('campaigns:campaignsContent.empty.title', 'No campaigns found')}</h3>
+                    <p className="mb-4 mt-2 text-sm text-muted-foreground">
+                      {searchTerm || campaignFilter !== "all"
+                        ? t('campaigns:campaignsContent.empty.adjustFilters', 'Try adjusting your search or filters.')
+                        : t('campaigns:campaignsContent.empty.addFirst', 'Add your first campaign to get started.')}
+                    </p>
+                    <Button onClick={() => setShowCampaignModal(true)}>{t('campaigns:newCampaign', 'Add New Campaign')}</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="donors">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="p-6 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  {t('donations:donor', 'Donors')}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">{t('donations:donorsContent.subtitle', 'Manage your donors')}</p>
+              </div>
+              <Button onClick={handleAddDonorClick} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {t('donations:donorsContent.addDonorButton', 'Add Donor')}
+              </Button>
+            </div>
+            <div className="p-4">
+              <div className="relative w-full max-w-sm mb-4">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder={t('donations:donorsContent.searchPlaceholder', 'Search donors (name, email, phone)...')}
+                  className="w-full rounded-md pl-8"
+                  value={donorSearchTerm}
+                  onChange={(e) => setDonorSearchTerm(e.target.value)}
+                />
+              </div>
+
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-10 bg-muted animate-pulse rounded-md"></div>
+                  ))}
+                </div>
+              ) : filteredDonors.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('members:firstName', 'Name')}</TableHead>
+                      <TableHead>{t('members:email', 'Email')}</TableHead>
+                      <TableHead>{t('members:phone', 'Phone')}</TableHead>
+                      <TableHead>{t('common:joined', 'Joined')}</TableHead>
+                      <TableHead className="text-right">{t('common:actions', 'Actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDonors.map((member) => (
+                      <TableRow
+                        key={member.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleViewDonorDetails(member.id)}
+                      >
+                        <TableCell className="font-medium">
+                          {member.firstName} {member.lastName}
+                        </TableCell>
+                        <TableCell>
+                          {member.email ? (
+                            <a
+                              href={`mailto:${member.email}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              <Mail className="h-3 w-3" /> {member.email}
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {member.phone ? (
+                            <a
+                              href={`tel:${member.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              <Phone className="h-3 w-3" /> {member.phone}
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                        <TableCell>{member.joinDate ? format(parseISO(member.joinDate), "PP") : "-"}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDonorId(member.id);
+                            setShowEditDonorModal(true);
+                          }}>
+                            {t('common:edit', 'Edit')}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
+                  <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
+                    <h3 className="mt-4 text-lg font-semibold">{t('donations:donorsContent.empty.title', 'No donors found')}</h3>
+                    <p className="mb-4 mt-2 text-sm text-muted-foreground">
+                      {donorSearchTerm
+                        ? t('donations:donorsContent.empty.adjustFilters', 'Try adjusting your search.')
+                        : t('donations:donorsContent.empty.addFirst', 'Add your first donor to get started.')}
+                    </p>
+                    <Button onClick={handleAddDonorClick}>{t('donations:donorsContent.addDonorButton', 'Add Donor')}</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <NewDonationModal isOpen={showModal} onClose={handleModalClose} />
+      <CampaignModal
+        isOpen={showCampaignModal}
+        onClose={handleCampaignModalClose}
+        campaignId={selectedCampaignId}
+      />
+      <AddMemberModal isOpen={showDonorModal} onClose={handleDonorModalClose} />
+      {selectedDonorId && (
+        <EditDonorModal
+          isOpen={showEditDonorModal}
+          onClose={handleEditDonorModalClose}
+          donorId={selectedDonorId}
         />
-        <AddMemberModal isOpen={showDonorModal} onClose={handleDonorModalClose} />
-        {selectedDonorId && (
-          <EditDonorModal
-            isOpen={showEditDonorModal}
-            onClose={handleEditDonorModalClose}
-            donorId={selectedDonorId}
-          />
-        )}
-        {selectedDonationId && (
-          <DonationDetailsDrawer
-            isOpen={showDonationDetails}
-            onClose={() => setShowDonationDetails(false)}
-            donationId={selectedDonationId}
-          />
-        )}
-        {selectedDonorIdForDetails && (
-          <DonorDetailsDrawer
-            isOpen={showDonorDetails}
-            onClose={() => setShowDonorDetails(false)}
-            donorId={selectedDonorIdForDetails}
-          />
-        )}
-      </div>
-    </TooltipProvider>
+      )}
+      {selectedDonationId && (
+        <DonationDetailsDrawer
+          isOpen={showDonationDetails}
+          onClose={() => setShowDonationDetails(false)}
+          donationId={selectedDonationId}
+        />
+      )}
+      {selectedDonorIdForDetails && (
+        <DonorDetailsDrawer
+          isOpen={showDonorDetails}
+          onClose={() => setShowDonorDetails(false)}
+          donorId={selectedDonorIdForDetails}
+        />
+      )}
+    </div>
   )
 }

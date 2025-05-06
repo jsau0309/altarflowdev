@@ -173,7 +173,7 @@ export function ExpensesContent() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-8">
+    <div className="container mx-auto py-6 space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">{t('expenses:title')}</h1>
         <p className="text-muted-foreground">{t('expenses:expensesContent.subtitle')}</p>

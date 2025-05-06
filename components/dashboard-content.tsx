@@ -99,9 +99,9 @@ export function DashboardContent() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-8">
+    <div className="container mx-auto py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('dashboard:welcomeTitle', 'Welcome to Altarflow')}</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">{t('dashboard:welcomeTitle', 'Welcome to Altarflow')}</h1>
         <p className="text-muted-foreground">{t('dashboard:welcomeSubtitle', 'Comprehensive church management platform')}</p>
       </div>
 
@@ -211,17 +211,21 @@ Remove this code block:
               <h3 className="mb-4 text-sm font-medium">{t('dashboard:memberActivity.recentMembersTitle', 'Recent Members')}</h3>
               <div className="space-y-4">
                 {dashboardData?.memberActivity?.recentMembers?.length ? (
-                  dashboardData.memberActivity.recentMembers.map((member: Member) => {
-                    const joinedDays = Math.round(
-                      (new Date().getTime() - new Date(member.joinDate).getTime()) / (1000 * 60 * 60 * 24),
-                    );
+                  dashboardData.memberActivity.recentMembers.map((member: { id: string; firstName: string; lastName: string; joinDate: string | null }) => {
                     let joinedText: string;
-                    if (joinedDays === 0) {
-                      joinedText = t('dashboard:memberActivity.joinedToday', 'Joined today');
-                    } else if (joinedDays === 1) {
-                      joinedText = t('dashboard:memberActivity.joinedYesterday', 'Joined yesterday');
+                    if (member.joinDate) { 
+                      const joinedDays = Math.round(
+                        (new Date().getTime() - new Date(member.joinDate).getTime()) / (1000 * 60 * 60 * 24)
+                      );
+                      if (joinedDays === 0) {
+                        joinedText = t('dashboard:memberActivity.joinedToday', 'Joined today');
+                      } else if (joinedDays === 1) {
+                        joinedText = t('dashboard:memberActivity.joinedYesterday', 'Joined yesterday');
+                      } else {
+                        joinedText = t('dashboard:memberActivity.joinedDaysAgo', 'Joined {{count}} days ago', { count: joinedDays });
+                      }
                     } else {
-                      joinedText = t('dashboard:memberActivity.joinedDaysAgo', 'Joined {{count}} days ago', { count: joinedDays });
+                       joinedText = t('dashboard:memberActivity.joinDateUnknown', 'Join date unknown');
                     }
 
                     return (

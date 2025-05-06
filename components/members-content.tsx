@@ -45,10 +45,13 @@ export function MembersContent() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">{t('members:title', 'Member Management')}</h1>
-        <p className="text-muted-foreground">{t('members:membersContent.subtitle', 'Manage church members and track their information')}</p>
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t('members:title', 'Member Management')}</h1>
+          <p className="text-muted-foreground">{t('members:membersContent.subtitle', 'Manage church members and track their information')}</p>
+        </div>
+        <AddMemberButton onMemberAdded={handleAddMemberSuccess} />
       </div>
 
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
