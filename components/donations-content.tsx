@@ -357,10 +357,6 @@ export function DonationsContent() {
           <h1 className="text-3xl font-bold tracking-tight">{t('donations:title', 'Donation Management')}</h1>
           <p className="text-muted-foreground">{t('donations:donationsContent.subtitle', 'Track and manage your church donations')}</p>
         </div>
-        <Button onClick={() => handleNewDonationClick()} className="gap-2">
-          <Plus className="h-4 w-4" />
-          {t('donations:newDonation', 'New Donation')}
-        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

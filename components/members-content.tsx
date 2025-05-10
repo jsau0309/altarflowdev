@@ -51,7 +51,6 @@ export function MembersContent() {
           <h1 className="text-3xl font-bold tracking-tight">{t('members:title', 'Member Management')}</h1>
           <p className="text-muted-foreground">{t('members:membersContent.subtitle', 'Manage church members and track their information')}</p>
         </div>
-        <AddMemberButton onMemberAdded={handleAddMemberSuccess} />
       </div>
 
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
