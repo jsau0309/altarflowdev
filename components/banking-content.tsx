@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -9,19 +9,89 @@ import {
   AlertCircle,
   ArrowDownToLine,
   BanknoteIcon as BankIcon,
+  CheckCircle2,
   FileText,
   HelpCircle,
   Info,
   Landmark,
+  Loader2,
   RefreshCw,
   Shield,
 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@clerk/nextjs'
+import { StripeConnectButton, type StripeAccount } from './stripe-connect-button'
 
 export function BankingContent() {
   const [activeTab, setActiveTab] = useState("account")
+  const [stripeAccount, setStripeAccount] = useState<StripeAccount | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [churchId, setChurchId] = useState<string | null>(null)
   const { t } = useTranslation(['banking', 'common'])
+
+  const { orgId } = useAuth()
+
+  // Fetch Stripe account status on component mount
+  useEffect(() => {
+    const fetchStripeAccount = async () => {
+      try {
+        setIsLoading(true)
+        
+        if (!orgId) {
+          throw new Error('No organization selected')
+        }
+        
+        // Use the organization ID from Clerk
+        setChurchId(orgId)
+        
+        // Fetch the latest Stripe account status
+        const stripeResponse = await fetch('/api/stripe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': `get_account_${Date.now()}`
+          },
+          body: JSON.stringify({
+            action: 'getAccount',
+            churchId: orgId,
+            refresh: true // Add this flag to force a fresh check with Stripe
+          })
+        })
+
+        if (!stripeResponse.ok) {
+          // If no account exists, that's fine - we'll show the connect button
+          if (stripeResponse.status === 404) {
+            setStripeAccount(null);
+            return;
+          }
+          const errorData = await stripeResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch Stripe account');
+        }
+
+        const account = await stripeResponse.json();
+        
+        // Log the account status for debugging
+        console.log('Stripe Account Status:', {
+          id: account.id,
+          charges_enabled: account.charges_enabled,
+          payouts_enabled: account.payouts_enabled,
+          details_submitted: account.details_submitted,
+          requirements: account.requirements
+        });
+        
+        setStripeAccount(account);
+      } catch (err) {
+        console.error('Error:', err)
+        setError(err instanceof Error ? err.message : 'An unknown error occurred')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchStripeAccount()
+  }, [])
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -33,16 +103,78 @@ export function BankingContent() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="w-full sm:w-auto">
-            <RefreshCw className="mr-2 h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full sm:w-auto" 
+            onClick={() => window.location.reload()}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             {t('common:refresh')}
           </Button>
-          <Button variant="default" size="sm" className="w-full sm:w-auto">
-            <BankIcon className="mr-2 h-4 w-4" />
-            {t('banking:bankingContent.connectButton')}
-          </Button>
+          <div className="flex items-center space-x-2">
+            {isLoading ? (
+              <Button variant="outline" size="sm" className="w-full sm:w-auto" disabled>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {t('common:loading')}...
+              </Button>
+            ) : error ? (
+              <Alert variant="destructive" className="text-sm">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>{t('common:error')}</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : churchId ? (
+              <StripeConnectButton 
+                size="sm" 
+                className="w-full sm:w-auto"
+                onConnectSuccess={(account) => setStripeAccount(account)}
+                churchId={churchId}
+                accountStatus={
+                  stripeAccount?.charges_enabled && stripeAccount?.payouts_enabled 
+                    ? 'connected' 
+                    : stripeAccount?.id 
+                      ? 'pending_verification' 
+                      : 'not_connected'
+                }
+                accountData={stripeAccount}
+              />
+            ) : (
+              <Button variant="outline" size="sm" disabled>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {t('common:loading')}...
+              </Button>
+            )}
+          </div>
         </div>
       </div>
+      
+      {stripeAccount && (
+        <Alert className="mb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-green-100 p-2 rounded-full">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <AlertTitle className="text-green-800">
+                {t('banking:bankingContent.connectedTitle')}
+              </AlertTitle>
+              <AlertDescription className="text-green-700">
+                {t('banking:bankingContent.connectedDescription')}
+              </AlertDescription>
+              {stripeAccount.details_submitted && stripeAccount.charges_enabled && stripeAccount.payouts_enabled && (
+                <div className="mt-2">
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    {t('banking:bankingContent.fullyConnected')}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          </div>
+        </Alert>
+      )}
 
       <Alert className="mb-2">
         <AlertCircle className="h-4 w-4" />

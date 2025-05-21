@@ -1,8 +1,14 @@
 {
+  "connectWithStripe": "Connect with Stripe",
+  "viewInStripeExpress": "View in Stripe Express",
+  "verificationInProgress": "Verification in Progress",
+  "verificationTooltip": "Your account is being verified. This usually takes 1-2 business days.",
   "bankingContent": {
     "title": "Banking",
     "subtitle": "Manage your church's financial accounts, payouts, and tax information",
     "connectButton": "Connect Bank Account",
+    "connectedTitle": "Stripe Account Connected",
+    "connectedDescription": "Your Stripe account has been successfully connected to your church's profile.",
     "alert": {
       "title": "Account Verification Required",
       "description": "Please complete your account verification to enable all banking features and receive payouts."

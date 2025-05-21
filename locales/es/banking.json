@@ -1,8 +1,14 @@
 {
+    "connectWithStripe": "Conectar con Stripe",
+    "viewInStripeExpress": "Ver en Stripe Express",
+    "verificationInProgress": "Verificación en Progreso",
+    "verificationTooltip": "Tu cuenta está siendo verificada. Este proceso suele tardar 1-2 días hábiles.",
     "bankingContent": {
       "title": "Banca",
       "subtitle": "Administra tus cuentas financieras, pagos y información fiscal",
       "connectButton": "Conectar Cuenta Bancaria",
+      "connectedTitle": "Cuenta de Stripe Conectada",
+      "connectedDescription": "Tu cuenta de Stripe se ha conectado correctamente al perfil de tu iglesia.",
       "alert": {
         "title": "Verificación de Cuenta Requerida",
         "description": "Por favor, completa tu verificación de cuenta para habilitar todas las funciones bancarias y recibir pagos."

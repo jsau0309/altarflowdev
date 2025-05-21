@@ -41,6 +41,16 @@ enum FlowType {
 
 // --- Models ---
 
+// Stores idempotency keys to prevent duplicate operations
+model IdempotencyCache {
+  key         String   @id @db.VarChar(255) // The idempotency key
+  responseData String   @db.Text // The serialized response data
+  expiresAt   DateTime // When this cache entry should expire
+  
+  @@index([expiresAt])
+  @@map("idempotency_cache")
+}
+
 // Represents a Church organization/tenant
 model Church {
   id         String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
@@ -58,13 +68,16 @@ model Church {
   ministriesJson   Json? @db.Json
   settingsJson     Json? @db.Json
 
-  // --- Relationships ---
+  // --- Relations ---
   // profiles Profile[]  // REMOVED - No longer a direct link from Church to Profile
   expenses  Expense[] // A church has many expenses
   donations Donation[] // A church has many donations
   members   Member[] // A church has many members
   campaigns Campaign[] // A church has many campaigns
   flows     Flow[] // Add back-relation for flows
+  
+  // Stripe Connect account information (one-to-one relation)
+  stripeConnectAccount StripeConnectAccount?
 }
 
 // Represents an authenticated user within our application context
@@ -246,6 +259,31 @@ model Expense {
 // }
 
 // --- Add Flow Model ---
+// Represents a Stripe Connect Express account for a church
+model StripeConnectAccount {
+  id                  String   @id @default(uuid()) @db.Uuid
+  stripeAccountId     String   @unique // The Stripe account ID (e.g., 'acct_123...')
+  churchId            String   @unique // Using Clerk organization ID (e.g., 'org_123...')
+  church              Church   @relation(fields: [churchId], references: [clerkOrgId], onDelete: Cascade, onUpdate: Cascade)
+  
+  // Account status fields
+  chargesEnabled     Boolean  @default(false) // Whether charges can be created
+  detailsSubmitted   Boolean  @default(false) // Whether account details have been submitted
+  payoutsEnabled     Boolean  @default(false) // Whether payouts can be made
+  
+  // Timestamps
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  // Store additional metadata as JSON
+  metadata           Json?    @db.Json // Store any additional Stripe account metadata
+  
+  // Ensure the churchId has an index for better query performance
+  @@index([churchId])
+  
+  // The @unique constraint on churchId ensures one-to-one relationship
+}
+
 model Flow {
   id         String   @id @default(cuid())
   name       String // User-friendly name (e.g., "New Visitor Connect Form")
