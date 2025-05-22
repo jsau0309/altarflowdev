@@ -15,9 +15,16 @@ import {
   Info,
   Landmark,
   Loader2,
+  
   RefreshCw,
   Shield,
 } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@clerk/nextjs'
@@ -31,20 +38,47 @@ export function BankingContent() {
   const [churchId, setChurchId] = useState<string | null>(null)
   const { t } = useTranslation(['banking', 'common'])
 
-  const { orgId } = useAuth()
+  const { orgId, isLoaded: isClerkLoaded } = useAuth() // Renamed for clarity
 
-  // Fetch Stripe account status on component mount
   useEffect(() => {
-    const fetchStripeAccount = async () => {
+    const fetchStripeAccountInternal = async () => {
+      // If Clerk is not loaded yet, set loading and wait.
+      if (!isClerkLoaded) {
+        setIsLoading(true); 
+        return;
+      }
+
+      // Clerk is loaded, now check for orgId.
+      if (!orgId) {
+        setError(t('common:errors.noOrganizationSelected'));
+        setStripeAccount(null);
+        setIsLoading(false); // Finished this path
+        return;
+      }
+
+      // Clerk is loaded and orgId is available. Proceed to fetch.
+      setIsLoading(true); // For the Stripe API call itself
+      setChurchId(orgId);
+
+      // TODO: The actual fetch call to /api/stripe needs to be here
+      // For now, let's assume it's done and we're just setting loading states
+      // Example: 
+      // try {
+      //   const response = await fetch(...);
+      //   const data = await response.json();
+      //   setStripeAccount(data.account);
+      // } catch (e) {
+      //   setError(t('common:errors.failedToFetchStripeAccount'));
+      // } finally {
+      //   setIsLoading(false);
+      // }
+      // Simulating end of fetch for now if no actual fetch is in this block
+      // If fetchStripeAccountInternal is supposed to do the fetch, ensure setIsLoading(false) is called appropriately after it. 
+      // If the fetch is done elsewhere and this effect only sets up, this might be okay.
+ 
+      setError(null); // Clear previous errors
+
       try {
-        setIsLoading(true)
-        
-        if (!orgId) {
-          throw new Error('No organization selected')
-        }
-        
-        // Use the organization ID from Clerk
-        setChurchId(orgId)
         
         // Fetch the latest Stripe account status
         const stripeResponse = await fetch('/api/stripe', {
@@ -55,8 +89,8 @@ export function BankingContent() {
           },
           body: JSON.stringify({
             action: 'getAccount',
-            churchId: orgId,
-            refresh: true // Add this flag to force a fresh check with Stripe
+            churchId: orgId, // Use orgId directly
+            refresh: true
           })
         })
 
@@ -83,15 +117,25 @@ export function BankingContent() {
         
         setStripeAccount(account);
       } catch (err) {
-        console.error('Error:', err)
-        setError(err instanceof Error ? err.message : 'An unknown error occurred')
+        console.error('Error fetching Stripe account:', err);
+        setError(err instanceof Error ? err.message : t('common:errors.unknownError'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchStripeAccount()
-  }, [])
+    fetchStripeAccountInternal()
+  }, [isClerkLoaded, orgId, t])
+
+  // If Clerk auth state is not loaded yet, show a loader for the whole content.
+  // This must come AFTER all hook calls.
+  if (!isClerkLoaded) {
+    return (
+      <div className="container mx-auto py-6 space-y-6 flex justify-center items-center h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -146,43 +190,25 @@ export function BankingContent() {
                 {t('common:loading')}...
               </Button>
             )}
+            {/* Stripe Connected Icon with Tooltip */}
+            {stripeAccount && stripeAccount.charges_enabled && stripeAccount.payouts_enabled && stripeAccount.details_submitted && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="p-2 rounded-full hover:bg-gray-100 cursor-pointer">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-semibold">{t('banking:bankingContent.connectedTitle')}</p>
+                    <p>{t('banking:bankingContent.connectedDescription')}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
       </div>
-      
-      {stripeAccount && (
-        <Alert className="mb-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 p-2 rounded-full">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <AlertTitle className="text-green-800">
-                {t('banking:bankingContent.connectedTitle')}
-              </AlertTitle>
-              <AlertDescription className="text-green-700">
-                {t('banking:bankingContent.connectedDescription')}
-              </AlertDescription>
-              {stripeAccount.details_submitted && stripeAccount.charges_enabled && stripeAccount.payouts_enabled && (
-                <div className="mt-2">
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    {t('banking:bankingContent.fullyConnected')}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          </div>
-        </Alert>
-      )}
-
-      <Alert className="mb-2">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>{t('banking:bankingContent.alert.title')}</AlertTitle>
-        <AlertDescription>
-          {t('banking:bankingContent.alert.description')}
-        </AlertDescription>
-      </Alert>
 
       <Tabs defaultValue="account" className="w-full space-y-6" onValueChange={setActiveTab}>
         <div className="w-full overflow-x-auto pb-2">
@@ -210,77 +236,16 @@ export function BankingContent() {
               <CardDescription>{t('banking:bankingContent.account.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 px-6 py-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader className="px-6 py-5 pb-2">
-                    <CardTitle className="text-lg">{t('banking:bankingContent.account.availableBalanceTitle')}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6 px-6 py-5">
-                    <div className="text-3xl font-bold">$4,285.00</div>
-                    <p className="text-sm text-muted-foreground mt-1">{t('banking:bankingContent.account.availableBalanceSubtitle')}</p>
-                    <div className="flex mt-4">
-                      <Button size="sm">
-                        <ArrowDownToLine className="mr-2 h-4 w-4" />
-                        {t('banking:bankingContent.account.withdrawButton')}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                <Card>
-                  <CardHeader className="px-6 py-5 pb-2">
-                    <CardTitle className="text-lg">{t('banking:bankingContent.account.pendingBalanceTitle')}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6 px-6 py-5">
-                    <div className="text-3xl font-bold">$1,250.00</div>
-                    <p className="text-sm text-muted-foreground mt-1">{t('banking:bankingContent.account.pendingBalanceSubtitle')}</p>
-                    <div className="flex mt-4 items-center text-sm text-muted-foreground">
-                      <Info className="mr-2 h-4 w-4" />
-                      {t('banking:bankingContent.account.pendingBalanceNote')}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
 
-              <div className="border rounded-lg p-6">
-                <h3 className="text-lg font-medium mb-4">{t('banking:bankingContent.account.connectedAccountsTitle')}</h3>
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border rounded-md gap-4">
-                    <div className="flex items-center">
-                      <Landmark className="h-8 w-8 mr-4 text-primary" />
-                      <div>
-                        <p className="font-medium">{t('banking:bankingContent.account.defaultBankName')}</p>
-                        <p className="text-sm text-muted-foreground">{t('banking:bankingContent.account.defaultBankEnding')}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-end">
-                      <Badge variant="outline" className="mr-2">
-                        {t('common:default')}
-                      </Badge>
-                      <Button variant="ghost" size="sm">
-                        {t('common:edit')}
-                      </Button>
-                    </div>
-                  </div>
 
-                  <div className="p-6 border border-dashed rounded-md text-center">
-                    <p className="text-muted-foreground mb-2">{t('banking:bankingContent.account.addAccountPrompt')}</p>
-                    <Button variant="outline">
-                      <BankIcon className="mr-2 h-4 w-4" />
-                      {t('banking:bankingContent.account.addAccountButton')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
 
               <div className="p-6 border rounded-lg bg-muted/50">
                 <h3 className="text-lg font-medium mb-2">{t('banking:bankingContent.account.stripeTitle')}</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   {t('banking:bankingContent.account.stripeDescription')}
                 </p>
-                <div className="h-48 border border-dashed rounded-md flex items-center justify-center my-4">
-                  <p className="text-muted-foreground">{t('banking:bankingContent.account.stripePlaceholder')}</p>
-                </div>
+                <div id="stripe-account-management-embedded" className="min-h-[400px]"></div>
               </div>
             </CardContent>
           </Card>
@@ -317,36 +282,10 @@ export function BankingContent() {
                 <p className="text-sm text-muted-foreground mb-4">
                   {t('banking:bankingContent.payouts.stripeDescription')}
                 </p>
-                <div className="h-60 border border-dashed rounded-md flex items-center justify-center">
-                  <p className="text-muted-foreground">{t('banking:bankingContent.payouts.stripePlaceholder')}</p>
-                </div>
+                <div id="stripe-payouts-embedded" className="min-h-[400px]"></div>
               </div>
 
-              <div className="border rounded-lg">
-                <div className="p-5 border-b">
-                  <h3 className="font-medium">{t('banking:bankingContent.payouts.recentTitle')}</h3>
-                </div>
-                <div className="divide-y">
-                  {[
-                    { date: "Mar 15, 2025", amount: "$1,250.00", status: t('banking:bankingContent.payouts.statusCompleted') },
-                    { date: "Mar 1, 2025", amount: "$2,340.00", status: t('banking:bankingContent.payouts.statusCompleted') },
-                    { date: "Feb 15, 2025", amount: "$1,890.00", status: t('banking:bankingContent.payouts.statusCompleted') },
-                  ].map((payout, i) => (
-                    <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 gap-2">
-                      <div>
-                        <p className="font-medium">{payout.date}</p>
-                        <p className="text-sm text-muted-foreground">{t('banking:bankingContent.payouts.payoutType')}</p>
-                      </div>
-                      <div className="text-left sm:text-right">
-                        <p className="font-medium">{payout.amount}</p>
-                        <Badge variant="outline" className="bg-green-50">
-                          {payout.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+
             </CardContent>
           </Card>
         </TabsContent>
@@ -364,69 +303,12 @@ export function BankingContent() {
                 <p className="text-sm text-muted-foreground mb-4">
                   {t('banking:bankingContent.tax.stripeDescription')}
                 </p>
-                <div className="h-40 border border-dashed rounded-md flex items-center justify-center">
-                  <p className="text-muted-foreground">{t('banking:bankingContent.tax.stripePlaceholder')}</p>
-                </div>
+                <div id="stripe-tax-reporting-embedded" className="min-h-[300px]"></div>
               </div>
 
-              <div className="border rounded-lg">
-                <div className="p-5 border-b">
-                  <h3 className="font-medium">{t('banking:bankingContent.tax.documentsTitle')}</h3>
-                </div>
-                <div className="divide-y">
-                  {[
-                    { year: "2024", type: "1099-K", status: t('common:available') },
-                    { year: "2023", type: "1099-K", status: t('common:available') },
-                    { year: "2022", type: "1099-K", status: t('common:available') },
-                  ].map((doc, i) => (
-                    <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 gap-4">
-                      <div className="flex items-center">
-                        <FileText className="h-5 w-5 mr-3 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">
-                            {t('banking:bankingContent.tax.docName', { type: doc.type, year: doc.year })}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{t('banking:bankingContent.tax.docSubtitle')}</p>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                        {t('common:download')}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
-              <Card>
-                <CardHeader className="px-6 py-5 pb-2">
-                  <CardTitle className="text-lg">{t('banking:bankingContent.tax.infoTitle')}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6 px-6 py-5">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <p className="text-muted-foreground">{t('banking:bankingContent.tax.idTypeLabel')}</p>
-                      <p>{t('banking:bankingContent.tax.idTypeValue')}</p>
-                    </div>
-                    <div className="flex justify-between">
-                      <p className="text-muted-foreground">{t('banking:bankingContent.tax.idLabel')}</p>
-                      <p>{t('banking:bankingContent.tax.idValue')}</p>
-                    </div>
-                    <div className="flex justify-between">
-                      <p className="text-muted-foreground">{t('banking:bankingContent.tax.entityNameLabel')}</p>
-                      <p>{t('banking:bankingContent.tax.entityNameValue')}</p>
-                    </div>
-                    <div className="flex justify-between">
-                      <p className="text-muted-foreground">{t('banking:bankingContent.tax.statusLabel')}</p>
-                      <Badge variant="outline" className="bg-green-50">
-                        {t('banking:bankingContent.tax.statusValue')}
-                      </Badge>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" className="mt-4">
-                    {t('banking:bankingContent.tax.updateButton')}
-                  </Button>
-                </CardContent>
-              </Card>
+
+
             </CardContent>
           </Card>
         </TabsContent>
@@ -439,97 +321,8 @@ export function BankingContent() {
               <CardDescription>{t('banking:bankingContent.settings.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 px-6 py-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="px-6 py-5 pb-2">
-                    <CardTitle className="text-lg">{t('banking:bankingContent.settings.scheduleTitle')}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6 px-6 py-5">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{t('banking:bankingContent.settings.currentScheduleLabel')}</p>
-                          <p className="text-sm text-muted-foreground">{t('banking:bankingContent.settings.currentScheduleValue')}</p>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          {t('common:change')}
-                        </Button>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{t('banking:bankingContent.settings.nextPayoutDateLabel')}</p>
-                          <p className="text-sm text-muted-foreground">{t('banking:bankingContent.settings.nextPayoutDateValue')}</p>
-                        </div>
-                        <Badge>{t('banking:bankingContent.settings.statusScheduled')}</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                <Card>
-                  <CardHeader className="px-6 py-5 pb-2">
-                    <CardTitle className="text-lg">{t('banking:bankingContent.settings.securityTitle')}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6 px-6 py-5">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{t('banking:bankingContent.settings.twoFactorLabel')}</p>
-                          <p className="text-sm text-muted-foreground">{t('banking:bankingContent.settings.twoFactorDescription')}</p>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50">
-                          {t('common:enabled')}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{t('banking:bankingContent.settings.notificationsLabel')}</p>
-                          <p className="text-sm text-muted-foreground">{t('banking:bankingContent.settings.notificationsDescription')}</p>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50">
-                          {t('common:enabled')}
-                        </Badge>
-                      </div>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Shield className="mr-2 h-4 w-4" />
-                        {t('banking:bankingContent.settings.manageSecurityButton')}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
 
-              <div className="p-6 border rounded-lg bg-muted/50">
-                <h3 className="text-lg font-medium mb-2">{t('banking:bankingContent.settings.stripeTitle')}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {t('banking:bankingContent.settings.stripeDescription')}
-                </p>
-                <div className="h-40 border border-dashed rounded-md flex items-center justify-center">
-                  <p className="text-muted-foreground">{t('banking:bankingContent.settings.stripePlaceholder')}</p>
-                </div>
-              </div>
-
-              <div className="border rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-4">{t('banking:bankingContent.settings.apiTitle')}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {t('banking:bankingContent.settings.apiDescription')}
-                </p>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <p className="font-medium">{t('banking:bankingContent.settings.webhookStatusLabel')}</p>
-                    <Badge variant="outline" className="bg-green-50">
-                      {t('common:active')}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <p className="font-medium">{t('banking:bankingContent.settings.apiModeLabel')}</p>
-                    <Badge>{t('common:live')}</Badge>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="mt-4">
-                  {t('banking:bankingContent.settings.manageApiButton')}
-                </Button>
-              </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border rounded-lg gap-4">
                 <div className="flex items-center">

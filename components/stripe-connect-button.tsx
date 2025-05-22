@@ -2,18 +2,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { BanknoteIcon, ExternalLink, Loader2 } from "lucide-react";
+import { AlertCircle, AlertTriangle, BanknoteIcon, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 // Define the Stripe account type
 export type StripeAccount = {
   id: string;
+  stripeAccountId: string;
+  churchId: string;
   details_submitted: boolean;
   charges_enabled: boolean;
   payouts_enabled: boolean;
-  // Add other account properties as needed
+  verificationStatus: 'unverified' | 'pending' | 'verified' | 'restricted' | 'action_required';
+  requirementsCurrentlyDue: string[];
+  requirementsEventuallyDue: string[];
+  requirementsDisabledReason: string | null;
+  tosAcceptanceDate: string | null;
 };
 
 // Define the component props
@@ -27,8 +34,8 @@ type StripeConnectButtonProps = {
   accountData?: StripeAccount | null;
 };
 
-// Stripe Express dashboard URL
-const STRIPE_EXPRESS_DASHBOARD = 'https://dashboard.stripe.com/express/overview';
+// Status types for button display states
+type EffectiveStatus = 'not_connected' | 'pending_verification' | 'connected';
 
 export function StripeConnectButton({ 
   className = "", 
@@ -44,25 +51,43 @@ export function StripeConnectButton({
   const { t } = useTranslation(['banking', 'common']);
   
   // Determine the effective status based on props and account data
-  const effectiveStatus = React.useMemo(() => {
+  const effectiveStatus = React.useMemo<EffectiveStatus>(() => {
     // First check if we have account data from props or state
     const account = accountData || currentAccount;
     
     // If we have account data, check its status first
-    if (account?.id) {
+    if (account?.stripeAccountId) {
       console.log('Account status:', {
         id: account.id,
+        stripeAccountId: account.stripeAccountId,
+        verificationStatus: account.verificationStatus,
         charges_enabled: account.charges_enabled,
         payouts_enabled: account.payouts_enabled,
-        details_submitted: account.details_submitted
+        details_submitted: account.details_submitted,
+        requirementsCurrentlyDue: account.requirementsCurrentlyDue,
+        requirementsDisabledReason: account.requirementsDisabledReason
       });
       
-      // If both charges and payouts are enabled, account is fully connected
+      // Use the verificationStatus from the account if available
+      if (account.verificationStatus) {
+        switch (account.verificationStatus) {
+          case 'verified':
+            return 'connected';
+          case 'pending':
+          case 'action_required':
+          case 'restricted':
+            return 'pending_verification';
+          case 'unverified':
+          default:
+            return 'not_connected';
+        }
+      }
+      
+      // Fallback to the old status check if verificationStatus is not available
       if (account.charges_enabled && account.payouts_enabled) {
         return 'connected';
       }
       
-      // If details are submitted but not yet enabled, show pending
       if (account.details_submitted) {
         return 'pending_verification';
       }
@@ -89,9 +114,9 @@ export function StripeConnectButton({
         console.log('Checking account status...');
         const response = await fetch('/api/stripe', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
-            'Idempotency-Key': `polling_${churchId}_${Date.now()}`
+            'Idempotency-Key': crypto.randomUUID(),
           },
           body: JSON.stringify({
             action: 'getAccount',
@@ -143,210 +168,178 @@ export function StripeConnectButton({
     };
   }, [effectiveStatus, churchId, onConnectSuccess]);
 
-  // Handle the main button click
+  // Handle the main button action (connect or view dashboard)
   const handleMainAction = async () => {
-    console.log('Button clicked with status:', effectiveStatus);
-    
-    // First, refresh the account status to ensure we have the latest data
-    try {
-      const response = await fetch('/api/stripe', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Idempotency-Key': `status_check_${churchId}_${Date.now()}`
-        },
-        body: JSON.stringify({
-          action: 'getAccount',
-          churchId,
-          refresh: true
-        })
-      });
-      
-      if (response.ok) {
-        const account = await response.json();
-        console.log('Refreshed account status:', {
-          charges_enabled: account.charges_enabled,
-          payouts_enabled: account.payouts_enabled,
-          details_submitted: account.details_submitted
-        });
-        
-        // Always update the current account with latest data
-        setCurrentAccount(account);
-        
-        // If account is now fully connected, redirect to dashboard
-        if (account.charges_enabled && account.payouts_enabled) {
-          console.log('Account is fully connected, redirecting to dashboard');
-          if (onConnectSuccess) onConnectSuccess(account);
-          window.open(STRIPE_EXPRESS_DASHBOARD, '_blank', 'noopener,noreferrer');
-          return;
-        }
-        
-        // If details are submitted but not yet enabled, show pending status
-        if (account.details_submitted) {
-          console.log('Account verification still pending');
-          toast.info(t('banking:verificationTooltip'));
-          return;
-        }
-      }
-    } catch (error) {
-      console.error('Error refreshing account status:', error);
-      // Continue with normal flow if refresh fails
-    }
-    
-    // If we get here, either refresh failed or account is not connected
-    if (effectiveStatus === 'connected' || (currentAccount?.charges_enabled && currentAccount?.payouts_enabled)) {
-      console.log('Using cached connected status');
-      window.open(STRIPE_EXPRESS_DASHBOARD, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    
-    if (effectiveStatus === 'pending_verification' || currentAccount?.details_submitted) {
-      console.log('Using cached pending status');
-      toast.info(t('banking:verificationTooltip'));
-      return;
-    }
-
-    // If we get here, status is 'not_connected'
     setIsLoading(true);
-    
     try {
-      let accountIdToUse = accountData?.id;
-
-      if (!accountIdToUse) {
-        // If no account exists, create one
-        const initResponse = await fetch('/api/stripe', {
+      const account = currentAccount || accountData;
+      
+      if (['connected', 'verified'].includes(account?.verificationStatus || effectiveStatus)) {
+        // Create login link for the dashboard
+        const response = await fetch('/api/stripe', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Idempotency-Key': `init_account_${churchId}_${Date.now()}`
+            'Idempotency-Key': crypto.randomUUID()
           },
-          body: JSON.stringify({ 
-            action: 'getOrCreateAccount', 
-            churchId 
+          body: JSON.stringify({
+            action: 'createLoginLink',
+            accountId: account?.stripeAccountId
           })
         });
 
-        if (!initResponse.ok) {
-          const error = await initResponse.json();
-          throw new Error(error.error || 'Failed to initialize Stripe account');
-        }
-        
-        const initData = await initResponse.json();
-        accountIdToUse = initData.account?.id;
-        
-        if (initData.account) {
-          setCurrentAccount(initData.account);
-          if (onConnectSuccess) {
-            onConnectSuccess(initData.account);
-          }
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to create dashboard link');
         }
 
-        // If account is now fully connected, update UI and return
-        if (initData.account?.charges_enabled && initData.account?.payouts_enabled) {
-          setIsLoading(false);
-          return;
+        const responseData = await response.json();
+        console.log('[StripeConnectButton] API Response Data for createLoginLink:', responseData);
+        const url = responseData.url;
+        console.log('[StripeConnectButton] Extracted Login URL:', url);
+        if (url) {
+          console.log('[StripeConnectButton] Attempting to open login link in new tab:', url);
+          window.open(url, '_blank');
+        } else {
+          console.error('[StripeConnectButton] Login URL is missing or invalid!', responseData);
+          toast.error('Failed to get a valid login link. Please try again.');
         }
-      }
-      
-      if (!accountIdToUse) {
-        throw new Error('Stripe Account ID could not be determined');
-      }
 
-      // Create Account Link for onboarding
-      const accountLinkResponse = await fetch('/api/stripe', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Idempotency-Key': `create_link_${accountIdToUse}_${Date.now()}`
-        },
-        body: JSON.stringify({
-          action: 'createAccountLink',
-          accountId: accountIdToUse,
-          churchId,
-          returnUrl: `${window.location.origin}/banking`,
-          refreshUrl: `${window.location.origin}/banking`
-        })
-      });
+      } else {
+        // Create account link for onboarding
+        const response = await fetch('/api/stripe', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Idempotency-Key': crypto.randomUUID()
+          },
+          body: JSON.stringify({
+            action: 'createAccountLink',
+            churchId,
+            returnUrl: `${window.location.origin}/banking`,
+            refreshUrl: `${window.location.origin}/banking`
+          })
+        });
 
-      if (!accountLinkResponse.ok) {
-        const error = await accountLinkResponse.json();
-        throw new Error(error.error || 'Failed to create Stripe account link');
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to create onboarding link');
+        }
+
+        const responseData = await response.json();
+        console.log('[StripeConnectButton] API Response Data for createAccountLink:', responseData);
+        const url = responseData.onboardingUrl; // handleCreateAccount returns onboardingUrl
+        console.log('[StripeConnectButton] Extracted Onboarding URL:', url);
+        if (url) {
+          console.log('[StripeConnectButton] Attempting redirect to:', url);
+          window.location.href = url;
+        } else {
+          console.error('[StripeConnectButton] Onboarding URL is missing or invalid!', responseData);
+          toast.error('Failed to get a valid onboarding link. Please try again.');
+        }
+
       }
-
-      const { url: accountLinkUrl } = await accountLinkResponse.json();
-      
-      // Redirect to Stripe's onboarding
-      window.location.href = accountLinkUrl;
-      
     } catch (error) {
-      console.error('Stripe connection error:', error);
-      toast.error(
-        error instanceof Error 
-          ? error.message 
-          : t('common:errors.unexpectedError')
-      );
+      console.error('Stripe action failed:', error);
+      toast.error(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
-      // Only reset loading if we're not in a connected state
-      if (effectiveStatus === 'not_connected') {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
 
-  // Render the button content based on state
-  const renderButtonContent = () => {
-    if (isLoading) {
-      return (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {t('common:loading')}...
-        </>
-      );
-    }
-
-    switch (effectiveStatus) {
+  // Get button text and variant based on status
+  const getButtonConfig = () => {
+    const account = currentAccount || accountData;
+    const status = account?.verificationStatus || effectiveStatus;
+    const requirements = account?.requirementsCurrentlyDue || [];
+    const disabledReason = account?.requirementsDisabledReason || '';
+    
+    switch (status) {
       case 'connected':
-        return (
-          <>
-            <ExternalLink className="mr-2 h-4 w-4" />
-            {t('banking:viewInStripeExpress')}
-          </>
-        );
-      case 'pending_verification':
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="flex items-center">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('banking:verificationInProgress')}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t('banking:verificationTooltip')}</p>
-            </TooltipContent>
-          </Tooltip>
-        );
-      default: // not_connected
-        return (
-          <>
-            <BanknoteIcon className="mr-2 h-4 w-4" />
-            {t('banking:connectWithStripe')}
-          </>
-        );
+      case 'verified':
+        return {
+          text: t('banking:viewDashboard'),
+          variant: 'default' as const,
+          icon: <ExternalLink className="h-4 w-4" />,
+          tooltip: t('banking:viewDashboardTooltip'),
+          onClick: handleMainAction,
+        };
+      case 'pending':
+        return {
+          text: t('banking:verificationPending'),
+          variant: 'outline' as const,
+          icon: <Loader2 className="h-4 w-4 animate-spin" />,
+          tooltip: t('banking:verificationTooltip'),
+          onClick: handleMainAction,
+        };
+      case 'action_required':
+        return {
+          text: t('banking:actionRequired'),
+          variant: 'outline' as const,
+          icon: <AlertCircle className="h-4 w-4 text-yellow-500" />,
+          tooltip: t('banking:actionRequiredTooltip', {
+            requirements: requirements.join(', ')
+          }),
+          onClick: handleMainAction,
+        };
+      case 'restricted':
+        return {
+          text: t('banking:accountRestricted'),
+          variant: 'destructive' as const,
+          icon: <AlertTriangle className="h-4 w-4" />,
+          tooltip: t('banking:accountRestrictedTooltip', {
+            reason: disabledReason || t('banking:unknownReason')
+          }),
+          onClick: handleMainAction,
+        };
+      default:
+        return {
+          text: t('banking:connectWithStripe'),
+          variant: 'default' as const,
+          icon: <BanknoteIcon className="h-4 w-4" />,
+          tooltip: t('banking:connectWithStripeTooltip'),
+          onClick: handleMainAction,
+        };
     }
   };
+  
+  const buttonConfig = getButtonConfig();
 
   return (
     <TooltipProvider>
-      <Button
-        onClick={handleMainAction}
-        disabled={isLoading}
-        className={className}
-        variant={variant}
-        size={size}
-      >
-        {renderButtonContent()}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            className={cn("flex items-center gap-2", className)}
+            variant={buttonConfig.variant as any}
+            size={size}
+            onClick={buttonConfig.onClick}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              buttonConfig.icon
+            )}
+            {buttonConfig.text}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <p className="text-sm">{buttonConfig.tooltip}</p>
+          {currentAccount?.requirementsCurrentlyDue && currentAccount.requirementsCurrentlyDue.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs font-medium">{t('banking:requirementsNeeded')}:</p>
+              <ul className="mt-1 list-disc pl-4 text-xs">
+                {currentAccount.requirementsCurrentlyDue.map((req: string, i: number) => (
+                  <li key={i} className="text-muted-foreground">
+                    {req}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </TooltipContent>
+      </Tooltip>
     </TooltipProvider>
   );
 }

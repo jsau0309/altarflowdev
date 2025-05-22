@@ -261,22 +261,29 @@ model Expense {
 // --- Add Flow Model ---
 // Represents a Stripe Connect Express account for a church
 model StripeConnectAccount {
-  id                  String   @id @default(uuid()) @db.Uuid
-  stripeAccountId     String   @unique // The Stripe account ID (e.g., 'acct_123...')
-  churchId            String   @unique // Using Clerk organization ID (e.g., 'org_123...')
-  church              Church   @relation(fields: [churchId], references: [clerkOrgId], onDelete: Cascade, onUpdate: Cascade)
+  id                      String     @id @default(uuid()) @db.Uuid
+  stripeAccountId         String     @unique // The Stripe account ID (e.g., 'acct_123...')
+  churchId                String     @unique // Using Clerk organization ID (e.g., 'org_123...')
+  church                  Church     @relation(fields: [churchId], references: [clerkOrgId], onDelete: Cascade, onUpdate: Cascade)
   
   // Account status fields
-  chargesEnabled     Boolean  @default(false) // Whether charges can be created
-  detailsSubmitted   Boolean  @default(false) // Whether account details have been submitted
-  payoutsEnabled     Boolean  @default(false) // Whether payouts can be made
+  chargesEnabled         Boolean    @default(false) // Whether charges can be created
+  detailsSubmitted       Boolean    @default(false) // Whether account details have been submitted
+  payoutsEnabled         Boolean    @default(false) // Whether payouts can be made
+  
+  // Verification status fields
+  verificationStatus     String     @default("unverified") // 'unverified', 'pending', 'verified', 'restricted', 'action_required'
+  requirementsCurrentlyDue String[]  @default([]) // Currently due verification requirements
+  requirementsEventuallyDue String[] @default([]) // Eventually due verification requirements
+  requirementsDisabledReason String?  // Reason why the account is restricted
+  tosAcceptanceDate      DateTime?  // When the Stripe terms of service were accepted
   
   // Timestamps
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
   
   // Store additional metadata as JSON
-  metadata           Json?    @db.Json // Store any additional Stripe account metadata
+  metadata               Json?      @db.Json // Store any additional Stripe account metadata
   
   // Ensure the churchId has an index for better query performance
   @@index([churchId])
