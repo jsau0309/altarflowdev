@@ -6,66 +6,98 @@ import DonationDetails from "./donation-details"
 import DonationInfo from "./donation-info"
 import DonationPayment from "./donation-payment"
 import { useTranslation } from "react-i18next"
+import { DonationType } from "@prisma/client"; // Added import
 
+// New props interface
+interface DonationFormProps {
+  churchId: string;
+  churchName: string; // Will be available if needed inside the form
+  donationTypes: DonationType[];
+}
+
+// Updated DonationFormData type
 export type DonationFormData = {
-  amount: number
-  donationType: "one-time" | "recurring"
-  frequency?: "weekly" | "monthly" | "quarterly" | "annually"
-  startDate?: string
-  firstName?: string
-  lastName?: string
-  isAnonymous?: boolean
-  email?: string
-  phone?: string
-  address?: string
-  paymentMethod?: "card" | "bank" | "google-pay" | "apple-pay"
-  coverFees?: boolean
-  campaignId?: string
-  campaignName?: string
-}
+  amount: number;
+  donationType: "one-time" | "recurring"; // This is for one-time vs recurring payment
+  donationTypeId: string; // ID of the selected specific donation type/fund
+  donationTypeName?: string; // NAME of the selected specific donation type/fund
+  frequency?: "weekly" | "monthly" | "quarterly" | "annually";
+  startDate?: string;
+  firstName?: string;
+  lastName?: string;
+  isAnonymous?: boolean;
+  email?: string;
+  phone?: string;
+  address?: string; // Full formatted address from PlaceKit
+  street?: string; // Street address (e.g., 123 Main St)
+  city?: string;
+  state?: string; // State or province
+  zipCode?: string;
+  country?: string; // Country code (e.g., US)
+  paymentMethod?: "card" | "bank" | "google-pay" | "apple-pay";
+  coverFees?: boolean;
+  // campaignId and campaignName are removed
+};
 
-const initialFormData: DonationFormData = {
-  amount: 100,
-  donationType: "one-time",
-  campaignId: "tithe", // Default to Tithe
-  campaignName: "Tithe",
-}
 
-export default function DonationForm() {
-  const [formData, setFormData] = useState<DonationFormData>(initialFormData)
-  const [step, setStep] = useState(1)
+
+export default function DonationForm({ churchId, churchName, donationTypes }: DonationFormProps) {
+  const [formData, setFormData] = useState<DonationFormData>({
+    amount: 0,
+    donationType: "one-time",
+    donationTypeId: "",
+    donationTypeName: "",
+    frequency: "monthly", // Default, UI typically shows this only if donationType is 'recurring'
+    startDate: undefined,
+    firstName: "",
+    lastName: "",
+    isAnonymous: false,
+    email: "",
+    phone: "",
+    address: "", // Full formatted address
+    street: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "",
+    paymentMethod: undefined,
+    coverFees: false,
+  });
+  const [step, setStep] = useState(1);
 
   const updateFormData = (data: Partial<DonationFormData>) => {
-    setFormData((prev) => ({ ...prev, ...data }))
-  }
+    setFormData((prev) => ({ ...prev, ...data }));
+  };
 
   const nextStep = () => {
-    setStep((prev) => prev + 1)
-  }
+    setStep((prev) => prev + 1);
+  };
 
   const prevStep = () => {
-    setStep((prev) => prev - 1)
-  }
+    setStep((prev) => prev - 1);
+  };
 
   const renderStep = () => {
     switch (step) {
       case 1:
-        return <DonationDetails formData={formData} updateFormData={updateFormData} onNext={nextStep} />
+        // Pass donationTypes to DonationDetails
+        return <DonationDetails formData={formData} updateFormData={updateFormData} onNext={nextStep} donationTypes={donationTypes} />;
       case 2:
-        return <DonationInfo formData={formData} updateFormData={updateFormData} onNext={nextStep} onBack={prevStep} />
+        return <DonationInfo formData={formData} updateFormData={updateFormData} onNext={nextStep} onBack={prevStep} />;
       case 3:
-        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} />
+        // Pass churchId to DonationPayment
+        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} />;
       default:
-        return <div>Something went wrong.</div>
+        return <div>Something went wrong.</div>;
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
       <Stepper currentStep={step} />
       {renderStep()}
     </div>
-  )
+  );
 }
 
 interface StepperProps {

@@ -114,17 +114,57 @@ export async function POST(req: Request) {
 
       console.log(`Processing organization.created for Org ID: ${orgId}`);
       try {
-        await prisma.church.create({
+        // Generate slug from organization name
+        let slug = name
+          .toString()        // Ensure name is a string
+          .toLowerCase()     // Convert to lowercase
+          .trim()            // Remove leading/trailing whitespace
+          .replace(/\s+/g, '-') // Replace spaces with hyphens
+          .replace(/[^\w-]+/g, '') // Remove all non-word chars (keeps alphanumeric, _, -)
+          .replace(/--+/g, '-');      // Replace multiple hyphens with a single hyphen
+
+        // Fallback for empty slug (e.g., if name was purely special characters or empty)
+        if (!slug) {
+          // Create a simple slug from the organization ID part (e.g., org_123xyz -> org-123xyz)
+          slug = `org-${orgId.startsWith('org_') ? orgId.substring(4) : orgId}`;
+        }
+        // Note: Prisma's @unique constraint on 'slug' will handle collisions.
+        // A more advanced system might check for existing slugs and append a counter if a collision occurs.
+
+        const newChurch = await prisma.church.create({
           data: {
             clerkOrgId: orgId,
-            name: name,
+            name: name, // Original name from Clerk
+            slug: slug, // Generated slug
             // Add other default Church fields if necessary
-          } 
+          }
         });
-        console.log(`Successfully created church for Org ID: ${orgId}`);
+        console.log(`Successfully created church for Org ID: ${orgId} with internal ID: ${newChurch.id}`);
+
+        // Now, create default donation types for the new church
+        const defaultDonationTypesData = [
+          {
+            name: "Tithe",
+            description: "Regular giving to support the church's mission and ministries.",
+            churchId: newChurch.id, // Link to the newly created church
+            isRecurringAllowed: true,
+          },
+          {
+            name: "Offering",
+            description: "General contributions and special one-time gifts.",
+            churchId: newChurch.id, // Link to the newly created church
+            isRecurringAllowed: true,
+          },
+        ];
+
+        await prisma.donationType.createMany({
+          data: defaultDonationTypesData,
+          skipDuplicates: true, // Good practice, though should not happen for new church
+        });
+        console.log(`Successfully created default donation types for church ID: ${newChurch.id}`);
       } catch (error) {
-        console.error(`Error creating church for Org ID ${orgId}:`, error);
-        return new Response('Error occurred -- creating church', { status: 500 });
+        console.error(`Error in organization.created processing for Org ID ${orgId} (church or default donation types):`, error);
+        return new Response('Error occurred -- processing organization.created event', { status: 500 });
       }
     }
   }

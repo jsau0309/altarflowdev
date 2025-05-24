@@ -45,6 +45,13 @@
       "failed": "Fallado",
       "cancelled": "Cancelado"
     },
+    "funds": {
+      "offering": "Ofrenda",
+      "tithe": "Diezmo",
+      "general_fund": "Fondo General",
+      "missions": "Misiones",
+      "building_fund": "Fondo de Construcción"
+    },
     
     "donationsContent": {
       "subtitle": "Rastrea y administra tus donaciones de la iglesia",
@@ -85,8 +92,8 @@
     
     "donationDetails": {
       "amountPrompt": "Ingresa una cantidad o haz una selección rápida abajo",
-      "selectCampaignLabel": "Selecciona una campaña",
-      "selectCampaignPlaceholder": "Selecciona una campaña"
+      "selectFundLabel": "Seleccione un Fondo",
+      "noFundsAvailable": "No hay fondos disponibles"
     },
     
     "newDonationModal": {

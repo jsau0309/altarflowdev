@@ -11,15 +11,16 @@ import { Gift } from "lucide-react"
 import { useTranslation } from 'react-i18next'
 
 interface DonationPaymentProps {
-  formData: DonationFormData
-  updateFormData: (data: Partial<DonationFormData>) => void
-  onBack: () => void
+  formData: DonationFormData;
+  updateFormData: (data: Partial<DonationFormData>) => void;
+  onBack: () => void;
+  churchId: string; // ADDED churchId prop
 }
 
-export default function DonationPayment({ formData, updateFormData, onBack }: DonationPaymentProps) {
-  const [processingFee, setProcessingFee] = useState<number>(0)
-  const [totalAmount, setTotalAmount] = useState<number>(formData.amount || 0)
-  const { t } = useTranslation(['donations', 'common', 'campaigns'])
+export default function DonationPayment({ formData, updateFormData, onBack, churchId }: DonationPaymentProps) { // Destructure churchId
+  const [processingFee, setProcessingFee] = useState<number>(0);
+  const [totalAmount, setTotalAmount] = useState<number>(formData.amount || 0);
+  const { t } = useTranslation(['donations', 'common'/*, 'campaigns'*/]); // campaigns might not be needed or adjust namespace
 
   // Calculate Stripe processing fee (2.9% + 30¢)
   useEffect(() => {
@@ -35,10 +36,32 @@ export default function DonationPayment({ formData, updateFormData, onBack }: Do
     }
   }, [formData.amount, formData.coverFees])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Here you would integrate with Stripe or another payment processor
-    alert(t('donations:donationPayment.thankYou', "Thank you for your donation!"))
+  const handleSubmit = async (e: React.FormEvent) => { // Make async if we were to call API
+    e.preventDefault();
+    
+    // Data to be sent to /api/donations/initiate
+    const donationPayload = {
+      churchId: churchId,
+      donationTypeId: formData.donationTypeId,
+      amount: formData.amount, // This is the original amount before fees
+      currency: "usd", // Assuming USD for now
+      coverFees: formData.coverFees,
+      // Optional donor details (if collected and not anonymous)
+      firstName: formData.isAnonymous ? undefined : formData.firstName,
+      lastName: formData.isAnonymous ? undefined : formData.lastName,
+      email: formData.isAnonymous ? undefined : formData.email,
+      // paymentMethod will be handled by Stripe Elements, client_secret is returned by initiate
+    };
+
+    console.log("Submitting donation with payload:", donationPayload);
+    // TODO:
+    // 1. Call your `/api/donations/initiate` endpoint with donationPayload
+    // 2. Get client_secret and transactionId back
+    // 3. Use client_secret with Stripe Elements to confirm the payment
+    // 4. On successful payment confirmation by Stripe, redirect to a thank you page or show success message.
+    //    The webhook will handle updating the transaction status.
+
+    alert(t('donations:donationPayment.thankYou', "Thank you for your donation! (Simulation)"));
   }
 
   const handleCoverFeesChange = (checked: boolean) => {
@@ -58,7 +81,10 @@ export default function DonationPayment({ formData, updateFormData, onBack }: Do
       <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
           <span>{t('donations:donationPayment.donateToLabel', 'Donation to:')}</span>
-          <span className="font-medium text-gray-900 dark:text-white">{formData.campaignName || t('campaigns:campaign.tithe', 'Tithe')}</span>
+          {/* UPDATED to use donationTypeName */}
+          <span className="font-medium text-gray-900 dark:text-white">
+            {formData.donationTypeName || t('donations:donationDetails.selectFundPlaceholder', 'Selected Fund')}
+          </span>
         </div>
         {formData.donationType === "recurring" && (
           <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">

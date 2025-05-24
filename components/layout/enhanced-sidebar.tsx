@@ -267,7 +267,7 @@ const Sidebar = React.forwardRef<
               <SidebarHeader>
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold p-2">
                   <Image 
-                    src="/images/altarflow-logo.png" 
+                    src="/images/Altarflow.svg"    
                     alt={t('common:appName', 'Altarflow') + " Logo"}
                     width={176} 
                     height={35} 
@@ -342,7 +342,7 @@ const Sidebar = React.forwardRef<
               )}>
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
                   <Image 
-                    src="/images/altarflow-logo.png" 
+                    src="/images/Altarflow.svg" 
                     alt={t('common:appName', 'Altarflow') + " Logo"}
                     width={state === 'collapsed' ? 40 : 176}
                     height={state === 'collapsed' ? 32 : 35}

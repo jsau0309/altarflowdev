@@ -45,6 +45,13 @@
     "failed": "Failed",
     "cancelled": "Cancelled"
   },
+  "funds": {
+    "offering": "Offering",
+    "tithe": "Tithe",
+    "general_fund": "General Fund",
+    "missions": "Missions",
+    "building_fund": "Building Fund"
+  },
   
   "donationsContent": {
     "subtitle": "Track and manage your church donations",
@@ -85,8 +92,8 @@
   
   "donationDetails": {
     "amountPrompt": "Enter an amount or make a quick selection below",
-    "selectCampaignLabel": "Select a campaign",
-    "selectCampaignPlaceholder": "Select a campaign"
+    "selectFundLabel": "Select a Fund",
+    "noFundsAvailable": "No funds available"
   },
   
   "newDonationModal": {

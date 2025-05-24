@@ -1,12 +1,14 @@
 "use client"
 
-import type React from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import type { DonationFormData } from "./donation-form"
-import { useTranslation } from 'react-i18next'
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { DonationFormData } from "./donation-form";
+import { useTranslation } from 'react-i18next';
+import { PlaceKit } from '@placekit/autocomplete-react';
+import '@placekit/autocomplete-js/dist/placekit-autocomplete.css'; // Import PlaceKit CSS
 
 interface DonationInfoProps {
   formData: DonationFormData
@@ -17,6 +19,55 @@ interface DonationInfoProps {
 
 export default function DonationInfo({ formData, updateFormData, onNext, onBack }: DonationInfoProps) {
   const { t } = useTranslation(['donations', 'members', 'common']);
+  const placekitApiKey = process.env.NEXT_PUBLIC_PLACEKIT_API_KEY || "";
+  console.log('PlaceKit API Key in DonationInfo:', placekitApiKey);
+  const [placekitInputValue, setPlacekitInputValue] = useState(formData.address || '');
+
+  // Sync local input value if formData.address changes from an external source (e.g., initial load or after picking an address)
+  useEffect(() => {
+    if (formData.address !== placekitInputValue) {
+      console.log(`useEffect (formData.address changed): setting placekitInputValue from '${placekitInputValue}' to '${formData.address || ''}'`);
+      setPlacekitInputValue(formData.address || '');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.address]); // ONLY depend on formData.address
+
+  const handlePlaceKitInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event && event.target ? event.target.value : '';
+    console.log(`handlePlaceKitInputChange: typed value is '${newValue}', current placekitInputValue is '${placekitInputValue}'`);
+
+    setPlacekitInputValue(newValue); // Update local state for immediate visual feedback
+
+    const formDataUpdate: Partial<DonationFormData> = { address: newValue };
+
+    // If user is typing (and thus potentially invalidating a previously picked structured address),
+    // clear the structured parts.
+    if (formData.street || formData.city || formData.state || formData.zipCode || formData.country) {
+      formDataUpdate.street = '';
+      formDataUpdate.city = '';
+      formDataUpdate.state = '';
+      formDataUpdate.zipCode = '';
+      formDataUpdate.country = '';
+    }
+    console.log('handlePlaceKitInputChange calling updateFormData with:', formDataUpdate);
+    updateFormData(formDataUpdate); // Update parent state
+  };
+
+  const handleAddressPick = (value: string, item: any, index?: number) => {
+    console.log('PlaceKit onPick value (input content):', value);
+    console.log('PlaceKit onPick item:', item);
+    const pickedAddress = {
+      address: value, // Use the full string from PlaceKit's input
+      street: (`${item.street?.number || ''} ${item.street?.suffix || ''}`).trim() || item.name || '', // Construct street from parts
+      city: item.city || '',
+      state: item.administrative_level_1 || item.state || '',
+      zipCode: item.zip_code || item.postcode || '',
+      country: item.country_code?.toUpperCase() || item.country?.toUpperCase() || '',
+    };
+    updateFormData(pickedAddress); // This will change formData.address
+    // The useEffect listening to formData.address will now update placekitInputValue.
+    // No need to call setPlacekitInputValue(value) directly here.
+  };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,11 +140,29 @@ export default function DonationInfo({ formData, updateFormData, onNext, onBack 
 
         <div className="space-y-2">
           <Label htmlFor="address">{t('members:address', 'Address')}</Label>
-          <Input
-            id="address"
-            value={formData.address || ""}
-            onChange={(e) => updateFormData({ address: e.target.value })}
-          />
+          {placekitApiKey ? (
+            <PlaceKit
+              apiKey={placekitApiKey}
+              value={placekitInputValue} // Controlled component: value prop
+              onChange={handlePlaceKitInputChange} // Controlled component: onChange prop
+              onPick={handleAddressPick}
+              options={{
+                countries: ['US', 'CA'] // Optional: Restrict to US and Canada, adjust as needed
+                // types: ['address'] // Temporarily removed to resolve lint error
+              }}
+            />  
+          ) : (
+            <Input
+              id="address-fallback"
+              value={formData.address || ""}
+              onChange={(e) => updateFormData({ address: e.target.value, street: e.target.value })} // Basic fallback
+              placeholder={t('members:addressPlaceholder', 'Address (API key missing)')}
+              disabled
+            />
+          )}
+          {/* Hidden inputs to ensure formData still has values for city, state, etc., if needed for validation or display elsewhere */}
+          {/* Or, you can add separate visible, read-only inputs for these if you want the user to see them after selection */}
+          {/* For now, they are just in the state */}
         </div>
       </div>
 

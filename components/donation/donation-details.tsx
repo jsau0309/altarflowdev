@@ -5,42 +5,41 @@ import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Label } from "@/components/ui/label"
 import type { DonationFormData } from "./donation-form"
 import { useTranslation } from 'react-i18next'
+import { DonationType } from "@prisma/client"; // Added import
 
 interface DonationDetailsProps {
-  formData: DonationFormData
-  updateFormData: (data: Partial<DonationFormData>) => void
-  onNext: () => void
+  formData: DonationFormData;
+  updateFormData: (data: Partial<DonationFormData>) => void;
+  onNext: () => void;
+  donationTypes: DonationType[]; // Added new prop
 }
 
-export default function DonationDetails({ formData, updateFormData, onNext }: DonationDetailsProps) {
-  const [amount, setAmount] = useState<string>(formData.amount?.toString() || "")
-  const { t } = useTranslation(['donations', 'campaigns', 'common'])
+export default function DonationDetails({ formData, updateFormData, onNext, donationTypes }: DonationDetailsProps) { // Destructure donationTypes
+  const [amount, setAmount] = useState<string>(formData.amount === 0 ? "" : (formData.amount?.toString() || ""));
+  const { t } = useTranslation(['donations', /* 'campaigns', */ 'common']); // 'campaigns' might be less relevant now, or adjust namespace
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateFormData({ amount: Number.parseFloat(amount) || 0 })
-    onNext()
-  }
+    e.preventDefault();
+    updateFormData({ amount: Number.parseFloat(amount) || 0 });
+    onNext();
+  };
 
   const handleAmountChange = (value: string) => {
-    const sanitizedValue = value.replace(/[^\d.]/g, "")
-    const parts = sanitizedValue.split(".")
-    const formattedValue = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitizedValue
-    setAmount(formattedValue)
-  }
+    const sanitizedValue = value.replace(/[^\d.]/g, "");
+    const parts = sanitizedValue.split(".");
+    const formattedValue = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitizedValue;
+    setAmount(formattedValue);
+  };
 
   const handleQuickAmount = (quickAmount: number) => {
-    setAmount(quickAmount.toString())
-  }
+    setAmount(quickAmount.toString());
+  };
 
-  const handleCampaignChange = (value: string) => {
-    const campaignName = value === "tithe" ? t('campaigns:campaign.tithe', 'Tithe') : t('campaigns:campaign.general', 'General Offering')
-    updateFormData({ campaignId: value, campaignName })
-  }
+  // REMOVED handleCampaignChange function
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -61,20 +60,17 @@ export default function DonationDetails({ formData, updateFormData, onNext }: Do
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="frequency">{t('donations:frequency', 'Frequency')}</Label>
-              <Select
-                value={formData.frequency || "monthly"}
-                onValueChange={(value) => updateFormData({ frequency: value as any })}
+              <select
+                id="frequency"
+                value={formData.frequency}
+                onChange={(e) => updateFormData({ frequency: e.target.value as any })}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <SelectTrigger id="frequency">
-                  <SelectValue placeholder={t('common:selectFrequency', 'Select frequency')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">{t('donations:frequencies.weekly', 'Weekly')}</SelectItem>
-                  <SelectItem value="monthly">{t('donations:frequencies.monthly', 'Monthly')}</SelectItem>
-                  <SelectItem value="quarterly">{t('donations:frequencies.quarterly', 'Quarterly')}</SelectItem>
-                  <SelectItem value="annually">{t('donations:frequencies.annually', 'Annually')}</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="weekly">{t('donations:frequencies.weekly', 'Weekly')}</option>
+                <option value="monthly">{t('donations:frequencies.monthly', 'Monthly')}</option>
+                <option value="quarterly">{t('donations:frequencies.quarterly', 'Quarterly')}</option>
+                <option value="annually">{t('donations:frequencies.annually', 'Annually')}</option>
+              </select>
             </div>
           </div>
         </TabsContent>
@@ -112,22 +108,43 @@ export default function DonationDetails({ formData, updateFormData, onNext }: Do
         </Button>
       </div>
 
+      {/* REPLACED the old campaign Select with this new one for Donation Types */}
       <div className="space-y-2">
-        <Label htmlFor="campaign">{t('donations:donationDetails.selectCampaignLabel', 'Select a campaign')}</Label>
-        <Select value={formData.campaignId || "tithe"} onValueChange={handleCampaignChange}>
-          <SelectTrigger id="campaign">
-            <SelectValue placeholder={t('donations:donationDetails.selectCampaignPlaceholder', 'Select a campaign')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="tithe">{t('campaigns:campaign.tithe', 'Tithe')}</SelectItem>
-            <SelectItem value="general">{t('campaigns:campaign.general', 'General Offering')}</SelectItem>
-          </SelectContent>
-        </Select>
+        <Label htmlFor="donationTypeSelect">{t('donations:donationDetails.selectFundLabel', 'Select a Fund')}</Label>
+        <select
+          id="donationTypeSelect"
+          value={formData.donationTypeId}
+          onChange={(e) => {
+            const selectedId = e.target.value;
+            const selectedDonationType = donationTypes.find(dt => dt.id === selectedId);
+            updateFormData({
+              donationTypeId: selectedId,
+              donationTypeName: selectedDonationType ? selectedDonationType.name : undefined
+            });
+          }}
+          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="">{/* Intentionally empty for no visible placeholder text */}</option>
+          {donationTypes.map((type) => {
+            // Generate a key from the fund name (e.g., "General Fund" -> "general_fund")
+            const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
+            return (
+              <option key={type.id} value={type.id}>
+                {t(`donations:funds.${fundKey}`, type.name) /* Translate, fallback to original name */}
+              </option>
+            );
+          })}
+          {donationTypes.length === 0 && (
+            <option value="no-types" disabled>
+              {t('donations:donationDetails.noFundsAvailable', 'No funds available')}
+            </option>
+          )}
+        </select>
       </div>
 
       <Button type="submit" className="w-full">
         {t('common:next', 'Next')}
       </Button>
     </form>
-  )
+  );
 }

@@ -56,6 +56,7 @@ model Church {
   id         String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
   clerkOrgId String?  @unique // Added: Clerk Organization ID (initially optional, then required after sync)
   name       String // Name of the church
+  slug       String   @unique // URL-friendly identifier for the church
   address    String? // Added: Physical address of the church
   phone      String? // Added: Primary phone number
   email      String? // Added: Primary contact email
@@ -75,9 +76,63 @@ model Church {
   members   Member[] // A church has many members
   campaigns Campaign[] // A church has many campaigns
   flows     Flow[] // Add back-relation for flows
+  donationTypes        DonationType[]        // A church has many donation types
+  donationTransactions DonationTransaction[] // A church has many donation transactions
   
   // Stripe Connect account information (one-to-one relation)
   stripeConnectAccount StripeConnectAccount?
+}
+
+// Represents the different categories of donations a church can offer
+model DonationType {
+  id                  String    @id @default(cuid())
+  churchId            String    @db.Uuid // Foreign key to Church.id
+  name                String    // e.g., "Tithe", "Offering", "Building Fund"
+  description         String?
+  isRecurringAllowed  Boolean   @default(true) // Can this type be a recurring donation?
+  // Consider if you need a defaultAmount or suggestedAmounts
+  // isActive            Boolean   @default(true) // For churches to enable/disable types later
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  church              Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  donations           DonationTransaction[] // Relation to DonationTransaction model (defined in Step 1.2)
+
+  @@unique([churchId, name]) // Ensure unique type names per church
+  @@index([churchId]) // Index for faster lookups by churchId
+}
+
+
+// Represents an individual donation transaction
+model DonationTransaction {
+  id                      String    @id @default(cuid())
+  churchId                String    @db.Uuid // Foreign key to Church.id
+  donationTypeId          String    // Foreign key to DonationType.id
+  donorClerkId            String?   // If donations are linked to logged-in users (Clerk ID)
+  donorName               String?   // If anonymous or guest donations are allowed
+  donorEmail              String?   // For receipts, if anonymous or guest
+  amount                  Int       // In cents
+  currency                String    // e.g., "usd"
+  status                  String    // e.g., "pending", "succeeded", "failed", "requires_action"
+  paymentMethodType       String?   // e.g., "card", "us_bank_account"
+  isRecurring             Boolean   @default(false)
+  stripePaymentIntentId   String?   @unique // For one-time payments or initial setup of subscriptions
+  stripeSubscriptionId    String?   @unique // For recurring payments
+  stripeCustomerId        String?   // Stripe Customer ID, useful for managing payment methods and subscriptions
+  
+  transactionDate         DateTime  @default(now())
+  processedAt             DateTime? // When webhook confirmed success
+
+  church                  Church        @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  donationType            DonationType  @relation(fields: [donationTypeId], references: [id], onDelete: Restrict) // Prevent deleting type if donations exist
+  // userProfile             UserProfile? @relation(fields: [donorClerkId], references: [clerkId]) // If linking to user profiles
+
+  @@index([churchId])
+  @@index([donationTypeId])
+  @@index([donorClerkId])
+  @@index([stripePaymentIntentId])
+  @@index([stripeSubscriptionId])
 }
 
 // Represents an authenticated user within our application context

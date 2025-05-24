@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:seed": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.18.0",
     "@clerk/themes": "^2.2.13",
     "@hookform/resolvers": "^3.10.0",
+    "@placekit/autocomplete-react": "^2.2.2",
     "@prisma/client": "^6.6.0",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.5",
@@ -79,6 +81,9 @@
     "twilio": "^5.6.0",
     "vaul": "^1.1.2",
     "zod": "^3.24.1"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed.ts"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.6.0",
