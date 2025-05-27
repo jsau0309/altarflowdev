@@ -93,7 +93,10 @@
   "donationDetails": {
     "amountPrompt": "Enter an amount or make a quick selection below",
     "selectFundLabel": "Select a Fund",
-    "noFundsAvailable": "No funds available"
+    "noFundsAvailable": "No funds available",
+    "coverFeesLabel": "I'd like to help cover the processing fees.",
+    "processingFee": "Processing Fee:",
+    "totalDonation": "Total Donation:"
   },
   
   "newDonationModal": {

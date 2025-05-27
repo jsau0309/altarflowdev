@@ -93,7 +93,10 @@
     "donationDetails": {
       "amountPrompt": "Ingresa una cantidad o haz una selección rápida abajo",
       "selectFundLabel": "Seleccione un Fondo",
-      "noFundsAvailable": "No hay fondos disponibles"
+      "noFundsAvailable": "No hay fondos disponibles",
+    "coverFeesLabel": "Me gustaria cubrir los cargos por procesamiento.",
+    "processingFee": "Cargo de Procesamiento:",
+    "totalDonation": "Donacion Total:"
     },
     
     "newDonationModal": {

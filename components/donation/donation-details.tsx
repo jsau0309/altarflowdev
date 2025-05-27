@@ -2,8 +2,9 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { Label } from "@/components/ui/label"
@@ -20,10 +21,25 @@ interface DonationDetailsProps {
 
 export default function DonationDetails({ formData, updateFormData, onNext, donationTypes }: DonationDetailsProps) { // Destructure donationTypes
   const [amount, setAmount] = useState<string>(formData.amount === 0 ? "" : (formData.amount?.toString() || ""));
-  const { t } = useTranslation(['donations', /* 'campaigns', */ 'common']); // 'campaigns' might be less relevant now, or adjust namespace
+  const { t } = useTranslation(['donations', 'common']);
+  const [calculatedFee, setCalculatedFee] = useState<number>(0);
+  const [totalWithFees, setTotalWithFees] = useState<number>(0);
+
+  const isFundSelected = !!formData.donationTypeId;
+  const isAmountValid = (Number.parseFloat(amount) || 0) > 0;
+  const canProceed = isFundSelected && isAmountValid;
+
+  const oneTimeText = t('donations:types.oneTime', 'One Time');
+  const recurringText = t('donations:types.recurring', 'Recurring');
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Double-check conditions, though button should be disabled
+    if (!canProceed) {
+      console.warn('Attempted to submit with invalid form data. Fund selected:', isFundSelected, 'Amount valid:', isAmountValid);
+      return; 
+    }
     updateFormData({ amount: Number.parseFloat(amount) || 0 });
     onNext();
   };
@@ -41,6 +57,19 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
 
   // REMOVED handleCampaignChange function
 
+  useEffect(() => {
+    const numericAmount = Number.parseFloat(amount) || 0;
+    if (numericAmount > 0 && formData.coverFees) {
+      const fee = (numericAmount * 0.029) + 0.30;
+      const roundedFee = Math.round(fee * 100) / 100; // Round to 2 decimal places
+      setCalculatedFee(roundedFee);
+      setTotalWithFees(numericAmount + roundedFee);
+    } else {
+      setCalculatedFee(0);
+      setTotalWithFees(numericAmount > 0 ? numericAmount : 0); // Ensure totalWithFees is 0 if amount is 0
+    }
+  }, [amount, formData.coverFees]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs
@@ -50,8 +79,8 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
         className="w-full"
       >
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="one-time">{t('donations:donations.types.oneTime', 'One Time')}</TabsTrigger>
-          <TabsTrigger value="recurring">{t('donations:donations.types.recurring', 'Recurring')}</TabsTrigger>
+          <TabsTrigger value="one-time">{oneTimeText}</TabsTrigger>
+          <TabsTrigger value="recurring">{recurringText}</TabsTrigger>
         </TabsList>
         <TabsContent value="one-time" className="pt-4">
           {/* One-time donation options */}
@@ -142,7 +171,31 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
         </select>
       </div>
 
-      <Button type="submit" className="w-full">
+      <div className="items-top flex space-x-2">
+        <Checkbox 
+          id="coverFees"
+          checked={!!formData.coverFees}
+          onCheckedChange={(checked) => {
+            updateFormData({ coverFees: checked === true });
+          }}
+        />
+        <div className="grid gap-1.5 leading-none">
+          <label
+            htmlFor="coverFees"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            {t('donations:donationDetails.coverFeesLabel', "I'd like to help cover the processing fees.")}
+          </label>
+          {formData.coverFees && calculatedFee > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {t('donations:donationDetails.processingFee', 'Processing Fee:')} ${calculatedFee.toFixed(2)}<br />
+              {t('donations:donationDetails.totalDonation', 'Total Donation:')} ${totalWithFees.toFixed(2)}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <Button type="submit" className="w-full" disabled={!canProceed}>
         {t('common:next', 'Next')}
       </Button>
     </form>

@@ -112,7 +112,8 @@ model DonationTransaction {
   donorClerkId            String?   // If donations are linked to logged-in users (Clerk ID)
   donorName               String?   // If anonymous or guest donations are allowed
   donorEmail              String?   // For receipts, if anonymous or guest
-  amount                  Int       // In cents
+  amount                  Int       // Amount in cents (e.g., 1000 for $10.00)
+  processingFeeCoveredByDonor  Int? @default(0) // Amount donor added for fees (in cents), optional
   currency                String    // e.g., "usd"
   status                  String    // e.g., "pending", "succeeded", "failed", "requires_action"
   paymentMethodType       String?   // e.g., "card", "us_bank_account"
@@ -120,6 +121,7 @@ model DonationTransaction {
   stripePaymentIntentId   String?   @unique // For one-time payments or initial setup of subscriptions
   stripeSubscriptionId    String?   @unique // For recurring payments
   stripeCustomerId        String?   // Stripe Customer ID, useful for managing payment methods and subscriptions
+  idempotencyKey          String?   @unique // For idempotency
   
   transactionDate         DateTime  @default(now())
   processedAt             DateTime? // When webhook confirmed success

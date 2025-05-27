@@ -60,6 +60,7 @@ export default async function DonatePage({ params }: DonatePageProps) {
             churchId={church.id}
             churchName={church.name}
             donationTypes={donationTypes}
+            churchSlug={churchSlug} // <<< Add this line
           />
         </div>
       </div>

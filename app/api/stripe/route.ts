@@ -443,7 +443,7 @@ async function handleCreateAccount(
       console.log(`[DEBUG] Created new account link for existing Stripe account: ${existingStripeConnectAccount.stripeAccountId}`);
       return NextResponse.json({
         accountId: existingStripeConnectAccount.stripeAccountId,
-        onboardingUrl: accountLink.url,
+        url: accountLink.url, // Changed key from onboardingUrl to url
         message: 'Stripe account already exists. New onboarding link generated.',
       });
     }
@@ -497,8 +497,10 @@ async function handleCreateAccount(
     });
     console.log(`[DEBUG] StripeConnectAccount record inserted into DB for new Stripe Account ID: ${newStripeAccount.id} and Church (clerkOrgId): ${clerkOrgId}`);
 
+    // Generate account link for the newly created account
     const finalRefreshUrlNew = customRefreshUrl || passedDefaultRefreshUrl;
     const finalReturnUrlNew = customReturnUrl || passedDefaultReturnUrl;
+
     console.log('[handleCreateAccount - New Account] Values for account link creation:');
     console.log('[handleCreateAccount - New Account] customRefreshUrl:', customRefreshUrl);
     console.log('[handleCreateAccount - New Account] defaultRefreshUrl:', passedDefaultRefreshUrl);
@@ -508,16 +510,18 @@ async function handleCreateAccount(
     console.log('[handleCreateAccount - New Account] FINAL return_url for Stripe:', finalReturnUrlNew);
     console.log('[handleCreateAccount - New Account] Stripe Account ID for link:', newStripeAccount.id);
 
-    const accountLink = await stripe.accountLinks.create({
+    const newAccountLink = await stripe.accountLinks.create({
       account: newStripeAccount.id,
       refresh_url: finalRefreshUrlNew,
       return_url: finalReturnUrlNew,
       type: 'account_onboarding',
     });
+    console.log(`[DEBUG] Created account link for new Stripe account: ${newStripeAccount.id}`);
 
     return NextResponse.json({
       accountId: newStripeAccount.id,
-      onboardingUrl: accountLink.url,
+      url: newAccountLink.url, // Use 'url' key
+      message: 'New Stripe account created and onboarding link generated.',
     });
 
   } catch (error) {

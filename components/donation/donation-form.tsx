@@ -13,6 +13,7 @@ interface DonationFormProps {
   churchId: string;
   churchName: string; // Will be available if needed inside the form
   donationTypes: DonationType[];
+  churchSlug: string; // <<< Add this
 }
 
 // Updated DonationFormData type
@@ -41,7 +42,7 @@ export type DonationFormData = {
 
 
 
-export default function DonationForm({ churchId, churchName, donationTypes }: DonationFormProps) {
+export default function DonationForm({ churchId, churchName, donationTypes, churchSlug }: DonationFormProps) {
   const [formData, setFormData] = useState<DonationFormData>({
     amount: 0,
     donationType: "one-time",
@@ -86,7 +87,7 @@ export default function DonationForm({ churchId, churchName, donationTypes }: Do
         return <DonationInfo formData={formData} updateFormData={updateFormData} onNext={nextStep} onBack={prevStep} />;
       case 3:
         // Pass churchId to DonationPayment
-        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} />;
+        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} churchSlug={churchSlug} />; // <<< Add churchSlug={churchSlug}
       default:
         return <div>Something went wrong.</div>;
     }

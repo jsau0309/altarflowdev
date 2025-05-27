@@ -49,15 +49,21 @@ export function StripeConnectButton({
   const [isLoading, setIsLoading] = useState(false);
   const [currentAccount, setCurrentAccount] = useState<StripeAccount | null>(accountData);
   const { t } = useTranslation(['banking', 'common']);
-  
-  // Determine the effective status based on props and account data
-  const effectiveStatus = React.useMemo<EffectiveStatus>(() => {
-    // First check if we have account data from props or state
-    const account = accountData || currentAccount;
-    
-    // If we have account data, check its status first
+  const isMountedRef = React.useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Centralized logic for button appearance and behavior
+  const getButtonConfigLogic = () => {
+    const account = currentAccount || accountData;
+
     if (account?.stripeAccountId) {
-      console.log('Account status:', {
+      console.log('Stripe Account Data for Button Config:', {
         id: account.id,
         stripeAccountId: account.stripeAccountId,
         verificationStatus: account.verificationStatus,
@@ -65,179 +71,245 @@ export function StripeConnectButton({
         payouts_enabled: account.payouts_enabled,
         details_submitted: account.details_submitted,
         requirementsCurrentlyDue: account.requirementsCurrentlyDue,
-        requirementsDisabledReason: account.requirementsDisabledReason
+        requirementsDisabledReason: account.requirementsDisabledReason,
       });
-      
-      // Use the verificationStatus from the account if available
-      if (account.verificationStatus) {
-        switch (account.verificationStatus) {
-          case 'verified':
-            return 'connected';
-          case 'pending':
-          case 'action_required':
-          case 'restricted':
-            return 'pending_verification';
-          case 'unverified':
-          default:
-            return 'not_connected';
-        }
-      }
-      
-      // Fallback to the old status check if verificationStatus is not available
-      if (account.charges_enabled && account.payouts_enabled) {
-        return 'connected';
-      }
-      
-      if (account.details_submitted) {
-        return 'pending_verification';
-      }
+    }
+
+    if (!account || !account.stripeAccountId) {
+      return {
+        text: t('banking:connectWithStripe'),
+        variant: 'default' as const,
+        icon: <BanknoteIcon className="h-4 w-4" />,
+        tooltip: t('banking:connectWithStripeTooltip'),
+        actionType: 'createAccountLink' as const,
+      };
+    }
+
+    const {
+      verificationStatus,
+      requirementsCurrentlyDue,
+      requirementsEventuallyDue, // Destructure this field
+      requirementsDisabledReason,
+      charges_enabled,
+      payouts_enabled,
+      details_submitted
+    } = account;
+
+    // Ensure requirements arrays are always arrays, even if null/undefined from props/API
+    const currentReqs = Array.isArray(requirementsCurrentlyDue) ? requirementsCurrentlyDue : [];
+    const eventualReqs = Array.isArray(requirementsEventuallyDue) ? requirementsEventuallyDue : [];
+
+    if (verificationStatus === 'restricted') {
+      return {
+        text: t('banking:accountRestricted'),
+        variant: 'destructive' as const,
+        icon: <AlertTriangle className="h-4 w-4" />,
+        tooltip: t('banking:accountRestrictedTooltip', {
+          reason: requirementsDisabledReason || t('banking:unknownReason'),
+        }),
+        actionType: 'createAccountLink' as const, // Should go to onboarding to fix restriction
+      };
+    }
+
+    // If there are current requirements, or if status is action_required, or if there are eventual requirements
+    // (The 'restricted' case is handled by the preceding 'if' block)
+    if (currentReqs.length > 0 || verificationStatus === 'action_required' || eventualReqs.length > 0) {
+      // Determine the requirements to display in the tooltip - prioritize current, then eventual
+      const displayReqs = currentReqs.length > 0 ? currentReqs : eventualReqs;
+      return {
+        text: t('banking:actionRequired'),
+        variant: 'outline' as const,
+        icon: <AlertCircle className="h-4 w-4 text-yellow-500" />,
+        tooltip: t('banking:actionRequiredTooltip', {
+          requirements: displayReqs.length > 0
+            ? displayReqs.join(', ')
+            : t('banking:additionalInfoNeeded'),
+        }),
+        actionType: 'createAccountLink' as const, // Should go to onboarding to provide required info
+      };
+    }
+
+    if (verificationStatus === 'pending') {
+      return {
+        text: t('banking:verificationPending'),
+        variant: 'outline' as const,
+        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        tooltip: t('banking:verificationTooltip'),
+        actionType: 'createLoginLink' as const,
+      };
+    }
+
+    if (verificationStatus === 'verified' && charges_enabled && payouts_enabled) {
+      return {
+        text: t('banking:viewDashboard'),
+        variant: 'default' as const,
+        icon: <ExternalLink className="h-4 w-4" />,
+        tooltip: t('banking:viewDashboardTooltip'),
+        actionType: 'createLoginLink' as const, 
+      };
+    }
+
+    // Fallback for intermediate states (e.g., verified but payouts/charges not active, or details_submitted but not fully verified)
+    if (details_submitted) { // Covers verified but not fully operational, or unverified but started onboarding
+      return {
+        text: t('banking:completeVerification'),
+        variant: 'outline' as const,
+        icon: <AlertCircle className="h-4 w-4 text-yellow-500" />,
+        tooltip: t('banking:completeVerificationTooltip'),
+        actionType: 'createAccountLink' as const, // Should go to onboarding to complete verification
+      };
     }
     
-    // If explicitly set to connected via props, trust that
-    if (accountStatus === 'connected') return 'connected';
-    
-    // Default to not connected
-    return 'not_connected';
-  }, [accountStatus, accountData, currentAccount]);
-  
+    // Default: Connect (e.g. 'unverified' and no details_submitted)
+    return {
+      text: t('banking:connectWithStripe'),
+      variant: 'default' as const,
+      icon: <BanknoteIcon className="h-4 w-4" />,
+      tooltip: t('banking:connectWithStripeTooltip'),
+      actionType: 'createAccountLink' as const,
+    };
+  };
+
+  const buttonConfig = React.useMemo(getButtonConfigLogic, [currentAccount, accountData, t]);
+
+  // Determine if polling is needed (only when Stripe status is 'pending')
+  const shouldPoll = React.useMemo(() => {
+    const account = currentAccount || accountData;
+    return account?.verificationStatus === 'pending';
+  }, [currentAccount, accountData]);
+
   // Poll for account status updates when in pending state
   useEffect(() => {
-    if (effectiveStatus !== 'pending_verification') return;
-    
-    const POLLING_INTERVAL = 10000; // 10 seconds for more responsive updates
-    let isMounted = true;
+    if (!shouldPoll) return;
+
+    const POLLING_INTERVAL = 10000; // 10 seconds
     
     const checkAccountStatus = async () => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       
       try {
-        console.log('Checking account status...');
+        console.log('[StripeConnectButton] Polling account status for:', churchId);
         const response = await fetch('/api/stripe', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Idempotency-Key': crypto.randomUUID(),
           },
-          body: JSON.stringify({
-            action: 'getAccount',
-            churchId,
-            refresh: true
-          })
+          body: JSON.stringify({ action: 'getAccount', churchId: churchId, refresh: true }),
         });
-        
-        if (!isMounted) return;
-        
-        if (response.ok) {
-          const account = await response.json();
-          console.log('Account status check result:', {
-            id: account.id,
-            charges_enabled: account.charges_enabled,
-            payouts_enabled: account.payouts_enabled,
-            details_submitted: account.details_submitted
-          });
-          
-          // Always update the current account with latest data
-          setCurrentAccount(account);
-          
-          // If account is now fully connected, update the state
-          if (account.charges_enabled && account.payouts_enabled) {
-            console.log('Account is now fully connected');
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('[StripeConnectButton] Error polling account status:', response.status, errorData);
+          // Don't toast on every poll failure, could be noisy
+          return;
+        }
+
+        const data = await response.json();
+        if (data.account && isMountedRef.current) {
+          console.log('[StripeConnectButton] Polled account data:', data.account);
+          setCurrentAccount(data.account);
+
+          // Check if it's now fully connected based on new criteria
+          if (
+            data.account.verificationStatus === 'verified' &&
+            (!data.account.requirementsCurrentlyDue || data.account.requirementsCurrentlyDue.length === 0) &&
+            data.account.charges_enabled &&
+            data.account.payouts_enabled
+          ) {
             if (onConnectSuccess) {
-              onConnectSuccess(account);
+              onConnectSuccess(data.account);
             }
           }
-        } else {
-          const error = await response.json().catch(() => ({}));
-          console.error('Error fetching account status:', error);
         }
       } catch (error) {
-        console.error('Error polling account status:', error);
+        console.error('[StripeConnectButton] Exception during polling:', error);
       }
     };
-    
-    // Initial check
-    checkAccountStatus();
-    
-    // Set up polling
+
     const intervalId = setInterval(checkAccountStatus, POLLING_INTERVAL);
-    
-    // Clean up interval on unmount or when status changes
+    checkAccountStatus(); // Initial check
+
     return () => {
-      isMounted = false;
       clearInterval(intervalId);
     };
-  }, [effectiveStatus, churchId, onConnectSuccess]);
+  }, [shouldPoll, churchId, onConnectSuccess]);
 
-  // Handle the main button action (connect or view dashboard)
   const handleMainAction = async () => {
+    console.log('[StripeConnectButton] handleMainAction entered. Initial isLoading state:', isLoading);
     setIsLoading(true);
+    console.log('[StripeConnectButton] setIsLoading(true) called. Current isLoading state should be true now.');
     try {
+      console.log('[StripeConnectButton] Inside try block.');
+      console.log('[StripeConnectButton]   currentAccount (state):', JSON.stringify(currentAccount));
+      console.log('[StripeConnectButton]   accountData (prop):', JSON.stringify(accountData));
       const account = currentAccount || accountData;
-      
-      if (['connected', 'verified'].includes(account?.verificationStatus || effectiveStatus)) {
-        // Create login link for the dashboard
-        const response = await fetch('/api/stripe', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Idempotency-Key': crypto.randomUUID()
-          },
-          body: JSON.stringify({
-            action: 'createLoginLink',
-            accountId: account?.stripeAccountId
-          })
-        });
+      console.log('[StripeConnectButton]   Resolved account object:', JSON.stringify(account));
+      // Log buttonConfig properties selectively to avoid cyclic structure error with React elements
+      console.log('[StripeConnectButton]   buttonConfig object properties:', {
+        text: buttonConfig?.text,
+        variant: buttonConfig?.variant,
+        tooltip: buttonConfig?.tooltip,
+        actionType: buttonConfig?.actionType,
+        icon: buttonConfig?.icon ? '<ReactElement>' : undefined // Avoid stringifying the icon
+      });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to create dashboard link');
+      if (!buttonConfig || !buttonConfig.actionType) {
+        console.error('[StripeConnectButton] CRITICAL: buttonConfig or buttonConfig.actionType is undefined!');
+        toast.error('Internal error: Button configuration is missing.');
+        setIsLoading(false); // Ensure loading is stopped
+        return;
+      }
+      let apiAction: 'createAccountLink' | 'createLoginLink';
+      let payload: any;
+
+      if (buttonConfig.actionType === 'createAccountLink') {
+        apiAction = 'createAccountLink';
+        payload = {
+          action: apiAction,
+          churchId: churchId,
+          returnUrl: window.location.href, 
+          refreshUrl: window.location.href,
+        };
+        console.log('[StripeConnectButton] Creating account link for church:', churchId);
+      } else { // 'createLoginLink'
+        apiAction = 'createLoginLink';
+        if (!account?.stripeAccountId) {
+          toast.error('Stripe Account ID is missing. Cannot create login link.');
+          setIsLoading(false);
+          return;
         }
+        payload = {
+          action: apiAction,
+          accountId: account.stripeAccountId,
+        };
+        console.log('[StripeConnectButton] Creating login link for account:', account.stripeAccountId);
+      }
 
-        const responseData = await response.json();
-        console.log('[StripeConnectButton] API Response Data for createLoginLink:', responseData);
-        const url = responseData.url;
-        console.log('[StripeConnectButton] Extracted Login URL:', url);
-        if (url) {
-          console.log('[StripeConnectButton] Attempting to open login link in new tab:', url);
-          window.open(url, '_blank');
-        } else {
-          console.error('[StripeConnectButton] Login URL is missing or invalid!', responseData);
-          toast.error('Failed to get a valid login link. Please try again.');
-        }
+      const response = await fetch('/api/stripe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': crypto.randomUUID(),
+        },
+        body: JSON.stringify(payload),
+      });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to perform Stripe action' }));
+        throw new Error(errorData.message || `Stripe API request failed with status ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      console.log('[StripeConnectButton] Stripe API Response:', responseData);
+
+      const url = responseData.url; // Expect 'url' key directly
+      if (url) {
+        console.log('[StripeConnectButton] Attempting to open URL in new tab:', url);
+        window.open(url, '_blank');
       } else {
-        // Create account link for onboarding
-        const response = await fetch('/api/stripe', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Idempotency-Key': crypto.randomUUID()
-          },
-          body: JSON.stringify({
-            action: 'createAccountLink',
-            churchId,
-            returnUrl: `${window.location.origin}/banking`,
-            refreshUrl: `${window.location.origin}/banking`
-          })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to create onboarding link');
-        }
-
-        const responseData = await response.json();
-        console.log('[StripeConnectButton] API Response Data for createAccountLink:', responseData);
-        const url = responseData.onboardingUrl; // handleCreateAccount returns onboardingUrl
-        console.log('[StripeConnectButton] Extracted Onboarding URL:', url);
-        if (url) {
-          console.log('[StripeConnectButton] Attempting redirect to:', url);
-          window.location.href = url;
-        } else {
-          console.error('[StripeConnectButton] Onboarding URL is missing or invalid!', responseData);
-          toast.error('Failed to get a valid onboarding link. Please try again.');
-        }
-
+        console.error('[StripeConnectButton] URL missing or invalid in response!', responseData);
+        toast.error('Failed to get a valid link from Stripe. Please try again.');
       }
     } catch (error) {
       console.error('Stripe action failed:', error);
@@ -247,64 +319,6 @@ export function StripeConnectButton({
     }
   };
 
-  // Get button text and variant based on status
-  const getButtonConfig = () => {
-    const account = currentAccount || accountData;
-    const status = account?.verificationStatus || effectiveStatus;
-    const requirements = account?.requirementsCurrentlyDue || [];
-    const disabledReason = account?.requirementsDisabledReason || '';
-    
-    switch (status) {
-      case 'connected':
-      case 'verified':
-        return {
-          text: t('banking:viewDashboard'),
-          variant: 'default' as const,
-          icon: <ExternalLink className="h-4 w-4" />,
-          tooltip: t('banking:viewDashboardTooltip'),
-          onClick: handleMainAction,
-        };
-      case 'pending':
-        return {
-          text: t('banking:verificationPending'),
-          variant: 'outline' as const,
-          icon: <Loader2 className="h-4 w-4 animate-spin" />,
-          tooltip: t('banking:verificationTooltip'),
-          onClick: handleMainAction,
-        };
-      case 'action_required':
-        return {
-          text: t('banking:actionRequired'),
-          variant: 'outline' as const,
-          icon: <AlertCircle className="h-4 w-4 text-yellow-500" />,
-          tooltip: t('banking:actionRequiredTooltip', {
-            requirements: requirements.join(', ')
-          }),
-          onClick: handleMainAction,
-        };
-      case 'restricted':
-        return {
-          text: t('banking:accountRestricted'),
-          variant: 'destructive' as const,
-          icon: <AlertTriangle className="h-4 w-4" />,
-          tooltip: t('banking:accountRestrictedTooltip', {
-            reason: disabledReason || t('banking:unknownReason')
-          }),
-          onClick: handleMainAction,
-        };
-      default:
-        return {
-          text: t('banking:connectWithStripe'),
-          variant: 'default' as const,
-          icon: <BanknoteIcon className="h-4 w-4" />,
-          tooltip: t('banking:connectWithStripeTooltip'),
-          onClick: handleMainAction,
-        };
-    }
-  };
-  
-  const buttonConfig = getButtonConfig();
-
   return (
     <TooltipProvider>
       <Tooltip>
@@ -313,7 +327,7 @@ export function StripeConnectButton({
             className={cn("flex items-center gap-2", className)}
             variant={buttonConfig.variant as any}
             size={size}
-            onClick={buttonConfig.onClick}
+            onClick={handleMainAction} // Correctly assign handleMainAction here
             disabled={isLoading}
           >
             {isLoading ? (

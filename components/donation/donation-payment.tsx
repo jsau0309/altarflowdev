@@ -1,79 +1,121 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useState } from "react"
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { DonationFormData } from "./donation-form"
-import { Gift } from "lucide-react"
+import { Gift, Loader2 } from "lucide-react"
+import { v4 as uuidv4 } from 'uuid';
 import { useTranslation } from 'react-i18next'
+
+import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js'
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js'
+
+// Make sure to set this in your .env.local file
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface DonationPaymentProps {
   formData: DonationFormData;
   updateFormData: (data: Partial<DonationFormData>) => void;
   onBack: () => void;
-  churchId: string; // ADDED churchId prop
+  churchId: string;
+  churchSlug: string; // Added churchSlug to construct dynamic return_url
 }
 
-export default function DonationPayment({ formData, updateFormData, onBack, churchId }: DonationPaymentProps) { // Destructure churchId
-  const [processingFee, setProcessingFee] = useState<number>(0);
-  const [totalAmount, setTotalAmount] = useState<number>(formData.amount || 0);
-  const { t } = useTranslation(['donations', 'common'/*, 'campaigns'*/]); // campaigns might not be needed or adjust namespace
+// New Inner component for the payment form itself
+interface CheckoutFormProps {
+  formData: DonationFormData;
+  onBack: () => void;
+  churchId: string; // This is the internal DB UUID
+  churchSlug: string; // Added to construct dynamic return_url
+}
 
-  // Calculate Stripe processing fee (2.9% + 30¢)
+const CheckoutForm = ({ formData, onBack, churchId, churchSlug }: CheckoutFormProps) => {
   useEffect(() => {
-    const baseAmount = formData.amount || 0
-    const fee = baseAmount * 0.029 + 0.3
-    setProcessingFee(Number.parseFloat(fee.toFixed(2)))
-
-    // Update total amount based on whether user covers fees
-    if (formData.coverFees) {
-      setTotalAmount(baseAmount + fee)
-    } else {
-      setTotalAmount(baseAmount)
-    }
-  }, [formData.amount, formData.coverFees])
-
-  const handleSubmit = async (e: React.FormEvent) => { // Make async if we were to call API
-    e.preventDefault();
-    
-    // Data to be sent to /api/donations/initiate
-    const donationPayload = {
-      churchId: churchId,
-      donationTypeId: formData.donationTypeId,
-      amount: formData.amount, // This is the original amount before fees
-      currency: "usd", // Assuming USD for now
-      coverFees: formData.coverFees,
-      // Optional donor details (if collected and not anonymous)
-      firstName: formData.isAnonymous ? undefined : formData.firstName,
-      lastName: formData.isAnonymous ? undefined : formData.lastName,
-      email: formData.isAnonymous ? undefined : formData.email,
-      // paymentMethod will be handled by Stripe Elements, client_secret is returned by initiate
+    // Listen for CSP violations
+    const handleCSPViolation = (e: SecurityPolicyViolationEvent) => {
+      console.log('CSP Violation:', {
+        blockedURI: e.blockedURI,
+        violatedDirective: e.violatedDirective,
+        originalPolicy: e.originalPolicy,
+        sourceFile: e.sourceFile,
+        lineNumber: e.lineNumber,
+        columnNumber: e.columnNumber,
+      });
     };
+    document.addEventListener('securitypolicyviolation', handleCSPViolation);
+    return () => {
+      document.removeEventListener('securitypolicyviolation', handleCSPViolation);
+    };
+  }, []);
+  const stripe = useStripe();
+  const elements = useElements();
+  const { t } = useTranslation(['donations', 'common']);
 
-    console.log("Submitting donation with payload:", donationPayload);
-    // TODO:
-    // 1. Call your `/api/donations/initiate` endpoint with donationPayload
-    // 2. Get client_secret and transactionId back
-    // 3. Use client_secret with Stripe Elements to confirm the payment
-    // 4. On successful payment confirmation by Stripe, redirect to a thank you page or show success message.
-    //    The webhook will handle updating the transaction status.
+  const [message, setMessage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
 
-    alert(t('donations:donationPayment.thankYou', "Thank you for your donation! (Simulation)"));
+  // Calculate display amount based on formData
+  const baseAmount = formData.amount || 0;
+  let displayAmount = baseAmount;
+  if (formData.coverFees && baseAmount > 0) {
+    const fee = (baseAmount * 0.029) + 0.30;
+    displayAmount = baseAmount + fee;
   }
 
-  const handleCoverFeesChange = (checked: boolean) => {
-    updateFormData({ coverFees: checked })
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      // Stripe.js has not yet loaded.
+      // Make sure to disable form submission until Stripe.js has loaded.
+      setMessage(t('donations:donationPayment.stripeNotLoaded', "Stripe is not ready yet. Please wait a moment."));
+      return;
+    }
+
+    setIsProcessing(true);
+    setMessage(null);
+
+    const calculatedReturnUrl = `${window.location.origin}/${churchSlug}/donation-successful`;
+    console.log('[CheckoutForm] Attempting stripe.confirmPayment with return_url:', calculatedReturnUrl, 'churchSlug:', churchSlug);
+
+    const { error } = await stripe.confirmPayment({ // paymentIntent is not reliably returned here with redirect: 'always'
+      elements,
+      confirmParams: {
+        // Make sure to change this to your payment completion page
+        // This URL is where the user will be redirected after payment.
+        return_url: `${window.location.origin}/${churchSlug}/donation-successful`,
+      },
+      redirect: "always" // Redirect is now always handled
+    });
+
+    // If we reach here, it means an error occurred before redirecting or redirect is not applicable for some reason.
+    if (error) {
+      if (error.type === "card_error" || error.type === "validation_error") {
+        setMessage(error.message || t('donations:donationPayment.genericPaymentError', "An error occurred with your payment."));
+      } else {
+        setMessage(t('donations:donationPayment.unexpectedPaymentError', "An unexpected error occurred. Please try again."));
+      }
+    }
+    // If no error, the redirect to `return_url` should have occurred.
+    // Success, processing, or other statuses will be handled on the `donation-successful` page.
+
+    setIsProcessing(false);
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form id="payment-form" onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
         <div className="text-xl font-medium text-gray-500 dark:text-gray-400">$</div>
         <div className="text-4xl font-bold text-center text-gray-900 dark:text-white">
-          {formData.coverFees ? totalAmount.toFixed(2) : formData.amount?.toFixed(2)}
+          {displayAmount.toFixed(2)}
         </div>
         <div className="text-xl font-medium text-gray-500 dark:text-gray-400">{t('common:currency.usd', 'USD')}</div>
       </div>
@@ -81,7 +123,6 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
       <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
           <span>{t('donations:donationPayment.donateToLabel', 'Donation to:')}</span>
-          {/* UPDATED to use donationTypeName */}
           <span className="font-medium text-gray-900 dark:text-white">
             {formData.donationTypeName || t('donations:donationDetails.selectFundPlaceholder', 'Selected Fund')}
           </span>
@@ -93,95 +134,222 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
           </div>
         )}
       </div>
+      
+      <PaymentElement 
+        id="payment-element" 
+        options={{ layout: "tabs" }} 
+        onReady={() => {
+          setIsPaymentElementReady(true);
+        }}
+      />
 
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-          {t('donations:donationPayment.paymentMethodTitle', 'Choose a payment method:')}
-        </h3>
+      {/* Fee coverage checkbox is handled by the parent, but we display its effect */}
+      {/* The actual updateFormData for coverFees is in the parent DonationPayment component */}
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            type="button"
-            variant={formData.paymentMethod === "card" ? "default" : "outline"}
-            className="h-12 justify-center"
-            onClick={() => updateFormData({ paymentMethod: "card" })}
-          >
-            {t('donations:donationPayment.methodCard', 'Credit/Debit Card')}
-          </Button>
-          <Button
-            type="button"
-            variant={formData.paymentMethod === "bank" ? "default" : "outline"}
-            className="h-12 justify-center"
-            onClick={() => updateFormData({ paymentMethod: "bank" })}
-          >
-            {t('donations:donationPayment.methodBank', 'Bank Account')}
-          </Button>
-        </div>
+      {message && <div id="payment-message" className={`p-3 rounded-md ${message.includes("Success") ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{message}</div>}
 
-        <Button
-          type="button"
-          variant={formData.paymentMethod === "google-pay" ? "default" : "outline"}
-          className="w-full h-12 bg-black text-white hover:bg-gray-800"
-          onClick={() => updateFormData({ paymentMethod: "google-pay" })}
-        >
-          <svg className="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M22.0001 12.2332C22.0001 11.3699 21.9251 10.7399 21.7667 10.0865H12.2667V13.5732H17.8084C17.6834 14.5865 17.0834 16.0065 15.7417 16.9799L15.7209 17.1196L18.7543 19.4529L18.9559 19.4732C20.8309 17.7732 21.9917 15.2732 21.9917 12.2332"
-              fill="#4285F4"
-            />
-            <path
-              d="M12.2666 21.9998C15.0999 21.9998 17.4666 21.0998 19.0166 19.4731L15.7416 16.9798C14.8833 17.5798 13.7416 17.9998 12.2666 17.9998C9.49994 17.9998 7.16661 16.1698 6.39994 13.7098L6.27075 13.7191L3.12734 16.1424L3.08661 16.2698C4.64161 19.5998 8.09994 21.9998 12.2666 21.9998Z"
-              fill="#34A853"
-            />
-            <path
-              d="M6.39999 13.7099C6.18332 13.0566 6.06665 12.3699 6.06665 11.6666C6.06665 10.9632 6.18332 10.2766 6.38332 9.62322L6.37748 9.47488L3.19415 7.02322L3.08665 7.06322C2.39999 8.4232 1.99999 9.9899 1.99999 11.6666C1.99999 13.3432 2.39999 14.9099 3.08665 16.2699L6.39999 13.7099Z"
-              fill="#FBBC05"
-            />
-            <path
-              d="M12.2667 5.33324C14.1667 5.33324 15.45 6.1999 16.2 6.8999L19.1 3.9999C17.4584 2.4499 15.1 1.3999 12.2667 1.3999C8.10005 1.3999 4.64172 3.7999 3.08672 7.0699L6.38338 9.6299C7.16672 7.1699 9.50005 5.33324 12.2667 5.33324Z"
-              fill="#EB4335"
-            />
-          </svg>
-          {t('donations:donationPayment.methodGooglePay', 'Google Pay')}
-        </Button>
-
-        <Button
-          type="button"
-          variant={formData.paymentMethod === "apple-pay" ? "default" : "outline"}
-          className="w-full h-12 bg-black text-white hover:bg-gray-800"
-          onClick={() => updateFormData({ paymentMethod: "apple-pay" })}
-        >
-          <svg className="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7.07614 12.3813C7.07614 9.3489 9.52725 8.1867 9.60224 8.1492C8.28906 6.2744 6.27288 6.0118 5.57669 5.9993C3.88653 5.8243 2.25137 7.0365 1.39128 7.0365C0.51869 7.0365 -0.81449 6.0118 -2.2602 6.0368C-4.10536 6.0618 -5.81802 7.1115 -6.75561 8.7366C-8.68179 11.9992 -7.20709 16.8118 -5.34943 19.7942C-4.42434 21.2564 -3.34925 22.8815 -1.91205 22.8315C-0.51235 22.7815 -0.04976 21.9564 1.61626 21.9564C3.25727 21.9564 3.69486 22.8315 5.16456 22.8065C6.67176 22.7815 7.60935 21.3314 8.50944 19.8567C9.57203 18.1691 10.0096 16.5065 10.0346 16.4315C9.9971 16.4065 7.08864 15.3568 7.07614 12.3813Z" />
-            <path d="M3.95654 3.7242C4.70773 2.8116 5.21532 1.5619 5.06533 0.2998C3.98024 0.3498 2.63206 1.0249 1.85587 1.9125C1.16468 2.6876 0.55699 3.9748 0.73198 5.1994C1.94216 5.2994 3.18034 4.6243 3.95654 3.7242Z" />
-          </svg>
-          {t('donations:donationPayment.methodApplePay', 'Apple Pay')}
-        </Button>
-
-        <div className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
-          <div className="flex items-start space-x-2">
-            <Checkbox id="coverFees" checked={formData.coverFees || false} onCheckedChange={handleCoverFeesChange} />
-            <div>
-              <Label htmlFor="coverFees" className="font-medium">
-                {t('donations:donationPayment.coverFeesLabel', 'Add ${{fee}} to my gift', { fee: processingFee.toFixed(2) })}
-              </Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {t('donations:donationPayment.coverFeesDescription', 'I want to increase my gift to help cover administrative fees and processing costs.')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
-        <Button type="button" variant="outline" onClick={onBack} className="flex-1">
+      <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onBack} className="flex-1" disabled={isProcessing}>
           {t('common:back', 'Back')}
         </Button>
-        <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-          <Gift className="mr-2 h-4 w-4" />
-          {t('donations:donationPayment.submitButton', 'Donate now')}
+        <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isProcessing || !stripe || !elements || !isPaymentElementReady}>
+          {isProcessing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Gift className="mr-2 h-4 w-4" />
+          )}
+          {isProcessing ? t('donations:donationPayment.processingButton', 'Processing...') : t('donations:donationPayment.submitButton', 'Donate now')}
         </Button>
       </div>
     </form>
-  )
+  );
+};
+
+
+export default function DonationPayment({ formData, updateFormData, onBack, churchId, churchSlug }: DonationPaymentProps) {
+  const { t } = useTranslation(['donations', 'common']);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isLoadingClientSecret, setIsLoadingClientSecret] = useState(true); // Start true as we usually fetch on mount
+  const [initError, setInitError] = useState<string | null>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = uuidv4();
+      console.log(`[DonationPayment Mount] Initialized idempotencyKeyRef.current: ${idempotencyKeyRef.current}`);
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // Effect to fetch client secret when relevant formData changes
+  useEffect(() => {
+    let isEffectMounted = true;
+    
+    console.log(`[DonationPayment useEffect] START. IdempotencyKey: ${idempotencyKeyRef.current}. Amount: ${formData.amount}, CoverFees: ${formData.coverFees}, TypeID: ${formData.donationTypeId}, ChurchID: ${churchId}, Anonymous: ${formData.isAnonymous}`);
+
+    const initiateDonationPayment = async () => {
+      if (!isEffectMounted) return;
+      setIsLoadingClientSecret(true);
+      setInitError(null); // Clear previous errors before a new attempt
+
+      try {
+        if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+          throw new Error(t('donations:donationPayment.stripeKeyMissing', "Stripe publishable key is not configured."));
+        }
+
+        if (!idempotencyKeyRef.current || !formData.donationTypeId || formData.amount <= 0 || !churchId) {
+          console.log('[DonationPayment useEffect] Conditions not met for fetching client secret (e.g., amount is 0, or donation type not selected).');
+          if (isEffectMounted && clientSecret) { // Clear stale client secret
+            setClientSecret(null);
+          }
+          // No error to set here, just conditions not met.
+          return; // Exit early, finally block will set loading to false
+        }
+
+        const response = await fetch('/api/donations/initiate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            churchId: churchId,
+            donationTypeId: formData.donationTypeId,
+            baseAmount: Math.round(formData.amount * 100), // Convert to cents
+            currency: 'usd', // Assuming USD, make dynamic if needed
+            coverFees: formData.coverFees,
+            idempotencyKey: idempotencyKeyRef.current,
+            isAnonymous: formData.isAnonymous,
+            ...(formData.firstName && !formData.isAnonymous && { firstName: formData.firstName }),
+            ...(formData.lastName && !formData.isAnonymous && { lastName: formData.lastName }),
+            ...(formData.email && !formData.isAnonymous && { donorEmail: formData.email }), // API expects donorEmail
+            ...(formData.phone && !formData.isAnonymous && { phone: formData.phone }),
+            ...(!formData.isAnonymous && (formData.address || formData.city || formData.state || formData.zipCode || formData.country) && {
+              address: {
+                ...(formData.address && { line1: formData.address }), // Assuming formData.address is street/line1
+                ...(formData.city && { city: formData.city }),
+                ...(formData.state && { state: formData.state }),
+                ...(formData.zipCode && { postal_code: formData.zipCode }),
+                ...(formData.country && { country: formData.country }),
+              }
+            })
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Failed to initiate donation. Please try again.' }));
+          throw new Error(errorData.message || `Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (isEffectMounted) {
+          if (data.clientSecret) {
+            setClientSecret(data.clientSecret);
+          } else {
+            throw new Error(t('donations:donationPayment.clientSecretError', 'Failed to retrieve client secret.'));
+          }
+        }
+      } catch (error: any) {
+        if (isEffectMounted) {
+          console.error('[DonationPayment useEffect] Error in initiateDonationPayment:', error);
+          setInitError(error.message || t('donations:donationPayment.initError', 'Error initializing payment form.'));
+          setClientSecret(null); // Clear client secret on error
+        }
+      } finally {
+        if (isEffectMounted) {
+          setIsLoadingClientSecret(false);
+        }
+      }
+    };
+
+    initiateDonationPayment();
+
+    // Cleanup function
+    return () => {
+      isEffectMounted = false;
+      console.log(`[DonationPayment useEffect] CLEANUP. IdempotencyKey: ${idempotencyKeyRef.current}. Amount: ${formData.amount}. Effect instance is being cleaned up.`);
+    };
+  }, [
+    formData.amount,
+    formData.coverFees,
+    formData.donationTypeId,
+    formData.isAnonymous,
+    formData.firstName,
+    formData.lastName,
+    formData.email,
+    formData.phone, // Added
+    formData.address, // Added (assuming this is street/line1)
+    formData.city,    // Added
+    formData.state,   // Added
+    formData.zipCode, // Added
+    formData.country, // Added
+    churchId,
+    t,
+    // idempotencyKeyRef.current should not be a dependency here as it's stable after first mount.
+    // clientSecret should not be a dependency; its change is an outcome, not a trigger.
+  ]);
+
+  const appearance: StripeElementsOptions['appearance'] = {
+    theme: 'stripe',
+    variables: {
+      colorPrimary: '#0570de',
+      colorBackground: '#ffffff',
+      colorText: '#30313d',
+      colorDanger: '#df1b41',
+      fontFamily: 'Ideal Sans, system-ui, sans-serif',
+      spacingUnit: '2px',
+      borderRadius: '4px',
+    }
+  };
+
+  // This top-level check for NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY can provide immediate feedback
+  // if the key is missing, even before the useEffect runs or if it's somehow bypassed.
+  if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+     return (
+      <div className="space-y-6 p-4 border border-red-500 rounded-md bg-red-50">
+        <h3 className="text-lg font-medium text-red-700">{t('donations:donationPayment.configErrorTitle', "Configuration Error")}</h3>
+        <p className="text-red-600">{t('donations:donationPayment.stripeKeyMissingAdmin', "Stripe publishable key is missing. Please contact support or the site administrator.")}</p>
+         <Button type="button" variant="outline" onClick={onBack} className="w-full sm:w-auto">
+          {t('common:back', 'Back')}
+        </Button>
+      </div>
+    );
+  }
+
+  if (isLoadingClientSecret) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-600" />
+        <p className="ml-4 text-lg font-medium text-gray-700 dark:text-gray-300">{t('donations:donationPayment.loadingPaymentForm', 'Loading payment form...')}</p>
+      </div>
+    );
+  }
+
+  if (initError || !clientSecret) {
+    return (
+      <div className="space-y-6 p-4 border border-red-500 rounded-md bg-red-50">
+        <h3 className="text-lg font-medium text-red-700">{t('donations:donationPayment.initiationErrorTitle', 'Payment Initialization Failed')}</h3>
+        <p className="text-red-600">{initError || t('donations:donationPayment.clientSecretMissing', 'Could not retrieve payment details. Please try refreshing or contact support.')}</p>
+        <Button type="button" variant="outline" onClick={onBack} className="w-full sm:w-auto">
+          {t('common:back', 'Back')}
+        </Button>
+      </div>
+    );
+  }
+
+  const options: StripeElementsOptions = {
+    clientSecret, // clientSecret is guaranteed to be a string here
+    appearance: appearance,
+  };
+  
+  return (
+    <div className="space-y-6">
+      <Elements options={options} stripe={stripePromise}>
+        <CheckoutForm 
+          formData={formData} 
+          onBack={onBack} 
+          churchId={churchId} 
+          churchSlug={churchSlug}
+        />
+      </Elements>
+    </div>
+  );
 }
