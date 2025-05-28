@@ -1,27 +1,68 @@
 "use client"
 
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import type { DonationFormData } from "./donation-form";
+import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import PhoneInput, { formatPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Check } from 'lucide-react'; // Import Check icon
+import { DonationFormData, PhoneVerificationStage } from './donation-form'; // Import types
 
 interface DonationInfoProps {
-  formData: DonationFormData
-  updateFormData: (data: Partial<DonationFormData>) => void
-  onNext: () => void
-  onBack: () => void
+  formData: DonationFormData;
+  updateFormData: (data: Partial<DonationFormData>) => void;
+  onNext: () => void;
+  onBack: () => void;
+  phoneVerificationStage: PhoneVerificationStage;
+  setPhoneVerificationStage: (stage: PhoneVerificationStage) => void;
+  enteredOtp: string;
+  setEnteredOtp: (otp: string) => void;
+  isLoadingOtpAction: boolean;
+  apiErrorMessage: string | null;
+  handleSendOtp: () => Promise<void>;
+  handleCheckOtp: () => Promise<void>;
+  handleChangePhoneNumber: () => void;
 }
 
-export default function DonationInfo({ formData, updateFormData, onNext, onBack }: DonationInfoProps) {
+export default function DonationInfo({
+  formData,
+  updateFormData,
+  onNext,
+  onBack,
+  phoneVerificationStage,
+  setPhoneVerificationStage,
+  enteredOtp,
+  setEnteredOtp,
+  isLoadingOtpAction,
+  apiErrorMessage,
+  handleSendOtp,
+  handleCheckOtp,
+  handleChangePhoneNumber,
+}: DonationInfoProps) {
   const { t } = useTranslation(['donations', 'members', 'common']);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onNext()
-  }
+  const handleFinalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Potentially add final validation here before calling onNext
+    onNext();
+  };
+
+  const handleAnonymousChange = (checked: boolean) => {
+    updateFormData({ isAnonymous: checked });
+    if (checked) {
+      // If checking anonymous, directly go to PII (which will be minimal)
+      setPhoneVerificationStage('anonymous_selected');
+      // Clear phone and OTP related fields if they were considering verification
+      updateFormData({ phone: '' });
+      setEnteredOtp('');
+    } else {
+      // If unchecking anonymous, go back to initial phone entry stage
+      setPhoneVerificationStage('initial');
+    }
+  };
 
   // Calculate display amount based on formData
   const baseAmount = formData.amount || 0;
@@ -31,129 +72,226 @@ export default function DonationInfo({ formData, updateFormData, onNext, onBack 
     displayAmount = baseAmount + fee;
   }
 
+  // Render different views based on phoneVerificationStage
+  const renderContent = () => {
+    switch (phoneVerificationStage) {
+      case 'initial':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="phone-initial-input">{t('members:phone', 'Phone Number for Verification')}</Label>
+              <PhoneInput
+                id="phone-initial-input"
+                international
+                defaultCountry="US"
+                value={formData.phone || ""}
+                onChange={(value) => updateFormData({ phone: value || '' })}
+                placeholder={t('donations:donationInfo.phonePlaceholderE164', 'e.g., +11234567890')}
+                disabled={isLoadingOtpAction}
+                className="input flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <p className="text-xs text-gray-500 mt-1">{t('donations:donationInfo.phoneVerificationPrompt', 'We will send a one-time code to this number.')}</p>
+            </div>
+            <Button onClick={handleSendOtp} disabled={isLoadingOtpAction || !formData.phone} className="w-full">
+              {isLoadingOtpAction ? t('donations:donationInfo.sendingOtp', 'Sending OTP...') : t('donations:donationInfo.verifyPhone', 'Verify Phone')}
+            </Button>
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="anonymous-initial"
+                checked={formData.isAnonymous || false}
+                onCheckedChange={(checked) => handleAnonymousChange(!!checked)}
+              />
+              <Label htmlFor="anonymous-initial" className="text-sm font-normal">
+                {t('donations:donationInfo.anonymousLabel', 'Donate anonymously')}
+              </Label>
+            </div>
+            {apiErrorMessage && <p className="text-sm text-red-600">{apiErrorMessage}</p>}
+          </div>
+        );
+
+      case 'otp_sent':
+      case 'verifying_otp': // Added to handle this stage explicitly
+      case 'otp_failed':
+      case 'verification_error':
+        return (
+          <div className="space-y-4">
+            <p>{t('donations:donationInfo.otpSentTo', 'An OTP has been sent to:')} {formData.phone}</p>
+            <div>
+              <Label htmlFor="otpCode">{t('donations:donationInfo.otpCode', 'Verification Code')}</Label>
+              <Input
+                id="otpCode"
+                type="text"
+                value={enteredOtp}
+                onChange={(e) => setEnteredOtp(e.target.value)}
+                placeholder={t('donations:donationInfo.otpPlaceholder', 'Enter 6-digit code')}
+                maxLength={6}
+                disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}
+              />
+            </div>
+            <Button
+                  onClick={() => {
+                    console.log("DonationInfo: Submit OTP button clicked, attempting to call handleCheckOtp");
+                    handleCheckOtp(); // This calls the prop passed from DonationForm
+                  }}
+                  disabled={isLoadingOtpAction || enteredOtp.length < 4 || phoneVerificationStage === 'verifying_otp'}
+                  className="w-full"
+                >
+              {isLoadingOtpAction || phoneVerificationStage === 'verifying_otp' ? t('donations:donationInfo.verifyingOtp', 'Verifying...') : t('donations:donationInfo.submitOtp', 'Submit OTP')}
+            </Button>
+            { (phoneVerificationStage === 'otp_failed' || phoneVerificationStage === 'verification_error') && apiErrorMessage && 
+              <p className="text-sm text-red-600">{apiErrorMessage}</p>
+            }
+            <div className="flex justify-between text-sm">
+              <Button variant="link" onClick={handleSendOtp} disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}>{t('donations:donationInfo.resendOtp', 'Resend OTP')}</Button>
+              <Button variant="link" onClick={handleChangePhoneNumber} disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}>{t('donations:donationInfo.changePhoneNumber', 'Change Number')}</Button>
+            </div>
+          </div>
+        );
+      
+      case 'anonymous_selected':
+      case 'verified_existing_donor':
+      case 'verified_new_donor':
+        return (
+          <div className="space-y-4">
+            { (phoneVerificationStage === 'verified_existing_donor' || phoneVerificationStage === 'verified_new_donor') && formData.phone && (
+              <div className="mb-3 flex justify-center items-center text-center py-2">
+                <p className="text-md text-gray-800 dark:text-gray-200">
+                  {t('donations:donationInfo.youHaveVerified', 'You have verified')} {formData.phone ? formatPhoneNumber(formData.phone) : ''} 
+                  <Check className="inline h-5 w-5 text-green-500 ml-2" />
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">{t('members:firstName', 'First Name')}</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName || ""}
+                  onChange={(e) => updateFormData({ firstName: e.target.value })}
+                  required
+                  disabled={phoneVerificationStage === 'anonymous_selected' && !formData.isAnonymous}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">{t('members:lastName', 'Last Name')}</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName || ""}
+                  onChange={(e) => updateFormData({ lastName: e.target.value })}
+                  required
+                  disabled={phoneVerificationStage === 'anonymous_selected' && !formData.isAnonymous}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('members:email', 'Email')}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email || ""}
+                onChange={(e) => updateFormData({ email: e.target.value })}
+                required 
+              />
+            </div>
+
+            { phoneVerificationStage !== 'anonymous_selected' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="street">{t('members:address', 'Address (Street)')}</Label>
+                  <Input
+                    id="street"
+                    value={formData.street || ""}
+                    onChange={(e) => updateFormData({ street: e.target.value })}
+                    placeholder={t('members:streetAddressPlaceholder', 'Street address')}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">{t('members:city', 'City')}</Label>
+                    <Input id="city" value={formData.city || ""} onChange={(e) => updateFormData({ city: e.target.value })} placeholder={t('members:cityPlaceholder', 'City')} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">{t('members:state', 'State / Province')}</Label>
+                    <Input id="state" value={formData.state || ""} onChange={(e) => updateFormData({ state: e.target.value })} placeholder={t('members:statePlaceholder', 'State / Province')} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="zipCode">{t('members:zipCode', 'Zip / Postal Code')}</Label>
+                    <Input id="zipCode" value={formData.zipCode || ""} onChange={(e) => updateFormData({ zipCode: e.target.value })} placeholder={t('members:zipCodePlaceholder', 'Zip / Postal Code')} required />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">{t('members:country', 'Country')}</Label>
+                  <Input id="country" value={formData.country || ""} onChange={(e) => updateFormData({ country: e.target.value })} placeholder={t('members:countryPlaceholder', 'Country')} required />
+                </div>
+              </>
+            )}
+            
+            { phoneVerificationStage === 'anonymous_selected' && (
+                <div className="flex items-center space-x-2 pt-2">
+                    <Checkbox
+                        id="anonymous-selected-view"
+                        checked={true}
+                        onCheckedChange={(checked) => handleAnonymousChange(!!checked)}
+                    />
+                    <Label htmlFor="anonymous-selected-view" className="text-sm font-normal">
+                        {t('donations:donationInfo.anonymousLabel', 'Donate anonymously')}
+                    </Label>
+                </div>
+            )}
+
+            {apiErrorMessage && <p className="text-sm text-red-600">{apiErrorMessage}</p>}
+          </div>
+        );
+
+      default:
+        // This should ideally not be reached if all stages are handled.
+        // The 'never' type helps ensure exhaustiveness at compile time.
+        const exhaustiveCheck: never = phoneVerificationStage;
+        console.warn(`Unexpected phoneVerificationStage: ${exhaustiveCheck}`);
+        return <div>{t('common:unexpectedError', 'An unexpected error occurred.')}</div>;
+    }
+  };
+
+  const areNonAnonymousFieldsFilled = 
+    !!formData.firstName &&
+    !!formData.lastName &&
+    !!formData.email &&
+    !!formData.street &&
+    !!formData.city &&
+    !!formData.state &&
+    !!formData.zipCode &&
+    !!formData.country;
+
+  const isNextButtonDisabled =
+    (phoneVerificationStage === 'verified_existing_donor' ||
+      phoneVerificationStage === 'verified_new_donor') &&
+    !areNonAnonymousFieldsFilled;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
         <div className="text-xl font-medium text-gray-500 dark:text-gray-400">$</div>
         <div className="text-4xl font-bold text-center text-gray-900 dark:text-white">{displayAmount.toFixed(2)}</div>
         <div className="text-xl font-medium text-gray-500 dark:text-gray-400">{t('common:currency.usd', 'USD')}</div>
       </div>
 
-      <div className="grid gap-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">{t('members:firstName', 'First Name')}</Label>
-            <Input
-              id="firstName"
-              value={formData.firstName || ""}
-              onChange={(e) => updateFormData({ firstName: e.target.value })}
-              required={!formData.isAnonymous}
-              disabled={formData.isAnonymous}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName">{t('members:lastName', 'Last Name')}</Label>
-            <Input
-              id="lastName"
-              value={formData.lastName || ""}
-              onChange={(e) => updateFormData({ lastName: e.target.value })}
-              required={!formData.isAnonymous}
-              disabled={formData.isAnonymous}
-            />
-          </div>
-        </div>
+      {renderContent()}
 
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="anonymous"
-            checked={formData.isAnonymous || false}
-            onCheckedChange={(checked) => updateFormData({ isAnonymous: !!checked })}
-          />
-          <Label htmlFor="anonymous" className="text-sm font-normal">
-            {t('donations:donationInfo.anonymousLabel', 'Donate anonymously')}
-          </Label>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="email">{t('members:email', 'Email')}</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email || ""}
-            onChange={(e) => updateFormData({ email: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="phone">{t('members:phone', 'Phone')}</Label>
-          <Input
-            id="phone"
-            type="tel"
-            value={formData.phone || ""}
-            onChange={(e) => updateFormData({ phone: e.target.value })}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="address">{t('members:address', 'Address')}</Label>
-          <Input
-            id="address"
-            value={formData.address || ""}
-            onChange={(e) => updateFormData({ address: e.target.value })}
-            placeholder={t('members:streetAddressPlaceholder', 'Street address')}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="city">{t('members:city', 'City')}</Label>
-            <Input
-              id="city"
-              value={formData.city || ""}
-              onChange={(e) => updateFormData({ city: e.target.value })}
-              placeholder={t('members:cityPlaceholder', 'City')}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="state">{t('members:state', 'State / Province')}</Label>
-            <Input
-              id="state"
-              value={formData.state || ""}
-              onChange={(e) => updateFormData({ state: e.target.value })}
-              placeholder={t('members:statePlaceholder', 'State / Province')}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="zipCode">{t('members:zipCode', 'Zip / Postal Code')}</Label>
-            <Input
-              id="zipCode"
-              value={formData.zipCode || ""}
-              onChange={(e) => updateFormData({ zipCode: e.target.value })}
-              placeholder={t('members:zipCodePlaceholder', 'Zip / Postal Code')}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="country">{t('members:country', 'Country')}</Label>
-          <Input
-            id="country"
-            value={formData.country || ""}
-            onChange={(e) => updateFormData({ country: e.target.value })}
-            placeholder={t('members:countryPlaceholder', 'Country')}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+      <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 pt-4">
         <Button type="button" variant="outline" onClick={onBack} className="flex-1">
           {t('common:back', 'Back')}
         </Button>
-        <Button type="submit" className="flex-1">
-          {t('common:next', 'Next')}
-        </Button>
+        {(phoneVerificationStage === 'anonymous_selected' || 
+          phoneVerificationStage === 'verified_existing_donor' || 
+          phoneVerificationStage === 'verified_new_donor') && (
+          <Button type="button" onClick={handleFinalSubmit} className="flex-1" disabled={isNextButtonDisabled}>
+            {t('common:next', 'Next')}
+          </Button>
+        )}
       </div>
-    </form>
-  )
+    </div>
+  );
 }

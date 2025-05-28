@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState } from "react";
+import { isValidPhoneNumber } from 'react-phone-number-input';
 import { Check } from "lucide-react"
 import DonationDetails from "./donation-details"
 import DonationInfo from "./donation-info"
@@ -31,16 +32,26 @@ export type DonationFormData = {
   phone?: string;
   address?: string; // Full formatted address from PlaceKit
   street?: string; // Street address (e.g., 123 Main St)
+  addressLine2?: string; // Optional second line of address
   city?: string;
   state?: string; // State or province
   zipCode?: string;
   country?: string; // Country code (e.g., US)
   paymentMethod?: "card" | "bank" | "google-pay" | "apple-pay";
   coverFees?: boolean;
+  donorId?: string; // ID of the Donor record from OTP flow
   // campaignId and campaignName are removed
 };
 
-
+export type PhoneVerificationStage =
+  | 'initial'
+  | 'otp_sent'
+  | 'verifying_otp'
+  | 'verified_existing_donor'
+  | 'verified_new_donor'
+  | 'anonymous_selected'
+  | 'otp_failed'
+  | 'verification_error';
 
 export default function DonationForm({ churchId, churchName, donationTypes, churchSlug }: DonationFormProps) {
   const [formData, setFormData] = useState<DonationFormData>({
@@ -63,8 +74,13 @@ export default function DonationForm({ churchId, churchName, donationTypes, chur
     country: "",
     paymentMethod: undefined,
     coverFees: false,
+    donorId: undefined,
   });
   const [step, setStep] = useState(1);
+  const [phoneVerificationStage, setPhoneVerificationStage] = useState<PhoneVerificationStage>('initial');
+  const [enteredOtp, setEnteredOtp] = useState<string>('');
+  const [isLoadingOtpAction, setIsLoadingOtpAction] = useState<boolean>(false);
+  const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
 
   const updateFormData = (data: Partial<DonationFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -78,16 +94,138 @@ export default function DonationForm({ churchId, churchName, donationTypes, chur
     setStep((prev) => prev - 1);
   };
 
+  const handleSendOtp = async () => {
+    if (!formData.phone || !isValidPhoneNumber(formData.phone)) {
+      setApiErrorMessage('Please enter a valid phone number.');
+      return;
+    }
+    setIsLoadingOtpAction(true);
+    setApiErrorMessage(null);
+    try {
+      const response = await fetch('/api/donors/otp/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber: formData.phone }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to send OTP.');
+      }
+      setPhoneVerificationStage('otp_sent');
+    } catch (error: any) {
+      setApiErrorMessage(error.message || 'An unexpected error occurred while sending OTP.');
+      setPhoneVerificationStage('verification_error'); // Or keep 'initial' depending on desired UX
+    } finally {
+      setIsLoadingOtpAction(false);
+    }
+  };
+
+  const handleCheckOtp = async () => {
+    console.log("DonationForm: handleCheckOtp FUNCTION WAS CALLED."); 
+    console.log("DonationForm Values - Phone:", formData.phone, "OTP:", enteredOtp);
+    if (!formData.phone || !enteredOtp) {
+      setApiErrorMessage('Client Check: Phone number and OTP are required.'); // Added "Client Check:"
+      return;
+    }
+    setIsLoadingOtpAction(true);
+    setApiErrorMessage(null);
+    setPhoneVerificationStage('verifying_otp'); // Set stage to verifying_otp
+
+    try {
+      const response = await fetch('/api/donors/otp/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber: formData.phone, code: enteredOtp }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to verify OTP.');
+      }
+
+      if (data.success) {
+        if (data.isExistingDonor && data.donorData) {
+          updateFormData({
+            donorId: data.donorData.id, // Store the donor's ID
+            firstName: data.donorData.firstName || '',
+            lastName: data.donorData.lastName || '',
+            email: data.donorData.email || '',
+            street: data.donorData.addressLine1 || '',
+            addressLine2: data.donorData.addressLine2 || '', // Added addressLine2
+            city: data.donorData.addressCity || '',
+            state: data.donorData.addressState || '',
+            zipCode: data.donorData.addressPostalCode || '',
+            country: data.donorData.addressCountry || '',
+            // Note: 'address' (full formatted address) is not directly provided by this API
+            // It might need to be reconstructed or handled differently if required.
+          });
+          setPhoneVerificationStage('verified_existing_donor');
+        } else {
+          // Clear PII fields for a new donor, except phone which is already set and verified
+          // Also, store the new donor's ID
+          updateFormData({
+            donorId: data.donorData.id, // Store the new donor's ID
+            firstName: '',
+            lastName: '',
+            email: '',
+            street: '',
+            addressLine2: '', // Ensure addressLine2 is also cleared for new donors
+            city: '',
+            state: '',
+            zipCode: '',
+            country: '',
+          });
+          setPhoneVerificationStage('verified_new_donor');
+        }
+        setEnteredOtp(''); // Clear OTP input on success
+      } else {
+        // This case might be redundant if !response.ok covers it, but good for explicit API contracts
+        throw new Error(data.message || 'OTP verification failed.');
+      }
+    } catch (error: any) {
+      console.error("OTP Check Catch Block Error:", error);
+      setApiErrorMessage(`Catch Block: ${error.message || 'An unexpected error occurred.'}`); 
+      setPhoneVerificationStage('otp_failed');
+    } finally {
+      setIsLoadingOtpAction(false);
+    }
+  };
+
+  const handleChangePhoneNumber = () => {
+    console.log("handleChangePhoneNumber called");
+    setPhoneVerificationStage('initial');
+    setApiErrorMessage(null);
+    setEnteredOtp(''); // Clear OTP when changing number
+  };
+
   const renderStep = () => {
     switch (step) {
       case 1:
         // Pass donationTypes to DonationDetails
         return <DonationDetails formData={formData} updateFormData={updateFormData} onNext={nextStep} donationTypes={donationTypes} />;
       case 2:
-        return <DonationInfo formData={formData} updateFormData={updateFormData} onNext={nextStep} onBack={prevStep} />;
+        return <DonationInfo 
+          formData={formData} 
+          updateFormData={updateFormData} 
+          onNext={nextStep} 
+          onBack={prevStep}
+          phoneVerificationStage={phoneVerificationStage}
+          setPhoneVerificationStage={setPhoneVerificationStage}
+          enteredOtp={enteredOtp}
+          setEnteredOtp={setEnteredOtp}
+          isLoadingOtpAction={isLoadingOtpAction}
+          apiErrorMessage={apiErrorMessage}
+          handleSendOtp={handleSendOtp}
+          handleCheckOtp={handleCheckOtp}
+          handleChangePhoneNumber={handleChangePhoneNumber}
+        />;
       case 3:
-        // Pass churchId to DonationPayment
-        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} churchSlug={churchSlug} />; // <<< Add churchSlug={churchSlug}
+        // Pass churchId and donorId to DonationPayment
+        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} churchSlug={churchSlug} donorId={formData.donorId} />;
       default:
         return <div>Something went wrong.</div>;
     }

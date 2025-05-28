@@ -26,6 +26,7 @@ interface DonationPaymentProps {
   onBack: () => void;
   churchId: string;
   churchSlug: string; // Added churchSlug to construct dynamic return_url
+  donorId?: string; // ID of the verified Donor record
 }
 
 // New Inner component for the payment form itself
@@ -166,7 +167,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug }: CheckoutFormPr
 };
 
 
-export default function DonationPayment({ formData, updateFormData, onBack, churchId, churchSlug }: DonationPaymentProps) {
+export default function DonationPayment({ formData, updateFormData, onBack, churchId, churchSlug, donorId }: DonationPaymentProps) {
   const { t } = useTranslation(['donations', 'common']);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isLoadingClientSecret, setIsLoadingClientSecret] = useState(true); // Start true as we usually fetch on mount
@@ -222,15 +223,17 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
             ...(formData.lastName && !formData.isAnonymous && { lastName: formData.lastName }),
             ...(formData.email && !formData.isAnonymous && { donorEmail: formData.email }), // API expects donorEmail
             ...(formData.phone && !formData.isAnonymous && { phone: formData.phone }),
-            ...(!formData.isAnonymous && (formData.address || formData.city || formData.state || formData.zipCode || formData.country) && {
-              address: {
-                ...(formData.address && { line1: formData.address }), // Assuming formData.address is street/line1
-                ...(formData.city && { city: formData.city }),
-                ...(formData.state && { state: formData.state }),
-                ...(formData.zipCode && { postal_code: formData.zipCode }),
-                ...(formData.country && { country: formData.country }),
-              }
-            })
+
+            // Address info (conditionally added, now flat)
+            ...(formData.street && !formData.isAnonymous && { street: formData.street }),
+            ...(formData.city && !formData.isAnonymous && { city: formData.city }),
+            ...(formData.state && !formData.isAnonymous && { state: formData.state }),
+            ...(formData.zipCode && !formData.isAnonymous && { zipCode: formData.zipCode }), // Matches flat Zod schema field
+            ...(formData.country && !formData.isAnonymous && { country: formData.country }),
+            // Note: formData.address (the full formatted string) is not being sent with this change.
+            // If it's crucial, it would need its own flat field or specific handling.
+
+            ...(donorId && { donorId: donorId }), // Include donorId if available
           }),
         });
 
@@ -282,6 +285,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
     formData.zipCode, // Added
     formData.country, // Added
     churchId,
+    donorId, // Added donorId to dependency array
     t,
     // idempotencyKeyRef.current should not be a dependency here as it's stable after first mount.
     // clientSecret should not be a dependency; its change is an outcome, not a trigger.

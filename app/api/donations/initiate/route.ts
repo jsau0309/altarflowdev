@@ -14,16 +14,24 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  
 // Define a schema for input validation using Zod
 const initiateDonationSchema = z.object({
-  idempotencyKey: z.string().uuid(), // Client-generated UUID to prevent duplicate requests
-  churchId: z.string().uuid(), // Expecting the internal database UUID for the church
-  donationTypeId: z.string().trim().min(1), // Ensure it's a non-empty string and trim whitespace
-  baseAmount: z.number().int().positive(), // Base donation amount in cents, before fees
-  currency: z.string().length(3).toLowerCase().default('usd'), // Default to 'usd'
-  isRecurring: z.boolean().default(false), // For this step, it will be false
+  idempotencyKey: z.string().uuid(), 
+  churchId: z.string().uuid(), 
+  donationTypeId: z.string().trim().min(1), 
+  baseAmount: z.number().int().positive(), 
+  currency: z.string().length(3).toLowerCase().default('usd'), 
+  isRecurring: z.boolean().default(false), 
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   donorEmail: z.string().email().optional(),
   phone: z.string().optional(),
+  
+
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(), 
+  country: z.string().optional(),
+
   address: z.object({
     line1: z.string().optional(),
     line2: z.string().optional(),
@@ -34,7 +42,8 @@ const initiateDonationSchema = z.object({
   }).optional(),
   isAnonymous: z.boolean().default(false),
   donorClerkId: z.string().optional(),
-  coverFees: z.boolean().optional(), // Added to capture if client intends to cover fees
+  coverFees: z.boolean().optional(), 
+  donorId: z.string().optional(), 
 });
 
 export async function POST(request: Request) {
@@ -61,10 +70,37 @@ export async function POST(request: Request) {
       isAnonymous,
       donorClerkId,
       coverFees, // Destructure coverFees
+      donorId,
     } = validation.data;
 
-    console.log('[API /donations/initiate] Received body:', body);
-    console.log('[API /donations/initiate] Validated data:', { idempotencyKey, churchUUIDFromInput, donationTypeId, baseAmount, currency, coverFees, firstName, lastName, donorEmail, phone, address, isAnonymous, donorClerkId });
+
+    // Update Donor record if donorId is provided and details are available
+    if (donorId && !isAnonymous) {
+      const donorUpdateData: any = {}; // Using 'any' for Prisma.DonorUpdateInput flexibility, ensure Prisma types are correctly inferred or imported if strictness is paramount
+      if (validation.data.firstName) donorUpdateData.firstName = validation.data.firstName;
+      if (validation.data.lastName) donorUpdateData.lastName = validation.data.lastName;
+      if (validation.data.donorEmail) donorUpdateData.email = validation.data.donorEmail; 
+      
+      // Use flat properties from validation.data for address details
+      if (validation.data.street) donorUpdateData.addressLine1 = validation.data.street;
+      if (validation.data.city) donorUpdateData.addressCity = validation.data.city;
+      if (validation.data.state) donorUpdateData.addressState = validation.data.state;
+      if (validation.data.zipCode) donorUpdateData.addressPostalCode = validation.data.zipCode; // formData.zipCode maps to donor.addressPostalCode
+      if (validation.data.country) donorUpdateData.addressCountry = validation.data.country;
+
+      if (Object.keys(donorUpdateData).length > 0) {
+
+        try {
+          const updatedDonor = await prisma.donor.update({
+            where: { id: donorId },
+            data: donorUpdateData,
+          });
+        } catch (dbError) {
+          console.error("Initiate API: Error updating donor in DB:", dbError);
+          // Decide if this error should halt the process or just be logged
+        }
+      }
+    }
 
     console.log(`Attempting to find church with internal UUID: '${churchUUIDFromInput}'`);
 
@@ -203,6 +239,8 @@ export async function POST(request: Request) {
 
     // 3. Create a Stripe PaymentIntent
     const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
+      // receipt_email will be added below if donorEmail is present
+
       amount: finalAmountForStripe, // Use the final amount including fees if covered
       currency: currency,
       customer: stripeCustomerId, // Optional, but good for saving payment methods
@@ -220,6 +258,11 @@ export async function POST(request: Request) {
       },
       // capture_method: 'automatic', // Default is automatic
     };
+
+    // Add receipt_email if donorEmail is available from the validated form data
+    if (validation.data.donorEmail) {
+      paymentIntentParams.receipt_email = validation.data.donorEmail;
+    }
     
     // If a specific payment method is sent from client for setup, you might use it here
     // For example, if `paymentMethodId` was in the request:
@@ -263,6 +306,7 @@ export async function POST(request: Request) {
       donationTransaction = await prisma.donationTransaction.create({
       data: {
         churchId: church.id, // Use church.id (which is the UUID)
+        donorId: donorId, // Link to the Donor record if provided
         donationTypeId: donationTypeId,
         donorClerkId: donorClerkId,
         donorName: donorDisplayNameForDb,
@@ -323,6 +367,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-
-
-

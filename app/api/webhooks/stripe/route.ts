@@ -1,149 +1,171 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
 
-const webhookSecret = process.env.STRIPE_CLI_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET!;
-
-export async function POST(request: Request) {
-  const body = await request.text();
-  const signature = headers().get('stripe-signature') as string;
-
-  if (!webhookSecret) {
-    console.error('Stripe webhook secret is not set.');
-    return NextResponse.json({ error: 'Webhook secret not configured.' }, { status: 500 });
-  }
-  if (!signature) {
-    console.error('Stripe signature is missing from the request.');
-    return NextResponse.json({ error: 'Missing Stripe signature.' }, { status: 400 });
-  }
+export async function POST(req: Request) {
+  const body = await req.text();
+  const signature = headers().get('Stripe-Signature') as string;
 
   let event: Stripe.Event;
 
+  console.log('[Stripe Webhook] Received request.');
+
   try {
     event = stripe.webhooks.constructEvent(
-        body,
-        signature,
-        webhookSecret,
-        300 // Clock skew tolerance
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
     );
+    console.log(`[Stripe Webhook] Event constructed: ${event.type}, ID: ${event.id}`);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    console.error(`Webhook signature verification failed: ${errorMessage}`);
-    return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 });
+    console.error(`[Stripe Webhook] Signature verification failed: ${errorMessage}`, { body, signature });
+    return NextResponse.json({ error: `Webhook Error: Signature verification failed` }, { status: 400 });
   }
-
-  console.log(`Received Stripe event: ${event.type}`, { eventId: event.id }); // Added eventId for better tracking
 
   try {
     switch (event.type) {
       case 'payment_intent.succeeded':
         const paymentIntentSucceeded = event.data.object as Stripe.PaymentIntent;
-        console.log(`PaymentIntent ${paymentIntentSucceeded.id} was successful!`);
-        await prisma.donationTransaction.update({
-          where: { stripePaymentIntentId: paymentIntentSucceeded.id },
-          data: {
-            status: 'succeeded',
-            paymentMethodType: paymentIntentSucceeded.payment_method_types[0] || null,
-          },
-        });
-        console.log(`Updated transaction for PaymentIntent ${paymentIntentSucceeded.id} to succeeded.`);
+        console.log(`[Stripe Webhook] Processing payment_intent.succeeded for PI: ${paymentIntentSucceeded.id}`);
+
+        let transaction;
+        try {
+          transaction = await prisma.donationTransaction.update({
+            where: { stripePaymentIntentId: paymentIntentSucceeded.id },
+            data: {
+              status: 'succeeded',
+              paymentMethodType: paymentIntentSucceeded.payment_method_types[0] || null,
+            },
+          });
+          console.log(`[Stripe Webhook] Successfully updated DonationTransaction ${transaction.id} status to succeeded for PI: ${paymentIntentSucceeded.id}`);
+        } catch (error) {
+          console.error(`[Stripe Webhook] Error updating DonationTransaction for PI: ${paymentIntentSucceeded.id}`, error);
+          // If we can't update the transaction, we should probably stop and not try to update the donor.
+          // Return a 500 to Stripe so it might retry.
+          return NextResponse.json({ error: 'Failed to update transaction record.' }, { status: 500 });
+        }
+
+        if (transaction && transaction.donorId) {
+          console.log(`[Stripe Webhook] Attempting to update Donor ${transaction.donorId} for PI: ${paymentIntentSucceeded.id}`);
+          const donor = await prisma.donor.findUnique({
+            where: { id: transaction.donorId },
+          });
+
+          if (donor) {
+            console.log(`[Stripe Webhook] Found Donor ${donor.id}. Preparing update data.`);
+            const donorUpdateData: Prisma.DonorUpdateInput = {};
+            
+            let stripeName: string | null = null;
+            let stripeEmail: string | null = null;
+            let stripeAddress: Stripe.Address | null = null;
+
+            const charge = typeof paymentIntentSucceeded.latest_charge === 'object' 
+                ? paymentIntentSucceeded.latest_charge as Stripe.Charge 
+                : null;
+            if (charge) console.log(`[Stripe Webhook] Extracted charge object from PI.`);
+
+            const paymentMethod = typeof paymentIntentSucceeded.payment_method === 'object' 
+                ? paymentIntentSucceeded.payment_method as Stripe.PaymentMethod 
+                : null;
+            if (paymentMethod) console.log(`[Stripe Webhook] Extracted payment_method object from PI.`);
+
+
+            if (paymentIntentSucceeded.shipping) {
+              stripeName = paymentIntentSucceeded.shipping.name ?? null;
+              stripeAddress = paymentIntentSucceeded.shipping.address ?? null;
+              console.log(`[Stripe Webhook] From shipping: name='${stripeName}', address='${JSON.stringify(stripeAddress)}'`);
+            }
+
+            if (charge?.billing_details) {
+              if (!stripeName) stripeName = charge.billing_details.name ?? null;
+              if (!stripeAddress) stripeAddress = charge.billing_details.address ?? null;
+              if (!stripeEmail) stripeEmail = charge.billing_details.email ?? null;
+              console.log(`[Stripe Webhook] From charge.billing_details: name='${stripeName}', email='${stripeEmail}', address='${JSON.stringify(stripeAddress)}'`);
+            }
+
+            if (paymentMethod?.billing_details) {
+              if (!stripeName) stripeName = paymentMethod.billing_details.name ?? null;
+              if (!stripeAddress) stripeAddress = paymentMethod.billing_details.address ?? null;
+              if (!stripeEmail) stripeEmail = paymentMethod.billing_details.email ?? null;
+              console.log(`[Stripe Webhook] From paymentMethod.billing_details: name='${stripeName}', email='${stripeEmail}', address='${JSON.stringify(stripeAddress)}'`);
+            }
+            
+            if (!stripeEmail && paymentIntentSucceeded.receipt_email) {
+              stripeEmail = paymentIntentSucceeded.receipt_email;
+              console.log(`[Stripe Webhook] From PI.receipt_email: email='${stripeEmail}'`);
+            }
+            
+            if ((!donor.firstName || !donor.lastName) && stripeName) {
+              const nameParts = stripeName.split(' ');
+              if (!donor.firstName && nameParts.length > 0) donorUpdateData.firstName = nameParts.shift() || stripeName; 
+              if (!donor.lastName && nameParts.length > 0) donorUpdateData.lastName = nameParts.join(' ');
+              else if (!donor.lastName && donor.firstName && stripeName === donor.firstName && nameParts.length === 0) {} 
+              else if (!donor.lastName && donor.firstName && stripeName !== donor.firstName) {
+                const potentialLastName = stripeName.replace(donor.firstName, '').trim();
+                if (potentialLastName) donorUpdateData.lastName = potentialLastName;
+              }
+            }
+
+            if (!donor.email && stripeEmail) donorUpdateData.email = stripeEmail;
+
+            if (stripeAddress) {
+              if (!donor.addressLine1 && stripeAddress.line1) donorUpdateData.addressLine1 = stripeAddress.line1;
+              if (!donor.addressCity && stripeAddress.city) donorUpdateData.addressCity = stripeAddress.city;
+              if (!donor.addressState && stripeAddress.state) donorUpdateData.addressState = stripeAddress.state;
+              if (!donor.addressPostalCode && stripeAddress.postal_code) donorUpdateData.addressPostalCode = stripeAddress.postal_code;
+              if (!donor.addressCountry && stripeAddress.country) donorUpdateData.addressCountry = stripeAddress.country;
+            }
+
+            if (Object.keys(donorUpdateData).length > 0) {
+              console.log(`[Stripe Webhook] Donor update data prepared:`, donorUpdateData);
+              try {
+                await prisma.donor.update({
+                  where: { id: donor.id },
+                  data: donorUpdateData,
+                });
+                console.log(`[Stripe Webhook] Successfully updated Donor record ${donor.id}.`);
+              } catch (donorUpdateError) {
+                console.error(`[Stripe Webhook] Error updating Donor record ${donor.id}:`, donorUpdateError);
+                // Log error but don't necessarily fail the whole webhook for this, transaction is already updated.
+              }
+            } else {
+              console.log(`[Stripe Webhook] No new information from Stripe to update Donor ${donor.id}.`);
+            }
+          } else {
+            console.log(`[Stripe Webhook] Donor record not found for donorId ${transaction.donorId}. Cannot update donor.`);
+          }
+        } else {
+            console.log(`[Stripe Webhook] No donorId found on transaction ${transaction?.id}, or transaction object is null. Skipping donor update.`);
+        }
         break;
 
       case 'payment_intent.payment_failed':
-        const paymentIntentPaymentFailed = event.data.object as Stripe.PaymentIntent;
-        console.log(`PaymentIntent ${paymentIntentPaymentFailed.id} failed.`);
-        await prisma.donationTransaction.update({
-          where: { stripePaymentIntentId: paymentIntentPaymentFailed.id },
-          data: {
-            status: 'failed',
-            // Optionally store failure reason: paymentIntentPaymentFailed.last_payment_error?.message
-          },
-        });
-        console.log(`Updated transaction for PaymentIntent ${paymentIntentPaymentFailed.id} to failed.`);
-        break;
-
-      case 'account.updated':
-        const accountUpdated = event.data.object as Stripe.Account;
-        console.log(`Processing event: ${event.type} for account ${accountUpdated.id}`);
-        await handleAccountUpdated(accountUpdated);
-        break;
-
-      case 'capability.updated':
-        const capabilityUpdated = event.data.object as Stripe.Capability;
-        console.log(`Processing event: ${event.type} for capability ${capabilityUpdated.id} on account ${capabilityUpdated.account as string}`);
-        await handleCapabilityUpdated(capabilityUpdated);
+        const paymentIntentFailed = event.data.object as Stripe.PaymentIntent;
+        console.log(`[Stripe Webhook] Processing payment_intent.payment_failed for PI: ${paymentIntentFailed.id}`);
+        try {
+            await prisma.donationTransaction.update({
+            where: { stripePaymentIntentId: paymentIntentFailed.id },
+            data: { status: 'failed' },
+            });
+            console.log(`[Stripe Webhook] Updated transaction status to failed for PI: ${paymentIntentFailed.id}`);
+        } catch (error) {
+            console.error(`[Stripe Webhook] Error updating DonationTransaction to failed for PI: ${paymentIntentFailed.id}`, error);
+            return NextResponse.json({ error: 'Failed to update transaction to failed status.' }, { status: 500 });
+        }
         break;
 
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        console.log(`[Stripe Webhook] Unhandled event type ${event.type}`);
     }
-  } catch (handlerError) {
-      // Catch errors from DB operations within cases or from the helper functions
-      console.error(`Error processing webhook event ${event.id} (type: ${event.type}):`, handlerError);
-      // Return 500 so Stripe retries for processing errors.
-      return NextResponse.json({ error: 'Webhook event processing failed.' }, { status: 500 });
+  } catch (error) {
+    console.error('[Stripe Webhook] General error processing webhook event:', error);
+    return NextResponse.json({ error: 'Webhook handler failed. View logs.' }, { status: 500 });
   }
 
-  return NextResponse.json({ received: true }, { status: 200 });
-}
-
-// Helper functions for Connect events (restored from original file)
-async function handleAccountUpdated(account: Stripe.Account) {
-  try {
-    console.log('handleAccountUpdated: Processing account.updated event for account:', account.id);
-
-    let verificationStatus = 'unverified';
-    if (account.charges_enabled && account.payouts_enabled) {
-      verificationStatus = 'verified';
-    } else if (account.details_submitted) {
-      if (account.requirements?.disabled_reason) {
-        verificationStatus = account.requirements.disabled_reason === 'requirements.past_due'
-          ? 'action_required'
-          : 'restricted';
-      } else {
-        verificationStatus = 'pending';
-      }
-    }
-
-    const updateData = {
-      chargesEnabled: account.charges_enabled || false,
-      detailsSubmitted: account.details_submitted || false,
-      payoutsEnabled: account.payouts_enabled || false,
-      verificationStatus,
-      requirementsCurrentlyDue: account.requirements?.currently_due || [],
-      requirementsEventuallyDue: account.requirements?.eventually_due || [],
-      requirementsDisabledReason: account.requirements?.disabled_reason || null,
-      tosAcceptanceDate: account.tos_acceptance?.date
-        ? new Date(account.tos_acceptance.date * 1000)
-        : null,
-      updatedAt: new Date(), // Ensure this is always set to reflect the update time
-    };
-
-    await prisma.stripeConnectAccount.update({
-        where: { stripeAccountId: account.id },
-        data: updateData,
-    });
-    // Switched from $executeRaw to Prisma ORM update for type safety and consistency,
-    // assuming StripeConnectAccount model fields match updateData structure.
-
-    console.log(`handleAccountUpdated: Successfully updated StripeConnectAccount for account: ${account.id}`);
-  } catch (error: any) {
-    console.error(`Error in handleAccountUpdated for account ${account.id}:`, error);
-    throw error; // Re-throw to be caught by the main handler's try-catch, ensuring Stripe retries
-  }
-}
-
-async function handleCapabilityUpdated(capability: Stripe.Capability) {
-  try {
-    const accountId = capability.account as string;
-    console.log(`handleCapabilityUpdated: Processing capability.updated event for capability: ${capability.id} on account: ${accountId}`);
-    const retrievedAccount = await stripe.accounts.retrieve(accountId);
-    await handleAccountUpdated(retrievedAccount); // Re-use handleAccountUpdated to refresh account status
-    console.log(`handleCapabilityUpdated: Successfully processed capability.updated by re-evaluating account: ${accountId}`);
-  } catch (error: any) {
-    console.error(`Error in handleCapabilityUpdated for capability ${capability.id} on account ${capability.account as string}:`, error);
-    throw error; // Re-throw
-  }
+  console.log('[Stripe Webhook] Successfully processed event. Responding to Stripe.');
+  return NextResponse.json({ received: true });
 }

@@ -51,6 +51,26 @@ model IdempotencyCache {
   @@map("idempotency_cache")
 }
 
+// --- Donor Model for Twilio OTP Flow ---
+model Donor {
+  id                String   @id @default(cuid())
+  phoneNumber       String   @unique // Store in E.164 format
+  firstName         String?
+  lastName          String?
+  email             String?  // Consider if this should also be unique or if one phone can have multiple email history
+  addressLine1      String?
+  addressCity       String?
+  addressState      String?
+  addressPostalCode String?
+  addressCountry    String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relation to DonationTransactions
+  donationTransactions DonationTransaction[]
+}
+
 // Represents a Church organization/tenant
 model Church {
   id         String   @id @default(uuid()) @db.Uuid // <-- Add @db.Uuid
@@ -126,6 +146,9 @@ model DonationTransaction {
   transactionDate         DateTime  @default(now())
   processedAt             DateTime? // When webhook confirmed success
 
+  donorId                 String?   // Optional: Foreign key to Donor.id for OTP-verified donors
+  donor                   Donor?    @relation(fields: [donorId], references: [id], onDelete: SetNull)
+
   church                  Church        @relation(fields: [churchId], references: [id], onDelete: Cascade)
   donationType            DonationType  @relation(fields: [donationTypeId], references: [id], onDelete: Restrict) // Prevent deleting type if donations exist
   // userProfile             UserProfile? @relation(fields: [donorClerkId], references: [clerkId]) // If linking to user profiles
@@ -135,6 +158,7 @@ model DonationTransaction {
   @@index([donorClerkId])
   @@index([stripePaymentIntentId])
   @@index([stripeSubscriptionId])
+  @@index([donorId])
 }
 
 // Represents an authenticated user within our application context
