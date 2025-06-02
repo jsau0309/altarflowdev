@@ -72,39 +72,6 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Tabs
-        defaultValue="one-time"
-        value={formData.donationType}
-        onValueChange={(value) => updateFormData({ donationType: value as "one-time" | "recurring" })}
-        className="w-full"
-      >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="one-time">{oneTimeText}</TabsTrigger>
-          <TabsTrigger value="recurring">{recurringText}</TabsTrigger>
-        </TabsList>
-        <TabsContent value="one-time" className="pt-4">
-          {/* One-time donation options */}
-        </TabsContent>
-        <TabsContent value="recurring" className="pt-4">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="frequency">{t('donations:frequency', 'Frequency')}</Label>
-              <select
-                id="frequency"
-                value={formData.frequency}
-                onChange={(e) => updateFormData({ frequency: e.target.value as any })}
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="weekly">{t('donations:frequencies.weekly', 'Weekly')}</option>
-                <option value="monthly">{t('donations:frequencies.monthly', 'Monthly')}</option>
-                <option value="quarterly">{t('donations:frequencies.quarterly', 'Quarterly')}</option>
-                <option value="annually">{t('donations:frequencies.annually', 'Annually')}</option>
-              </select>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-
       <div className="flex items-center justify-between">
         <div className="text-2xl font-medium">$</div>
         <input

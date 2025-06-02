@@ -6,13 +6,14 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { DonationFormData } from "./donation-form"
 import { Gift, Loader2 } from "lucide-react"
-import { v4 as uuidv4 } from 'uuid';
+
 import { useTranslation } from 'react-i18next'
 
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js'
 import {
   Elements,
   PaymentElement,
+  LinkAuthenticationElement,
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js'
@@ -27,6 +28,8 @@ interface DonationPaymentProps {
   churchId: string;
   churchSlug: string; // Added churchSlug to construct dynamic return_url
   donorId?: string; // ID of the verified Donor record
+  churchName: string; // Added churchName, now required
+  idempotencyKey: string; // Added idempotencyKey prop
 }
 
 // New Inner component for the payment form itself
@@ -35,9 +38,10 @@ interface CheckoutFormProps {
   onBack: () => void;
   churchId: string; // This is the internal DB UUID
   churchSlug: string; // Added to construct dynamic return_url
+  churchName: string; // Added for return_url
 }
 
-const CheckoutForm = ({ formData, onBack, churchId, churchSlug }: CheckoutFormProps) => {
+const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: CheckoutFormProps) => {
   useEffect(() => {
     // Listen for CSP violations
     const handleCSPViolation = (e: SecurityPolicyViolationEvent) => {
@@ -62,6 +66,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug }: CheckoutFormPr
   const [message, setMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
+  const [linkEmail, setLinkEmail] = useState(''); // State for LinkAuthenticationElement email
 
   // Calculate display amount based on formData
   const baseAmount = formData.amount || 0;
@@ -90,9 +95,8 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug }: CheckoutFormPr
     const { error } = await stripe.confirmPayment({ // paymentIntent is not reliably returned here with redirect: 'always'
       elements,
       confirmParams: {
-        // Make sure to change this to your payment completion page
-        // This URL is where the user will be redirected after payment.
-        return_url: `${window.location.origin}/${churchSlug}/donation-successful`,
+        return_url: `${window.location.origin}/${churchSlug}/donation-successful?amount=${formData.amount}&churchName=${encodeURIComponent(churchName || '')}`,
+        receipt_email: formData.email || linkEmail || undefined, // Send receipt if email is available
       },
       redirect: "always" // Redirect is now always handled
     });
@@ -112,80 +116,61 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug }: CheckoutFormPr
   };
 
   return (
-    <form id="payment-form" onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
-        <div className="text-xl font-medium text-gray-500 dark:text-gray-400">$</div>
-        <div className="text-4xl font-bold text-center text-gray-900 dark:text-white">
-          {displayAmount.toFixed(2)}
-        </div>
-        <div className="text-xl font-medium text-gray-500 dark:text-gray-400">{t('common:currency.usd', 'USD')}</div>
-      </div>
-
-      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-          <span>{t('donations:donationPayment.donateToLabel', 'Donation to:')}</span>
-          <span className="font-medium text-gray-900 dark:text-white">
-            {formData.donationTypeName || t('donations:donationDetails.selectFundPlaceholder', 'Selected Fund')}
-          </span>
-        </div>
-        {formData.donationType === "recurring" && (
-          <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            {t('donations:donationPayment.recurringLabel', 'Recurring {{frequency}} donation',
-               { frequency: formData.frequency ? t(`donations:frequencies.${formData.frequency}`, formData.frequency) : '' })}
-          </div>
-        )}
-      </div>
-      
-      <PaymentElement 
-        id="payment-element" 
-        options={{ layout: "tabs" }} 
-        onReady={() => {
-          setIsPaymentElementReady(true);
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <LinkAuthenticationElement
+        id="link-authentication-element"
+        // @ts-ignore - Stripe's event type can be broad, this captures the email if Link provides it.
+        onChange={(event) => {
+          // Update linkEmail state if user changes email within Link UI
+          if (event.value) setLinkEmail(event.value.email);
         }}
       />
+      <PaymentElement id="payment-element" onReady={() => setIsPaymentElementReady(true)} options={{
+        layout: {
+          type: 'accordion',
+          defaultCollapsed: false,
+          radios: false,
+          spacedAccordionItems: true
+        }
+      }} />
+      
+      {/* Fee coverage display - logic handled by parent, shown here for context if needed */}
+      {formData.coverFees && (
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {t('donations:donationPayment.feesCoveredMessage', { amount: baseAmount.toFixed(2) })}
+        </div>
+      )}
 
-      {/* Fee coverage checkbox is handled by the parent, but we display its effect */}
-      {/* The actual updateFormData for coverFees is in the parent DonationPayment component */}
-
-      {message && <div id="payment-message" className={`p-3 rounded-md ${message.includes("Success") ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{message}</div>}
-
-      <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onBack} className="flex-1" disabled={isProcessing}>
-          {t('common:back', 'Back')}
-        </Button>
-        <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isProcessing || !stripe || !elements || !isPaymentElementReady}>
-          {isProcessing ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Gift className="mr-2 h-4 w-4" />
-          )}
-          {isProcessing ? t('donations:donationPayment.processingButton', 'Processing...') : t('donations:donationPayment.submitButton', 'Donate now')}
-        </Button>
-      </div>
+      <Button type="submit" disabled={!stripe || !elements || isProcessing || !isPaymentElementReady} className="w-full">
+        {isProcessing ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Gift className="mr-2 h-4 w-4" />
+        )}
+        {isProcessing ? t('donations:donationPayment.processing', 'Processing...') : `${t('donations:donationPayment.donate', 'Donate')} ${displayAmount.toFixed(2)}`}
+      </Button>
+      
+      {message && <div id="payment-message" className="mt-2 text-sm text-red-600 dark:text-red-400">{message}</div>}
+      
+      <Button type="button" variant="outline" onClick={onBack} className="w-full">
+        {t('common:back', 'Back')}
+      </Button>
     </form>
   );
 };
 
 
-export default function DonationPayment({ formData, updateFormData, onBack, churchId, churchSlug, donorId }: DonationPaymentProps) {
+export default function DonationPayment({ formData, updateFormData, onBack, churchId, churchSlug, donorId, churchName, idempotencyKey }: DonationPaymentProps) {
   const { t } = useTranslation(['donations', 'common']);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isLoadingClientSecret, setIsLoadingClientSecret] = useState(true); // Start true as we usually fetch on mount
   const [initError, setInitError] = useState<string | null>(null);
-  const idempotencyKeyRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!idempotencyKeyRef.current) {
-      idempotencyKeyRef.current = uuidv4();
-      console.log(`[DonationPayment Mount] Initialized idempotencyKeyRef.current: ${idempotencyKeyRef.current}`);
-    }
-  }, []); // Empty dependency array ensures this runs only once on mount
+  
 
   // Effect to fetch client secret when relevant formData changes
   useEffect(() => {
     let isEffectMounted = true;
-    
-    console.log(`[DonationPayment useEffect] START. IdempotencyKey: ${idempotencyKeyRef.current}. Amount: ${formData.amount}, CoverFees: ${formData.coverFees}, TypeID: ${formData.donationTypeId}, ChurchID: ${churchId}, Anonymous: ${formData.isAnonymous}`);
+    console.log(`[DonationPayment useEffect] START. IdempotencyKey: ${idempotencyKey}. Amount: ${formData.amount}, CoverFees: ${formData.coverFees}, TypeID: ${formData.donationTypeId}, ChurchID: ${churchId}, Anonymous: ${formData.isAnonymous}`);
 
     const initiateDonationPayment = async () => {
       if (!isEffectMounted) return;
@@ -197,7 +182,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
           throw new Error(t('donations:donationPayment.stripeKeyMissing', "Stripe publishable key is not configured."));
         }
 
-        if (!idempotencyKeyRef.current || !formData.donationTypeId || formData.amount <= 0 || !churchId) {
+        if (!formData.donationTypeId || formData.amount <= 0 || !churchId) {
           console.log('[DonationPayment useEffect] Conditions not met for fetching client secret (e.g., amount is 0, or donation type not selected).');
           if (isEffectMounted && clientSecret) { // Clear stale client secret
             setClientSecret(null);
@@ -210,14 +195,15 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Idempotency-Key': idempotencyKey, // Use the key from props
           },
           body: JSON.stringify({
+            idempotencyKey: idempotencyKey, // Add idempotencyKey to the body
             churchId: churchId,
             donationTypeId: formData.donationTypeId,
             baseAmount: Math.round(formData.amount * 100), // Convert to cents
             currency: 'usd', // Assuming USD, make dynamic if needed
             coverFees: formData.coverFees,
-            idempotencyKey: idempotencyKeyRef.current,
             isAnonymous: formData.isAnonymous,
             ...(formData.firstName && !formData.isAnonymous && { firstName: formData.firstName }),
             ...(formData.lastName && !formData.isAnonymous && { lastName: formData.lastName }),
@@ -226,6 +212,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
 
             // Address info (conditionally added, now flat)
             ...(formData.street && !formData.isAnonymous && { street: formData.street }),
+            ...(formData.addressLine2 && !formData.isAnonymous && { addressLine2: formData.addressLine2 }),
             ...(formData.city && !formData.isAnonymous && { city: formData.city }),
             ...(formData.state && !formData.isAnonymous && { state: formData.state }),
             ...(formData.zipCode && !formData.isAnonymous && { zipCode: formData.zipCode }), // Matches flat Zod schema field
@@ -268,25 +255,15 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
     // Cleanup function
     return () => {
       isEffectMounted = false;
-      console.log(`[DonationPayment useEffect] CLEANUP. IdempotencyKey: ${idempotencyKeyRef.current}. Amount: ${formData.amount}. Effect instance is being cleaned up.`);
+      console.log(`[DonationPayment useEffect] CLEANUP. Amount: ${formData.amount}. Effect instance is being cleaned up.`);
     };
   }, [
+    churchId,
     formData.amount,
     formData.coverFees,
-    formData.donationTypeId,
-    formData.isAnonymous,
-    formData.firstName,
-    formData.lastName,
     formData.email,
-    formData.phone, // Added
-    formData.address, // Added (assuming this is street/line1)
-    formData.city,    // Added
-    formData.state,   // Added
-    formData.zipCode, // Added
-    formData.country, // Added
-    churchId,
-    donorId, // Added donorId to dependency array
-    t,
+    donorId, // Added donorId as it's used in the API call
+    // t, // t function from useTranslation is generally stable; add if translations inside effect change
     // idempotencyKeyRef.current should not be a dependency here as it's stable after first mount.
     // clientSecret should not be a dependency; its change is an outcome, not a trigger.
   ]);
@@ -340,20 +317,16 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
   }
 
   const options: StripeElementsOptions = {
-    clientSecret, // clientSecret is guaranteed to be a string here
-    appearance: appearance,
+    clientSecret: clientSecret!, // Ensured by checks above to be a string
+    appearance: appearance
   };
   
   return (
     <div className="space-y-6">
       <Elements options={options} stripe={stripePromise}>
-        <CheckoutForm 
-          formData={formData} 
-          onBack={onBack} 
-          churchId={churchId} 
-          churchSlug={churchSlug}
-        />
-      </Elements>
-    </div>
+        <CheckoutForm formData={formData} onBack={onBack} churchId={churchId} churchSlug={churchSlug} churchName={churchName} />
+    </Elements>
+  </div>
   );
 }
+

@@ -114,10 +114,11 @@ export async function POST(req: Request) {
 
             if (stripeAddress) {
               if (!donor.addressLine1 && stripeAddress.line1) donorUpdateData.addressLine1 = stripeAddress.line1;
-              if (!donor.addressCity && stripeAddress.city) donorUpdateData.addressCity = stripeAddress.city;
-              if (!donor.addressState && stripeAddress.state) donorUpdateData.addressState = stripeAddress.state;
-              if (!donor.addressPostalCode && stripeAddress.postal_code) donorUpdateData.addressPostalCode = stripeAddress.postal_code;
-              if (!donor.addressCountry && stripeAddress.country) donorUpdateData.addressCountry = stripeAddress.country;
+              // Corrected field names to match Prisma schema for Donor model
+              if (!donor.city && stripeAddress.city) donorUpdateData.city = stripeAddress.city;
+              if (!donor.state && stripeAddress.state) donorUpdateData.state = stripeAddress.state;
+              if (!donor.postalCode && stripeAddress.postal_code) donorUpdateData.postalCode = stripeAddress.postal_code;
+              if (!donor.country && stripeAddress.country) donorUpdateData.country = stripeAddress.country;
             }
 
             if (Object.keys(donorUpdateData).length > 0) {
@@ -140,6 +141,21 @@ export async function POST(req: Request) {
           }
         } else {
             console.log(`[Stripe Webhook] No donorId found on transaction ${transaction?.id}, or transaction object is null. Skipping donor update.`);
+        }
+        break;
+
+      case 'payment_intent.processing':
+        const paymentIntentProcessing = event.data.object as Stripe.PaymentIntent;
+        console.log(`[Stripe Webhook] Processing payment_intent.processing for PI: ${paymentIntentProcessing.id}`);
+        try {
+          await prisma.donationTransaction.update({
+            where: { stripePaymentIntentId: paymentIntentProcessing.id },
+            data: { status: 'processing' },
+          });
+          console.log(`[Stripe Webhook] Updated transaction status to processing for PI: ${paymentIntentProcessing.id}`);
+        } catch (error) {
+          console.error(`[Stripe Webhook] Error updating DonationTransaction to processing for PI: ${paymentIntentProcessing.id}`, error);
+          return NextResponse.json({ error: 'Failed to update transaction to processing status.' }, { status: 500 });
         }
         break;
 

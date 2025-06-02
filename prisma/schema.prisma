@@ -53,22 +53,25 @@ model IdempotencyCache {
 
 // --- Donor Model for Twilio OTP Flow ---
 model Donor {
-  id                String   @id @default(cuid())
-  phoneNumber       String   @unique // Store in E.164 format
+  id                String    @id @default(cuid())
   firstName         String?
   lastName          String?
-  email             String?  // Consider if this should also be unique or if one phone can have multiple email history
+  email             String?   @unique // Primary unique identifier if phone not verified, or for non-phone donors
+  phone             String?   @unique // E.164 formatted verified phone number
+  isPhoneVerified   Boolean   @default(false)
   addressLine1      String?
-  addressCity       String?
-  addressState      String?
-  addressPostalCode String?
-  addressCountry    String?
+  addressLine2      String?   // Added as per plan
+  city              String?   // Renamed from addressCity
+  state             String?   // Renamed from addressState. Or region/province
+  postalCode        String?   // Renamed from addressPostalCode
+  country           String?   // Renamed from addressCountry. e.g., ISO 2-letter country code
+  stripeCustomerId  String?   // To store Stripe Customer ID on the platform account
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   // Relation to DonationTransactions
-  donationTransactions DonationTransaction[]
+  transactions      DonationTransaction[] // Renamed from donationTransactions
 }
 
 // Represents a Church organization/tenant

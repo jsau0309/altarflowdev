@@ -183,6 +183,8 @@ This plan outlines the steps to implement the donation flow, allowing church mem
 
 ## Phase 4: Backend - Recurring Donation Logic (Subscriptions)
 
+**Note: This phase is out of scope for V1 and deferred to V2.**
+
 **Objective:** Enable the backend to process recurring donations.
 
 **Step 4.1: Enhance API Endpoint for Initiating Donations (Recurring)**
@@ -232,6 +234,8 @@ This plan outlines the steps to implement the donation flow, allowing church mem
 ---
 
 ## Phase 5: Frontend - Recurring Donation Form & Management (Basic)
+
+**Note: This phase is out of scope for V1 and deferred to V2.**
 
 **Objective:** Allow users to sign up for recurring donations.
 

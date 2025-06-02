@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { v4 as uuidv4 } from 'uuid';
 import { isValidPhoneNumber } from 'react-phone-number-input';
 import { Check } from "lucide-react"
 import DonationDetails from "./donation-details"
@@ -20,11 +21,11 @@ interface DonationFormProps {
 // Updated DonationFormData type
 export type DonationFormData = {
   amount: number;
-  donationType: "one-time" | "recurring"; // This is for one-time vs recurring payment
+  // donationType: "one-time" | "recurring"; // Removed: All donations are one-time
   donationTypeId: string; // ID of the selected specific donation type/fund
   donationTypeName?: string; // NAME of the selected specific donation type/fund
-  frequency?: "weekly" | "monthly" | "quarterly" | "annually";
-  startDate?: string;
+  // frequency?: "weekly" | "monthly" | "quarterly" | "annually"; // Removed
+  // startDate?: string; // Removed (related to recurring)
   firstName?: string;
   lastName?: string;
   isAnonymous?: boolean;
@@ -56,11 +57,11 @@ export type PhoneVerificationStage =
 export default function DonationForm({ churchId, churchName, donationTypes, churchSlug }: DonationFormProps) {
   const [formData, setFormData] = useState<DonationFormData>({
     amount: 0,
-    donationType: "one-time",
+    // donationType: "one-time", // Removed
     donationTypeId: "",
     donationTypeName: "",
-    frequency: "monthly", // Default, UI typically shows this only if donationType is 'recurring'
-    startDate: undefined,
+    // frequency: "monthly", // Removed
+    // startDate: undefined, // Removed
     firstName: "",
     lastName: "",
     isAnonymous: false,
@@ -81,6 +82,7 @@ export default function DonationForm({ churchId, churchName, donationTypes, chur
   const [enteredOtp, setEnteredOtp] = useState<string>('');
   const [isLoadingOtpAction, setIsLoadingOtpAction] = useState<boolean>(false);
   const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
+  const idempotencyKeyRef = useRef<string>(uuidv4()); // Generate once for the entire form lifecycle
 
   const updateFormData = (data: Partial<DonationFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -156,10 +158,10 @@ export default function DonationForm({ churchId, churchName, donationTypes, chur
             email: data.donorData.email || '',
             street: data.donorData.addressLine1 || '',
             addressLine2: data.donorData.addressLine2 || '', // Added addressLine2
-            city: data.donorData.addressCity || '',
-            state: data.donorData.addressState || '',
-            zipCode: data.donorData.addressPostalCode || '',
-            country: data.donorData.addressCountry || '',
+            city: data.donorData.city || '',
+            state: data.donorData.state || '',
+            zipCode: data.donorData.postalCode || '',
+            country: data.donorData.country || '',
             // Note: 'address' (full formatted address) is not directly provided by this API
             // It might need to be reconstructed or handled differently if required.
           });
@@ -224,8 +226,8 @@ export default function DonationForm({ churchId, churchName, donationTypes, chur
           handleChangePhoneNumber={handleChangePhoneNumber}
         />;
       case 3:
-        // Pass churchId and donorId to DonationPayment
-        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} churchSlug={churchSlug} donorId={formData.donorId} />;
+        // Pass churchId, donorId, and churchName to DonationPayment
+        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} churchSlug={churchSlug} donorId={formData.donorId} churchName={churchName} idempotencyKey={idempotencyKeyRef.current} />;
       default:
         return <div>Something went wrong.</div>;
     }

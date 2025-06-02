@@ -83,7 +83,8 @@
       "methodApplePay": "Apple Pay",
       "coverFeesLabel": "Agregar {{fee}} a mi regalo",
       "coverFeesDescription": "Quiero aumentar mi regalo para ayudar a cubrir los costos administrativos y de procesamiento.",
-      "submitButton": "Donar ahora"
+      "submitButton": "Donar ahora",
+    "feesCoveredMessage": "Estás ayudando a cubrir las tarifas de transacción, para que los {{amount}} completos lleguen a la iglesia."
     },
     
     "donationInfo": {
@@ -221,5 +222,11 @@
         "invalidPhone": "Por favor, ingresa un número de teléfono válido",
         "invalidZip": "Por favor, ingresa un código postal válido"
       }
+    },
+    "donationSuccessful": {
+        "title": "Gracias",
+        "submissionMessage": "Tu donación ha sido recibida.",
+        "goHomeButton": "Volver al Inicio",
+        "contactSupportMessage": "Si tienes alguna pregunta, por favor contacta a soporte: hola@altarflow.com"
     }
   } 

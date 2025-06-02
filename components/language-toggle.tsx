@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Languages } from "lucide-react";
+
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,14 @@ export function LanguageToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" disabled={isChanging}>
-          <Languages className={`h-[1.2rem] w-[1.2rem] ${isChanging ? 'animate-spin' : ''}`} />
+        <Button 
+          size="icon" 
+          disabled={isChanging}
+          className="bg-white/60 dark:bg-slate-800/60 border border-slate-400/50 dark:border-slate-600/50 text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-slate-800/80 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-500"
+        >
+          <span className={`text-base font-semibold tracking-wider ${isChanging ? 'animate-spin' : ''}`}>
+            {i18n.language === 'en' ? 'ENG' : i18n.language === 'es' ? 'ESP' : 'Lang'}
+          </span>
           <span className="sr-only">{t('languageToggle.toggleLabel', { language: currentLanguageName })}</span>
         </Button>
       </DropdownMenuTrigger>

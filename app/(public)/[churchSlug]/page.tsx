@@ -4,6 +4,7 @@ import Image from 'next/image';
 import DonationForm from "@/components/donation/donation-form";
 import { LanguageToggle } from "@/components/language-toggle"; // Added import
 import { getChurchBySlug } from '@/lib/actions/church.actions'; 
+import { Lock } from 'lucide-react'; // Added for Secure Transaction icon
 
 interface DonatePageProps {
   params: {
@@ -36,13 +37,13 @@ export default async function DonatePage({ params }: DonatePageProps) {
   const { church, donationTypes } = churchData;
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900"> {/* Added 'relative' */}
-      <div className="absolute top-6 right-6 z-50"> {/* Container for LanguageToggle */}
+    <div className="relative flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}> {/* Added 'relative' */}
+      <div className="absolute top-2 right-4 z-50"> {/* Container for LanguageToggle */}
         <LanguageToggle />
       </div>
       <div className="w-full max-w-md space-y-8">
         {/* New Header Structure */}
-        <div className="flex flex-col items-center space-y-4"> 
+        <div className="mt-8 flex flex-col items-center space-y-4 bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md"> 
           <Image
             src="/images/Altarflow.svg"
             alt="Altarflow Logo"
@@ -50,19 +51,50 @@ export default async function DonatePage({ params }: DonatePageProps) {
             height={80}  
             priority 
           />
-          <span className="text-xl font-semibold text-gray-700 dark:text-gray-300"> 
-            Donate to {church.name}
-          </span>
+          {/* Church Name Display */}
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+            {church.name}
+          </h1>
         </div>
 
+        {/* Donation Form Card */}
         <div className="bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md">
           <DonationForm
             churchId={church.id}
-            churchName={church.name}
+            churchName={church.name} // churchName is still passed to the form if needed internally
             donationTypes={donationTypes}
-            churchSlug={churchSlug} // <<< Add this line
+            churchSlug={churchSlug}
           />
         </div>
+
+        {/* Footer Sections */}
+        <div className="w-full max-w-md space-y-3 text-center bg-white dark:bg-gray-800 px-6 py-6 rounded-lg shadow-md">
+          {/* Terms and Privacy */}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            By continuing, you agree to Altarflow's{' '}
+            <a href="#" className="font-medium underline hover:text-gray-700 dark:hover:text-gray-200">Terms of Service</a>
+            {' and '}
+            <a href="#" className="font-medium underline hover:text-gray-700 dark:hover:text-gray-200">Privacy Policy</a>.
+          </p>
+
+          {/* Powered by Altarflow */}
+          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+            <span>Powered by</span>
+            <Image
+              src="/images/Altarflow.svg"
+              alt="Altarflow Logo"
+              width={70} // Adjusted size for footer
+              height={18} // Adjusted size for footer
+            />
+          </div>
+
+          {/* Secure Transaction */}
+          <div className="flex items-center justify-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+            <Lock className="h-3 w-3" />
+            <span>Secure Transaction</span>
+          </div>
+        </div>
+
       </div>
     </div>
   );

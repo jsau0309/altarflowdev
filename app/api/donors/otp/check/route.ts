@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (verificationCheck.status === 'approved') {
       // OTP is valid, check if donor exists
       const existingDonor = await prisma.donor.findUnique({
-        where: { phoneNumber },
+        where: { phone: phoneNumber },
       });
 
       if (existingDonor) {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         // New donor: Create a donor record with the phone number
         const newDonor = await prisma.donor.create({
           data: {
-            phoneNumber: phoneNumber,
+            phone: phoneNumber,
             // Other fields can be populated later or have defaults
           },
         });

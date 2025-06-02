@@ -6,9 +6,8 @@ import { useSearchParams, useParams } from 'next/navigation';
 import { loadStripe, Stripe, PaymentIntent } from '@stripe/stripe-js';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button'; // Assuming you have this
-// You might want a more specific translation hook if needed, or use a generic one
-// import { useTranslation } from 'react-i18next'; // Or your preferred i18n library
+import { Button } from '@/components/ui/button'; 
+import { useTranslation } from "react-i18next";
 
 // Initialize Stripe.js with your publishable key
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -19,112 +18,42 @@ interface PageProps {
   };
 }
 
-function DonationSuccessfulContent({ churchSlug }: { churchSlug: string }) {
-  // const { t } = useTranslation('donations'); // Example for translations
-  const searchParams = useSearchParams();
-  const [stripe, setStripe] = useState<Stripe | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<PaymentIntent.Status | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+interface DonationSuccessfulContentProps {
+  churchSlug: string;
+}
 
-  useEffect(() => {
-    stripePromise.then(stripeInstance => {
-      setStripe(stripeInstance);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!stripe) {
-      return;
-    }
-
-    const clientSecret = searchParams.get('payment_intent_client_secret');
-
-    if (!clientSecret) {
-      setMessage("Error: Payment information not found. Please contact support if you made a payment.");
-      setIsLoading(false);
-      return;
-    }
-
-    stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent, error }) => {
-      setIsLoading(false);
-      if (error) {
-        setMessage(`Error retrieving payment details: ${error.message}`);
-        setPaymentStatus('requires_payment_method'); // Or some other error status
-      } else if (paymentIntent) {
-        setPaymentStatus(paymentIntent.status);
-        switch (paymentIntent.status) {
-          case 'succeeded':
-            setMessage("Thank you! Your donation was successful.");
-            break;
-          case 'processing':
-            setMessage("Your payment is processing. We'll update you when it's complete.");
-            break;
-          case 'requires_payment_method':
-            setMessage("Payment failed. Please try another payment method.");
-            // Optionally, redirect back to the donation form or offer a retry.
-            break;
-          default:
-            setMessage(`Payment status: ${paymentIntent.status}. Please contact support if you have questions.`);
-            break;
-        }
-      } else {
-         setMessage("Could not retrieve payment details. Please contact support.");
-      }
-    });
-  }, [stripe, searchParams]);
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
-        <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
-          Confirming your donation status...
-        </p>
-      </div>
-    );
-  }
+const DonationSuccessfulContent: React.FC<DonationSuccessfulContentProps> = ({ churchSlug }) => {
+  const { t } = useTranslation('donations');
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full">
-        {paymentStatus === 'succeeded' && (
-          <svg className="w-16 h-16 mx-auto mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        )}
-        {/* Add icons for other statuses if desired */}
-        <h1 className={`text-2xl font-semibold mb-2 ${
-          paymentStatus === 'succeeded' ? 'text-green-600 dark:text-green-400' : 
-          paymentStatus === 'processing' ? 'text-blue-600 dark:text-blue-400' :
-          'text-red-600 dark:text-red-400'
-        }`}>
-          {paymentStatus === 'succeeded' ? "Donation Successful!" : 
-           paymentStatus === 'processing' ? "Donation Processing" :
-           "Donation Status"}
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>
+      {/* The background gradient is an attempt to match the example's feel. Adjust as needed. */}
+      <div className="bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md max-w-md w-full">
+        {/* Optional: A generic 'thank you' icon could go here */}
+        {/* e.g., <CheckCircleIcon className="w-16 h-16 mx-auto mb-6 text-green-500" /> */}
+        
+        <h1 className="text-3xl font-bold mb-4 text-gray-800 dark:text-gray-100">
+          {t('donationSuccessful.title')}
         </h1>
-        <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
+        <p className="text-gray-700 dark:text-gray-300 mb-8 text-lg">
+          {t('donationSuccessful.submissionMessage')}
+        </p>
         
         <div className="space-y-3">
-          {paymentStatus === 'succeeded' && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              A confirmation email will be sent to you shortly (if an email was provided).
-            </p>
-          )}
-          <Button asChild variant="default" className="w-full">
+          <Button 
+            asChild 
+            variant="default" 
+            className="w-full py-3 text-lg rounded-md transition-colors duration-150 ease-in-out"
+          >
+            {/* The link now points to the root of the church's page, assuming that's 'home' */}
             <Link href={`/${churchSlug}`}>
-              Return to {churchSlug.replace(/-/g, ' ')}'s Page
+              {t('donationSuccessful.goHomeButton')}
             </Link>
           </Button>
-          {(paymentStatus === 'requires_payment_method' || paymentStatus === 'canceled') && (
-             <Button asChild variant="outline" className="w-full">
-                <Link href={`/${churchSlug}/donate`}> {/* Assuming /donate is your donation form page */}
-                    Try Donating Again
-                </Link>
-            </Button>
-          )}
         </div>
       </div>
-       <p className="mt-8 text-xs text-gray-500 dark:text-gray-400">
-        If you have any questions, please contact support.
+       <p className="mt-10 text-sm text-black dark:text-gray-200 max-w-md w-full">
+        {t('donationSuccessful.contactSupportMessage')}
       </p>
     </div>
   );

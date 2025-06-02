@@ -83,7 +83,8 @@
     "methodApplePay": "Apple Pay",
     "coverFeesLabel": "Add {{fee}} to my gift",
     "coverFeesDescription": "I want to increase my gift to help cover administrative fees and processing costs.",
-    "submitButton": "Donate now"
+    "submitButton": "Donate now",
+    "feesCoveredMessage": "You're helping cover the transaction fees, so the full {{amount}} goes to the church."
   },
   
   "donationInfo": {
@@ -221,5 +222,11 @@
       "invalidPhone": "Please enter a valid phone number",
       "invalidZip": "Please enter a valid ZIP code"
     }
+  },
+  "donationSuccessful": {
+    "title": "Thank you!",
+    "submissionMessage": "Your donation has been received.",
+    "goHomeButton": "Go to home",
+    "contactSupportMessage": "If you have any questions, please contact support: hola@altarflow.com"
   }
 } 
