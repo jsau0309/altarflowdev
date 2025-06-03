@@ -1,14 +1,14 @@
 {
-  "title": "Flujos",
-  "subtitle": "Configura y gestiona los formularios y flujos de tu iglesia.",
+  "title": "Flows",
+  "subtitle": "Configura y gestiona los formularios y flows de tu iglesia.",
   "tabs": {
-    "flowConfiguration": "Configuración de Flujo"
+    "flowConfiguration": "Configuración de Flow"
   },
   "config": {
-    "title": "Configuración de Flujo de Nuevo Miembro",
-    "description": "Configura el flujo de recopilación de información para nuevos miembros.",
+    "title": "Configuración de Formulario de Nuevo Miembro",
+    "description": "Configura el formulario de recopilación de información para nuevos miembros.",
     "formUrlLabel": "URL del Formulario",
-    "formUrlDescription": "Comparte este enlace con los visitantes o úsalo para generar códigos QR.",
+    "formUrlDescription": "Comparte este enlace con los miembros o úsalo para generar códigos QR.",
     "tabs": {
       "services": "Horarios de Servicio",
       "ministries": "Ministerios",
@@ -16,22 +16,24 @@
     },
     "services": {
       "title": "Horarios de Servicio",
-      "description": "Añade los horarios de servicio que los visitantes pueden seleccionar en el formulario.",
+      "description": "Añade los horarios de servicio que los miembros pueden seleccionar en el formulario.",
       "dayPlaceholder": "Día (ej., Domingo)",
       "timePlaceholder": "Hora (ej., 10:00 AM)"
     },
     "ministries": {
       "title": "Ministerios",
-      "description": "Añade los ministerios en los que los visitantes pueden expresar interés.",
+      "description": "Añade los ministerios en los que los miembros pueden expresar interés.",
       "namePlaceholder": "Nombre del Ministerio"
     },
     "settings": {
       "title": "Configuración General",
-      "description": "Configura las opciones generales para este flujo.",
+      "description": "Configura las opciones generales para este formulario.",
       "prayerLabel": "Habilitar Peticiones de Oración",
-      "prayerDescription": "Permitir a los visitantes enviar peticiones de oración.",
+      "prayerDescription": "Permitir a los miembros enviar peticiones de oración.",
+      "referralDescription": "Preguntar a los miembros cómo escucharon de la iglesia.",
       "referralLabel": "Habilitar Seguimiento de Referidos",
-      "lifeStageDescription": "Preguntar a los visitantes por su etapa de vida (ej., Jóvenes, Adultos Jóvenes).",
+      "lifeStageLabel": "Habilitar Campo de Edad",
+      "lifeStageDescription": "Preguntar a los miembros su edad (ej., Jóvenes, Adultos Jóvenes).",
       "prayerNotificationEmailLabel": "Correo para Notificación de Peticiones de Oración",
       "prayerNotificationEmailPlaceholder": "ej., equipodeoracion@iglesia.com",
       "prayerNotificationEmailDescription": "Dirección de correo para recibir notificaciones de peticiones de oración."

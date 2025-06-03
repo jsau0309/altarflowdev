@@ -120,8 +120,8 @@ export const defaultMinistries: Ministry[] = [
 ];
 
 export const defaultSettings: FormConfiguration['settings'] = {
-  enablePrayerRequests: true,
-  enableReferralTracking: true,
+  enablePrayerRequests: false,
+  enableReferralTracking: false,
   enableLifeStage: false,
   prayerRequestNotificationEmail: "", // Default for prayer request notifications
   notificationEmails: [],

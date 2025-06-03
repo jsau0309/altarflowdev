@@ -3,7 +3,8 @@ import type { Metadata, Viewport } from "next"
 import { GeistSans } from 'geist/font/sans'
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import I18nClientProvider from "@/components/i18n-client-provider"
+import I18nClientProvider from "@/components/i18n-client-provider";
+import { Toaster } from 'sonner';
 import { 
   ClerkProvider,
   SignInButton,
@@ -52,6 +53,7 @@ export default function RootLayout({
           <I18nClientProvider>
             <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
               {children}
+              <Toaster richColors closeButton />
             </ThemeProvider>
           </I18nClientProvider>
         </body>

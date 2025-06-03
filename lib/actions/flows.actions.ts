@@ -219,7 +219,7 @@ export async function getFlowConfiguration(
 export async function saveFlowConfiguration(
     flowType: FlowType,
     config: Omit<FormConfiguration, 'churchId' | 'formVersion' | 'customFields'> 
-): Promise<{ success: boolean; message?: string }> {
+): Promise<{ success: boolean; message?: string; slug?: string }> {
     const { userId, orgId } = await auth();
 
     if (!userId) {
@@ -264,7 +264,7 @@ export async function saveFlowConfiguration(
             select: { id: true }
         });
         console.log(`${flowType} configuration created successfully for org ${orgId} (Flow ID: ${createdFlow.id})`);
-        return { success: true };
+        return { success: true, slug: flowSlug };
 
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -282,7 +282,7 @@ export async function saveFlowConfiguration(
                     },
                 });
                 console.log(`${flowType} configuration updated successfully for org ${orgId} (Flow ID: ${existingFlow.id})`);
-                return { success: true };
+                return { success: true, slug: flowSlug };
 
             } catch (updateError) {
                  console.error(`Error updating existing ${flowType} configuration for org ${orgId} after create failed:`, updateError);

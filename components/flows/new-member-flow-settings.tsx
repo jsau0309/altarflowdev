@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,20 +14,22 @@ import { PlusCircle, Trash2, ExternalLink, Loader2, AlertCircle } from "lucide-r
 import { useTranslation } from "react-i18next"
 // Use actions from the new file
 import { getFlowConfiguration, saveFlowConfiguration } from "@/lib/actions/flows.actions"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from 'sonner';
+import { NewMemberFlowSettingsSkeleton } from "./new-member-flow-settings-skeleton";
 import { FlowType } from "@prisma/client" // Import FlowType
 
 // Define the shape of the config state, excluding fields not directly managed here
 type ConfigState = Omit<FormConfiguration, 'churchId' | 'formVersion' | 'customFields'>;
 
 export function NewMemberFlowSettings() { // Renamed component
+  const router = useRouter();
   // State for the configuration, loading, saving, and errors
   const [config, setConfig] = useState<ConfigState | null>(null);
   const [flowSlug, setFlowSlug] = useState<string | null>(null); // Add state for the slug
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, startSavingTransition] = useTransition();
-  const [saveResult, setSaveResult] = useState<{ success: boolean; message?: string } | null>(null);
 
   // State for adding new items
   const [newServiceDay, setNewServiceDay] = useState("");
@@ -84,7 +87,6 @@ export function NewMemberFlowSettings() { // Renamed component
       });
       setNewServiceDay("");
       setNewServiceTime("");
-      setSaveResult(null); // Clear previous save result on edit
     }
   };
 
@@ -94,7 +96,6 @@ export function NewMemberFlowSettings() { // Renamed component
       ...config,
       serviceTimes: config.serviceTimes.filter((service) => service.id !== id),
       });
-      setSaveResult(null);
   }
   };
 
@@ -106,7 +107,6 @@ export function NewMemberFlowSettings() { // Renamed component
         service.id === id ? { ...service, isActive: !service.isActive } : service,
       ),
       });
-      setSaveResult(null);
   }
   };
 
@@ -120,7 +120,6 @@ export function NewMemberFlowSettings() { // Renamed component
         ],
       });
       setNewMinistryName("");
-      setSaveResult(null);
     }
   };
 
@@ -130,7 +129,6 @@ export function NewMemberFlowSettings() { // Renamed component
       ...config,
       ministries: config.ministries.filter((ministry) => ministry.id !== id),
       });
-      setSaveResult(null);
   }
   };
 
@@ -142,7 +140,6 @@ export function NewMemberFlowSettings() { // Renamed component
         ministry.id === id ? { ...ministry, isActive: !ministry.isActive } : ministry,
       ),
       });
-      setSaveResult(null);
   }
   };
 
@@ -155,7 +152,6 @@ export function NewMemberFlowSettings() { // Renamed component
           [settingKey]: value,
         },
       });
-      setSaveResult(null);
     }
   };
 
@@ -168,7 +164,6 @@ export function NewMemberFlowSettings() { // Renamed component
           [setting]: !config.settings[setting],
         },
       });
-      setSaveResult(null);
     }
   };
 
@@ -177,20 +172,21 @@ export function NewMemberFlowSettings() { // Renamed component
     if (!config) return;
 
     startSavingTransition(async () => {
-      setSaveResult(null);
       setError(null);
       try {
         // Save NEW_MEMBER flow specifically
         const result = await saveFlowConfiguration(FlowType.NEW_MEMBER, config);
-        setSaveResult(result);
-        if (!result.success) {
-          console.error("Failed to save configuration:", result.message);
-          setSaveResult({ success: false, message: result.message || t('flows:config.saveError', 'Failed to save configuration.') });
+        if (result.success && result.slug) {
+          setFlowSlug(result.slug); // Update local slug state
+          router.refresh(); // Refresh page data
+          toast.success(t('flows:config.saveSuccess', 'Configuration saved successfully!'));
+        } else {
+          toast.error(result.message || t('flows:config.saveError', 'Failed to save configuration.'));
         }
       } catch (err) {
-        console.error("Error saving configuration:", err);
-        const errMsg = err instanceof Error ? err.message : t('common:errors.unexpected', 'An unexpected error occurred');
-        setSaveResult({ success: false, message: errMsg });
+        console.error("Save error:", err);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        toast.error(`${t('flows:config.saveErrorUnexpected', 'An unexpected error occurred:')} ${errorMessage}`);
       }
     });
   };
@@ -209,12 +205,7 @@ export function NewMemberFlowSettings() { // Renamed component
 
   // --- Render Logic --- 
   if (isLoading) {
-    return (
-      <Card className="w-full flex justify-center items-center p-10">
-         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-         <span className="ml-2 text-muted-foreground">{t('common:loading')}</span>
-      </Card>
-    );
+    return <NewMemberFlowSettingsSkeleton />;
   }
 
   if (error) {

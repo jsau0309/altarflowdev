@@ -3,7 +3,7 @@
   "description": "Por favor, completa el siguiente formulario para conectarte con nosotros.",
   "labelFirstName": "Nombre",
   "labelLastName": "Apellido",
-  "labelRelationshipStatus": "Estado de Relación",
+  "labelRelationshipStatus": "Tipo de Miembro",
   "labelServiceAttended": "¿A qué servicio asististe?",
   "labelMinistryInterest": "¿Estás interesado/a en alguno de los siguientes?",
   "labelLifeStage": "¿Qué describe mejor tu etapa de vida actual?",
@@ -24,6 +24,6 @@
   "successMessage": "Tu información ha sido recibida. ¡Nos pondremos en contacto pronto!",
   "submissionSuccessMessage": "¡Formulario enviado con éxito!",
   "errorMessageDefault": "Ocurrió un error. Por favor, revisa tus datos e intenta de nuevo.",
-  "validationRelationshipStatusRequired": "Por favor, selecciona tu estado de relación.",
+  "validationRelationshipStatusRequired": "Por favor, selecciona el tipo de miembro.",
   "labelSmsConsent": "Envíame un mensaje de bienvenida con los horarios de servicio."
 } 
