@@ -31,7 +31,10 @@
       "prayerLabel": "Habilitar Peticiones de Oración",
       "prayerDescription": "Permitir a los visitantes enviar peticiones de oración.",
       "referralLabel": "Habilitar Seguimiento de Referidos",
-      "referralDescription": "Preguntar a los visitantes cómo se enteraron de la iglesia."
+      "lifeStageDescription": "Preguntar a los visitantes por su etapa de vida (ej., Jóvenes, Adultos Jóvenes).",
+      "prayerNotificationEmailLabel": "Correo para Notificación de Peticiones de Oración",
+      "prayerNotificationEmailPlaceholder": "ej., equipodeoracion@iglesia.com",
+      "prayerNotificationEmailDescription": "Dirección de correo para recibir notificaciones de peticiones de oración."
     },
     "saveSuccess": "¡Configuración guardada exitosamente!",
     "saveError": "Error al guardar la configuración.",

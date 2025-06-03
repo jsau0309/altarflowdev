@@ -22,6 +22,7 @@
   "placeholderPrayer": "You can share your request here...",
   "successCardTitle": "Thank You!",
   "successMessage": "Your information has been received. We'll be in touch soon!",
+  "submissionSuccessMessage": "Submission received successfully!",
   "errorMessageDefault": "An error occurred. Please check your entries and try again.",
   "validationRelationshipStatusRequired": "Please select your relationship status.",
   "labelSmsConsent": "Send me a welcome text with service times."

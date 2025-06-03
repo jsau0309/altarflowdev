@@ -31,10 +31,13 @@
       "prayerLabel": "Enable Prayer Requests",
       "prayerDescription": "Allow visitors to submit prayer requests.",
       "referralLabel": "Enable Referral Tracking",
-      "referralDescription": "Ask visitors how they heard about the church."
+      "referralDescription": "Ask visitors how they heard about the church.",
+      "prayerNotificationEmailLabel": "Prayer Request Notification Email",
+      "prayerNotificationEmailPlaceholder": "e.g., prayerteam@church.com",
+      "prayerNotificationEmailDescription": "Email address to receive prayer request notifications."
     },
     "saveSuccess": "Configuration saved successfully!",
     "saveError": "Failed to save configuration.",
     "loadErrorTitle": "Error Loading Configuration"
   }
-} 
+}

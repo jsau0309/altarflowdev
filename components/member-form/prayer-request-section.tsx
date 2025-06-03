@@ -8,10 +8,11 @@ import { FormItem, FormLabel, FormControl, FormMessage, FormField } from "@/comp
 import { useTranslation } from "react-i18next"
 import type { MemberFormValues } from "./validation-schema"
 
-// TODO: Replace this hardcoded setting check later
-const ENABLE_PRAYER_REQUESTS = true;
+interface PrayerRequestSectionProps {
+  isPrayerEnabledByFlow: boolean;
+}
 
-export function PrayerRequestSection() {
+export function PrayerRequestSection({ isPrayerEnabledByFlow }: PrayerRequestSectionProps) {
   const { t } = useTranslation('members')
   const form = useFormContext<MemberFormValues>()
 
@@ -24,8 +25,8 @@ export function PrayerRequestSection() {
     }
   }, [prayerRequested, form])
 
-  // Use hardcoded setting for now
-  if (!ENABLE_PRAYER_REQUESTS) {
+  // Use the prop from flow configuration
+  if (!isPrayerEnabledByFlow) {
     return null
   }
 

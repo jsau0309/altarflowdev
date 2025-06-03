@@ -48,6 +48,7 @@ export interface FormConfiguration {
     enablePrayerRequests: boolean
     enableReferralTracking: boolean
     enableLifeStage: boolean
+    prayerRequestNotificationEmail?: string; // Added for prayer request notifications
     redirectUrl?: string
     notificationEmails: string[]
   }
@@ -73,7 +74,8 @@ export type FormConfig = {
   churchLogo: string
   primaryColor: string
   secondaryColor: string
-  fontFamily: string
+  fontFamily: string;
+  settings: FormConfiguration['settings']; // Add settings from the main FormConfiguration
 }
 
 export interface MemberFormData {
@@ -121,5 +123,6 @@ export const defaultSettings: FormConfiguration['settings'] = {
   enablePrayerRequests: true,
   enableReferralTracking: true,
   enableLifeStage: false,
+  prayerRequestNotificationEmail: "", // Default for prayer request notifications
   notificationEmails: [],
 };

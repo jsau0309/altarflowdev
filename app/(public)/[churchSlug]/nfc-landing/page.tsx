@@ -1,0 +1,83 @@
+import { getChurchBySlug } from '@/lib/actions/church.actions';
+import { getActiveFlowsByChurchId } from '@/lib/actions/flows.actions';
+import { getTranslationsForServer } from '@/lib/i18n.server';
+import { LanguageToggle } from "@/components/language-toggle"; // Added
+import { cookies } from 'next/headers'; // Added
+import Link from 'next/link';
+import Image from 'next/image';
+
+interface NfcLandingPageProps {
+  params: {
+    churchSlug: string;
+  };
+}
+
+async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
+  const cookieStore = cookies();
+  const langCookie = cookieStore.get('NEXT_LOCALE');
+  const locale = langCookie?.value === 'es' ? 'es' : 'en'; // Default to 'en' if cookie is not 'es' or not set
+  const t = await getTranslationsForServer(locale, 'nfc');
+
+  const churchData = await getChurchBySlug(churchSlug);
+  if (!churchData || !churchData.church) {
+    return <p>Church not found.</p>; 
+  }
+  const { church } = churchData;
+
+  const activeFlows = await getActiveFlowsByChurchId(church.id);
+  const firstActiveFlow = activeFlows && activeFlows.length > 0 ? activeFlows[0] : null;
+  const connectUrl = firstActiveFlow && firstActiveFlow.slug ? `/connect/${firstActiveFlow.slug}` : null;
+
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const altarflowLogoUrl = `${siteUrl}/images/Altarflow.svg`;
+
+  return (
+    <>
+      <div className="fixed top-4 right-4 z-50"> {/* Added wrapper for positioning */}
+        <LanguageToggle />
+      </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-gray-400 flex flex-col items-center justify-center p-4 text-white">
+      <div className="bg-white text-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
+        <div className="mb-8">
+          <Image src={altarflowLogoUrl} alt="Altarflow Logo" width={225} height={75} className="mx-auto" />
+        </div>
+        <h1 className="text-3xl font-bold mb-6 text-blue-700">
+          {t('nfcWelcomeMessage', { churchName: church.name })}
+        </h1>
+        <div className="space-y-4">
+          <Link href={`/${churchSlug}`} passHref legacyBehavior>
+            <a className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out">
+              {t('nfcDonateButton')}
+            </a>
+          </Link>
+          {connectUrl && (
+            <Link href={connectUrl} passHref legacyBehavior>
+              <a className="block w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out">
+                {t('nfcConnectButton')}
+              </a>
+            </Link>
+          )}
+        </div>
+      </div>
+      <footer className="text-center text-xs py-4 text-white text-opacity-80">
+        {new Date().getFullYear()} Altarflow. All rights reserved.
+      </footer>
+      </div>
+    </>
+  );
+}
+
+export default async function NfcLandingPage({ params }: NfcLandingPageProps) {
+  return <NfcLandingContent churchSlug={params.churchSlug} />;
+}
+
+// Metadata export for page title
+export async function generateMetadata({ params }: NfcLandingPageProps): Promise<any> {
+  const cookieStore = cookies();
+  const langCookie = cookieStore.get('NEXT_LOCALE');
+  const locale = langCookie?.value === 'es' ? 'es' : 'en'; // Default to 'en'
+  const t = await getTranslationsForServer(locale, 'nfc');
+  return {
+    title: t('nfcLandingPageTitle'),
+  };
+}

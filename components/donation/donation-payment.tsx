@@ -297,9 +297,9 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
 
   if (isLoadingClientSecret) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-600" />
-        <p className="ml-4 text-lg font-medium text-gray-700 dark:text-gray-300">{t('donations:donationPayment.loadingPaymentForm', 'Loading payment form...')}</p>
+      <div className="flex flex-col justify-center items-center p-8 w-full"> {/* Added w-full and flex-col */}
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600" /> {/* Removed mx-auto */}
+        <p className="mt-4 text-lg font-medium text-gray-700 dark:text-gray-300">{t('donations:donationPayment.loadingPaymentForm', 'Loading payment form...')}</p> {/* Added mt-4 */}
       </div>
     );
   }

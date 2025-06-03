@@ -4,35 +4,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { NewMemberFlowSettings } from "./flows/new-member-flow-settings"
 import { useState } from "react"
 import { useTranslation } from 'react-i18next'
-// Assuming react-hot-toast is used, adjust if necessary
-// import toast from 'react-hot-toast'; 
 
-export function SettingsContent() {
+// Define the type for the church profile data
+interface ChurchProfileData {
+  name: string;
+  phone: string | null;
+  address: string | null;
+  website: string | null;
+}
+
+// Define the props for the SettingsContent component
+interface SettingsContentProps {
+  initialChurchProfile: ChurchProfileData | null;
+}
+
+export function SettingsContent({ initialChurchProfile }: SettingsContentProps) {
   // Load necessary namespaces
   const { i18n, t } = useTranslation(['flows', 'common']); 
-  // Remove churchProfile state and handlers
-  // const [churchProfile, setChurchProfile] = useState<ChurchProfileData>({
-  //   name: initialChurchProfile.name || "", 
-  //   phone: initialChurchProfile.phone || "",
-  //   address: initialChurchProfile.address || "",
-  //   website: initialChurchProfile.website || "",
-  // })
-  // Remove isLoading state
-  // const [isLoading, setIsLoading] = useState(true); 
-  // const [isSaving, setIsSaving] = useState(false);  // Saving state for updates
-  // const handleChurchProfileChange = (...) => { ... }
-  // const handleSaveChurchProfile = async () => { ... }
-
-  // Remove useEffect for fetching data
-  /*
-  useEffect(() => {
-    const fetchProfile = async () => {
-      // ... fetch logic removed ...
-    };
-    fetchProfile();
-  }, [t]);
-  */
-
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">

@@ -50,14 +50,19 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      {/* Render the new ConnectForm client component, passing required props */}
-      <ConnectForm 
-        flowId={flowData.id}
-        churchName={flowData.churchName}
-        // Pass the parsed config safely
-        config={parsedConfig} 
-      />
+    <div 
+      className="min-h-screen py-8 flex flex-col justify-center sm:py-12" 
+      style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}
+    >
+      <div className="container mx-auto">
+        {/* Render the new ConnectForm client component, passing required props */}
+        <ConnectForm 
+          flowId={flowData.id}
+          churchName={flowData.churchName}
+          // Pass the parsed config safely
+          config={parsedConfig} 
+        />
+      </div>
     </div>
   );
-} 
+}

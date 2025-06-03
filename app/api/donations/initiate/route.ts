@@ -167,13 +167,16 @@ export async function POST(request: Request) {
     const STRIPE_PERCENTAGE_FEE_RATE = 0.029;
     const STRIPE_FIXED_FEE_CENTS = 30;
 
+    let finalAmountForStripe = baseAmount; // baseAmount is in cents, this is the default if fees are not covered
     let calculatedProcessingFeeInCents = 0;
-    if (coverFees && baseAmount > 0) {
-      const percentageFeePart = baseAmount * STRIPE_PERCENTAGE_FEE_RATE;
-      calculatedProcessingFeeInCents = Math.round(percentageFeePart + STRIPE_FIXED_FEE_CENTS);
-    }
 
-    const finalAmountForStripe = baseAmount + calculatedProcessingFeeInCents;
+    if (coverFees && baseAmount > 0) {
+      // Gross-up calculation to ensure the church receives the full baseAmount
+      // finalAmountForStripe will be the total amount charged to the donor.
+      finalAmountForStripe = Math.ceil((baseAmount + STRIPE_FIXED_FEE_CENTS) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
+      calculatedProcessingFeeInCents = finalAmountForStripe - baseAmount;
+    }
+    // If coverFees is false, finalAmountForStripe remains baseAmount (initial value), and calculatedProcessingFeeInCents remains 0.
     console.log(`[API /donations/initiate] Fee Calculation: baseAmount: ${baseAmount}, coverFees: ${coverFees}, calculatedProcessingFeeInCents: ${calculatedProcessingFeeInCents}, finalAmountForStripe: ${finalAmountForStripe}`);
 
     if (!church.clerkOrgId) {
@@ -268,6 +271,32 @@ export async function POST(request: Request) {
       }
     } else if (isAnonymous) {
       console.log('[API /donations/initiate] Anonymous donation, not creating/linking Stripe customer by email.');
+    }
+
+    // Update Donor record with Stripe Customer ID if available
+    if (donorId && stripeCustomerId && !isAnonymous) {
+      try {
+        const existingDonor = await prisma.donor.findUnique({
+          where: { id: donorId },
+          select: { stripeCustomerId: true }
+        });
+
+        if (existingDonor && existingDonor.stripeCustomerId !== stripeCustomerId) {
+          console.log(`[API /donations/initiate] Attempting to update Donor ${donorId} with stripeCustomerId ${stripeCustomerId}`);
+          await prisma.donor.update({
+            where: { id: donorId },
+            data: { stripeCustomerId: stripeCustomerId },
+          });
+          console.log(`[API /donations/initiate] Successfully updated Donor ${donorId} with stripeCustomerId.`);
+        } else if (!existingDonor) {
+          console.log(`[API /donations/initiate] Donor ${donorId} not found, cannot update stripeCustomerId.`);
+        } else {
+          console.log(`[API /donations/initiate] Donor ${donorId} already has stripeCustomerId ${stripeCustomerId} or no update needed.`);
+        }
+      } catch (dbError) {
+        console.error(`[API /donations/initiate] Error updating Donor ${donorId} with stripeCustomerId:`, dbError);
+        // Non-fatal error, proceed with donation creation
+      }
     }
 
     const paymentIntentParams: Stripe.PaymentIntentCreateParams = {

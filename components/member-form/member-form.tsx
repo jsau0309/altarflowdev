@@ -45,6 +45,7 @@ export function MemberForm() {
   const { showToast } = useToast()
   // Load members and common namespaces
   const { t } = useTranslation(['members', 'common']);
+  const { config } = useFormConfig(); 
 
   // Create the schema instance inside the component where t is available
   const formSchema = createFormSchema(t);
@@ -93,7 +94,7 @@ export function MemberForm() {
           <MinistriesSelector />
           <ServiceTimesSelector />
           <ReferralSection />
-          <PrayerRequestSection />
+          <PrayerRequestSection isPrayerEnabledByFlow={config.settings.enablePrayerRequests} />
           <CustomFieldsSection />
 
           <div className="flex justify-end">

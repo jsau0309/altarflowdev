@@ -146,6 +146,19 @@ export function NewMemberFlowSettings() { // Renamed component
   }
   };
 
+  const handleSettingInputChange = (settingKey: keyof ConfigState['settings'], value: string) => {
+    if (config) {
+      setConfig({
+        ...config,
+        settings: {
+          ...config.settings,
+          [settingKey]: value,
+        },
+      });
+      setSaveResult(null);
+    }
+  };
+
   const handleToggleSetting = (setting: keyof ConfigState['settings']) => {
     if (config) {
     setConfig({
@@ -250,17 +263,6 @@ export function NewMemberFlowSettings() { // Renamed component
             </p>
           </div>
 
-          {/* Display Save Result */} 
-          {saveResult && (
-            <Alert variant={saveResult.success ? "default" : "destructive"} className="mb-4">
-               <AlertCircle className="h-4 w-4" />
-               <AlertTitle>{saveResult.success ? t('common:successTitle', 'Success') : t('common:errorTitle', 'Error')}</AlertTitle>
-               <AlertDescription>
-                 {saveResult.message || (saveResult.success ? t('flows:config.saveSuccess', 'Configuration saved successfully!') : t('flows:config.saveError', 'Failed to save configuration.'))}
-               </AlertDescription>
-            </Alert>
-          )}
-
           <Tabs defaultValue="services">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="services">{t('flows:config.tabs.services', 'Service Times')}</TabsTrigger>
@@ -364,6 +366,25 @@ export function NewMemberFlowSettings() { // Renamed component
                     onCheckedChange={() => handleToggleSetting("enablePrayerRequests")}
                   />
                 </div>
+
+                {/* Prayer Request Notification Email Input - Conditionally Rendered */}
+                {config.settings.enablePrayerRequests && (
+                  <div className="space-y-2 pl-6 pt-2 pb-2">
+                    <Label htmlFor="prayer-request-notification-email">
+                      {t('flows:config.settings.prayerNotificationEmailLabel', 'Prayer Request Notification Email')}
+                    </Label>
+                    <Input
+                      id="prayer-request-notification-email"
+                      type="email"
+                      placeholder={t('flows:config.settings.prayerNotificationEmailPlaceholder', 'e.g., prayerteam@church.com')}
+                      value={config.settings.prayerRequestNotificationEmail || ''}
+                      onChange={(e) => handleSettingInputChange('prayerRequestNotificationEmail', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t('flows:config.settings.prayerNotificationEmailDescription', 'Email address to receive prayer request notifications.')}
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between">
                   <div>

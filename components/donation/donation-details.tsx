@@ -58,15 +58,24 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
   // REMOVED handleCampaignChange function
 
   useEffect(() => {
-    const numericAmount = Number.parseFloat(amount) || 0;
+    const numericAmount = Number.parseFloat(amount) || 0; // This is in dollars
+    const STRIPE_PERCENTAGE_FEE_RATE = 0.029;
+    const STRIPE_FIXED_FEE_CENTS = 30; // Fixed fee in cents
+
     if (numericAmount > 0 && formData.coverFees) {
-      const fee = (numericAmount * 0.029) + 0.30;
-      const roundedFee = Math.round(fee * 100) / 100; // Round to 2 decimal places
-      setCalculatedFee(roundedFee);
-      setTotalWithFees(numericAmount + roundedFee);
+      const baseAmountInCents = Math.round(numericAmount * 100); // Convert to cents, ensure integer
+
+      // Mimic backend gross-up calculation
+      const finalAmountForStripeInCents = Math.ceil((baseAmountInCents + STRIPE_FIXED_FEE_CENTS) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
+      
+      const finalTotalDisplay = finalAmountForStripeInCents / 100; // Convert back to dollars for display
+      const calculatedDisplayFee = (finalAmountForStripeInCents - baseAmountInCents) / 100; // Fee in dollars
+
+      setCalculatedFee(calculatedDisplayFee);
+      setTotalWithFees(finalTotalDisplay);
     } else {
       setCalculatedFee(0);
-      setTotalWithFees(numericAmount > 0 ? numericAmount : 0); // Ensure totalWithFees is 0 if amount is 0
+      setTotalWithFees(numericAmount > 0 ? numericAmount : 0); // Ensure totalWithFees is 0 if amount is 0 or fees not covered
     }
   }, [amount, formData.coverFees]);
 

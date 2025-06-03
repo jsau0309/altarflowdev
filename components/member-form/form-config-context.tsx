@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState } from "react"
 import type { FormConfig } from "./types"
+import { defaultSettings } from "./types"; // Import defaultSettings
 
 // Default configuration
 const defaultConfig: FormConfig = {
@@ -23,10 +24,10 @@ const defaultConfig: FormConfig = {
     { id: "m4", name: "Seniors Club", description: "", isActive: false },
   ],
   serviceTimes: [
-    { id: "s1", name: "Sunday 9:00 AM", description: "Main Service", isActive: true },
-    { id: "s2", name: "Sunday 11:00 AM", description: "Contemporary Service", isActive: true },
-    { id: "s3", name: "Wednesday 7:00 PM", description: "Midweek Prayer", isActive: true },
-    { id: "s4", name: "Saturday 5:00 PM", description: "Youth Service", isActive: false },
+    { id: "s1", day: "Sunday", time: "9:00 AM", description: "Main Service", isActive: true },
+    { id: "s2", day: "Sunday", time: "11:00 AM", description: "Contemporary Service", isActive: true },
+    { id: "s3", day: "Wednesday", time: "7:00 PM", description: "Midweek Prayer", isActive: true },
+    { id: "s4", day: "Saturday", time: "5:00 PM", description: "Youth Service", isActive: false },
   ],
   submitButtonText: "Submit",
   successMessage: "Thank you for connecting with us!",
@@ -36,6 +37,7 @@ const defaultConfig: FormConfig = {
   primaryColor: "#4F46E5",
   secondaryColor: "#10B981",
   fontFamily: "Inter, sans-serif",
+  settings: defaultSettings, 
 }
 
 // Create context

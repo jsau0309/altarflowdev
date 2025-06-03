@@ -84,6 +84,7 @@ model Church {
   phone      String? // Added: Primary phone number
   email      String? // Added: Primary contact email
   website    String? // Added: Church website URL
+  logoUrl    String? // Optional URL for the church's logo, used in receipts
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now()) @updatedAt // Keep @updatedAt, add @default(now()) for INSERT
 

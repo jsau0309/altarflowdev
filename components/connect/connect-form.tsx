@@ -53,7 +53,6 @@ const createFormSchema = (t: (key: string) => string) => z.object({
     prayerRequested: z.boolean().optional().default(false),
     // Add validation for prayerRequest if prayerRequested is true
     prayerRequest: z.string().optional(),
-    smsConsent: z.boolean().optional().default(false),
 }).refine(data => !data.prayerRequested || (data.prayerRequested && data.prayerRequest && data.prayerRequest.length > 0), {
     message: t('common:errors.required'), // Reuse common required message
     path: ["prayerRequest"], // Apply validation to prayerRequest field
@@ -84,7 +83,6 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
             referralSource: "",
             prayerRequested: false,
             prayerRequest: "",
-            smsConsent: false,
         },
     });
 
@@ -100,15 +98,21 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
             try {
                  // Prepare data for submission.
                  // Type inference from 'data: FormData' is sufficient.
+                 const submissionData = {
+                     ...data,
+                     language: currentLanguage, // Add current language to submission data
+                     // smsConsent is removed as it's no longer part of the form/schema
+                 };
+                 console.log("[ConnectForm] Submitting data:", submissionData);
+
+                 // Initialize optional fields as undefined initially
                  const dataToSubmit = {
-                     firstName: data.firstName,
-                     lastName: data.lastName,
-                     email: data.email,
-                     phone: data.phone, // Now required
-                     relationshipStatus: data.relationshipStatus,
-                     smsConsent: data.smsConsent,
-                     language: i18n.language,
-                     // Initialize optional fields as undefined initially
+                     firstName: submissionData.firstName,
+                     lastName: submissionData.lastName,
+                     email: submissionData.email,
+                     phone: submissionData.phone, // Now required
+                     relationshipStatus: submissionData.relationshipStatus,
+                     language: submissionData.language, // Ensure language is passed
                      serviceTimes: undefined as string[] | undefined,
                      interestedMinistries: undefined as string[] | undefined,
                      lifeStage: undefined as LifeStage | undefined,
@@ -173,7 +177,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                        <AlertCircle className="h-4 w-4" />
                        <AlertTitle>{t('common:successTitle')}</AlertTitle>
                        <AlertDescription>
-                         {submitResult.message || t('connect-form:successMessage')}
+                         {submitResult.message ? t(submitResult.message, { ns: 'connect-form' }) : t('connect-form:successMessage')}
                        </AlertDescription>
                     </Alert>
                  </CardContent>
@@ -233,26 +237,6 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                             placeholder={t('common:placeholders.phoneExample', '(555) 123-4567')} 
                         />
                          {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
-                    </div>
-                    <div className="flex items-center space-x-2 pt-2">
-                         <Controller
-                            name="smsConsent"
-                            control={control}
-                            render={({ field }) => (
-                                <Checkbox 
-                                    id="smsConsent"
-                                    checked={field.value} 
-                                    onCheckedChange={field.onChange} 
-                                    ref={field.ref}
-                                />
-                            )}
-                        />
-                        <Label 
-                            htmlFor="smsConsent" 
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                           {t('connect-form:labelSmsConsent', 'Send me a welcome text with service times.')} 
-                        </Label>
                     </div>
                     <div className="space-y-2">
                          <Label>{t('connect-form:labelRelationshipStatus')}</Label>

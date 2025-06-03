@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-
+import { useRouter } from 'next/navigation'; // Added
 import { useTranslation } from "react-i18next";
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,14 +11,30 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Helper to set a cookie
+const setCookie = (name: string, value: string, days: number) => {
+  let expires = "";
+  if (days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  if (typeof document !== 'undefined') {
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+  }
+};
+
 export function LanguageToggle() {
   const { i18n, t } = useTranslation();
+  const router = useRouter(); // Added
   const [isChanging, setIsChanging] = React.useState(false);
 
   const changeLanguage = async (lng: string) => {
     try {
       setIsChanging(true);
+      setCookie('NEXT_LOCALE', lng, 365); // Added: Set cookie
       await i18n.changeLanguage(lng);
+      router.refresh(); // Added: Refresh router to reflect server-side changes
     } catch (error) {
       console.error('Failed to change language:', error);
     } finally {

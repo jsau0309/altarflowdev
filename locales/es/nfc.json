@@ -10,5 +10,10 @@
     "thankYou": "¡Gracias por tu donación!",
     "receiptSent": "Un recibo ha sido enviado a tu correo electrónico.",
     "donationFailed": "Donación fallida",
-    "tryAgain": "Por favor, inténtalo de nuevo o usa otro método de pago."
-  } 
+    "tryAgain": "Por favor, inténtalo de nuevo o usa otro método de pago.",
+    "nfcLandingPageTitle": "Enlaces Rápidos",
+    "nfcWelcomeMessage": "Bienvenido a {{churchName}}",
+    "nfcDonateButton": "Donar",
+    "nfcConnectButton": "Conectar",
+    "nfcConnectNotAvailable": "El formulario de conexión aún no está disponible."
+} 
