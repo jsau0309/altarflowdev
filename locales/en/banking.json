@@ -16,7 +16,7 @@
     "tabs": {
       "account": "Account",
       "payouts": "Payouts",
-      "tax": "Tax Information",
+      "balance": "Balance",
       "settings": "Settings"
     },
     "account": {
@@ -51,25 +51,11 @@
       "statusCompleted": "Completed",
       "payoutType": "Standard payout"
     },
-    "tax": {
-      "title": "Tax Information",
-      "description": "Manage your tax documents and reporting information",
-      "stripeTitle": "Stripe Connect Tax Reporting",
-      "stripeDescription": "This section will contain the embedded Stripe Connect components for tax information management.",
-      "stripePlaceholder": "Stripe Connect Tax Dashboard will be embedded here",
-      "documentsTitle": "Tax Documents",
-      "docName": "{{type}} - {{year}}",
-      "docSubtitle": "Annual tax document",
-      "infoTitle": "Tax Information",
-      "idTypeLabel": "Tax ID Type",
-      "idTypeValue": "EIN",
-      "idLabel": "Tax ID",
-      "idValue": "XX-XXXXXXX",
-      "entityNameLabel": "Legal Entity Name",
-      "entityNameValue": "First Community Church",
-      "statusLabel": "Tax Exempt Status",
-      "statusValue": "501(c)(3)",
-      "updateButton": "Update Tax Information"
+    "balance": {
+      "title": "Balance & Payments",
+      "description": "View your current balance, payment activity, and manage funds",
+      "stripeTitle": "Stripe Connect Balance & Payments",
+      "stripeDescription": "This section will contain the embedded Stripe Connect components for balance and payment management."
     },
     "settings": {
       "title": "Banking Settings",
@@ -94,6 +80,8 @@
       "webhookStatusLabel": "Webhook Status",
       "apiModeLabel": "API Mode",
       "manageApiButton": "Manage API Settings",
+      "onboardingTitle": "Account Onboarding",
+      "onboardingDescription": "View and manage your Stripe account onboarding details.",
       "helpTitle": "Need Help?",
       "helpDescription": "Contact our support team for banking assistance",
       "contactSupportButton": "Contact Support"

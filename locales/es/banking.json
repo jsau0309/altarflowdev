@@ -16,7 +16,7 @@
       "tabs": {
         "account": "Cuenta",
         "payouts": "Pagos",
-        "tax": "Información Fiscal",
+        "balance": "Balance",
         "settings": "Configuración"
       },
       "account": {
@@ -51,32 +51,17 @@
         "statusCompleted": "Completado",
         "payoutType": "Pago estándar"
       },
-      "tax": {
-        "title": "Información Fiscal",
-        "description": "Administra tus documentos fiscales y la información de reporte",
-        "stripeTitle": "Reporte Fiscal de Stripe Connect",
-        "stripeDescription": "Esta sección contendrá los componentes de Stripe Connect para la gestión de información fiscal.",
-        "stripePlaceholder": "El tablero de Stripe Connect para información fiscal se incrustará aquí",
-        "documentsTitle": "Documentos Fiscales",
-        "docName": "{{type}} - {{year}}",
-        "docSubtitle": "Documento fiscal anual",
-        "infoTitle": "Información Fiscal",
-        "idTypeLabel": "Tipo de ID Fiscal",
-        "idTypeValue": "EIN",
-        "idLabel": "ID Fiscal",
-        "idValue": "XX-XXXXXXX",
-        "entityNameLabel": "Nombre de Entidad Legal",
-        "entityNameValue": "Iglesia Comunitaria",
-        "statusLabel": "Estado Exento Fiscal",
-        "statusValue": "501(c)(3)",
-        "updateButton": "Actualizar Información Fiscal"
+      "balance": {
+        "title": "Saldo y Pagos",
+        "description": "Ve tu saldo actual, actividad de pagos y administra fondos",
+        "stripeTitle": "Saldo y Pagos de Stripe Connect",
+        "stripeDescription": "Esta sección contendrá los componentes incrustados de Stripe Connect para la gestión de saldos y pagos."
       },
       "settings": {
         "title": "Configuración Bancaria",
         "description": "Configura tus preferencias bancarias y ajustes de seguridad",
         "scheduleTitle": "Programación de Pagos",
         "currentScheduleLabel": "Programación Actual",
-        "currentScheduleValue": "Pagos Bi-semanales",
         "nextPayoutDateLabel": "Fecha del Próximo Pago",
         "nextPayoutDateValue": "Marzo 30, 2025",
         "statusScheduled": "Programado",
@@ -94,6 +79,8 @@
         "webhookStatusLabel": "Estado del Webhook",
         "apiModeLabel": "Modo API",
         "manageApiButton": "Administrar Configuración de API",
+        "onboardingTitle": "Incorporación de Cuenta",
+        "onboardingDescription": "Ve y administra los detalles de incorporación de tu cuenta de Stripe.",
         "helpTitle": "¿Necesitas Ayuda?",
         "helpDescription": "Contacta a nuestro equipo de soporte para obtener ayuda con las operaciones bancarias",
         "contactSupportButton": "Contactar Soporte"

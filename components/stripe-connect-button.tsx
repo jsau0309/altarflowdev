@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-// Define the Stripe account type
+
 export type StripeAccount = {
   id: string;
   stripeAccountId: string;

@@ -29,6 +29,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@clerk/nextjs'
 import { StripeConnectButton, type StripeAccount } from './stripe-connect-button'
+import StripeConnectEmbeddedWrapper from './stripe/StripeConnectEmbeddedWrapper';
 
 export function BankingContent() {
   const [activeTab, setActiveTab] = useState("account")
@@ -219,11 +220,8 @@ export function BankingContent() {
             <TabsTrigger value="payouts" className="flex-1 whitespace-nowrap">
               {t('banking:bankingContent.tabs.payouts')}
             </TabsTrigger>
-            <TabsTrigger value="tax" className="flex-1 whitespace-nowrap">
-              {t('banking:bankingContent.tabs.tax')}
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex-1 whitespace-nowrap">
-              {t('banking:bankingContent.tabs.settings')}
+            <TabsTrigger value="balance" className="flex-1 whitespace-nowrap">
+              {t('banking:bankingContent.tabs.balance')}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -231,22 +229,10 @@ export function BankingContent() {
         {/* Account Tab */}
         <TabsContent value="account" className="space-y-4">
           <Card>
-            <CardHeader className="px-6 py-5">
-              <CardTitle>{t('banking:bankingContent.account.title')}</CardTitle>
-              <CardDescription>{t('banking:bankingContent.account.description')}</CardDescription>
-            </CardHeader>
+
             <CardContent className="space-y-6 px-6 py-5">
 
-
-
-
-              <div className="p-6 border rounded-lg bg-muted/50">
-                <h3 className="text-lg font-medium mb-2">{t('banking:bankingContent.account.stripeTitle')}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {t('banking:bankingContent.account.stripeDescription')}
-                </p>
-                <div id="stripe-account-management-embedded" className="min-h-[400px]"></div>
-              </div>
+              <StripeConnectEmbeddedWrapper componentKey="accountManagement" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -254,91 +240,26 @@ export function BankingContent() {
         {/* Payouts Tab */}
         <TabsContent value="payouts" className="space-y-4">
           <Card>
-            <CardHeader className="px-6 py-5">
-              <CardTitle>{t('banking:bankingContent.payouts.title')}</CardTitle>
-              <CardDescription>{t('banking:bankingContent.payouts.description')}</CardDescription>
-            </CardHeader>
+
             <CardContent className="space-y-6 px-6 py-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-                    {t('banking:bankingContent.payouts.filterAll')}
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-                    {t('banking:bankingContent.payouts.filterScheduled')}
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-                    {t('banking:bankingContent.payouts.filterCompleted')}
-                  </Button>
-                </div>
-                <Button size="sm" className="w-full sm:w-auto">
-                  <ArrowDownToLine className="mr-2 h-4 w-4" />
-                  {t('banking:bankingContent.payouts.requestButton')}
-                </Button>
-              </div>
-
-              <div className="p-6 border rounded-lg bg-muted/50">
-                <h3 className="text-lg font-medium mb-2">{t('banking:bankingContent.payouts.stripeTitle')}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {t('banking:bankingContent.payouts.stripeDescription')}
-                </p>
-                <div id="stripe-payouts-embedded" className="min-h-[400px]"></div>
-              </div>
-
-
+              <StripeConnectEmbeddedWrapper componentKey="payouts" />
             </CardContent>
           </Card>
         </TabsContent>
+
+
+
 
         {/* Tax Information Tab */}
-        <TabsContent value="tax" className="space-y-4">
-          <Card>
-            <CardHeader className="px-6 py-5">
-              <CardTitle>{t('banking:bankingContent.tax.title')}</CardTitle>
-              <CardDescription>{t('banking:bankingContent.tax.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 px-6 py-5">
-              <div className="p-6 border rounded-lg bg-muted/50">
-                <h3 className="text-lg font-medium mb-2">{t('banking:bankingContent.tax.stripeTitle')}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {t('banking:bankingContent.tax.stripeDescription')}
-                </p>
-                <div id="stripe-tax-reporting-embedded" className="min-h-[300px]"></div>
-              </div>
-
-
-
-
+        <TabsContent value="balance" className="space-y-4">
+          <Card className="w-full">
+            <CardContent className="space-y-4 pt-6 md:pt-6">
+              <StripeConnectEmbeddedWrapper componentKey="balances" />
+              <StripeConnectEmbeddedWrapper componentKey="payments" />
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader className="px-6 py-5">
-              <CardTitle>{t('banking:bankingContent.settings.title')}</CardTitle>
-              <CardDescription>{t('banking:bankingContent.settings.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 px-6 py-5">
-
-
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border rounded-lg gap-4">
-                <div className="flex items-center">
-                  <HelpCircle className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">{t('banking:bankingContent.settings.helpTitle')}</p>
-                    <p className="text-sm text-muted-foreground">{t('banking:bankingContent.settings.helpDescription')}</p>
-                  </div>
-                </div>
-                <Button variant="outline" className="w-full sm:w-auto">
-                  {t('banking:bankingContent.settings.contactSupportButton')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   )
