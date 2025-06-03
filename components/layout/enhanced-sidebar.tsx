@@ -9,7 +9,7 @@ import Image from "next/image"
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3, CreditCard, DollarSign, LayoutDashboard, 
-  Settings, Users, RefreshCcw, FileText // Keep our specific icons
+  Settings, Users, RefreshCcw, FileText // Removed HelpCircle as it's no longer used for the button
 } from "lucide-react"
 
 // Assuming hooks are in lib or similar - adjust path if needed
@@ -33,7 +33,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import Link from "next/link"
+import Link from "next/link";
+
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -233,6 +234,7 @@ const Sidebar = React.forwardRef<
         path: "/flows",
         icon: RefreshCcw,
       },
+
     ]
 
     if (collapsible === "none") {
@@ -374,8 +376,7 @@ const Sidebar = React.forwardRef<
               </SidebarMenu>
             </SidebarContent>
 
-            <SidebarFooter>
-            </SidebarFooter>
+            {/* SidebarFooter containing Crisp chat button removed */}
           </div>
         </div>
       </div>
