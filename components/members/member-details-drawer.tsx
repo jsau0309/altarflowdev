@@ -27,7 +27,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from 'sonner'
 
 interface MemberDetailsDrawerProps {
   member: Member
@@ -64,8 +64,8 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
   const [isEditing, setIsEditing] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { t } = useTranslation(['members', 'common'])
-  const { toast } = useToast();
+  const { t } = useTranslation(['members', 'common']);
+  // const { toast } = useToast(); // Sonner's toast is used directly
 
   // State lifted from EditMemberForm
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -189,30 +189,27 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
         throw new Error(errorMsg);
       }
 
-      toast({
-        title: t('common:updateMemberSuccess.title'),
-        description: t('common:updateMemberSuccess.description'),
+      toast.success(t('members:edit.successTitle', 'Member Updated'), {
+        description: t('members:edit.successMessage', 'Member details have been successfully updated.')
       });
       handleSaveSuccess(); // Call the original success handler
 
     } catch (error: any) {
       console.error("Error updating member:", error);
       const isUniqueConstraintError = error.message?.includes('constraint violation') || error.message?.includes('already exist');
-      let toastTitle = t('common:updateMemberError.title');
-      let toastDescription = error.message || t('common:updateMemberError.description');
+      let toastTitle = t('members:edit.errorTitle', 'Error Updating Member');
+      let toastDescription = error.message || t('members:edit.errorMessage', 'Failed to update member details. Please try again.');
 
       if (isUniqueConstraintError && error.message?.toLowerCase().includes('email')) {
-        toastTitle = t('common:errors.emailConflictTitle', 'Email Exists');
-        toastDescription = t('common:errors.emailConflictDesc', 'This email address is already associated with another member.');
+        toastTitle = t('members:edit.emailConflictTitle', 'Email Exists');
+        toastDescription = t('members:edit.emailConflictMessage', 'This email address is already associated with another member.');
       } else if (isUniqueConstraintError) {
-        toastTitle = t('common:errors.constraintViolationTitle', 'Save Error');
-        toastDescription = t('common:errors.constraintViolationDesc', 'A value provided conflicts with an existing record.');
+        toastTitle = t('members:edit.constraintViolationTitle', 'Save Error');
+        toastDescription = t('members:edit.constraintViolationMessage', 'A value provided conflicts with an existing record. Please check the details and try again.');
       }
 
-      toast({
-        title: toastTitle,
-        description: toastDescription,
-        variant: "destructive",
+      toast.error(toastTitle, {
+        description: toastDescription
       });
     } finally {
       setIsSubmitting(false);
@@ -241,9 +238,8 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
         throw new Error(errorMsg);
       }
 
-      toast({
-        title: t('common:success.memberDeletedTitle', 'Member Deleted'),
-        description: t('common:success.memberDeletedDesc', `${member.firstName} ${member.lastName} has been deleted.`),
+      toast.success(t('members:delete.successTitle', 'Member Deleted'), {
+        description: t('members:delete.successMessage', 'The member has been successfully deleted.')
       });
       setConfirmDeleteOpen(false);
       onClose();
@@ -251,10 +247,8 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
 
     } catch (error: any) {
       console.error("Error deleting member:", error);
-      toast({
-        title: t('common:errors.deleteErrorTitle', 'Deletion Error'),
-        description: error.message || t('common:errors.deleteFailed', 'Failed to delete member.'),
-        variant: "destructive",
+      toast.error(t('members:delete.errorTitle', 'Error Deleting Member'), {
+        description: error.message || t('members:delete.errorMessage', 'Failed to delete member. Please try again.')
       });
       setConfirmDeleteOpen(false);
     } finally {

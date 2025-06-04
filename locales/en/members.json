@@ -19,9 +19,16 @@
   "contactInformation": "Contact Information",
   "personalInformation": "Personal Information",
   "membershipInformation": "Membership Information",
+  "pickDate": "Pick a date",
+  "selectStatus": "Select a status",
+  "selectLanguage": "Select a language",
   
   "modal": {
-    "description": "Add a new member to your church directory. Fields marked with * are required."
+    "description": "Add a new member to your church directory. Fields marked with * are required.",
+    "addSuccessTitle": "Member Added",
+    "addSuccessMessage": "The new member has been added successfully.",
+    "addErrorTitle": "Error Adding Member",
+    "addErrorMessage": "Failed to add member. Please check the details and try again."
   },
   
   "statuses": {
@@ -90,5 +97,21 @@
       "requestLabel": "Prayer Request Details",
       "placeholder": "Please share your prayer request here..."
     }
+  },
+  "delete": {
+    "successTitle": "Member Deleted",
+    "successMessage": "The member has been successfully deleted.",
+    "errorTitle": "Error Deleting Member",
+    "errorMessage": "Failed to delete member. Please try again."
+  },
+  "edit": {
+    "successTitle": "Member Updated",
+    "successMessage": "Member details have been successfully updated.",
+    "errorTitle": "Error Updating Member",
+    "errorMessage": "Failed to update member details. Please try again.",
+    "emailConflictTitle": "Email Exists",
+    "emailConflictMessage": "This email address is already associated with another member.",
+    "constraintViolationTitle": "Save Error",
+    "constraintViolationMessage": "A value provided conflicts with an existing record. Please check the details and try again."
   }
 } 

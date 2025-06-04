@@ -11,7 +11,7 @@
     "city": "Ciudad",
     "state": "Estado",
     "zipCode": "Código Postal",
-    "joinDate": "Fecha de unión",
+    "joinDate": "Fecha de Inicio",
     "status": "Estado",
     "notes": "Notas",
     "preferredLanguage": "Idioma preferido",
@@ -19,9 +19,16 @@
     "contactInformation": "Información de contacto",
     "personalInformation": "Información personal",
     "membershipInformation": "Información de membresía",
+    "pickDate": "Selecciona una fecha",
+    "selectStatus": "Selecciona un estado",
+    "selectLanguage": "Selecciona un idioma",
     
     "modal": {
-      "description": "Agrega un nuevo miembro a tu directorio de iglesia. Los campos marcados con * son obligatorios."
+      "description": "Agrega un nuevo miembro a tu directorio de iglesia. Los campos marcados con * son obligatorios.",
+      "addSuccessTitle": "Miembro Agregado",
+      "addSuccessMessage": "El nuevo miembro ha sido agregado exitosamente.",
+      "addErrorTitle": "Error al Agregar Miembro",
+      "addErrorMessage": "No se pudo agregar el miembro. Por favor, revisa los detalles e inténtalo de nuevo."
     },
     
     "statuses": {
@@ -90,5 +97,21 @@
         "requestLabel": "Detalles de la oración",
         "placeholder": "Por favor, comparte tu solicitud de oración aquí..."
       }
+    },
+    "edit": {
+      "successTitle": "Miembro Actualizado",
+      "successMessage": "Los detalles del miembro han sido actualizados exitosamente.",
+      "errorTitle": "Error al Actualizar Miembro",
+      "errorMessage": "No se pudieron actualizar los detalles del miembro. Por favor, inténtalo de nuevo.",
+      "emailConflictTitle": "Correo Electrónico Existente",
+      "emailConflictMessage": "Esta dirección de correo electrónico ya está asociada con otro miembro.",
+      "constraintViolationTitle": "Error al Guardar",
+      "constraintViolationMessage": "Un valor proporcionado entra en conflicto con un registro existente. Por favor, revisa los detalles e inténtalo de nuevo."
+    },
+    "delete": {
+      "successTitle": "Miembro Eliminado",
+      "successMessage": "El miembro ha sido eliminado exitosamente.",
+      "errorTitle": "Error al Eliminar Miembro",
+      "errorMessage": "No se pudo eliminar el miembro. Por favor, inténtalo de nuevo."
     }
-  } 
+  }

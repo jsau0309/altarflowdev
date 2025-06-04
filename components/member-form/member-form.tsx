@@ -37,6 +37,7 @@ const createFormSchema = (t: (key: string) => string) => z.object({
   serviceTimes: z.array(z.string()).optional(),
   // Custom fields need dynamic validation setup if required, skipped for now
   // customFields: z.record(z.any()).optional(), 
+  joinDate: z.date().optional(),
 })
 
 type MemberFormValues = z.infer<ReturnType<typeof createFormSchema>>
@@ -59,6 +60,7 @@ export function MemberForm() {
       phone: "",
       smsConsent: false,
       relationshipStatus: "visitor",
+      joinDate: undefined,
     },
   })
 

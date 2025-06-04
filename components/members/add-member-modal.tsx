@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState, useCallback } from "react"
-import { Loader2, Info } from "lucide-react"
+import { useState } from "react"
+import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,12 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from 'sonner'
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { CalendarIcon } from "lucide-react"
 import { useTranslation } from 'react-i18next'
 
 interface AddMemberModalProps {
@@ -31,10 +36,10 @@ interface AddMemberModalProps {
 export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps) {
   const { t } = useTranslation(['members', 'common'])
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // const [error, setError] = useState<string | null>(null); // Replaced by toast notifications
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const { toast } = useToast();
+  // Sonner's toast is used directly, no hook needed.
   const [formData, setFormData] = useState({
     address: "",
     city: "",
@@ -46,19 +51,19 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
     phone: "",
     membershipStatus: "new" as "active" | "visitor" | "inactive" | "new",
     language: "spanish" as "english" | "spanish" | "both",
+    joinDate: null as Date | null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError(null);
 
     const dataToSend = {
       firstName: formData.firstName,
       lastName: formData.lastName,
       membershipStatus: formData.membershipStatus,
       language: formData.language,
-      joinDate: new Date().toISOString(),
+      joinDate: formData.joinDate ? formData.joinDate.toISOString() : null, // Send YYYY-MM-DD or null
       email: formData.email || null,
       phone: formData.phone || null,
       address: formData.address || null,
@@ -76,39 +81,40 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
         body: JSON.stringify(dataToSend),
       });
 
-      if (!response.ok) {
-        let errorMessage = "Failed to add member.";
+      if (response.ok) {
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose();
+        toast.success(t('members:modal.addSuccessTitle', 'Member Added'), {
+          description: t('members:modal.addSuccessMessage', 'The new member has been added successfully.'),
+        });
+        resetForm();
+      } else {
+        let errorMessage = t('members:modal.addErrorMessage', 'Failed to add member. Please check the details and try again.');
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || (errorData.details ? JSON.stringify(errorData.details) : errorMessage);
         } catch (jsonError) {
-          errorMessage = `HTTP error! status: ${response.status}`; 
+          // If parsing JSON fails, use a generic HTTP error message
+          errorMessage = `${t('common:httpError', 'HTTP error!')} status: ${response.status}`;
         }
-        throw new Error(errorMessage);
+        toast.error(t('members:modal.addErrorTitle', 'Error Adding Member'), {
+          description: errorMessage,
+        });
       }
-
-      toast({
-        title: "Member Added",
-        description: `${formData.firstName} ${formData.lastName} has been added successfully.`,
-        variant: "default", 
-      });
-      
-      if (onSuccess) {
-        onSuccess();
-      }
-      resetForm();
-
     } catch (error: any) {
-      console.error("Error adding member:", error);
-      setError(error.message || "An unexpected error occurred.");
-      toast({
-        title: "Error Adding Member",
-        description: error.message || "An unexpected error occurred. Please try again.",
-        variant: "destructive",
+      console.error("Error submitting form:", error);
+      toast.error(t('members:modal.addErrorTitle', 'Error Adding Member'), {
+        description: t('common:networkError', 'A network error occurred. Please try again.'),
       });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    setFormData((prev) => ({ ...prev, joinDate: date || null }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -134,11 +140,12 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
   };
 
   const resetForm = () => {
-      setFormData({ 
-          address: "", city: "", state: "", zipCode: "", 
-          firstName: "", lastName: "", email: "", phone: "",
-          membershipStatus: "new", language: "spanish",
-      });
+    setFormData({
+      joinDate: null,
+      address: "", city: "", state: "", zipCode: "", 
+      firstName: "", lastName: "", email: "", phone: "",
+      membershipStatus: "new", language: "spanish",
+    });
   }
 
   return (
@@ -160,11 +167,7 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
         </DialogHeader>
 
         <div className="overflow-y-auto pr-1">
-          {error && (
-            <div className="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
-              <p>{error}</p>
-            </div>
-          )}
+          {/* Error messages are now handled by toast notifications */}
           <form id="add-member-form" onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-1">
               <h3 className="text-sm font-medium text-muted-foreground">{t('members:modal.basicInfo', 'Basic Information')}</h3>
@@ -289,6 +292,34 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
                     <option value="english">{t('common:languages.english')}</option>
                     <option value="both">{t('common:languages.bilingual')}</option>
                   </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="joinDate">{t('members:joinDate', 'Join Date')}</Label>
+                  <Popover modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !formData.joinDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.joinDate ? format(formData.joinDate, "PPP") : <span>{t('members:pickDate', 'Pick a date')}</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={formData.joinDate || undefined}
+                        onSelect={handleDateChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>

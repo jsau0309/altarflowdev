@@ -48,17 +48,19 @@ export default function RootLayout({
             <SignedOut>...</SignedOut>
             <SignedIn>...</SignedIn>
           </header> */}
-          
-          {/* Providers and children */}
-          <I18nClientProvider>
-            <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <I18nClientProvider>
               {children}
-              <Toaster richColors closeButton />
-            </ThemeProvider>
-          </I18nClientProvider>
+              <Toaster richColors position="bottom-right" />
+            </I18nClientProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>
   )
 }
-

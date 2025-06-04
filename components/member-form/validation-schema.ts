@@ -14,6 +14,7 @@ export const memberFormSchema = z.object({
   prayerRequested: z.boolean().default(false),
   prayerRequest: z.string().optional(),
   customFields: z.record(z.string(), z.any()).optional(),
+  joinDate: z.date().optional(),
 })
 
 export type MemberFormValues = z.infer<typeof memberFormSchema>

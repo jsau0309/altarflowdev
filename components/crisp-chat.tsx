@@ -12,10 +12,8 @@ const CrispChat = () => {
   useEffect(() => {
     // Check if Crisp has already been initialized in this session
     if (typeof window !== 'undefined' && (window as any).__CRISP_INITIALIZED__) {
-      console.log('[CrispChat] Already initialized in this session. Chat should be visible.');
-      // If Crisp is already initialized, its visibility state should persist from the initial load.
-      // We don't need to do anything further here.
-      return;
+      console.log('[CrispChat] Already initialized in this session. Position should be handled by dashboard settings or previous init.');
+      return; // No need to re-configure or re-set position if already initialized.
     }
 
     const crispWebsiteId = process.env.NEXT_PUBLIC_CRISP_WEBSITE_ID;
@@ -29,19 +27,18 @@ const CrispChat = () => {
         (window as any).__CRISP_INITIALIZED__ = true;
       }
 
-      // Log Crisp SDK availability. Chat should be visible by default.
+      // Log Crisp SDK availability. Position is now expected to be controlled by dashboard settings.
       if (window.$crisp) {
-        console.log('[CrispChat] window.$crisp is available after configure. Chat should be visible by default.');
+        console.log('[CrispChat] window.$crisp is available after configure. Position controlled by dashboard.');
       } else {
-        // This might indicate a timing issue or that Crisp SDK needs a moment to initialize $crisp.
-        console.warn('[CrispChat] window.$crisp was NOT available immediately after configure. Attempting check after delay.');
+        console.warn('[CrispChat] window.$crisp was NOT available immediately after configure. Waiting for it to become available.');
         setTimeout(() => {
           if (window.$crisp) {
-            console.log('[CrispChat] window.$crisp became available after a delay. Chat should be visible.');
+            console.log('[CrispChat] window.$crisp became available after a delay. Position controlled by dashboard.');
           } else {
-            console.warn('[CrispChat] window.$crisp still not available after delay. Chat visibility might be affected.');
+            console.warn('[CrispChat] window.$crisp still not available after delay.');
           }
-        }, 500); // 500ms delay
+        }, 500);
       }
     } else {
       console.error('[CrispChat] Crisp Website ID (NEXT_PUBLIC_CRISP_WEBSITE_ID) is not configured. Chat will not load.');
