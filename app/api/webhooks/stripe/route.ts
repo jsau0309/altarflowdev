@@ -248,7 +248,6 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   };
   let churchRegisteredEmail = church.email || 'N/A';
   let churchRegisteredPhone = church.phone || 'N/A';
-  let churchLogoUrl: string | undefined = church.logoUrl || undefined;
 
   let stripeAccount: Stripe.Account | null = null;
   try {
@@ -396,7 +395,7 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     churchAddress: churchAddressString,
     churchEmail: churchRegisteredEmail,
     churchPhone: churchRegisteredPhone,
-    churchLogoUrl: churchLogoUrl,
+    churchLogoUrl: `${process.env.NEXT_PUBLIC_APP_URL}/images/Altarflow.png`, // Default Altarflow logo
     donorName: donorName,
     donorEmail: donorEmail,
     donorAddress: donorAddress,

@@ -20,7 +20,7 @@ export interface FormData {
   city: string;
   state: string;
   zipCode: string;
-  membershipStatus: string;
+  membershipStatus: string | null; // Allow null for placeholder
   language: string;
   joinDate: string | null;
 }
@@ -107,7 +107,7 @@ export function EditMemberForm({ formData, onFormChange, phoneError, emailError,
       <div className="space-y-4">
         <h3 className="text-sm font-medium text-muted-foreground">{t('members:address')}</h3>
         <div className="space-y-2">
-          <Label htmlFor="address">{t('common:streetAddress')}</Label>
+          <Label htmlFor="address">{t('members:streetAddrLabel')}</Label>
           <Input
             id="address"
             name="address" // Add name attribute
@@ -158,16 +158,16 @@ export function EditMemberForm({ formData, onFormChange, phoneError, emailError,
             <Label htmlFor="membershipStatus">{t('members:status')}</Label>
             <select
               id="membershipStatus"
-              name="membershipStatus" // Add name attribute
-              value={formData.membershipStatus}
+              name="membershipStatus"
+              value={formData.membershipStatus || ""} // Handle null by selecting the placeholder
               onChange={onFormChange} // Use prop handler
-              required
+              // Removed 'required' as status can be null (represented by the placeholder)
               className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="new">{t('members:statuses.new')}</option>
-              <option value="active">{t('members:statuses.active')}</option>
-              <option value="visitor">{t('members:statuses.visitor')}</option>
-              <option value="inactive">{t('members:statuses.inactive')}</option>
+              <option value="">{t('members:membershipInfo.selectStatusPlaceholder', 'Select Status...')}</option>
+              <option value="Visitor">{t('members:status.Visitor', 'Visitor')}</option>
+              <option value="Member">{t('members:status.Member', 'Member')}</option>
+              <option value="Inactive">{t('members:status.Inactive', 'Inactive')}</option>
             </select>
           </div>
 

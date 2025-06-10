@@ -5,25 +5,31 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { FormItem, FormLabel, FormControl, FormMessage, FormField } from "@/components/ui/form"
 import { useTranslation } from "react-i18next"
 import type { MemberFormValues } from "./validation-schema"
+import type { Ministry } from "./types"; // Import Ministry type
 
-// Mock ministry data (replace with actual fetching later)
-const MOCK_MINISTRIES = [
-  { id: "m1", name: "Youth Group", description: "Weekly meetings for teens", isActive: true },
-  { id: "m2", name: "Worship Team", description: "Singers and musicians", isActive: true },
-  { id: "m3", name: "Community Outreach", description: "Serving the local area", isActive: true },
-  { id: "m4", name: "Seniors Club", description: "", isActive: false }, // Example of inactive
-];
+interface MinistriesSelectorProps {
+  options?: Ministry[];
+  isLoading?: boolean;
+}
 
-export function MinistriesSelector() {
+export function MinistriesSelector({ options = [], isLoading = false }: MinistriesSelectorProps) {
   // Load members namespace
   const { t } = useTranslation('members')
   const form = useFormContext<MemberFormValues>()
 
-  // Use mock data for now
-  const activeMinistries = MOCK_MINISTRIES.filter((ministry) => ministry.isActive);
+  const activeMinistries = options.filter((ministry) => ministry.isActive);
 
-  if (activeMinistries.length === 0) {
-    return null // Or some placeholder if desired
+    if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium">{t("members:memberForm.ministries.title", "Interested Ministries")}</h2>
+        <p>{t("common:loading", "Loading ministries...")}</p>
+      </div>
+    );
+  }
+
+  if (activeMinistries.length === 0 && !isLoading) {
+    return null; // Or some placeholder if no active ministries and not loading
   }
 
   return (
@@ -48,7 +54,7 @@ export function MinistriesSelector() {
                           <Checkbox
                             checked={field.value?.includes(ministry.id)}
                             onCheckedChange={(checked) => {
-                              const currentValue = Array.isArray(field.value) ? field.value : []
+                              const currentValue = Array.isArray(field.value) ? field.value : [];
                               return checked
                                 ? field.onChange([...currentValue, ministry.id])
                                 : field.onChange(currentValue.filter((value) => value !== ministry.id))
@@ -56,11 +62,9 @@ export function MinistriesSelector() {
                           />
                         </FormControl>
                         <FormLabel className="font-normal">
-                          {/* Revert to using hardcoded mock data directly */}
                           {ministry.name}
                           {ministry.description && (
                             <span className="text-sm text-muted-foreground">
-                              {/* Revert to using hardcoded mock data directly */}
                               {' - '}{ministry.description}
                             </span>
                           )}

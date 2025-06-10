@@ -484,13 +484,16 @@ export async function submitFlow(
                     lastName: validatedFormData.lastName,
                     phone: validatedFormData.phone, 
                     lastSubmittedConnectFormAt: submissionTimestamp,
-                    smsConsent: validatedFormData.smsConsent ?? false 
+                    smsConsent: validatedFormData.smsConsent ?? false,
+                    life_stage: validatedFormData.lifeStage || null,
+                    ministry_interests: validatedFormData.interestedMinistries || [],
+                    preferred_service_times: validatedFormData.serviceTimes || []
                 },
                 select: { id: true }
             });
             memberId = updatedMember.id;
         } else {
-            const initialStatus = validatedFormData.relationshipStatus === 'regular' ? 'Regular Attendee' : 'Visitor';
+            const initialStatus = validatedFormData.relationshipStatus === 'regular' ? 'Member' : 'Visitor';
             const createdMember = await prisma.member.create({
                 data: {
                     churchId: churchId,
@@ -499,8 +502,12 @@ export async function submitFlow(
                     email: validatedFormData.email,
                     phone: validatedFormData.phone, 
                     membershipStatus: initialStatus, 
+                    joinDate: submissionTimestamp, // Set joinDate for new members
                     lastSubmittedConnectFormAt: submissionTimestamp,
-                    smsConsent: validatedFormData.smsConsent ?? false
+                    smsConsent: validatedFormData.smsConsent ?? false,
+                    life_stage: validatedFormData.lifeStage || null,
+                    ministry_interests: validatedFormData.interestedMinistries || [],
+                    preferred_service_times: validatedFormData.serviceTimes || []
                 },
                 select: { id: true }
             });

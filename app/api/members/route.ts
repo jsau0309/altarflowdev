@@ -15,7 +15,10 @@ const memberCreateSchema = z.object({
   zipCode: z.string().nullable().optional(),
   membershipStatus: z.string().nullable().optional(),
   joinDate: z.string().datetime({ message: "Invalid date format" }).nullable().optional(),
-  ministryInvolvement: z.string().nullable().optional(),
+  // ministryInvolvement: z.string().nullable().optional(), // Replaced by ministry_interests
+  life_stage: z.string().nullable().optional(),
+  ministry_interests: z.array(z.string()).optional(),
+  preferred_service_times: z.array(z.string()).optional(),
   smsConsent: z.boolean().optional().default(false),
   smsConsentDate: z.string().datetime({ message: "Invalid date format" }).nullable().optional(),
   smsConsentMethod: z.string().nullable().optional(),
@@ -86,10 +89,15 @@ export async function POST(request: NextRequest) {
     }
     const memberData = validation.data;
 
+    // Capitalize membershipStatus if provided
+    if (memberData.membershipStatus) {
+      memberData.membershipStatus = memberData.membershipStatus.charAt(0).toUpperCase() + memberData.membershipStatus.slice(1);
+    }
+
     // 3. Prepare data for creation
     const dataToCreate: any = {
         ...memberData,
-        joinDate: memberData.joinDate ? new Date(memberData.joinDate) : null,
+        joinDate: memberData.joinDate ? new Date(memberData.joinDate) : new Date(),
         smsConsentDate: memberData.smsConsentDate ? new Date(memberData.smsConsentDate) : null,
     };
 

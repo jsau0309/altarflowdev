@@ -91,6 +91,9 @@ export async function PATCH(
     // Remove profile fetch and initial existence check based on old churchId
 
     const body = await request.json();
+
+    // *** CASCADE LOG ***
+    console.log(`[API PATCH /api/members/${memberId}] Received body.joinDate:`, body.joinDate);
     
     // 2. Validate input data
     const validation = memberUpdateSchema.safeParse(body);
@@ -104,6 +107,8 @@ export async function PATCH(
     const dataToUpdate: any = { ...memberData };
     if (memberData.joinDate !== undefined) {
       dataToUpdate.joinDate = memberData.joinDate ? new Date(memberData.joinDate) : null;
+      // *** CASCADE LOG ***
+      console.log(`[API PATCH /api/members/${memberId}] Prepared dataToUpdate.joinDate (Date object):`, dataToUpdate.joinDate);
     }
     if (memberData.smsConsentDate !== undefined) {
       dataToUpdate.smsConsentDate = memberData.smsConsentDate ? new Date(memberData.smsConsentDate) : null;

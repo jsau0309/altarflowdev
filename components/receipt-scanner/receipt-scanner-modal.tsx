@@ -165,7 +165,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
                   </p>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,application/pdf"
                     className="hidden"
                     id="receipt-file-upload"
                     onChange={handleFileUpload}

@@ -1,16 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { User, Mail, Phone, Edit, CreditCard, FileText, Home } from "lucide-react"
+import { User, Mail, Phone, Edit, CreditCard, FileText, Home, Loader2, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { mockDataService } from "@/lib/mock-data"
 import { EditDonorModal } from "@/components/modals/edit-donor-modal"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { getDonorDetails } from "@/lib/actions/donors.actions"
+import type { DonorDetailsData } from "@/lib/types"
 
 interface DonorDetailsDrawerProps {
   isOpen: boolean
@@ -21,34 +22,224 @@ interface DonorDetailsDrawerProps {
 export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDrawerProps) {
   const [activeTab, setActiveTab] = useState("details")
   const [showEditModal, setShowEditModal] = useState(false)
+  const [donorData, setDonorData] = useState<DonorDetailsData | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!donorId) return null
-
-  const donor = mockDataService.getMember(donorId)
-  if (!donor) return null
-
-  const donorDonations = mockDataService.getDonations().filter((donation) => donation.donorId === donorId)
-
-  const totalDonated = donorDonations.reduce((sum, donation) => sum + donation.amount, 0)
+  useEffect(() => {
+    if (isOpen && donorId) {
+      const fetchDonorData = async () => {
+        setIsLoading(true)
+        setError(null)
+        setDonorData(null) // Clear previous data
+        try {
+          const data = await getDonorDetails(donorId)
+          if (data) {
+            setDonorData(data)
+          } else {
+            setError("Donor not found.")
+          }
+        } catch (err) {
+          console.error("Failed to fetch donor details:", err)
+          setError("Failed to load donor details. Please try again.")
+        }
+        setIsLoading(false)
+      }
+      fetchDonorData()
+    } else if (!isOpen) {
+      // Reset state when drawer is closed
+      setDonorData(null)
+      setIsLoading(false)
+      setError(null)
+    }
+  }, [donorId, isOpen])
 
   const handleEditClick = () => {
-    setShowEditModal(true)
+    if (donorData) {
+      setShowEditModal(true)
+    }
   }
 
   const handleEditModalClose = () => {
     setShowEditModal(false)
+    // Potentially refetch data if edits were made, or rely on optimistic updates
+    // For now, just closes modal. Refetch can be added if EditDonorModal signals success.
   }
 
-  const formatDonationMethod = (method: string) => {
-    return method
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ")
-  }
+  const totalDonated = donorData?.donations.reduce((sum, donation) => sum + parseFloat(donation.amount), 0) ?? 0
 
-  const getCampaignName = (campaignId: string) => {
-    const campaign = mockDataService.getCampaign(campaignId)
-    return campaign ? campaign.name : "Unknown Campaign"
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-full min-h-[300px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="ml-2">Loading donor details...</p>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-destructive">
+          <AlertTriangle className="h-8 w-8 mb-2" />
+          <p className="text-center">{error}</p>
+          <Button variant="outline" size="sm" onClick={onClose} className="mt-4">
+            Close
+          </Button>
+        </div>
+      )
+    }
+
+    if (!donorData) {
+      // This case should ideally be covered by error or loading, 
+      // but as a fallback if drawer is open without donorId somehow or fetch returned null without error.
+      return (
+        <div className="flex items-center justify-center h-full min-h-[300px]">
+            <p>No donor data available.</p>
+        </div>
+      );
+    }
+
+    return (
+      <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="mt-6">
+        <TabsList className="grid grid-cols-2 mb-4">
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="donations">Donations</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details" className="space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <User className="h-5 w-5 text-muted-foreground" />
+              {donorData.firstName} {donorData.lastName}
+            </h2>
+            {donorData.joinDate && (
+              <p className="text-sm text-muted-foreground">
+                Donor since {format(new Date(donorData.joinDate), "MMMM d, yyyy")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Contact Information</h3>
+              <div className="grid gap-2">
+                {donorData.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{donorData.email}</span>
+                  </div>
+                )}
+                {donorData.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{donorData.phone}</span>
+                  </div>
+                )}
+                {!donorData.email && !donorData.phone && (
+                    <p className="text-sm text-muted-foreground">No contact information on file.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
+              <div className="grid gap-2">
+                {donorData.address ? (
+                  <>
+                    <div className="flex items-start gap-2">
+                      <Home className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p>{donorData.address}</p>
+                        {(donorData.city || donorData.state || donorData.zipCode) && (
+                          <p>
+                            {donorData.city}{donorData.city && donorData.state ? ", " : ""}{donorData.state} {donorData.zipCode}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No address on file</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Donation Summary</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="border rounded-md p-3">
+                  <p className="text-sm text-muted-foreground">Total Donated</p>
+                  <p className="text-xl font-semibold">${totalDonated.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                </div>
+                <div className="border rounded-md p-3">
+                  <p className="text-sm text-muted-foreground">Donations</p>
+                  <p className="text-xl font-semibold">{donorData.donations.length}</p>
+                </div>
+              </div>
+            </div>
+
+            {donorData.notes && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
+                <div className="flex items-start gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <p className="text-sm whitespace-pre-wrap">{donorData.notes}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="donations" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-medium">Donation History</h3>
+            <Badge variant="outline">
+              {donorData.donations.length} {donorData.donations.length === 1 ? "Donation" : "Donations"}
+            </Badge>
+          </div>
+
+          {donorData.donations.length > 0 ? (
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Campaign</TableHead>
+                    {/* <TableHead>Method</TableHead> */}{/* Payment method not available in current data model */}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {donorData.donations
+                    .sort((a, b) => new Date(b.donationDate).getTime() - new Date(a.donationDate).getTime())
+                    .map((donation) => (
+                      <TableRow key={donation.id}>
+                        <TableCell>{format(new Date(donation.donationDate), "MMM d, yyyy")}</TableCell>
+                        <TableCell className="font-medium">${parseFloat(donation.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell>{donation.campaign ? donation.campaign.name : "N/A"}</TableCell>
+                        {/* <TableCell>
+                          <div className="flex items-center gap-1">
+                            <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-sm">{formatDonationMethod(donation.paymentMethod)}</span>
+                          </div>
+                        </TableCell> */}
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center border rounded-md">
+              <p className="text-muted-foreground mb-2">No donations found for this donor</p>
+              {/* <Button variant="outline" size="sm">
+                Add Donation
+              </Button> */}{/* Add Donation functionality can be a future enhancement */}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    )
   }
 
   return (
@@ -58,152 +249,22 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
           <SheetHeader className="space-y-0 pb-2 border-b">
             <div className="flex justify-between items-center">
               <SheetTitle>Donor Details</SheetTitle>
-              <div className="pr-8">
-                <Button variant="outline" size="sm" className="gap-1" onClick={handleEditClick}>
-                  <Edit className="h-3.5 w-3.5" />
-                  <span>Edit</span>
-                </Button>
-              </div>
-            </div>
-          </SheetHeader>
-
-          <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="grid grid-cols-2 mb-4">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="donations">Donations</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="details" className="space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <User className="h-5 w-5 text-muted-foreground" />
-                  {donor.firstName} {donor.lastName}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Donor since {format(new Date(donor.joinDate), "MMMM d, yyyy")}
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">Contact Information</h3>
-                  <div className="grid gap-2">
-                    {donor.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span>{donor.email}</span>
-                      </div>
-                    )}
-                    {donor.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span>{donor.phone}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
-                  <div className="grid gap-2">
-                    {donor.address ? (
-                      <>
-                        <div className="flex items-start gap-2">
-                          <Home className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div>
-                            <p>{donor.address}</p>
-                            {donor.city && donor.state && donor.zipCode && (
-                              <p>
-                                {donor.city}, {donor.state} {donor.zipCode}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No address on file</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">Donation Summary</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="border rounded-md p-3">
-                      <p className="text-sm text-muted-foreground">Total Donated</p>
-                      <p className="text-xl font-semibold">${totalDonated.toLocaleString()}</p>
-                    </div>
-                    <div className="border rounded-md p-3">
-                      <p className="text-sm text-muted-foreground">Donations</p>
-                      <p className="text-xl font-semibold">{donorDonations.length}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {donor.notes && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
-                    <div className="flex items-start gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <p className="text-sm">{donor.notes}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="donations" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-sm font-medium">Donation History</h3>
-                <Badge variant="outline">
-                  {donorDonations.length} {donorDonations.length === 1 ? "Donation" : "Donations"}
-                </Badge>
-              </div>
-
-              {donorDonations.length > 0 ? (
-                <div className="border rounded-md overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Campaign</TableHead>
-                        <TableHead>Method</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {donorDonations
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .map((donation) => (
-                          <TableRow key={donation.id}>
-                            <TableCell>{format(new Date(donation.date), "MMM d, yyyy")}</TableCell>
-                            <TableCell className="font-medium">${donation.amount.toLocaleString()}</TableCell>
-                            <TableCell>{getCampaignName(donation.campaignId)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-sm">{formatDonationMethod(donation.paymentMethod)}</span>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center border rounded-md">
-                  <p className="text-muted-foreground mb-2">No donations found for this donor</p>
-                  <Button variant="outline" size="sm">
-                    Add Donation
+              {donorData && !isLoading && !error && (
+                <div className="pr-8">
+                  <Button variant="outline" size="sm" className="gap-1" onClick={handleEditClick} disabled={!donorData}>
+                    <Edit className="h-3.5 w-3.5" />
+                    <span>Edit</span>
                   </Button>
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
+            </div>
+          </SheetHeader>
+          {renderContent()}
         </SheetContent>
       </Sheet>
-
-      <EditDonorModal isOpen={showEditModal} onClose={handleEditModalClose} donorId={donorId} />
+      {showEditModal && donorData && (
+        <EditDonorModal isOpen={showEditModal} onClose={handleEditModalClose} donor={donorData} />
+      )}
     </>
   )
 }

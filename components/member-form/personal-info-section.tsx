@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { useTranslation } from "react-i18next"
-import type { MemberFormValues } from "./validation-schema"
+import type { MemberFormValues } from "./member-form"
 
 export function PersonalInfoSection() {
   const { t } = useTranslation('members')
@@ -63,13 +63,13 @@ export function PersonalInfoSection() {
           <FormItem className="space-y-2">
             <FormLabel>{t("members:memberForm.personalInfo.phone")}</FormLabel>
             <FormControl>
-              <Input type="tel" {...field} />
+              <Input type="tel" maxLength={10} {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-      <FormField
+      {/* <FormField
         control={control}
         name="smsConsent"
         render={({ field }) => (
@@ -86,7 +86,7 @@ export function PersonalInfoSection() {
             <FormMessage />
           </FormItem>
         )}
-      />
+      /> */}
     </div>
   )
 }

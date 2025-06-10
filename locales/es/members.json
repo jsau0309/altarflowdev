@@ -32,11 +32,9 @@
     },
     
     "statuses": {
-      "active": "Activo",
+      "member": "Miembro",
       "inactive": "Inactivo",
-      "visitor": "Visitante",
-      "prospect": "Prospecto",
-      "new": "Nuevo"
+      "visitor": "Visitante"
     },
     
     "membersContent": {
@@ -113,5 +111,12 @@
       "successMessage": "El miembro ha sido eliminado exitosamente.",
       "errorTitle": "Error al Eliminar Miembro",
       "errorMessage": "No se pudo eliminar el miembro. Por favor, inténtalo de nuevo."
-    }
+    },
+    "membershipInfo.selectStatusPlaceholder": "Seleccionar Estado...",
+    "status.Visitor": "Visitante",
+    "status.Member": "Miembro",
+    "status.Inactive": "Inactivo",
+    "Basic Information": "Información Básica",
+    "streetAddrLabel": "Dirección (Calle)",
+    "drawerEditTitle": "Editar Miembro"
   }

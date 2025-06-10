@@ -19,7 +19,9 @@
   "roles": {
     "admin": "Administrador",
     "editor": "Editor",
-    "viewer": "Usuario"
+    "viewer": "Usuario",
+    "ADMIN": "Admin",
+    "STAFF": "Personal"
   },
   "thisUser": "este usuario",
   "refresh": "Refrescar",
@@ -67,6 +69,7 @@
     "pageNotFound": "Página no encontrada",
     "goHome": "Ir a Inicio",
     "invalidPhoneDigits": "El número de teléfono debe tener 10 dígitos.",
+    "invalidPhoneNumeric": "El número de teléfono solo debe contener dígitos.",
     "invalidEmailFormat": "Por favor, ingrese un formato de correo electrónico válido.",
     "fetchFailed": "Error al cargar datos. Por favor, inténtalo de nuevo.",
     "errorTitle": "Error",
@@ -148,6 +151,7 @@
     "description": "La información del miembro ha sido actualizada exitosamente."
   },
   "add": "Añadir",
+  "addMember": "Agregar Miembro",
   "close": "Cerrar",
   "saving": "Guardando...",
   "sending": "Enviando...",
@@ -167,10 +171,7 @@
   "notApplicable": "N/A",
   "noPhoneNumber": "Sin teléfono",
   "noEmailAddress": "Sin correo",
-  "roles": {
-    "ADMIN": "Admin",
-    "STAFF": "Personal"
-  },
+
   "searchPlaceholderMembers": "Buscar miembros...",
   "retry": "Intentar de Nuevo",
   "saveChanges": "Guardar Cambios"

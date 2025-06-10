@@ -88,6 +88,19 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
   // Initialize form data when member changes or editing starts
   useEffect(() => {
     if (member && isEditing) {
+      let mappedStatus: string | null = member.membershipStatus || null;
+      const lowerCaseStatus = typeof mappedStatus === 'string' ? mappedStatus.toLowerCase() : null;
+
+      if (lowerCaseStatus === "statuses.new" || lowerCaseStatus === "new") {
+        mappedStatus = "Visitor";
+      } else if (lowerCaseStatus === "statuses.active" || lowerCaseStatus === "active") {
+        mappedStatus = "Member";
+      } else if (mappedStatus !== null && !["Visitor", "Member", "Inactive"].includes(mappedStatus)) {
+        // If it's some other unexpected non-null value, default to null (shows placeholder)
+        console.warn(`[MemberDetailsDrawer] Unknown membershipStatus "${member.membershipStatus}" received for member ${member.id}. Defaulting to null.`);
+        mappedStatus = null;
+      }
+
       setFormData({
         firstName: member.firstName || "",
         lastName: member.lastName || "",
@@ -97,7 +110,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
         city: member.city || "",
         state: member.state || "",
         zipCode: member.zipCode || "",
-        membershipStatus: member.membershipStatus || "new",
+        membershipStatus: mappedStatus, // Use the mapped status
         language: member.language || "spanish",
         joinDate: formatDateForInput(member.joinDate), // Use helper
       });
@@ -159,7 +172,10 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
         }
     }
 
-    const dataToUpdate = {
+    // *** ADD THIS LOG ***
+  console.log('[MemberDetailsDrawer.handleSubmit] formData.joinDate:', formData.joinDate, 'finalJoinDate to be sent:', finalJoinDate);
+
+  const dataToUpdate = {
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email || null,
@@ -285,7 +301,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
           <div className="flex items-center justify-between">
             <SheetTitle>
                {isEditing 
-                 ? t('members:modal.editMember', 'Edit Member') 
+                 ? t('members:drawerEditTitle', 'Edit Member') 
                  : t('members:profile', 'Member Profile')}
             </SheetTitle>
           </div>
@@ -312,7 +328,17 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
                     const joinDate = member.joinDate as any; // Type assertion 
                     // Check if it looks like a Date object and is valid
                     if (joinDate && typeof joinDate.getTime === 'function' && !isNaN(joinDate.getTime())) {
-                      return format(joinDate, "PP"); // Format Date object directly
+                      // The 'joinDate' variable here is already confirmed to be a valid Date object
+                      // representing a UTC timestamp (e.g., 2025-05-14T00:00:00.000Z).
+                      // We want to display the calendar date as it is in UTC, regardless of local timezone.
+                      const year = joinDate.getUTCFullYear();
+                      const month = joinDate.getUTCMonth(); // 0-indexed
+                      const day = joinDate.getUTCDate();
+                      // Construct a new Date object using these UTC components.
+                      // new Date(year, month, day) creates a date at 00:00:00 in the *local* timezone.
+                      // This is what we want for display, so "May 14" is shown for "May 14 UTC".
+                      const localDateToDisplay = new Date(year, month, day);
+                      return format(localDateToDisplay, "PP");
                     } else {
                       return t('common:unknown'); // Fallback if not a valid date
                     }
@@ -327,16 +353,16 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
                   <p className="text-sm text-muted-foreground">{t('members:status', 'Status')}</p>
                   <Badge
                     variant={
-                      member.membershipStatus === "active"
+                      member.membershipStatus === "Member" // MODIFIED: Was "active"
                         ? "default"
-                        : member.membershipStatus === "new"
+                        : member.membershipStatus === "Visitor" // MODIFIED: Was "new"
                           ? "secondary"
                           : "outline"
                     }
                     className={` ${
-                      member.membershipStatus === "active"
+                      member.membershipStatus === "Member" // MODIFIED: Was "active"
                         ? "bg-green-100 text-green-800 hover:bg-green-100"
-                        : member.membershipStatus === "new"
+                        : member.membershipStatus === "Visitor" // MODIFIED: Was "new"
                           ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
                           : ""
                     }`}

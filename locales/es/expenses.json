@@ -83,12 +83,23 @@
       "saving": "Guardando...",
       "updating": "Actualizando...",
       "saveButton": "Guardar gasto",
-      "updateButton": "Actualizar gasto"
+      "updateButton": "Actualizar gasto",
+      "createSuccess": "¡Gasto creado con éxito!",
+      "updateSuccess": "¡Gasto actualizado con éxito!",
+      "createError": "Error al crear el gasto",
+      "updateError": "Error al actualizar el gasto",
+      "validation": {
+        "categoryRequired": "Por favor, selecciona una categoría.",
+        "amountRequired": "Por favor, ingresa un monto válido.",
+        "dateRequired": "Por favor, selecciona una fecha."
+      }
     },
     "detailsDrawer": {
       "title": "Detalles del Gasto",
       "noReceipt": "No hay recibo adjunto.",
       "deleteConfirmTitle": "Confirmar Eliminación",
       "deleteConfirmDescription": "¿Estás seguro de que quieres eliminar este gasto? Esta acción no se puede deshacer."
-    }
+    },
+  "deleteSuccess": "¡Gasto eliminado con éxito!",
+  "deleteError": "Error al eliminar el gasto"
   } 

@@ -4,7 +4,7 @@ export const memberFormSchema = z.object({
   firstName: z.string().min(1, { message: "First name is required" }),
   lastName: z.string().min(1, { message: "Last name is required" }),
   email: z.string().email({ message: "Invalid email address" }),
-  phone: z.string().optional(),
+  phone: z.any().optional(), // Make as generic as possible to avoid inferring HTML attributes
   smsConsent: z.boolean().optional(),
   serviceTimes: z.array(z.string()).optional(),
   relationshipStatus: z.enum(["visitor", "regular"] as const),

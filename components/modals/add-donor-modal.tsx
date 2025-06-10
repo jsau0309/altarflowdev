@@ -26,7 +26,7 @@ interface AddMemberModalProps {
 
 // Omit fields generated on save (id, joinDate, membershipStatus?)
 // Ensure all form fields are included
-type NewMemberData = Omit<Member, "id" | "joinDate" | "membershipStatus">
+type NewMemberData = Omit<Member, "id" | "joinDate" | "membershipStatus" | "createdAt" | "updatedAt">
 
 const initialFormState: NewMemberData = {
   firstName: "",
@@ -39,7 +39,10 @@ const initialFormState: NewMemberData = {
   zipCode: "",
   language: "spanish" as "english" | "spanish" | "both", // Default might need review
   smsConsent: false,
-  notes: [], // Assuming notes is an array based on type, adjust if string
+  notes: null, // notes is string | null as per Member type
+  ministryInvolvement: null,
+  smsConsentDate: null,
+  smsConsentMethod: null,
 }
 
 // Rename component to reflect its purpose
@@ -160,7 +163,7 @@ export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
                 <Input
                   id="firstName"
                   name="firstName"
-                  value={newMember.firstName}
+                  value={newMember.firstName ?? ""}
                   onChange={handleChange}
                   placeholder={t('memberForm.personalInfo.firstName')}
                   className={errors.firstName ? "border-red-500" : ""}
@@ -174,7 +177,7 @@ export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
                 <Input
                   id="lastName"
                   name="lastName"
-                  value={newMember.lastName}
+                  value={newMember.lastName ?? ""}
                   onChange={handleChange}
                   placeholder={t('memberForm.personalInfo.lastName')}
                   className={errors.lastName ? "border-red-500" : ""}
@@ -195,7 +198,7 @@ export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
                  <Input
                    id="phone"
                    name="phone"
-                   value={newMember.phone}
+                   value={newMember.phone ?? ""}
                    onChange={handleChange}
                    placeholder="(555) 123-4567"
                    className={errors.phone ? "border-red-500" : ""}
@@ -209,7 +212,7 @@ export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
                   id="email"
                   name="email"
                   type="email"
-                  value={newMember.email}
+                  value={newMember.email ?? ""}
                   onChange={handleChange}
                   placeholder="name@example.com"
                   className={errors.email ? "border-red-500" : ""}
@@ -225,23 +228,23 @@ export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
              <h3 className="text-lg font-medium mb-2">{t('address')}</h3>
              <div className="space-y-1 mb-4">
                <Label htmlFor="address">{t('address')}</Label>
-               <Input id="address" name="address" value={newMember.address} onChange={handleChange} placeholder={t('memberForm.addressPlaceholder', "123 Main St")} disabled={isLoading} />
+               <Input id="address" name="address" value={newMember.address ?? ""} onChange={handleChange} placeholder={t('memberForm.addressPlaceholder', "123 Main St")} disabled={isLoading} />
              </div>
              <div className="grid grid-cols-3 gap-4">
                <div className="space-y-1">
                   {/* Use top-level key */}
                  <Label htmlFor="city">{t('city')}</Label>
-                 <Input id="city" name="city" value={newMember.city} onChange={handleChange} placeholder={t('memberForm.cityPlaceholder', "City")} disabled={isLoading} />
+                 <Input id="city" name="city" value={newMember.city ?? ""} onChange={handleChange} placeholder={t('memberForm.cityPlaceholder', "City")} disabled={isLoading} />
                </div>
                <div className="space-y-1">
                   {/* Use top-level key */}
                  <Label htmlFor="state">{t('state')}</Label>
-                 <Input id="state" name="state" value={newMember.state} onChange={handleChange} placeholder={t('memberForm.statePlaceholder', "State")} disabled={isLoading} />
+                 <Input id="state" name="state" value={newMember.state ?? ""} onChange={handleChange} placeholder={t('memberForm.statePlaceholder', "State")} disabled={isLoading} />
                </div>
                <div className="space-y-1">
                   {/* Use top-level key */}
                  <Label htmlFor="zipCode">{t('zipCode')}</Label>
-                 <Input id="zipCode" name="zipCode" value={newMember.zipCode} onChange={handleChange} placeholder={t('memberForm.zipPlaceholder', "12345")} disabled={isLoading} />
+                 <Input id="zipCode" name="zipCode" value={newMember.zipCode ?? ""} onChange={handleChange} placeholder={t('memberForm.zipPlaceholder', "12345")} disabled={isLoading} />
                </div>
              </div>
            </div>
@@ -260,7 +263,7 @@ export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
                  <div className="space-y-1">
                    <Label htmlFor="language">{t('preferredLanguage')}</Label>
                    {/* Replace with actual Select component if needed */}
-                   <Input id="language" name="language" placeholder="Select Language" disabled={isLoading} />
+                   <Input id="language" name="language" value={newMember.language ?? ""} onChange={handleChange} placeholder="Select Language" disabled={isLoading} />
                  </div>
                </div>
            </div>

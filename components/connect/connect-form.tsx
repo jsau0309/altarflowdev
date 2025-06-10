@@ -168,7 +168,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
     // If submission was successful, show message and hide form
     if (submitResult?.success) {
         return (
-             <Card className="w-full max-w-lg mx-auto">
+             <Card className="w-full max-w-md mx-auto">
                  <CardHeader>
                      <CardTitle>{t('connect-form:successCardTitle')}</CardTitle>
                  </CardHeader>
@@ -186,7 +186,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
     }
 
     return (
-        <Card className="w-full max-w-lg mx-auto">
+        <Card className="w-full max-w-md mx-auto">
             <CardHeader>
                 {/* Language Toggle */} 
                 <ToggleGroup 

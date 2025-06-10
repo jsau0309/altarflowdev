@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Search, Filter, Plus, Target, Users, X, Mail, Phone, DollarSign } from "lucide-react"
-import { format, isAfter, isBefore, parseISO } from "date-fns"
+import { format, parseISO } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { NewDonationModal } from "@/components/modals/new-donation-modal"
-import { TooltipProvider } from "@/components/ui/tooltip"
 import { CampaignModal } from "@/components/modals/campaign-modal"
 import { AddMemberModal } from "@/components/modals/add-donor-modal"
 import { EditDonorModal } from "@/components/modals/edit-donor-modal"
@@ -19,16 +18,19 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getDonationTransactions } from "@/lib/actions/donations.actions"
 import { DonationDetailsDrawer } from "@/components/donations/donation-details-drawer"
 import { DonorDetailsDrawer } from "@/components/donations/donor-details-drawer"
 import { TablePagination } from "@/components/ui/table-pagination"
-import { Donation, Member, Campaign } from "@/lib/types"
+import { Member, Campaign, DonationTransactionFE, DonorDetailsData } from "@/lib/types"
 import { useTranslation } from 'react-i18next'
 
-export function DonationsContent() {
-  const [donations] = useState<Donation[]>([])
-  const [members] = useState<Member[]>([])
-  const [campaigns] = useState<Campaign[]>([])
+interface DonationsContentProps {
+  propMembers: Member[];
+  propCampaigns: Campaign[];
+}
+
+export default function DonationsContent({ propMembers: members, propCampaigns: campaigns }: DonationsContentProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [showModal, setShowModal] = useState(false)
@@ -39,11 +41,11 @@ export function DonationsContent() {
   const [campaignFilter, setCampaignFilter] = useState<"all" | "active" | "inactive">("active")
   const [donorSearchTerm, setDonorSearchTerm] = useState("")
   const [showEditDonorModal, setShowEditDonorModal] = useState(false)
-  const [selectedDonorId, setSelectedDonorId] = useState<string | null>(null)
   const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null)
   const [showDonationDetails, setShowDonationDetails] = useState(false)
   const [showDonorDetails, setShowDonorDetails] = useState(false)
   const [selectedDonorIdForDetails, setSelectedDonorIdForDetails] = useState<string | null>(null)
+  const [selectedDonorObjectForModal, setSelectedDonorObjectForModal] = useState<DonorDetailsData | null>(null)
 
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null)
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([])
@@ -51,20 +53,39 @@ export function DonationsContent() {
   const [selectedDonors, setSelectedDonors] = useState<string[]>([])
   const [selectedDonationTypes, setSelectedDonationTypes] = useState<string[]>([])
 
+  const [donations, setDonations] = useState<DonationTransactionFE[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
-
-  const [displayedDonations, setDisplayedDonations] = useState<Donation[]>([])
+  const [totalItems, setTotalItems] = useState(0)
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
   const { t } = useTranslation(['donations', 'common', 'expenses', 'campaigns', 'members'])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      console.log("TODO: Fetch initial data (donations, members, campaigns)");
-      setIsLoading(false);
-    }, 500)
+    const fetchDonations = async () => {
+      setIsLoading(true)
+      try {
+        const data = await getDonationTransactions({
+          page: currentPage,
+          limit: itemsPerPage,
+          searchTerm: searchTerm,
+        })
+        if (data.donations) {
+          setDonations(data.donations)
+          setTotalItems(data.totalCount)
+        } else {
+          setDonations([])
+          setTotalItems(0)
+        }
+      } catch (error) {
+        console.error("Failed to fetch donations:", error)
+        setDonations([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-    return () => clearTimeout(timer)
-  }, [])
+    fetchDonations()
+  }, [currentPage, itemsPerPage, searchTerm])
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -76,78 +97,7 @@ export function DonationsContent() {
     }
   }, [])
 
-  useEffect(() => {
-    if (dateRange || selectedCampaigns.length > 0 || selectedDonationMethods.length > 0 || selectedDonors.length > 0 || selectedDonationTypes.length > 0 || searchTerm) {
-      const filtered = donations.filter((donation) => {
-        if (activeTab !== "all-donations" && activeTab !== "campaigns" && activeTab !== "donors") {
-          return true
-        }
-
-        if (selectedDonationTypes.length > 0) {
-          if (!selectedDonationTypes.includes(donation.isDigital ? "digital" : "traditional")) {
-            return false
-          }
-        }
-
-        if (searchTerm) {
-          const donor = members.find((m) => m.id === donation.donorId)
-          const donorName = donor ? `${donor.firstName} ${donor.lastName}` : ""
-          const campaign = campaigns.find((c) => c.id === donation.campaignId)
-          const campaignName = campaign ? campaign.name : ""
-
-          const matchesSearch =
-            campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            donation.amount.toString().includes(searchTerm) ||
-            donation.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase())
-
-          if (!matchesSearch) return false
-        }
-
-        if (dateRange && dateRange.start && dateRange.end) {
-          const donationDate = parseISO(donation.date)
-          const startDate = parseISO(dateRange.start)
-          const endDate = parseISO(dateRange.end)
-
-          if (isBefore(donationDate, startDate) || isAfter(donationDate, endDate)) {
-            return false
-          }
-        }
-
-        if (selectedCampaigns.length > 0 && !selectedCampaigns.includes(donation.campaignId)) {
-          return false
-        }
-
-        if (selectedDonationMethods.length > 0 && !selectedDonationMethods.includes(donation.paymentMethod)) {
-          return false
-        }
-
-        if (selectedDonors.length > 0 && !selectedDonors.includes(donation.donorId)) {
-          return false
-        }
-
-        return true
-      })
-
-      setDisplayedDonations(filtered)
-      setCurrentPage(1)
-    }
-  }, [donations, members, campaigns, dateRange, selectedCampaigns, selectedDonationMethods, selectedDonors, selectedDonationTypes, searchTerm, activeTab])
-
-  const totalItems = displayedDonations.length
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages)
-    }
-  }, [currentPage, totalPages])
-
-  const indexOfLastItem = currentPage * itemsPerPage
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentDonations = displayedDonations.slice(indexOfFirstItem, indexOfLastItem)
-
-  const filteredDonors = members.filter((member) => {
+  const filteredDonors = members.filter((member: Member) => {
     if (!donorSearchTerm) return true
     const fullName = `${member.firstName} ${member.lastName}`.toLowerCase()
     return (
@@ -157,13 +107,13 @@ export function DonationsContent() {
     )
   })
 
-  const filteredCampaigns = campaigns.filter((campaign) => {
+  const filteredCampaigns = campaigns.filter((campaign: Campaign) => {
     if (campaignFilter === "active" && !campaign.isActive) return false
     if (campaignFilter === "inactive" && campaign.isActive) return false
     if (!searchTerm) return true
     return (
       campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (campaign.description || "").toLowerCase().includes(searchTerm.toLowerCase())
     )
   })
 
@@ -177,7 +127,7 @@ export function DonationsContent() {
     return campaign ? campaign.name : t('common:unknownCampaign', 'Unknown Campaign')
   }
 
-  const handleNewDonationClick = (donationType: "digital" | "traditional" = "traditional") => {
+  const handleNewDonationClick = () => {
     setShowModal(true)
     setActiveTab("all-donations")
   }
@@ -186,6 +136,33 @@ export function DonationsContent() {
     setShowModal(false)
     console.log("TODO: Refresh donations after modal close")
   }
+
+  const handleEditDonorFromList = (member: Member) => {
+    const donorForModal: DonorDetailsData = {
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      email: member.email,
+      phone: member.phone,
+      address: member.address,
+      city: member.city,
+      state: member.state,
+      zipCode: member.zipCode,
+      membershipStatus: member.membershipStatus,
+      joinDate: member.joinDate,
+      ministryInvolvement: member.ministryInvolvement,
+      smsConsent: member.smsConsent,
+      smsConsentDate: member.smsConsentDate,
+      smsConsentMethod: member.smsConsentMethod,
+      preferredLanguage: member.preferredLanguage,
+      notes: member.notes,
+      createdAt: member.createdAt,
+      updatedAt: member.updatedAt,
+      donations: [], // Assuming we don't pass donations to the edit modal
+    };
+    setSelectedDonorObjectForModal(donorForModal);
+    setShowEditDonorModal(true);
+  };
 
   const handleEditCampaign = (id: string) => {
     setSelectedCampaignId(id)
@@ -208,13 +185,13 @@ export function DonationsContent() {
   }
 
   const handleToggleCampaignStatus = (id: string, currentStatus: boolean) => {
-    console.log(`TODO: Update campaign ${id} status to ${!currentStatus}`);
+    console.log(`TODO: Update campaign ${id} status to ${!currentStatus}`)
     console.log("TODO: Refresh campaigns after status toggle")
   }
 
   const handleEditDonorModalClose = () => {
     setShowEditDonorModal(false)
-    setSelectedDonorId(null)
+    setSelectedDonorObjectForModal(null)
     console.log("TODO: Refresh members after edit modal close")
   }
 
@@ -224,43 +201,27 @@ export function DonationsContent() {
   }
 
   const handleDonationTypeFilterChange = (type: string) => {
-    setSelectedDonationTypes((prev) => {
-      if (prev.includes(type)) {
-        return prev.filter((t) => t !== type)
-      } else {
-        return [...prev, type]
-      }
-    })
+    setSelectedDonationTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    )
   }
 
   const handleCampaignFilterChange = (campaignId: string) => {
-    setSelectedCampaigns((prev) => {
-      if (prev.includes(campaignId)) {
-        return prev.filter((id) => id !== campaignId)
-      } else {
-        return [...prev, campaignId]
-      }
-    })
+    setSelectedCampaigns((prev) =>
+      prev.includes(campaignId) ? prev.filter((id) => id !== campaignId) : [...prev, campaignId]
+    )
   }
 
   const handleDonationMethodFilterChange = (method: string) => {
-    setSelectedDonationMethods((prev) => {
-      if (prev.includes(method)) {
-        return prev.filter((m) => m !== method)
-      } else {
-        return [...prev, method]
-      }
-    })
+    setSelectedDonationMethods((prev) =>
+      prev.includes(method) ? prev.filter((m) => m !== method) : [...prev, method]
+    )
   }
 
   const handleDonorFilterChange = (donorId: string) => {
-    setSelectedDonors((prev) => {
-      if (prev.includes(donorId)) {
-        return prev.filter((id) => id !== donorId)
-      } else {
-        return [...prev, donorId]
-      }
-    })
+    setSelectedDonors((prev) =>
+      prev.includes(donorId) ? prev.filter((id) => id !== donorId) : [...prev, donorId]
+    )
   }
 
   const clearFilters = () => {
@@ -292,7 +253,7 @@ export function DonationsContent() {
           <button onClick={() => setDateRange(null)} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
-        </Badge>,
+        </Badge>
       )
     }
     if (selectedDonationTypes.length > 0) {
@@ -302,7 +263,7 @@ export function DonationsContent() {
           <button onClick={() => setSelectedDonationTypes([])} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
-        </Badge>,
+        </Badge>
       )
     }
     if (selectedCampaigns.length > 0) {
@@ -312,17 +273,17 @@ export function DonationsContent() {
           <button onClick={() => setSelectedCampaigns([])} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
-        </Badge>,
+        </Badge>
       )
     }
     if (selectedDonationMethods.length > 0) {
       badges.push(
         <Badge key="method" variant="secondary" className="mr-1 mb-1 capitalize">
-          {t('donations:method', 'Methods')}: {selectedDonationMethods.map(method => t(`donations:methods.${method.replace('-','').toLowerCase()}`, method)).join(", ")}
+          {t('donations:method', 'Methods')}: {selectedDonationMethods.map(method => t(`donations:methods.${method.replace('-', '').toLowerCase()}`, method)).join(", ")}
           <button onClick={() => setSelectedDonationMethods([])} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
-        </Badge>,
+        </Badge>
       )
     }
     if (selectedDonors.length > 0) {
@@ -332,7 +293,7 @@ export function DonationsContent() {
           <button onClick={() => setSelectedDonors([])} className="ml-1 rounded-full hover:bg-background/80 p-0.5">
             <X className="h-3 w-3" />
           </button>
-        </Badge>,
+        </Badge>
       )
     }
     return badges.length > 0 ? (
@@ -376,7 +337,7 @@ export function DonationsContent() {
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">{t('donations:donationsContent.allDonations.subtitle', 'View, search, and filter all donations')}</p>
               </div>
-              <Button onClick={() => handleNewDonationClick()} className="gap-2">
+              <Button onClick={handleNewDonationClick} className="gap-2">
                 <Plus className="h-4 w-4" />
                 {t('donations:newDonation', 'New Donation')}
               </Button>
@@ -503,7 +464,7 @@ export function DonationsContent() {
                     <div key={i} className="h-10 bg-muted animate-pulse rounded-md"></div>
                   ))}
                 </div>
-              ) : currentDonations.length > 0 ? (
+              ) : (
                 <>
                   <Table>
                     <TableHeader>
@@ -513,47 +474,48 @@ export function DonationsContent() {
                         <TableHead>{t('donations:campaign', 'Campaign')}</TableHead>
                         <TableHead>{t('donations:method', 'Method')}</TableHead>
                         <TableHead>{t('donations:type', 'Type')}</TableHead>
-                        <TableHead className="text-right">{t('donations:amount', 'Amount')}</TableHead>
+                        <TableHead className="text-right">{t('common:amount', 'Amount')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {currentDonations.map((donation) => (
-                        <TableRow
-                          key={donation.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleViewDonationDetails(donation.id)}
-                        >
-                          <TableCell>{format(parseISO(donation.date), "PP")}</TableCell>
-                          <TableCell>{getDonorName(donation.donorId)}</TableCell>
-                          <TableCell>{getCampaignName(donation.campaignId)}</TableCell>
-                          <TableCell className="capitalize">{donation.paymentMethod.replace("-", " ")}</TableCell>
-                          <TableCell>
-                            <Badge variant={donation.isDigital ? "secondary" : "outline"}>
-                              {donation.isDigital ? t('common:digital', 'Digital') : t('common:traditional', 'Traditional')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ${donation.amount.toLocaleString()}
+                      {donations.length > 0 ? (
+                        donations.map((donation) => (
+                          <TableRow key={donation.id} onClick={() => handleViewDonationDetails(donation.id)} className="cursor-pointer">
+                            <TableCell>{format(parseISO(donation.transactionDate), "PP")}</TableCell>
+                            <TableCell>{donation.donorName || (donation.donorId ? getDonorName(donation.donorId) : t('common:anonymous', 'Anonymous'))}</TableCell>
+                            <TableCell>{donation.campaignId ? getCampaignName(donation.campaignId) : '-'}</TableCell>
+                            <TableCell className="capitalize">{donation.paymentMethodType || '-'}</TableCell>
+                            <TableCell>{donation.donationTypeName}</TableCell>
+                            <TableCell className="text-right font-medium">${donation.amount.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center h-24">
+                            {t('donations:donationsContent.empty.title', 'No donations found')}
                           </TableCell>
                         </TableRow>
-                      ))}
+                      )}
                     </TableBody>
                   </Table>
-                  <div className="mt-4">
-                    <TablePagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={setCurrentPage}
-                      itemsPerPage={itemsPerPage}
-                      onItemsPerPageChange={(value) => {
-                        setItemsPerPage(value)
-                        setCurrentPage(1)
-                      }}
-                      totalItems={totalItems}
-                    />
-                  </div>
+                  {donations.length > 0 && (
+                    <div className="mt-4">
+                      <TablePagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        itemsPerPage={itemsPerPage}
+                        onItemsPerPageChange={(value) => {
+                          setItemsPerPage(value)
+                          setCurrentPage(1)
+                        }}
+                        totalItems={totalItems}
+                      />
+                    </div>
+                  )}
                 </>
-              ) : (
+              )}
+              { !isLoading && donations.length === 0 && (
                 <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed p-4 sm:p-8 text-center">
                   <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
                     <h3 className="mt-4 text-lg font-semibold">{t('donations:donationsContent.empty.title', 'No donations found')}</h3>
@@ -562,7 +524,7 @@ export function DonationsContent() {
                         ? t('donations:donationsContent.empty.adjustFilters', 'Try adjusting your search or filters.')
                         : t('donations:donationsContent.empty.addFirst', 'Add your first donation to get started.')}
                     </p>
-                    <Button onClick={() => handleNewDonationClick()}>{t('donations:newDonation', 'Add New Donation')}</Button>
+                    <Button onClick={handleNewDonationClick}>{t('donations:newDonation', 'Add New Donation')}</Button>
                   </div>
                 </div>
               )}
@@ -621,7 +583,6 @@ export function DonationsContent() {
                     <TableRow>
                       <TableHead>{t('campaigns:name', 'Name')}</TableHead>
                       <TableHead>{t('common:goal', 'Goal')}</TableHead>
-                      <TableHead>{t('common:raised', 'Raised')}</TableHead>
                       <TableHead>{t('campaigns:startDate', 'Start Date')}</TableHead>
                       <TableHead>{t('campaigns:endDate', 'End Date')}</TableHead>
                       <TableHead>{t('campaigns:status', 'Status')}</TableHead>
@@ -632,13 +593,12 @@ export function DonationsContent() {
                     {filteredCampaigns.map((campaign) => (
                       <TableRow key={campaign.id}>
                         <TableCell className="font-medium">{campaign.name}</TableCell>
-                        <TableCell>${campaign.goal.toLocaleString()}</TableCell>
-                        <TableCell>${campaign.raised.toLocaleString()}</TableCell>
-                        <TableCell>{format(parseISO(campaign.startDate), "PP")}</TableCell>
+                        <TableCell>{campaign.goalAmount ? `$${parseFloat(campaign.goalAmount).toLocaleString()}` : t('common:notApplicable', 'N/A')}</TableCell>
+                        <TableCell>{campaign.startDate ? format(parseISO(campaign.startDate), "PP") : t('common:notSet', 'Not Set')}</TableCell>
                         <TableCell>{campaign.endDate ? format(parseISO(campaign.endDate), "PP") : t('common:ongoing', 'Ongoing')}</TableCell>
                         <TableCell>
                           <Badge variant={campaign.isActive ? "default" : "secondary"}>
-                            {campaign.isActive ? t('campaigns:statuses.active', 'Active') : t('campaigns:statuses.inactive', 'Inactive')} 
+                            {campaign.isActive ? t('campaigns:statuses.active', 'Active') : t('campaigns:statuses.inactive', 'Inactive')}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -648,10 +608,10 @@ export function DonationsContent() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleToggleCampaignStatus(campaign.id, campaign.isActive)}
+                            onClick={() => handleToggleCampaignStatus(campaign.id, campaign.isActive ?? false)}
                             className="ml-2"
                           >
-                            {campaign.isActive ? t('common:deactivate', 'Deactivate') : t('common:activate', 'Activate')}
+                            {(campaign.isActive ?? false) ? t('common:deactivate', 'Deactivate') : t('common:activate', 'Activate')}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -759,8 +719,7 @@ export function DonationsContent() {
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedDonorId(member.id);
-                            setShowEditDonorModal(true);
+                            handleEditDonorFromList(member);
                           }}>
                             {t('common:edit', 'Edit')}
                           </Button>
@@ -794,11 +753,11 @@ export function DonationsContent() {
         campaignId={selectedCampaignId}
       />
       <AddMemberModal isOpen={showDonorModal} onClose={handleDonorModalClose} />
-      {selectedDonorId && (
+      {showEditDonorModal && selectedDonorObjectForModal && (
         <EditDonorModal
           isOpen={showEditDonorModal}
           onClose={handleEditDonorModalClose}
-          donorId={selectedDonorId}
+          donor={selectedDonorObjectForModal}
         />
       )}
       {selectedDonationId && (

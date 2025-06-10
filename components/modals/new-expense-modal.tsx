@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { ReceiptScannerButton } from "@/components/receipt-scanner/receipt-scanner-button"
-import { useTranslation } from "react-i18next"
+import { useTranslation } from "react-i18next";
+import { toast } from 'sonner';
 import type { Expense } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -28,7 +29,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
-  const [receiptPath, setReceiptPath] = useState<string | null>(null)
+  const [receiptPath, setReceiptPath] = useState<string | null>(null);
   
   // Function to safely format date string to YYYY-MM-DD
   const formatDateForInput = (dateInput: Date | string | undefined | null): string => {
@@ -69,7 +70,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
           description: expenseToEdit.description || "",
         });
         setReceiptImage(expenseToEdit.receiptUrl || null);
-        // Remove receiptPath since it's not in the Expense type
+        setReceiptPath(expenseToEdit.receiptPath || null); // Populate receiptPath for editing
       } else {
         // New mode: Reset form to defaults
         setFormData({
@@ -110,6 +111,26 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Client-side validation for amount
+    const amountValue = parseFloat(formData.amount);
+    if (!formData.amount || isNaN(amountValue) || amountValue <= 0) {
+      toast.error(t('newExpenseModal.validation.amountRequired', 'Please enter a valid amount.'));
+      return; // Prevent submission
+    }
+
+    // Client-side validation for date
+    if (!formData.expenseDate) {
+      toast.error(t('newExpenseModal.validation.dateRequired', 'Please select a date.'));
+      return; // Prevent submission
+    }
+
+    // Client-side validation for category
+    if (!formData.category) {
+      toast.error(t('newExpenseModal.validation.categoryRequired', 'Please select a category.'));
+      return; // Prevent submission
+    }
+
     setIsLoading(true);
     let apiError: string | null = null;
 
@@ -147,12 +168,24 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
         throw new Error(errorData.error || `Failed to ${expenseToEdit ? 'update' : 'create'} expense`);
       }
 
+      // Show success toast
+      if (expenseToEdit) {
+        toast.success(t('newExpenseModal.updateSuccess', 'Expense updated successfully!'));
+      } else {
+        toast.success(t('newExpenseModal.createSuccess', 'Expense created successfully!'));
+      }
+
       onClose();
 
     } catch (err) {
       console.error("Expense form submission error:", err);
       apiError = err instanceof Error ? err.message : "An unexpected error occurred.";
-      alert(`Error: ${apiError}`);
+      // Show error toast
+      if (expenseToEdit) {
+        toast.error(`${t('newExpenseModal.updateError', 'Failed to update expense')}: ${apiError}`);
+      } else {
+        toast.error(`${t('newExpenseModal.createError', 'Failed to create expense')}: ${apiError}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -271,16 +304,13 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
               <Label>{t('expenses:newExpenseModal.receiptLabel')}</Label>
               <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6">
                 {receiptImage ? (
-                  <div className="w-full">
-                    <div className="relative mb-2">
-                      <img
-                        src={receiptImage || "/placeholder.svg"}
-                        alt="Receipt"
-                        className="max-h-40 mx-auto object-contain rounded-md"
-                      />
-                    </div>
+                  <div className="w-full text-center">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                      {/* TODO: Add translation key expenses:newExpenseModal.receiptAttachedMessage */}
+                      Receipt Attached
+                    </p>
                     <div className="flex justify-center gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => setReceiptImage(null)}>
+                      <Button type="button" variant="outline" size="sm" onClick={() => { setReceiptImage(null); setReceiptPath(null); }}>
                         {t('expenses:newExpenseModal.removeReceiptButton')}
                       </Button>
                       <ReceiptScannerButton onDataCaptured={handleReceiptData} variant="outline" size="sm">

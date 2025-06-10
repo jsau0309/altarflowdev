@@ -19,7 +19,9 @@
   "roles": {
     "admin": "Admin",
     "editor": "Editor",
-    "viewer": "Viewer"
+    "viewer": "Viewer",
+    "ADMIN": "Admin",
+    "STAFF": "Staff"
   },
   "thisUser": "this user",
   "refresh": "Refresh",
@@ -67,6 +69,7 @@
     "pageNotFound": "Page not found",
     "goHome": "Go to Home",
     "invalidPhoneDigits": "Phone number must be 10 digits.",
+    "invalidPhoneNumeric": "Phone number must only contain digits.",
     "invalidEmailFormat": "Please enter a valid email format.",
     "fetchFailed": "Failed to load data. Please try again.",
     "errorTitle": "Error",
@@ -148,6 +151,7 @@
     "description": "Member information has been updated successfully."
   },
   "add": "Add",
+  "addMember": "Add Member",
   "close": "Close",
   "name": "Name",
   "email": "Email",
@@ -164,10 +168,6 @@
   "invalidDate": "Invalid Date",
   "noPhoneNumber": "No phone",
   "noEmailAddress": "No Email",
-  "roles": {
-    "ADMIN": "Admin",
-    "STAFF": "Staff"
-  },
   "searchPlaceholderMembers": "Search members...",
   "retry": "Try Again"
 } 

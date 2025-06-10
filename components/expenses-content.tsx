@@ -12,7 +12,8 @@ import { TablePagination } from "@/components/ui/table-pagination"
 import { useTranslation } from 'react-i18next'
 import type { Expense } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast";
+import { toast as sonnerToast } from 'sonner';
 
 export function ExpensesContent() {
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -98,11 +99,12 @@ export function ExpensesContent() {
       
       // Success: If not using optimistic update, refetch here
       fetchExpenses(); 
+      sonnerToast.success(t('expenses:deleteSuccess', 'Expense deleted successfully!')); 
 
     } catch (err) {
       console.error("Delete expense error:", err);
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during deletion.';
-      setError(errorMessage); // Set error state to display in the main content area
+      sonnerToast.error(`${t('expenses:deleteError', 'Failed to delete expense')}: ${errorMessage}`);
       // Revert optimistic update if it failed
       // fetchExpenses(); 
     } finally {
@@ -231,17 +233,13 @@ export function ExpensesContent() {
                     const adjustedDate = new Date(dateUtc.valueOf() + dateUtc.getTimezoneOffset() * 60 * 1000);
                     
                     return (
-                      <TableRow
-                        key={expense.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleViewExpenseDetails(expense)}
-                      >
-                        <TableCell>{format(adjustedDate, "PP")}</TableCell> {/* Format the adjusted date */}
+                      <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewExpenseDetails(expense)}>
+                        <TableCell>{format(adjustedDate, "PP")}</TableCell>
                         <TableCell>{expense.vendor || '-'}</TableCell>
                         <TableCell>{formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
                       </TableRow>
-                    )
+                    );
                   })}
                 </TableBody>
               </Table>

@@ -32,11 +32,9 @@
   },
   
   "statuses": {
-    "active": "Active",
+    "member": "Member",
     "inactive": "Inactive",
-    "visitor": "Visitor",
-    "prospect": "Prospect",
-    "new": "New"
+    "visitor": "Visitor"
   },
   
   "membersContent": {
@@ -113,5 +111,8 @@
     "emailConflictMessage": "This email address is already associated with another member.",
     "constraintViolationTitle": "Save Error",
     "constraintViolationMessage": "A value provided conflicts with an existing record. Please check the details and try again."
-  }
+  },
+  "Basic Information": "Basic Information",
+  "streetAddrLabel": "Street Address",
+  "drawerEditTitle": "Edit Member"
 } 

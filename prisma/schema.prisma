@@ -21,6 +21,12 @@ datasource db {
 
 // --- Enums ---
 
+enum MembershipStatus {
+  Visitor
+  Member
+  Inactive
+}
+
 enum Role {
   ADMIN // Typically the license purchaser / main account owner
   STAFF // Invited staff members (up to 3)
@@ -84,7 +90,6 @@ model Church {
   phone      String? // Added: Primary phone number
   email      String? // Added: Primary contact email
   website    String? // Added: Church website URL
-  logoUrl    String? // Optional URL for the church's logo, used in receipts
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now()) @updatedAt // Keep @updatedAt, add @default(now()) for INSERT
 
@@ -204,14 +209,21 @@ model Member {
   city                String?
   state               String?
   zipCode             String?
-  membershipStatus    String? // e.g., "Visitor", "Member", "Inactive"
+  membershipStatus    MembershipStatus? // Current status of the member (e.g., 'Active', 'Visitor', 'Inactive')"
   joinDate            DateTime? // Date they officially became a member
-  ministryInvolvement String? // Text area for notes on involvement
+  // ministryInvolvement String? // Text area for notes on involvement -- Replaced by ministry_interests
   smsConsent          Boolean   @default(false)
   smsConsentDate      DateTime? // When consent was given
   smsConsentMethod    String? // How consent was obtained (e.g., "Web Form", "Paper Card")
   language            String? // Add preferred language field
   lastSubmittedConnectFormAt DateTime? // Add timestamp for last connect form submission
+  notes                      String?   // General notes about the member/donor
+
+  // --- NEW FIELDS ---
+  ministry_interests      String[]  @default([]) // Stores an array of ministry names the member is interested in.
+  preferred_service_times String[]  @default([]) // Stores an array of service times the member prefers.
+  life_stage              String?                // Stores the life stage of the member.
+  // --- END NEW FIELDS ---
 
   // --- Link to Church --- (Now Required)
   churchId String @db.Uuid // <-- Add @db.Uuid
@@ -412,3 +424,4 @@ model Submission {
   @@index([flowId])
   @@index([memberId])
 }
+// This is a test comment to trigger regeneration

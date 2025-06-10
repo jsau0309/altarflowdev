@@ -53,16 +53,6 @@ export function ReviewDataView({ data, receiptImage, onAccept, onCancel, onEdit 
           <span className="font-medium">{t('receiptScanner:review.success')}</span>
         </div>
 
-        {receiptImage && (
-          <div className="border rounded-md overflow-hidden">
-            <img
-              src={receiptImage || "/placeholder.svg"}
-              alt="Receipt"
-              className="w-full h-auto max-h-40 object-contain"
-            />
-          </div>
-        )}
-
         {isEditing ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
