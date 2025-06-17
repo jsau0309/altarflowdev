@@ -12,7 +12,7 @@ interface ConnectPageProps {
 }
 
 export default async function ConnectFlowPage({ params }: ConnectPageProps) {
-  const { flowSlug } = params;
+  const { flowSlug } = await params;
 
   if (!flowSlug) {
     console.log("ConnectFlowPage: No flowSlug in params.");

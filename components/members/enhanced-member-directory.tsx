@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Search, Filter, Phone, Mail } from "lucide-react"
+import LoaderOne from "@/components/ui/loader-one";
 import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -249,10 +250,8 @@ export function EnhancedMemberDirectory({
 
       {/* Use isLoading prop */}
       {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(itemsPerPage)].map((_, i) => (
-            <div key={i} className="h-12 bg-muted animate-pulse rounded-md"></div>
-          ))}
+        <div className="flex justify-center items-center h-[500px]">
+          <LoaderOne />
         </div>
       ) : error ? ( // Use error prop
         <div className="flex min-h-[300px] items-center justify-center rounded-md border border-dashed border-destructive p-4 sm:p-8 text-center">

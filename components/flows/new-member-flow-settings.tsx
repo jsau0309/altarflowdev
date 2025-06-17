@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useTransition } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next"
 import { getFlowConfiguration, saveFlowConfiguration } from "@/lib/actions/flows.actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from 'sonner';
-import { NewMemberFlowSettingsSkeleton } from "./new-member-flow-settings-skeleton";
+import LoaderOne from '@/components/ui/loader-one';
 import { FlowType } from "@prisma/client" // Import FlowType
 
 // Define the shape of the config state, excluding fields not directly managed here
@@ -24,6 +24,7 @@ type ConfigState = Omit<FormConfiguration, 'churchId' | 'formVersion' | 'customF
 
 export function NewMemberFlowSettings() { // Renamed component
   const router = useRouter();
+  const pathname = usePathname();
   // State for the configuration, loading, saving, and errors
   const [config, setConfig] = useState<ConfigState | null>(null);
   const [flowSlug, setFlowSlug] = useState<string | null>(null); // Add state for the slug
@@ -72,7 +73,7 @@ export function NewMemberFlowSettings() { // Renamed component
       setIsLoading(false);
     };
     fetchConfig();
-  }, []); // Empty dependency array ensures this runs once on mount
+  }, [pathname]);
 
   // --- Event Handlers (Update local state) ---
 
@@ -205,7 +206,11 @@ export function NewMemberFlowSettings() { // Renamed component
 
   // --- Render Logic --- 
   if (isLoading) {
-    return <NewMemberFlowSettingsSkeleton />;
+    return (
+      <div className="flex justify-center items-center h-[500px]">
+        <LoaderOne />
+      </div>
+    );
   }
 
   if (error) {

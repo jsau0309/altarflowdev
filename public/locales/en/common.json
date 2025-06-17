@@ -1,0 +1,17 @@
+{
+  "noEmail": "No email",
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "view": "View",
+    "close": "Close"
+  },
+  "status": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success"
+  }
+}

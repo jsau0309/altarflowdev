@@ -15,10 +15,15 @@ import { DonationCharts } from "./charts/donation-charts"
 import { ExpenseCharts } from "./charts/expense-charts"
 import { CampaignCharts } from "./charts/campaign-charts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import LoaderOne from "@/components/ui/loader-one";
 import { Donation, Expense, Campaign, Member } from "@/lib/types"
+
+import { usePathname } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 
 export function ReportsContent() {
+  const pathname = usePathname()
+
   const [activeTab, setActiveTab] = useState("donations")
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
@@ -46,22 +51,23 @@ export function ReportsContent() {
 
   // Fetch data
   useEffect(() => {
-    setIsLoading(true)
+    setIsLoading(true);
     setTimeout(() => {
       // TODO: Replace with actual API calls
-      setDonations([]); 
+      // For now, we'll just simulate a fetch
+      setDonations([]);
       setExpenses([]);
       setCampaigns([]);
       setMembers([]);
       console.log("TODO: Fetch report data");
       setIsLoading(false);
     }, 500);
-  }, []);
+  }, [pathname, dateRange]);
 
   // Filter data based on date range
   const filteredDonations = donations.filter((donation) => {
     if (!dateRange.from && !dateRange.to) return true
-    const donationDate = new Date(donation.date)
+    const donationDate = new Date(donation.donationDate)
     if (dateRange.from && dateRange.to) {
       return donationDate >= dateRange.from && donationDate <= dateRange.to
     } else if (dateRange.from) {
@@ -85,11 +91,12 @@ export function ReportsContent() {
     return true
   })
 
-  const activeCampaigns = campaigns.filter((campaign: Campaign) => campaign.isActive && campaign.goal > 0)
+  const activeCampaigns = campaigns.filter((campaign: Campaign) => campaign.isActive && parseFloat(campaign.goalAmount || '0') > 0)
 
   // Calculate totals
-  const totalDonations = filteredDonations.reduce((sum: number, donation: Donation) => sum + donation.amount, 0)
-  const totalExpenses = filteredExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
+  const totalDonations = filteredDonations.reduce((sum, donation) => sum + parseFloat(donation.amount || '0'), 0)
+  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+  // Net income calculation
   const netIncome = totalDonations - totalExpenses
 
   // Pagination calculations
@@ -141,16 +148,19 @@ export function ReportsContent() {
   )
 
   // Helper function to get donor name
-  const getDonorName = (donorId: string) => {
-    const donor = members.find((member: Member) => member.id === donorId)
-    return donor ? `${donor.firstName} ${donor.lastName}` : t('common:unknownDonor', 'Unknown Donor')
+  const getDonorName = (donorId: string | null | undefined) => {
+    if (!donorId) return t('common:anonymous');
+    const member = members.find((m) => m.id === donorId)
+    return member ? `${member.firstName} ${member.lastName}` : t('common:anonymous')
   }
 
   // Helper function to get campaign name
-  const getCampaignName = (campaignId: string) => {
-    const campaign = campaigns.find((campaign: Campaign) => campaign.id === campaignId)
-    // Assuming 'General' is a campaign type in campaigns.json
-    return campaign ? campaign.name : t('campaigns:general', 'General') 
+  const getCampaignName = (campaignId: string | null | undefined) => {
+    if (!campaignId) {
+      return t('campaigns:general', 'General');
+    }
+    const campaign = campaigns.find((c: Campaign) => c.id === campaignId)
+    return campaign ? campaign.name : t('campaigns:general', 'General')
   }
 
   // Helper function to format currency using i18n locale
@@ -466,11 +476,18 @@ export function ReportsContent() {
           <TabsTrigger value="campaigns">{t('reports:reportsContent.tabs.campaigns')}</TabsTrigger>
         </TabsList>
 
+        {isLoading ? (
+          <div className="flex justify-center items-center h-[500px] pt-4">
+            <LoaderOne />
+          </div>
+        ) : (
+          <>
         <TabsContent value="donations" className="space-y-4 pt-4">
           <DonationCharts
             donations={filteredDonations}
             startDate={dateRange.from}
             endDate={dateRange.to}
+            campaigns={campaigns}
           />
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
@@ -505,7 +522,7 @@ export function ReportsContent() {
                 <CardTitle className="text-sm font-medium">{t('reports:reportsContent.donations.uniqueDonorsTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{new Set(filteredDonations.map((d: Donation) => d.donorId)).size}</div>
+                <div className="text-2xl font-bold">{new Set(filteredDonations.map((d: Donation) => d.memberId)).size}</div>
                  {/* Use reports namespace */}
                 <p className="text-xs text-muted-foreground">{t('reports:reportsContent.donations.uniqueDonorsSubtitle')}</p>
               </CardContent>
@@ -534,28 +551,21 @@ export function ReportsContent() {
                     <TableHead>{t('donations:date')}</TableHead>
                     <TableHead>{t('donations:donor')}</TableHead>
                     <TableHead>{t('donations:campaign')}</TableHead>
-                    <TableHead>{t('donations:method')}</TableHead>
+                    <TableHead className="hidden md:table-cell">{t('donations:method')}</TableHead>
                     <TableHead className="text-right">{t('donations:amount')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
-                     [...Array(donationsPerPage)].map((_, i) => (
-                       <TableRow key={`loading-donation-${i}`}>
-                         <TableCell colSpan={5}><div className="h-8 bg-muted animate-pulse rounded"></div></TableCell>
-                       </TableRow>
-                     ))
-                   ) : paginatedDonations.length > 0 ? (
+                  {paginatedDonations.length > 0 ? (
                     paginatedDonations.map((donation: Donation) => (
                       <TableRow key={donation.id}>
-                        <TableCell>{formatDate(donation.date)}</TableCell>
-                        <TableCell>{getDonorName(donation.donorId)}</TableCell>
+                        <TableCell>{formatDate(donation.donationDate)}</TableCell>
+                        <TableCell>{getDonorName(donation.memberId)}</TableCell>
                         <TableCell>{getCampaignName(donation.campaignId)}</TableCell>
-                        <TableCell>
-                            {/* Use donations namespace */}
-                           {formatDisplayString(donation.paymentMethod, 'donations', 'methods', donation.paymentMethod)}
+                        <TableCell className="hidden md:table-cell">
+                          {t('common:notAvailable')}
                         </TableCell>
-                        <TableCell className="text-right">{formatCurrency(donation.amount)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(parseFloat(donation.amount))}</TableCell>
                       </TableRow>
                     ))
                   ) : (
@@ -659,13 +669,7 @@ export function ReportsContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                   {isLoading ? (
-                     [...Array(expensesPerPage)].map((_, i) => (
-                       <TableRow key={`loading-expense-${i}`}>
-                         <TableCell colSpan={5}><div className="h-8 bg-muted animate-pulse rounded"></div></TableCell>
-                       </TableRow>
-                     ))
-                   ) : paginatedExpenses.length > 0 ? (
+                  {paginatedExpenses.length > 0 ? (
                     paginatedExpenses.map((expense: Expense) => (
                       <TableRow key={expense.id}>
                         <TableCell>{formatDate(expense.date)}</TableCell>
@@ -703,11 +707,12 @@ export function ReportsContent() {
         </TabsContent>
 
         <TabsContent value="campaigns" className="space-y-4 pt-4">
-          <CampaignCharts
-            donations={filteredDonations}
-            expenses={filteredExpenses}
-            startDate={dateRange.from}
-            endDate={dateRange.to}
+          <CampaignCharts 
+            donations={filteredDonations} 
+            expenses={filteredExpenses} 
+            campaigns={campaigns} 
+            startDate={dateRange.from} 
+            endDate={dateRange.to} 
           />
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
@@ -729,7 +734,7 @@ export function ReportsContent() {
               <CardContent>
                 <div className="text-2xl font-bold">
                    {/* TODO: Add raised calculation */} 
-                  {formatCurrency(campaigns.reduce((sum: number, campaign: Campaign) => sum + (campaign.raised || 0), 0))}
+                  {formatCurrency(filteredDonations.reduce((sum, d) => sum + parseFloat(d.amount || '0'), 0))}
                 </div>
                  {/* Use reports namespace */}
                 <p className="text-xs text-muted-foreground">{t('reports:reportsContent.campaigns.totalRaisedSubtitle')}</p>
@@ -742,11 +747,13 @@ export function ReportsContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {Math.round(
-                    (campaigns.filter((c: Campaign) => c.goal > 0).reduce((sum: number, campaign: Campaign) => sum + (campaign.raised || 0), 0) /
-                      campaigns.filter((c: Campaign) => c.goal > 0).reduce((sum: number, campaign: Campaign) => sum + campaign.goal, 1)) *
-                      100,
-                  ) || 0} 
+                  {(() => {
+                    const campaignsWithGoal = campaigns.filter(c => parseFloat(c.goalAmount || '0') > 0);
+                    if (campaignsWithGoal.length === 0) return 0;
+                    const totalRaised = donations.filter(d => d.campaignId && campaignsWithGoal.some(c => c.id === d.campaignId)).reduce((sum, d) => sum + parseFloat(d.amount), 0);
+                    const totalGoal = campaignsWithGoal.reduce((sum, c) => sum + parseFloat(c.goalAmount || '0'), 0);
+                    return totalGoal > 0 ? Math.round((totalRaised / totalGoal) * 100) : 0;
+                  })()} 
                   %
                 </div>
                  {/* Use reports namespace */}
@@ -762,18 +769,10 @@ export function ReportsContent() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                 {isLoading ? (
-                   [...Array(campaignsPerPage)].map((_, i) => (
-                     <div key={`loading-campaign-${i}`} className="space-y-2">
-                       <div className="h-4 bg-muted animate-pulse rounded w-1/2"></div>
-                       <div className="h-6 bg-muted animate-pulse rounded"></div>
-                       <div className="h-4 bg-muted animate-pulse rounded w-1/4"></div>
-                     </div>
-                   ))
-                 ) : paginatedCampaigns.length > 0 ? (
+                 {paginatedCampaigns.length > 0 ? (
                   paginatedCampaigns.map((campaign: Campaign) => {
-                    const goal = campaign.goal || 1;
-                    const raised = campaign.raised || 0; // Use raised property
+                    const goal = parseFloat(campaign.goalAmount || '0') || 1;
+                    const raised = donations.filter(d => d.campaignId === campaign.id).reduce((sum, d) => sum + parseFloat(d.amount), 0);
                     const progress = Math.min(100, Math.round((raised / goal) * 100))
                     return (
                       <div key={campaign.id} className="space-y-2">
@@ -782,7 +781,7 @@ export function ReportsContent() {
                           <div className="text-sm text-muted-foreground">
                              {/* Use reports and common namespaces */}
                             {t('reports:reportsContent.campaigns.goalStatus',
-                              { raised: formatCurrency(raised), goal: formatCurrency(campaign.goal || 0) })}
+                              { raised: formatCurrency(raised), goal: formatCurrency(parseFloat(campaign.goalAmount || '0')) })}
                           </div>
                         </div>
                         <Progress value={progress} aria-label={t('reports:reportsContent.campaigns.progressAriaLabel', { percent: progress })} />
@@ -816,7 +815,8 @@ export function ReportsContent() {
              )}
           </Card>
         </TabsContent>
-
+          </>
+        )}
       </Tabs>
     </div>
   )

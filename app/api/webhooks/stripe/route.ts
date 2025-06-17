@@ -11,7 +11,7 @@ const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function POST(req: Request) {
   const body = await req.text();
-  const signature = headers().get('Stripe-Signature') as string;
+  const signature = (await headers()).get('Stripe-Signature') as string;
 
   let event: Stripe.Event;
 
@@ -149,7 +149,12 @@ export async function POST(req: Request) {
 
         try {
           console.log(`[Stripe Webhook] Attempting to send receipt for PI: ${paymentIntentSucceeded.id}`);
-          await handleSuccessfulPaymentIntent(paymentIntentSucceeded);
+          handleSuccessfulPaymentIntent(paymentIntentSucceeded)
+            .catch(error => {
+              // Log errors from the background task if not caught internally by handleSuccessfulPaymentIntent
+              console.error(`[Stripe Webhook] Error in background receipt handling for PI: ${paymentIntentSucceeded.id}:`, error);
+            });
+          console.log(`[Stripe Webhook] Offloaded receipt handling for PI: ${paymentIntentSucceeded.id}. Proceeding to respond to Stripe.`);
         } catch (receiptError: any) {
           console.error(`[Stripe Webhook] Error in receipt handling logic for PI: ${paymentIntentSucceeded.id}:`, receiptError);
         }

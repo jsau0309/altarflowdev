@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { useAuth } from "@clerk/nextjs"; // <-- Add this import
 // Remove imports related to old header/sidebar structure
 // import { useTheme } from "next-themes"
 // import { Menu, Moon, Sun } from "lucide-react"
@@ -30,6 +31,7 @@ import { cn } from "@/lib/utils"
 import CrispChat from '@/components/crisp-chat';
 
 export default function ClientDashboardLayout({ children }: { children: React.ReactNode }) {
+  const { orgId } = useAuth(); // <-- Get orgId from Clerk
   // Remove state logic previously lifted here
   // const { setTheme, theme } = useTheme() // Moved to DashboardHeader
   // const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Now managed by SidebarProvider
@@ -40,6 +42,18 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // Store orgId (churchId) in localStorage when available
+  useEffect(() => {
+    if (orgId && typeof window !== 'undefined') {
+      localStorage.setItem("churchId", orgId);
+      console.log(`[ClientDashboardLayout] churchId (orgId: ${orgId}) set in localStorage.`);
+    } else if (typeof window !== 'undefined') {
+      // Optional: Clear churchId if orgId is not available (e.g., user logs out of org)
+      // localStorage.removeItem("churchId");
+      // console.log("[ClientDashboardLayout] orgId not available, churchId potentially cleared from localStorage.");
+    }
+  }, [orgId]);
 
   // Basic skeleton can remain similar for initial load feel
   if (!isMounted) {

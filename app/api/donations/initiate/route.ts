@@ -92,6 +92,9 @@ export async function POST(request: Request) {
       if (validation.data.zipCode) donorUpdateData.postalCode = validation.data.zipCode; // Corrected
       if (validation.data.country) donorUpdateData.country = validation.data.country; // Corrected
 
+      // If this API is hit after OTP for a public donation, the phone is considered verified for this donor.
+      donorUpdateData.isPhoneVerified = true;
+
       console.log(`[API /donations/initiate] Constructed donorUpdateData:`, JSON.stringify(donorUpdateData, null, 2));
 
       if (Object.keys(donorUpdateData).length > 0) {

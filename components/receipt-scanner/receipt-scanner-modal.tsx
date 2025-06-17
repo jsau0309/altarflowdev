@@ -123,9 +123,10 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
       <DialogContent aria-describedby={undefined} className="sm:max-w-[500px] p-0 overflow-hidden">
         {scanningStage === "initial" && (
           <>
-            <div className="flex items-center justify-center border-b p-4">
-              <h2 className="text-lg font-semibold">{t('modal.title')}</h2>
-            </div>
+            <DialogHeader className="p-4 border-b">
+              <DialogTitle>{t('modal.title')}</DialogTitle>
+              {/* You can add a DialogDescription here if needed: <DialogDescription>Your description</DialogDescription> */}
+            </DialogHeader>
 
             <Tabs defaultValue="scan" className="w-full">
               <TabsList className="grid w-full grid-cols-2 rounded-none">

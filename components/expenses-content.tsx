@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Search, Plus, CreditCard, Loader2 } from "lucide-react"
+import { Search, Plus, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -14,6 +14,7 @@ import type { Expense } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 import { useToast } from "@/components/ui/use-toast";
 import { toast as sonnerToast } from 'sonner';
+import LoaderOne from "@/components/ui/loader-one";
 
 export function ExpensesContent() {
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -209,10 +210,8 @@ export function ExpensesContent() {
           </div>
 
           {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(itemsPerPage)].map((_, i) => (
-                <div key={i} className="h-10 bg-muted animate-pulse rounded-md"></div>
-              ))}
+            <div className="flex justify-center items-center h-[500px]">
+              <LoaderOne />
             </div>
           ) : filteredExpenses.length > 0 ? (
             <>

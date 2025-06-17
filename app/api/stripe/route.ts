@@ -116,11 +116,10 @@ async function withIdempotency(
   operation: () => Promise<NextResponse>, // Operation must return a NextResponse
   { keyPrefix = 'stripe_op_' }: { keyPrefix?: string } = {}
 ): Promise<NextResponse> { // Function returns a NextResponse
-  const headersList = headers();
-  const idempotencyKey = headersList.get('Idempotency-Key');
+  const idempotencyKey = req.headers.get('Idempotency-Key');
   
   if (!idempotencyKey) {
-    console.error('[withIdempotency] Idempotency-Key header is MISSING from the request (derived from next/headers).');
+    console.error('[withIdempotency] Idempotency-Key header is MISSING from the request.');
     const headersObject: Record<string, string> = {};
     // Log headers from the 'req' object passed into withIdempotency
     req.headers.forEach((value, key) => {

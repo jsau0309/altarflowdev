@@ -7,13 +7,14 @@ import { getChurchBySlug } from '@/lib/actions/church.actions';
 import { Lock } from 'lucide-react'; // Added for Secure Transaction icon
 
 interface DonatePageProps {
-  params: {
+  params: Promise<{ // params itself is a Promise
     churchSlug: string;
-  };
+  }>;
 }
 
-export async function generateMetadata({ params }: DonatePageProps): Promise<Metadata> {
-  const churchData = await getChurchBySlug(params.churchSlug);
+export async function generateMetadata(props: DonatePageProps): Promise<Metadata> {
+  const { churchSlug } = await props.params; // Await props.params
+  const churchData = await getChurchBySlug(churchSlug);
   if (!churchData) {
     return {
       title: "Church Not Found | Altarflow",
@@ -26,8 +27,8 @@ export async function generateMetadata({ params }: DonatePageProps): Promise<Met
   };
 }
 
-export default async function DonatePage({ params }: DonatePageProps) {
-  const { churchSlug } = params;
+export default async function DonatePage(props: DonatePageProps) {
+  const { churchSlug } = await props.params; // Await props.params
   const churchData = await getChurchBySlug(churchSlug);
 
   if (!churchData) {

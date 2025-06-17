@@ -24,7 +24,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useTranslation } from "react-i18next";
-import { updateDonorDetails, UpdateDonorPayload } from "@/lib/actions/donors.actions"; // Import the action
+import { toast } from "sonner";
+import { updateDonorDetails, UpdateDonorPayload } from "@/lib/actions/donors.actions"; 
+import { getAllMembersForLinking, MemberForLinkingSummary } from '@/lib/actions/members.actions'; 
+import { ScrollArea } from "@/components/ui/scroll-area";
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 // The Donor interface can be removed if DonorDetailsData is used directly for typing
 // interface Donor {
@@ -43,8 +48,10 @@ import { updateDonorDetails, UpdateDonorPayload } from "@/lib/actions/donors.act
 interface EditDonorModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess: (updatedDonor: DonorDetailsData) => void;
   donor: DonorDetailsData | null;
-  onDonorUpdate?: (updatedDonor: DonorDetailsData) => void; // Callback for successful update
+  onDonorUpdate?: (updatedDonor: DonorDetailsData) => void; 
+  currentChurchId: string | null; // Can be null if donor not linked or context unknown
 }
 
 interface FormData {
@@ -57,14 +64,15 @@ interface FormData {
   state: string;
   zipCode: string;
   notes: string;
-  membershipStatus: DonorDetailsData['membershipStatus']; // 'Visitor' | 'Member' | 'Inactive' | null
-  joinDate: string | null; // ISO string
-  preferredLanguage: string | null; // 'en' | 'es' | null
+  memberId: string | null; 
 }
 
-export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate }: EditDonorModalProps) {
+export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSuccess, currentChurchId }: EditDonorModalProps) {
   // const router = useRouter() // Unused
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
+  const [members, setMembers] = useState<MemberForLinkingSummary[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [loadingMembers, setLoadingMembers] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     lastName: "",
@@ -75,31 +83,13 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate }: EditDo
     state: "",
     zipCode: "",
     notes: "",
-    membershipStatus: null,
-    joinDate: null,
-    preferredLanguage: null,
+    memberId: null,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
-  // Load donations namespace
-  const { t } = useTranslation(['donations', 'members']); // Add 'members' namespace
+  const { t } = useTranslation(['donations', 'members']); 
 
-  // Load donor data when modal opens and donor prop is available
   useEffect(() => {
     if (isOpen && donor) {
-      // Simplified mapping logic, primary responsibility is in MemberDetailsDrawer
-      let currentStatus = donor.membershipStatus || null;
-      const lowerCaseStatus = typeof currentStatus === 'string' ? currentStatus.toLowerCase() : null;
-
-      if (lowerCaseStatus === "statuses.new" || lowerCaseStatus === "new") {
-        currentStatus = "Visitor";
-      } else if (lowerCaseStatus === "statuses.active" || lowerCaseStatus === "active") {
-        currentStatus = "Member";
-      } else if (currentStatus !== null && !["Visitor", "Member", "Inactive"].includes(currentStatus)) {
-        // This console.warn can remain as a safeguard if data somehow bypasses MemberDetailsDrawer's mapping
-        console.warn(`[EditDonorModal] Received unexpected membershipStatus "${donor.membershipStatus}" from prop. Defaulting to null.`);
-        currentStatus = null;
-      }
-
       const formDataFromDonor: FormData = {
         firstName: donor.firstName || "",
         lastName: donor.lastName || "",
@@ -110,27 +100,47 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate }: EditDo
         state: donor.state || "",
         zipCode: donor.zipCode || "",
         notes: donor.notes || "",
-        membershipStatus: currentStatus as FormData['membershipStatus'],
-        joinDate: donor.joinDate || null, // Expecting ISO string
-        preferredLanguage: donor.preferredLanguage || null,
+        memberId: donor.memberId || null,
       };
       setFormData(formDataFromDonor);
-      setErrors({});
+      setSelectedMemberId(donor.memberId);
+      setErrors({}); 
+
+      const fetchMembers = async () => {
+        setLoadingMembers(true);
+        getAllMembersForLinking()
+          .then(data => {
+            setMembers(data);
+          })
+          .catch(error => {
+            console.error('Failed to fetch all members:', error);
+            toast.error(t('fetchMembersFailed'));
+            setMembers([]); // Clear members on error
+          })
+          .finally(() => {
+            setLoadingMembers(false);
+          });
+      };
+
+      fetchMembers();
+
     } else if (!isOpen) {
-      // Reset form when modal is closed
+      // Reset state when modal is closed to ensure fresh state on reopen
+      setMembers([]);
+      setSelectedMemberId(null);
+      setLoadingMembers(false);
+      // Reset form data to initial to avoid stale data if donor prop changes
       setFormData({
         firstName: "",
         lastName: "",
         email: "",
         phone: "",
+        memberId: null,
         address: "",
         city: "",
         state: "",
         zipCode: "",
         notes: "",
-        membershipStatus: null,
-        joinDate: null,
-        preferredLanguage: null,
       });
       setErrors({});
     }
@@ -149,6 +159,17 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate }: EditDo
       })
     }
   }
+
+  const handlePhoneChange = (value: string | undefined) => {
+    setFormData((prev) => ({ ...prev, phone: value || '' }));
+    if (errors.phone) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.phone;
+        return newErrors;
+      });
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -188,43 +209,44 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate }: EditDo
 
     try {
       // Prepare payload, ensure it matches UpdateDonorPayload
-      const payload: UpdateDonorPayload = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
-        notes: formData.notes,
-        membershipStatus: formData.membershipStatus,
-        joinDate: formData.joinDate, // Already an ISO string or null
-        preferredLanguage: formData.preferredLanguage,
+      const payloadForUpdate: UpdateDonorPayload = {
+        firstName: formData.firstName || undefined,
+        lastName: formData.lastName || undefined,
+        email: formData.email || null, // email can be null
+        phone: formData.phone || null, // phone can be null
+        address: formData.address || null, // maps to addressLine1
+        city: formData.city || null,
+        state: formData.state || null,
+        zipCode: formData.zipCode || null, // maps to postalCode
+        // country is not in FormData, so it won't be sent unless added
+        memberId: selectedMemberId, // Use the state variable for selected member ID
       };
 
-      console.log('[EditDonorModal] Submitting joinDate:', formData.joinDate, 'Payload to action:', payload.joinDate);
-      const result = await updateDonorDetails(donor.id, payload);
+      // Remove undefined fields to avoid sending them, unless they are explicitly set to null (like email/phone)
+      Object.keys(payloadForUpdate).forEach(key => 
+        (payloadForUpdate as any)[key] === undefined && delete (payloadForUpdate as any)[key]
+      );
 
-      if (result.success && result.data) {
-        console.log("Donor updated successfully:", result.data);
-        // TODO: Show success toast
+      console.log('[EditDonorModal] Submitting payload to action:', payloadForUpdate);
+      const result = await updateDonorDetails(donor.id, payloadForUpdate);
+
+      if (result) { // result is DonorDetailsData if successful, null otherwise
+        console.log("Donor updated successfully:", result);
+        toast.success(t('editDonorModal.updateSuccess', { ns: 'donations' }));
         if (onDonorUpdate) {
-          onDonorUpdate(result.data);
+          onDonorUpdate(result); // result is the full DonorDetailsData
         }
+        onSuccess(result); // Call onSuccess prop
         onClose(); // Close modal on success
       } else {
-        console.error("Failed to update donor:", result.error);
-        // TODO: Show error toast with result.error
-        // Optionally, set form-level errors if applicable
-        if (result.error) {
-          setErrors(prev => ({ ...prev, form: result.error || t('donations:editDonorModal.errors.unknownError') }));
-        }
-      }
+        console.error("Failed to update donor. The action returned null.");
+        toast.error(t('editDonorModal.errors.updateFailed', { ns: 'donations' }));
+        setErrors(prev => ({ ...prev, form: t('donations:editDonorModal.errors.updateFailed') }));
+      }  
     } catch (error) {
-      console.error("Error in handleSubmit:", error);
-      // TODO: Show generic error toast
-      setErrors(prev => ({ ...prev, form: t('donations:editDonorModal.errors.unexpectedError') }));
+      console.error("Failed to update donor:", error);
+      toast.error(t('editDonorModal.errors.updateFailed', { ns: 'donations' }));
+      setErrors({ form: t('editDonorModal.errors.updateFailed', { ns: 'donations' }) });
     } finally {
       setIsLoading(false);
     }
@@ -249,8 +271,9 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate }: EditDo
           <DialogTitle>{t('donations:editDonorModal.title')}</DialogTitle>
           <DialogDescription>{t('donations:editDonorModal.description')}</DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+          <ScrollArea className="flex-grow h-[calc(100vh-280px)] md:h-[50vh] lg:h-[60vh] pr-6 py-4">
+            <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">{t('donations:editDonorModal.firstNameLabel')}</Label>
@@ -292,12 +315,14 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate }: EditDo
 
           <div className="space-y-2">
             <Label htmlFor="phone">{t('donations:editDonorModal.phoneLabel')}</Label>
-            <Input
+            <PhoneInput
               id="phone"
+              international
+              defaultCountry="US"
               value={formData.phone}
-              onChange={handleChange}
+              onChange={handlePhoneChange}
               placeholder={t('donations:editDonorModal.phonePlaceholder')}
-              className={errors.phone ? "border-red-500" : ""}
+              className={`input flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${errors.phone ? "border-red-500" : ""}`}
             />
             {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
           </div>
@@ -365,78 +390,51 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate }: EditDo
             {errors.notes && <p className="text-xs text-red-500">{errors.notes}</p>}
           </div>
 
-          {/* Membership Information Section */}
-          <div className="space-y-1 pt-2">
-            <h4 className="font-medium text-sm text-muted-foreground">{t('members:membershipInfo.title')}</h4>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="membershipStatus">{t('members:membershipInfo.status')}</Label>
-              <Select
-                value={formData.membershipStatus || ""}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, membershipStatus: value as DonorDetailsData['membershipStatus'] }))}
-              >
-                <SelectTrigger id="membershipStatus">
-                  <SelectValue placeholder={t('members:membershipInfo.selectStatusPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Visitor">{t('members:status.Visitor', 'Visitor')}</SelectItem>
-                  <SelectItem value="Member">{t('members:status.Member', 'Member')}</SelectItem>
-                  <SelectItem value="Inactive">{t('members:status.Inactive', 'Inactive')}</SelectItem>
-                </SelectContent>
-              </Select>
-              {/* TODO: Add error display for membershipStatus if needed */}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="joinDate">{t('members:membershipInfo.joinDate')}</Label>
-              {/* Assuming you have a DatePicker component, e.g., from shadcn/ui */}
-              {/* Replace with your actual DatePicker component */}
-              <Input 
-                type="date" 
-                id="joinDate" 
-                value={formData.joinDate ? formData.joinDate.split('T')[0] : ""} // Basic date input, requires YYYY-MM-DD
-                onChange={(e) => {
-                  if (e.target.value) {
-                    const parts = e.target.value.split('-'); // YYYY-MM-DD
-                    if (parts.length === 3) {
-                      const year = parseInt(parts[0], 10);
-                      const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
-                      const day = parseInt(parts[2], 10);
-                      // Construct date for noon in local timezone
-                      const localDate = new Date(year, month, day, 12, 0, 0);
-                      setFormData(prev => ({ ...prev, joinDate: localDate.toISOString() }));
-                    } else {
-                      // Handle invalid date string format if necessary, or clear
-                      setFormData(prev => ({ ...prev, joinDate: null }));
-                    }
-                  } else {
-                    setFormData(prev => ({ ...prev, joinDate: null }));
-                  }
-                }}
-                className={errors.joinDate ? "border-red-500" : ""} 
-              />
-              {errors.joinDate && <p className="text-xs text-red-500">{errors.joinDate}</p>}
-            </div>
-          </div>
+          {/* Link to Member Section */}
           <div className="space-y-2">
-            <Label htmlFor="preferredLanguage">{t('members:membershipInfo.preferredLanguage')}</Label>
+            <Label htmlFor="memberId">{t('linkToMember', { ns: 'donations' })}</Label>
+            {donor?.linkedMemberName && (
+              <p className="text-sm text-muted-foreground">
+                {t('currentlyLinkedTo', { ns: 'donations' })}: {donor.linkedMemberName}
+              </p>
+            )}
             <Select
-              value={formData.preferredLanguage || ""}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, preferredLanguage: value }))}
+              value={selectedMemberId || ''}
+              onValueChange={setSelectedMemberId}
+              disabled={loadingMembers}
             >
-              <SelectTrigger id="preferredLanguage">
-                <SelectValue placeholder={t('members:membershipInfo.selectLanguagePlaceholder')} />
+              <SelectTrigger id="memberId" className="w-full">
+                <SelectValue placeholder={t('selectMemberToLink', { ns: 'donations' })} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="en">{t('members:language.en', 'English')}</SelectItem>
-                <SelectItem value="es">{t('members:language.es', 'Spanish')}</SelectItem>
-                {/* Add other languages as needed */}
+                {loadingMembers ? (
+                  <SelectItem value="__loading__" disabled>
+                    {t('loadingMembers', { ns: 'donations' })}...
+                  </SelectItem>
+                ) : (
+                  <>
+                    <SelectItem value="__none__">
+                      {t('noMemberOrUnlink', { ns: 'donations' })}
+                    </SelectItem>
+                    {members.map((member: MemberForLinkingSummary) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.firstName} {member.lastName} ({member.email ?? t('noEmail', { ns: 'common' })})
+                      </SelectItem>
+                    ))}
+                    {(!members || members.length === 0) && !loadingMembers && (
+                       <SelectItem value="__no_members_found__" disabled>
+                         {t('noMembersFound', { ns: 'donations' })}
+                       </SelectItem>
+                    )}
+                  </>
+                )}
               </SelectContent>
             </Select>
-            {/* TODO: Add error display for preferredLanguage if needed */}
+            {/* TODO: Add error display for memberId if needed */}
           </div>
-
-          <DialogFooter>
+        </div>
+      </ScrollArea>
+        <DialogFooter className="mt-auto pt-4">
             <Button type="button" variant="outline" onClick={handleCancel}>
               {t('donations:editDonorModal.cancelButton')}
             </Button>
@@ -444,10 +442,10 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate }: EditDo
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('donations:editDonorModal.saving')}
+                  {t('editDonorModal.saving', { ns: 'donations' })}
                 </>
               ) : (
-                t('donations:editDonorModal.saveButton')
+                t('editDonorModal.saveButton', { ns: 'donations' })
               )}
             </Button>
           </DialogFooter>

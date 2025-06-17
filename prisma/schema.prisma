@@ -73,11 +73,22 @@ model Donor {
   country           String?   // Renamed from addressCountry. e.g., ISO 2-letter country code
   stripeCustomerId  String?   // To store Stripe Customer ID on the platform account
 
+  // Link to a Member profile
+  memberId          String?   @db.Uuid
+  member            Member?   @relation("DonorToMember", fields: [memberId], references: [id], onDelete: SetNull)
+
+  // Link to a Church
+  churchId          String?   @db.Uuid // Foreign key to Church.id (optional for now)
+  church            Church?   @relation("DonorToChurch", fields: [churchId], references: [id], onDelete: SetNull) // Optional relation
+
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   // Relation to DonationTransactions
   transactions      DonationTransaction[] // Renamed from donationTransactions
+
+  @@index([memberId])
+  @@index([churchId])
 }
 
 // Represents a Church organization/tenant
@@ -102,6 +113,7 @@ model Church {
   // profiles Profile[]  // REMOVED - No longer a direct link from Church to Profile
   expenses  Expense[] // A church has many expenses
   donations Donation[] // A church has many donations
+  donors    Donor[]  @relation("DonorToChurch") // A church can have many donors
   members   Member[] // A church has many members
   campaigns Campaign[] // A church has many campaigns
   flows     Flow[] // Add back-relation for flows
@@ -151,6 +163,7 @@ model DonationTransaction {
   stripeSubscriptionId    String?   @unique // For recurring payments
   stripeCustomerId        String?   // Stripe Customer ID, useful for managing payment methods and subscriptions
   idempotencyKey          String?   @unique // For idempotency
+  source                  String    @default("stripe") // 'stripe' or 'manual'
   
   transactionDate         DateTime  @default(now())
   processedAt             DateTime? // When webhook confirmed success
@@ -231,6 +244,9 @@ model Member {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt // Add @default(now()) for INSERT
+
+  // Back-relation: Which Donor profile(s) are linked to this Member?
+  linkedDonors        Donor[]   @relation("DonorToMember")
 
   donations   Donation[] // Relation to donations made by this member
   submissions Submission[] // Add back-relation for submissions

@@ -28,8 +28,10 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@clerk/nextjs'
+import { usePathname } from 'next/navigation'
 import { StripeConnectButton, type StripeAccount } from './stripe-connect-button'
 import StripeConnectEmbeddedWrapper from './stripe/StripeConnectEmbeddedWrapper';
+import LoaderOne from '@/components/ui/loader-one';
 
 export function BankingContent() {
   const [activeTab, setActiveTab] = useState("account")
@@ -38,6 +40,7 @@ export function BankingContent() {
   const [error, setError] = useState<string | null>(null)
   const [churchId, setChurchId] = useState<string | null>(null)
   const { t } = useTranslation(['banking', 'common'])
+  const pathname = usePathname()
 
   const { orgId, isLoaded: isClerkLoaded } = useAuth() // Renamed for clarity
 
@@ -45,7 +48,7 @@ export function BankingContent() {
     const fetchStripeAccountInternal = async () => {
       // If Clerk is not loaded yet, set loading and wait.
       if (!isClerkLoaded) {
-        setIsLoading(true); 
+        setIsLoading(true);
         return;
       }
 
@@ -125,15 +128,15 @@ export function BankingContent() {
       }
     }
 
-    fetchStripeAccountInternal()
-  }, [isClerkLoaded, orgId, t])
+    fetchStripeAccountInternal();
+  }, [isClerkLoaded, orgId, pathname])
 
   // If Clerk auth state is not loaded yet, show a loader for the whole content.
   // This must come AFTER all hook calls.
   if (!isClerkLoaded) {
     return (
       <div className="container mx-auto py-6 space-y-6 flex justify-center items-center h-[calc(100vh-200px)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <LoaderOne />
       </div>
     );
   }
@@ -215,51 +218,49 @@ export function BankingContent() {
         <div className="w-full overflow-x-auto pb-2">
           <TabsList className="inline-flex w-full min-w-max mb-2">
             <TabsTrigger value="account" className="flex-1 whitespace-nowrap">
-              {t('banking:bankingContent.tabs.account')}
-            </TabsTrigger>
+              {t('banking:bankingContent.tabs.account')}</TabsTrigger>
             <TabsTrigger value="payouts" className="flex-1 whitespace-nowrap">
-              {t('banking:bankingContent.tabs.payouts')}
-            </TabsTrigger>
+              {t('banking:bankingContent.tabs.payouts')}</TabsTrigger>
             <TabsTrigger value="balance" className="flex-1 whitespace-nowrap">
-              {t('banking:bankingContent.tabs.balance')}
-            </TabsTrigger>
+              {t('banking:bankingContent.tabs.balance')}</TabsTrigger>
           </TabsList>
         </div>
 
-        {/* Account Tab */}
-        <TabsContent value="account" className="space-y-4">
-          <Card>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-[500px] pt-4">
+            <LoaderOne />
+          </div>
+        ) : (
+          <>
+            {/* Account Tab */}
+            <TabsContent value="account" className="space-y-4">
+              <Card>
+                <CardContent className="space-y-6 px-6 py-5">
+                  <StripeConnectEmbeddedWrapper componentKey="accountManagement" />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-            <CardContent className="space-y-6 px-6 py-5">
+            {/* Payouts Tab */}
+            <TabsContent value="payouts" className="space-y-4">
+              <Card>
+                <CardContent className="space-y-6 px-6 py-5">
+                  <StripeConnectEmbeddedWrapper componentKey="payouts" />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-              <StripeConnectEmbeddedWrapper componentKey="accountManagement" />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Payouts Tab */}
-        <TabsContent value="payouts" className="space-y-4">
-          <Card>
-
-            <CardContent className="space-y-6 px-6 py-5">
-              <StripeConnectEmbeddedWrapper componentKey="payouts" />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-
-
-
-        {/* Tax Information Tab */}
-        <TabsContent value="balance" className="space-y-4">
-          <Card className="w-full">
-            <CardContent className="space-y-4 pt-6 md:pt-6">
-              <StripeConnectEmbeddedWrapper componentKey="balances" />
-              <StripeConnectEmbeddedWrapper componentKey="payments" />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
+            {/* Tax Information Tab */}
+            <TabsContent value="balance" className="space-y-4">
+              <Card className="w-full">
+                <CardContent className="space-y-4 pt-6 md:pt-6">
+                  <StripeConnectEmbeddedWrapper componentKey="balances" />
+                  <StripeConnectEmbeddedWrapper componentKey="payments" />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </>
+        )}
       </Tabs>
     </div>
   )

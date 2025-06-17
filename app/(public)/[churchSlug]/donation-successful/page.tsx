@@ -1,7 +1,7 @@
 // app/[churchSlug]/donation-successful/page.tsx
 "use client";
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, use as useReact } from 'react'; // Added useReact
 import { useSearchParams, useParams } from 'next/navigation';
 import { loadStripe, Stripe, PaymentIntent } from '@stripe/stripe-js';
 import Link from 'next/link';
@@ -13,9 +13,9 @@ import { useTranslation } from "react-i18next";
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface PageProps {
-  params: {
+  params: Promise<{ // params itself is a Promise
     churchSlug: string;
-  };
+  }>;
 }
 
 interface DonationSuccessfulContentProps {
@@ -61,7 +61,10 @@ const DonationSuccessfulContent: React.FC<DonationSuccessfulContentProps> = ({ c
 
 
 // Using Suspense for useSearchParams as recommended by Next.js
-export default function DonationSuccessfulPage({ params }: PageProps) {
+export default function DonationSuccessfulPage(props: PageProps) { // props.params is a Promise
+  const params = useReact(props.params); // Unwrap the promise using React.use
+  const churchSlug = params.churchSlug;
+
   return (
     <Suspense fallback={
       <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
@@ -69,7 +72,7 @@ export default function DonationSuccessfulPage({ params }: PageProps) {
         <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Loading page...</p>
       </div>
     }>
-      <DonationSuccessfulContent churchSlug={params.churchSlug} />
+      <DonationSuccessfulContent churchSlug={churchSlug} />
     </Suspense>
   );
 }

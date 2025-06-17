@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma'; // Use shared prisma client
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,10 +10,10 @@ export async function POST(request: NextRequest) {
       lastName,
       email,
       addressLine1,
-      addressCity,
-      addressState,
-      addressPostalCode,
-      addressCountry,
+      city,        // Renamed from addressCity
+      state,       // Renamed from addressState
+      postalCode,  // Renamed from addressPostalCode
+      country,     // Renamed from addressCountry
     } = body;
 
     if (!phoneNumber) {
@@ -27,30 +25,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid phone number format. Please use E.164 format (e.g., +1234567890).' }, { status: 400 });
     }
 
-    // Optional: Add more validation for other fields if necessary
+    const donorData = {
+      firstName,
+      lastName,
+      email: email || null, // Ensure email is null if empty
+      addressLine1,
+      city,
+      state,
+      postalCode,
+      country,
+      isPhoneVerified: true, // Phone is verified in this flow
+      // phoneNumber will be used in the where clause for upsert
+    };
 
-    const newDonor = await prisma.donor.create({
-      data: {
-        phoneNumber,
-        firstName,
-        lastName,
-        email,
-        addressLine1,
-        addressCity,
-        addressState,
-        addressPostalCode,
-        addressCountry,
+    // Logging before the upsert operation
+    console.log('--- Debug Donor Upsert ---');
+    console.log('Phone number for WHERE clause:', phoneNumber);
+    console.log('Data for UPDATE/CREATE (donorData):', JSON.stringify(donorData, null, 2));
+
+    const donor = await prisma.donor.upsert({
+      where: { phone: phoneNumber }, // Correct: Use 'phone' for the where clause
+      update: donorData,
+      create: {
+        phone: phoneNumber, // Correct: Use 'phone' for the create clause
+        ...donorData,
       },
     });
 
-    return NextResponse.json({ success: true, donor: newDonor }, { status: 201 });
+    // Logging after the upsert operation
+    console.log('Result from prisma.donor.upsert (donor):', JSON.stringify(donor, null, 2));
+    console.log('--- End Debug Donor Upsert ---');
+
+    return NextResponse.json({ success: true, donor: donor }, { status: donor ? 200 : 201 }); // 200 if updated, 201 if created
 
   } catch (error: any) {
-    console.error('Error creating donor:', error);
-    // Check for specific Prisma errors, e.g., unique constraint violation
-    if (error.code === 'P2002' && error.meta?.target?.includes('phoneNumber')) {
-      return NextResponse.json({ success: false, error: 'A donor with this phone number already exists.' }, { status: 409 }); // 409 Conflict
+    console.error('Error creating/updating donor:', error);
+    // P2002 can still occur if email is unique and conflicts during an update where phoneNumber didn't match an existing record.
+    if (error.code === 'P2002') {
+        let conflictField = 'unknown';
+        if (error.meta?.target?.includes('phone')) conflictField = 'phone number'; // Corrected from 'phoneNumber' to 'phone'
+        else if (error.meta?.target?.includes('email')) conflictField = 'email address';
+      return NextResponse.json({ success: false, error: `A donor with this ${conflictField} already exists.` }, { status: 409 });
     }
-    return NextResponse.json({ success: false, error: 'Failed to create donor.' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to create or update donor.' }, { status: 500 });
   }
 }

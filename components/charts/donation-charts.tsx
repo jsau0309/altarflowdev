@@ -18,22 +18,23 @@ import {
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { useTranslation } from "react-i18next"
-import { Donation } from "@/lib/types"
+import { Donation, Campaign } from "@/lib/types"
 
 interface DonationChartsProps {
   donations: Donation[];
+  campaigns: Campaign[];
   startDate?: Date;
   endDate?: Date;
 }
 
-export function DonationCharts({ donations, startDate, endDate }: DonationChartsProps) {
+export function DonationCharts({ donations, campaigns, startDate, endDate }: DonationChartsProps) {
   // Load charts namespace
   const { t } = useTranslation('charts')
 
   // Filter donations based on date range
   const filteredDonations = donations.filter((donation: Donation) => {
     if (!startDate && !endDate) return true
-    const donationDate = new Date(donation.date)
+    const donationDate = new Date(donation.donationDate)
     if (startDate && endDate) {
       return donationDate >= startDate && donationDate <= endDate
     } else if (startDate) {
@@ -45,20 +46,26 @@ export function DonationCharts({ donations, startDate, endDate }: DonationCharts
   })
 
   // Aggregate data for charts
-  const donationByMethod = filteredDonations.reduce((acc: { [key: string]: number }, donation: Donation) => {
-    const method = donation.paymentMethod || "Unknown"
-    acc[method] = (acc[method] || 0) + donation.amount
+  const getCampaignName = (campaignId: string | null | undefined) => {
+    if (!campaignId) return t('charts:donationCharts.generalCampaign', 'General');
+    const campaign = campaigns.find(c => c.id === campaignId);
+    return campaign ? campaign.name : t('charts:donationCharts.generalCampaign', 'General');
+  }
+
+  const donationByCampaign = filteredDonations.reduce((acc: { [key: string]: number }, donation: Donation) => {
+    const campaignName = getCampaignName(donation.campaignId)
+    acc[campaignName] = (acc[campaignName] || 0) + parseFloat(donation.amount)
     return acc
   }, {})
 
   const donationByDay = filteredDonations.reduce((acc: { [key: string]: number }, donation: Donation) => {
-    const day = new Date(donation.date).toLocaleDateString("en-US", { weekday: 'short' }) // Group by day of week
-    acc[day] = (acc[day] || 0) + donation.amount
+    const day = new Date(donation.donationDate).toLocaleDateString("en-US", { weekday: 'short' }) // Group by day of week
+    acc[day] = (acc[day] || 0) + parseFloat(donation.amount)
     return acc
   }, {})
 
   // Format data for charts
-  const pieChartData = Object.entries(donationByMethod).map(([name, value]) => ({ name, value }))
+  const pieChartData = Object.entries(donationByCampaign).map(([name, value]) => ({ name, value }))
   const lineChartData = Object.entries(donationByDay).map(([name, value]) => ({ name, donations: value })) // Rename 'value' to 'donations'
   // const barChartData = Object.entries(donationByMethod).map(([name, value]) => ({ name, amount: value })) // Unused
 
@@ -112,7 +119,7 @@ export function DonationCharts({ donations, startDate, endDate }: DonationCharts
       </Card>
       <Card className="overflow-hidden">
         <CardHeader className="pb-0">
-          <CardTitle className="text-md">{t('charts:donationCharts.paymentMethodsTitle')}</CardTitle>
+          <CardTitle className="text-md">{t('charts:donationCharts.donationsByCampaignTitle', 'Donations by Campaign')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-0 px-0">
           <ChartContainer

@@ -78,6 +78,24 @@ export type Member = {
 };
 
 // Donor type (example, update as needed)
+export type DonorFE = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  createdAt: string;
+  updatedAt: string;
+  memberId?: string | null; // ID of the linked member
+  linkedMemberName?: string | null; // Name of the linked member for display
+  churchId?: string | null; // From linked member, for context in modals
+};
+
+// Donor type (example, update as needed)
 export type Donor = {
   id: string;
   firstName: string;
@@ -117,6 +135,9 @@ export type DonorDetailsData = {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  churchId: string | null; // ID of the church this donor is associated with (e.g., via linked member)
+  memberId: string | null; // ID of the linked Member record
+  linkedMemberName: string | null; // Name of the linked Member for display
   donations: Array<{
     id: string;
     amount: string; // Prisma Decimal serializes to string
@@ -145,25 +166,25 @@ export type DonorDetailsData = {
   }>;
 };
 
-// ... existing code ...
 
-export type DonationTransactionFE = {
-  id: string;
-  churchId: string;
-  donationTypeId: string;
-  donationTypeName: string; // Added from relation
-  campaignId: string | null;
-  donorClerkId: string | null;
-  donorName: string | null;
-  donorEmail: string | null;
-  amount: number; // Converted to dollars
-  currency: string;
-  status: string;
-  paymentMethodType: string | null;
+
+export type DonationTransactionFE = Omit<Donation, 'amount'> & {
+  amount: string; // amount is a string because Decimal is not supported in client components
+  campaignName?: string;
+  donorName?: string;
+  campaignId?: string; // Added to fix lint error
   stripePaymentIntentId: string | null;
   stripeSubscriptionId: string | null;
   transactionDate: string; // ISO string
   processedAt: string | null; // ISO string
   donorId: string | null;
   idempotencyKey: string | null;
+  donorClerkId: string | null; // Added: Clerk ID of the donor, if available
+  paymentMethodType: string;
+  donationTypeId: string; // Added: Foreign key to DonationType
+  donationTypeName: string;
+  churchId: string; // Added: ID of the church
+  source: string; // Added: 'manual' or 'stripe'
+  status: string; // Added: e.g., 'succeeded', 'pending', 'failed'
+  notes?: string | null; // Added: Optional notes
 };

@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EditDonorModal } from "@/components/modals/edit-donor-modal"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getDonorDetails } from "@/lib/actions/donors.actions"
-import type { DonorDetailsData } from "@/lib/types"
+import type { DonorDetailsData } from "@/lib/types";
+import { useTranslation } from "react-i18next";
 
 interface DonorDetailsDrawerProps {
   isOpen: boolean
@@ -20,6 +21,8 @@ interface DonorDetailsDrawerProps {
 }
 
 export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDrawerProps) {
+  const { t } = useTranslation('donations');
+  const { t: tCommon } = useTranslation('common');
   const [activeTab, setActiveTab] = useState("details")
   const [showEditModal, setShowEditModal] = useState(false)
   const [donorData, setDonorData] = useState<DonorDetailsData | null>(null)
@@ -37,11 +40,11 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
           if (data) {
             setDonorData(data)
           } else {
-            setError("Donor not found.")
+            setError(t('viewDonorDetails.errorDonorNotFound', 'Donor not found.'))
           }
         } catch (err) {
           console.error("Failed to fetch donor details:", err)
-          setError("Failed to load donor details. Please try again.")
+          setError(t('viewDonorDetails.errorLoadingFailed', 'Failed to load donor details. Please try again.'))
         }
         setIsLoading(false)
       }
@@ -73,7 +76,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
       return (
         <div className="flex items-center justify-center h-full min-h-[300px]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="ml-2">Loading donor details...</p>
+          <p className="ml-2">{t('viewDonorDetails.loadingText', 'Loading donor details...')}</p>
         </div>
       )
     }
@@ -84,7 +87,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-center">{error}</p>
           <Button variant="outline" size="sm" onClick={onClose} className="mt-4">
-            Close
+            {tCommon('actions.close', 'Close')}
           </Button>
         </div>
       )
@@ -95,7 +98,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
       // but as a fallback if drawer is open without donorId somehow or fetch returned null without error.
       return (
         <div className="flex items-center justify-center h-full min-h-[300px]">
-            <p>No donor data available.</p>
+            <p>{t('viewDonorDetails.noDataAvailable', 'No donor data available.')}</p>
         </div>
       );
     }
@@ -103,8 +106,8 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
     return (
       <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="mt-6">
         <TabsList className="grid grid-cols-2 mb-4">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="donations">Donations</TabsTrigger>
+          <TabsTrigger value="details">{t('viewDonorDetails.detailsTabLabel', 'Details')}</TabsTrigger>
+          <TabsTrigger value="donations">{t('viewDonorDetails.donationsTabLabel', 'Donations')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
@@ -122,7 +125,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Contact Information</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">{t('viewDonorDetails.contactInformationLabel', 'Contact Information')}</h3>
               <div className="grid gap-2">
                 {donorData.email && (
                   <div className="flex items-center gap-2">
@@ -137,13 +140,13 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
                   </div>
                 )}
                 {!donorData.email && !donorData.phone && (
-                    <p className="text-sm text-muted-foreground">No contact information on file.</p>
+                    <p className="text-sm text-muted-foreground">{t('viewDonorDetails.noContactInfoText', 'No contact information on file.')}</p>
                 )}
               </div>
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">{t('viewDonorDetails.addressLabel', 'Address')}</h3>
               <div className="grid gap-2">
                 {donorData.address ? (
                   <>
@@ -160,28 +163,38 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
                     </div>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No address on file</p>
+                  <p className="text-sm text-muted-foreground">{t('viewDonorDetails.noAddressText', 'No address on file.')}</p>
                 )}
               </div>
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Donation Summary</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">{t('viewDonorDetails.donationSummaryLabel', 'Donation Summary')}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="border rounded-md p-3">
-                  <p className="text-sm text-muted-foreground">Total Donated</p>
+                  <p className="text-xs text-muted-foreground">{t('viewDonorDetails.totalDonatedLabel', 'Total Donated')}</p>
                   <p className="text-xl font-semibold">${totalDonated.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
                 <div className="border rounded-md p-3">
-                  <p className="text-sm text-muted-foreground">Donations</p>
+                  <p className="text-xs text-muted-foreground">{t('viewDonorDetails.donationsCountLabel', 'Donations')}</p>
                   <p className="text-xl font-semibold">{donorData.donations.length}</p>
                 </div>
               </div>
             </div>
 
+            {donorData.linkedMemberName && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">{t('viewDonorDetails.linkedMemberLabel', 'Linked Member')}</h3>
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm">{donorData.linkedMemberName}</p>
+                </div>
+              </div>
+            )}
+
             {donorData.notes && (
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">{t('viewDonorDetails.notesLabel', 'Notes')}</h3>
                 <div className="flex items-start gap-2">
                   <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <p className="text-sm whitespace-pre-wrap">{donorData.notes}</p>
@@ -193,9 +206,9 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
 
         <TabsContent value="donations" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-sm font-medium">Donation History</h3>
+            <h3 className="text-sm font-medium">{t('viewDonorDetails.donationHistoryLabel', 'Donation History')}</h3>
             <Badge variant="outline">
-              {donorData.donations.length} {donorData.donations.length === 1 ? "Donation" : "Donations"}
+              {donorData.donations.length} {donorData.donations.length === 1 ? t('viewDonorDetails.donationSingular', 'Donation') : t('viewDonorDetails.donationPlural', 'Donations')}
             </Badge>
           </div>
 
@@ -204,9 +217,9 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Campaign</TableHead>
+                    <TableHead>{t('viewDonorDetails.historyTable.dateHeader', 'Date')}</TableHead>
+                    <TableHead>{t('viewDonorDetails.historyTable.amountHeader', 'Amount')}</TableHead>
+                    <TableHead>{t('viewDonorDetails.historyTable.campaignHeader', 'Campaign')}</TableHead>
                     {/* <TableHead>Method</TableHead> */}{/* Payment method not available in current data model */}
                   </TableRow>
                 </TableHeader>
@@ -231,7 +244,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center border rounded-md">
-              <p className="text-muted-foreground mb-2">No donations found for this donor</p>
+              <p className="text-muted-foreground mb-2">{t('viewDonorDetails.noDonationsFoundText', 'No donations found for this donor')}</p>
               {/* <Button variant="outline" size="sm">
                 Add Donation
               </Button> */}{/* Add Donation functionality can be a future enhancement */}
@@ -248,12 +261,12 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
         <SheetContent className="sm:max-w-md overflow-y-auto">
           <SheetHeader className="space-y-0 pb-2 border-b">
             <div className="flex justify-between items-center">
-              <SheetTitle>Donor Details</SheetTitle>
+              <SheetTitle>{t('viewDonorDetails.title', 'Donor Details')}</SheetTitle>
               {donorData && !isLoading && !error && (
                 <div className="pr-8">
                   <Button variant="outline" size="sm" className="gap-1" onClick={handleEditClick} disabled={!donorData}>
                     <Edit className="h-3.5 w-3.5" />
-                    <span>Edit</span>
+                    <span>{t('viewDonorDetails.editButtonLabel', 'Edit')}</span>
                   </Button>
                 </div>
               )}
@@ -263,7 +276,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
         </SheetContent>
       </Sheet>
       {showEditModal && donorData && (
-        <EditDonorModal isOpen={showEditModal} onClose={handleEditModalClose} donor={donorData} />
+        <EditDonorModal isOpen={showEditModal} onClose={handleEditModalClose} donor={donorData} currentChurchId={donorData?.churchId || null} />
       )}
     </>
   )

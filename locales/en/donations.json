@@ -18,27 +18,24 @@
   "startDate": "Start Date",
   "endDate": "End Date",
   "noEndDate": "No End Date",
-  
   "methods": {
     "cash": "Cash",
     "check": "Check",
     "card": "Credit/Debit Card",
     "bankTransfer": "Bank Transfer",
+    "other": "Other",
     "nfc": "NFC Payment"
   },
-  
   "types": {
     "oneTime": "One-time",
     "recurring": "Recurring"
   },
-  
   "frequencies": {
     "weekly": "Weekly",
     "monthly": "Monthly",
     "quarterly": "Quarterly",
     "annually": "Annually"
   },
-  
   "statuses": {
     "completed": "Completed",
     "pending": "Pending",
@@ -52,7 +49,6 @@
     "missions": "Missions",
     "building_fund": "Building Fund"
   },
-  
   "donationsContent": {
     "subtitle": "Track and manage your church donations",
     "tabs": {
@@ -71,7 +67,6 @@
       "addFirst": "Add your first donation to get started."
     }
   },
-  
   "donationPayment": {
     "thankYou": "Thank you for your donation!",
     "donateToLabel": "Donation to:",
@@ -86,11 +81,9 @@
     "submitButton": "Donate now",
     "feesCoveredMessage": "You're helping cover the transaction fees, so the full {{amount}} goes to the church."
   },
-  
   "donationInfo": {
     "anonymousLabel": "Donate anonymously"
   },
-  
   "donationDetails": {
     "amountPrompt": "Enter an amount or make a quick selection below",
     "selectFundLabel": "Select a Fund",
@@ -99,54 +92,34 @@
     "processingFee": "Processing Fee:",
     "totalDonation": "Total Donation:"
   },
-  
-  "newDonationModal": {
-    "title": "New Donation",
-    "description": "Add a new donation to the system.",
+  "newManualDonation": {
+    "title": "New Manual Donation",
+    "description": "Record a donation made via cash, check, or other non-stripe methods.",
     "amountLabel": "Amount",
-    "currencySymbol": "$",
-    "amountPlaceholder": "0.00",
+    "dateLabel": "Date",
     "donorLabel": "Donor",
-    "addingNewDonor": "Adding new donor...",
-    "selectDonor": "Select donor",
+    "selectDonor": "Select a donor...",
+    "searchDonor": "Search for a donor...",
+    "noDonorFound": "No donor found.",
     "addNewDonor": "+ Add New Donor",
-    "newDonorInfo": "New Donor Information",
-    "firstNameLabel": "First Name",
-    "firstNamePlaceholder": "First name",
-    "lastNameLabel": "Last Name",
-    "lastNamePlaceholder": "Last name",
-    "emailLabel": "Email Address",
-    "emailPlaceholder": "email@example.com",
-    "phoneLabel": "Phone Number",
-    "phonePlaceholder": "(555) 123-4567",
-    "donationTypeLabel": "Donation Type",
-    "selectDonationType": "Select donation type",
-    "paymentMethodLabel": "Payment Method",
-    "selectPaymentMethod": "Select payment method",
-    "paymentMethodOptions": {
-      "cash": "Cash",
-      "check": "Check",
-      "creditCard": "Credit Card",
-      "bankTransfer": "Bank Transfer"
-    },
-    "receiptLabel": "Receipt (Optional)",
-    "addReceiptButton": "Add Receipt",
-    "notesLabel": "Notes",
-    "notesPlaceholder": "Add any additional notes here",
+    "donationType": "Donation Type",
+    "selectDonationType": "Select type...",
+    "paymentMethod": "Payment Method",
+    "selectPaymentMethod": "Select method...",
+    "notes": "Notes (Optional)",
+    "notesPlaceholder": "Add any internal notes for this donation...",
+    "saveButton": "Save Donation",
     "cancelButton": "Cancel",
     "saving": "Saving...",
-    "saveButton": "Save Donation",
-    "success": "Donation saved successfully.",
-    "errors": {
-      "failedToLoadData": "Failed to load required data. Please try again.",
-      "missingNewDonorName": "Please enter both first and last name for the new donor.",
-      "failedToCreateDonor": "Failed to create new donor. Please try again.",
-      "selectOrAddDonor": "Please select or add a donor.",
-      "invalidAmount": "Please enter a valid donation amount.",
-      "failedToSaveDonation": "Failed to save donation. Please try again."
+    "success_message": "Manual donation saved successfully.",
+    "validation": {
+      "invalid_amount": "Please enter a valid donation amount.",
+      "date_required": "Please select a donation date.",
+      "donor_required": "Please select a donor.",
+      "donation_type_required": "Please select a donation type.",
+      "payment_method_required": "Please select a payment method."
     }
   },
-  
   "donorsContent": {
     "subtitle": "Manage your donors",
     "addDonorButton": "Add Donor",
@@ -157,30 +130,31 @@
       "addFirst": "Add your first donor to get started."
     }
   },
-  
   "addDonorModal": {
     "title": "Add New Donor",
     "description": "Add a new donor to your database. This information will be used for donation tracking.",
-    "firstNameLabel": "First Name *",
+    "firstName": "First Name *",
     "firstNamePlaceholder": "John",
-    "lastNameLabel": "Last Name *",
+    "lastName": "Last Name *",
     "lastNamePlaceholder": "Doe",
-    "emailLabel": "Email",
+    "email": "Email",
     "emailPlaceholder": "john.doe@example.com",
-    "phoneLabel": "Phone",
+    "phone": "Phone",
     "phonePlaceholder": "(555) 123-4567",
-    "addressLabel": "Address",
+    "address": "Address",
     "addressPlaceholder": "123 Main St",
-    "cityLabel": "City",
+    "city": "City",
     "cityPlaceholder": "Springfield",
-    "stateLabel": "State",
+    "state": "State",
     "statePlaceholder": "IL",
-    "zipCodeLabel": "ZIP Code",
+    "postalCode": "Postal Code",
     "zipCodePlaceholder": "12345",
+    "country": "Country",
+    "countryPlaceholder": "Select Country",
     "notesLabel": "Notes",
     "notesPlaceholder": "Add any notes about this donor",
     "cancelButton": "Cancel",
-    "addButton": "Add Donor",
+    "submit": "Add Donor",
     "adding": "Adding...",
     "success": "Donor {{firstName}} {{lastName}} added successfully",
     "error": "Failed to add donor. Please try again.",
@@ -190,37 +164,40 @@
       "invalidEmail": "Please enter a valid email address"
     }
   },
-  
   "editDonorModal": {
-    "title": "Edit Donor",
+    "title": "Edit Donor Details",
     "description": "Update donor information in your database.",
     "firstNameLabel": "First Name",
-    "firstNamePlaceholder": "John",
+    "firstNamePlaceholder": "Enter first name",
     "lastNameLabel": "Last Name",
-    "lastNamePlaceholder": "Doe",
-    "emailLabel": "Email Address",
-    "emailPlaceholder": "john.doe@example.com",
-    "phoneLabel": "Phone Number",
-    "phonePlaceholder": "(555) 123-4567",
+    "lastNamePlaceholder": "Enter last name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter email address",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "Enter phone number",
     "addressLabel": "Address",
-    "addressPlaceholder": "123 Main St",
+    "addressPlaceholder": "Enter street address",
     "cityLabel": "City",
-    "cityPlaceholder": "Springfield",
+    "cityPlaceholder": "Enter city",
     "stateLabel": "State",
-    "statePlaceholder": "IL",
-    "zipCodeLabel": "ZIP Code",
-    "zipCodePlaceholder": "12345",
+    "statePlaceholder": "Enter state or province",
+    "zipCodeLabel": "Postal Code",
+    "zipCodePlaceholder": "Enter zip or postal code",
     "notesLabel": "Notes",
-    "notesPlaceholder": "Add any notes about this donor",
+    "notesPlaceholder": "Enter any notes about the donor",
+    "preferredLanguageLabel": "Preferred Language",
     "cancelButton": "Cancel",
-    "saving": "Saving...",
     "saveButton": "Save Changes",
+    "saving": "Saving...",
+    "updateSuccess": "Donor details updated successfully.",
+    "fetchMembersFailed": "Failed to load members for linking.",
     "errors": {
-      "firstNameRequired": "First name is required",
-      "lastNameRequired": "Last name is required",
-      "invalidEmail": "Please enter a valid email address",
-      "invalidPhone": "Please enter a valid phone number",
-      "invalidZip": "Please enter a valid ZIP code"
+      "required": "{{fieldName}} is required.",
+      "invalidEmail": "Invalid email format.",
+      "invalidPhone": "Invalid phone number format.",
+      "invalidZip": "Invalid zip/postal code format.",
+      "updateFailed": "Failed to update donor. Please try again.",
+      "unexpectedError": "An unexpected error occurred."
     }
   },
   "donationSuccessful": {
@@ -228,5 +205,39 @@
     "submissionMessage": "Your donation has been received.",
     "goHomeButton": "Go to home",
     "contactSupportMessage": "If you have any questions, please contact support: hola@altarflow.com"
-  }
-} 
+  },
+  "linkToMember": "Link to Member",
+  "currentlyLinkedTo": "Currently linked to",
+  "selectMemberToLink": "Select member to link",
+  "loadingMembers": "Loading members...",
+  "noMemberOrUnlink": "No Member / Unlink",
+  "viewDonorDetails": {
+    "title": "Donor Details",
+    "editButtonLabel": "Edit",
+    "detailsTabLabel": "Details",
+    "donationsTabLabel": "Donations",
+    "contactInformationLabel": "Contact Information",
+    "addressLabel": "Address",
+    "donationSummaryLabel": "Donation Summary",
+    "totalDonatedLabel": "Total Donated",
+    "donationsCountLabel": "Donations",
+    "linkedMemberLabel": "Linked Member",
+    "donationHistoryLabel": "Donation History",
+    "noDonationsFoundText": "No donations found for this donor",
+    "noContactInfoText": "No contact information on file.",
+    "noAddressText": "No address on file.",
+    "notesLabel": "Notes",
+    "donationSingular": "Donation",
+    "donationPlural": "Donations",
+    "historyTable": {
+      "dateHeader": "Date",
+      "amountHeader": "Amount",
+      "campaignHeader": "Campaign"
+    },
+    "loadingText": "Loading donor details...",
+    "errorDonorNotFound": "Donor not found.",
+    "errorLoadingFailed": "Failed to load donor details. Please try again.",
+    "noDataAvailable": "No donor data available."
+  },
+  "noMembersFound": "No members found for this church"
+}

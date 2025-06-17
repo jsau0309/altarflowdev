@@ -4,72 +4,42 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { useTranslation } from "react-i18next"
-import { processDataForChart } from "@/lib/chart-utils"
-
-interface Donation {
-    date: string | Date;
-    amount: number;
-    // Add other relevant fields if needed
-}
-
-interface Expense {
-    date: string | Date;
-    amount: number;
-    // Add other relevant fields if needed
-}
-
-interface Campaign {
-    id: string;
-    name: string;
-    isActive: boolean;
-    raised: number;
-    goal: number;
-    // Add other relevant fields if needed
-}
+import { Donation, Expense, Campaign } from "@/lib/types"
 
 interface CampaignChartsProps {
-  donations: Donation[]
-  expenses: Expense[]
-  startDate?: Date
-  endDate?: Date
+  donations: Donation[];
+  expenses: Expense[];
+  campaigns: Campaign[];
+  startDate?: Date;
+  endDate?: Date;
 }
 
-export function CampaignCharts({ donations, expenses /*, startDate, endDate */ }: CampaignChartsProps) {
+export function CampaignCharts({ donations, expenses, campaigns }: CampaignChartsProps) {
   // Load charts namespace
   const { t } = useTranslation('charts')
 
-  // Filter data based on date range if provided
-  // const filteredDonations = startDate && endDate
-  //   ? donations.filter(d => new Date(d.date) >= startDate && new Date(d.date) <= endDate)
-  //   : donations;
-  // const filteredExpenses = startDate && endDate
-  //   ? expenses.filter(e => new Date(e.date) >= startDate && new Date(e.date) <= endDate)
-  //   : expenses;
+  const activeCampaigns = campaigns.filter((campaign) => campaign.isActive)
 
-  const donationData = processDataForChart(donations, "date", "amount")
-  // Process expenses if needed for charts
-  // const expenseData = processDataForChart(expenses, "date", "amount")
+  const doughnutChartData = activeCampaigns
+    .map(campaign => {
+      const raised = donations
+        .filter(d => d.campaignId === campaign.id)
+        .reduce((sum, d) => sum + parseFloat(d.amount), 0);
+      return { name: campaign.name, value: raised };
+    })
+    .filter(d => d.value > 0);
 
-  // Get campaigns data - Removed mock data fetching
-  // const campaigns: Campaign[] = mockDataService.getCampaigns() || []
-
-  // Filter active campaigns - Requires campaigns data
-  // const activeCampaigns = campaigns.filter((campaign) => campaign.isActive)
-
-  // Prepare data for doughnut chart (campaign distribution) - Requires activeCampaigns
-  // const doughnutChartData = activeCampaigns.map((campaign) => ({
-  //   name: campaign.name,
-  //   value: campaign.raised,
-  // }))
-  const doughnutChartData: {name: string, value: number}[] = [] // Placeholder
-
-  // Prepare data for horizontal bar chart (campaign progress) - Requires activeCampaigns
-  // const horizontalBarChartData = activeCampaigns.map((campaign) => ({
-  //   name: campaign.name,
-  //   raised: campaign.raised,
-  //   goal: campaign.goal > 0 ? campaign.goal : campaign.raised,
-  // }))
-  const horizontalBarChartData: {name: string, raised: number, goal: number}[] = [] // Placeholder
+  const horizontalBarChartData = activeCampaigns.map((campaign) => {
+    const raised = donations
+      .filter(d => d.campaignId === campaign.id)
+      .reduce((sum, d) => sum + parseFloat(d.amount), 0);
+    const goal = parseFloat(campaign.goalAmount || '0');
+    return {
+      name: campaign.name,
+      raised: raised,
+      goal: goal > 0 ? goal : raised,
+    };
+  });
 
   const COLORS = ["#FF8042", "#0088FE", "#00C49F", "#FFBB28", "#FF8042"]
 
