@@ -19,6 +19,9 @@
   "contactInformation": "Contact Information",
   "personalInformation": "Personal Information",
   "membershipInformation": "Membership Information",
+  "membershipInfo": {
+    "selectStatusPlaceholder": "Select Status..."
+  },
   "pickDate": "Pick a date",
   "selectStatus": "Select a status",
   "selectLanguage": "Select a language",

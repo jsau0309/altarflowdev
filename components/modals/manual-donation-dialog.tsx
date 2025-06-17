@@ -1,0 +1,273 @@
+"use client"
+
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast"; // Assuming shadcn/ui toast, adjust if sonner is used here
+import { createManualDonation, CreateManualDonationParams } from "@/lib/actions/donations.actions";
+import { DonorFilterItem } from "@/lib/actions/donations.actions";
+import { format } from "date-fns";
+import { CalendarIcon, ChevronsUpDown, Check, Loader2 } from "lucide-react";
+import { useTranslation } from 'react-i18next';
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface ManualDonationDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  donors: DonorFilterItem[];
+  // Add churchId prop if we decide to pass it instead of reading from localStorage
+  // churchId: string | null;
+}
+
+export function ManualDonationDialog({ isOpen, onClose, onSuccess, donors }: ManualDonationDialogProps) {
+  const { t } = useTranslation(['donations', 'common']); // Load donations and common namespaces
+  const [manualDonationAmount, setManualDonationAmount] = useState<string>("");
+  const [manualDonationDate, setManualDonationDate] = useState<Date | undefined>(new Date());
+  const [selectedDonorId, setSelectedDonorId] = useState<string | null>(null);
+  const [isDonorComboboxOpen, setIsDonorComboboxOpen] = useState(false);
+  const [selectedDonationType, setSelectedDonationType] = useState<string | undefined>(undefined);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | undefined>(undefined);
+  const [manualDonationNotes, setManualDonationNotes] = useState<string>("");
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  // Effect to reset form when modal is closed or opened for a new entry
+  useEffect(() => {
+    if (isOpen) {
+      // Reset fields when modal opens, unless we want to preserve state across quick closes/opens
+      setManualDonationAmount("");
+      setManualDonationDate(new Date());
+      setSelectedDonorId(null);
+      setSelectedDonationType(undefined);
+      setSelectedPaymentMethod(undefined);
+      setManualDonationNotes("");
+      setIsSaving(false);
+    }
+  }, [isOpen]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    const churchId = localStorage.getItem("churchId"); // Consider passing as prop for better testability/flexibility
+
+    if (!churchId) {
+      toast({
+        title: t('common:error'),
+        description: t('common:errors.churchId_not_found'),
+        variant: "destructive",
+      });
+      setIsSaving(false);
+      return;
+    }
+
+    if (!manualDonationAmount || parseFloat(manualDonationAmount) <= 0) {
+      toast({
+        title: t('common:error'),
+        description: t('donations:newManualDonation.validation.invalid_amount'),
+        variant: "destructive",
+      });
+      setIsSaving(false);
+      return;
+    }
+    if (!manualDonationDate) {
+      toast({ title: t('common:error'), description: t('donations:newManualDonation.validation.date_required'), variant: "destructive" });
+      setIsSaving(false); return;
+    }
+    if (!selectedDonorId) {
+      toast({ title: t('common:error'), description: t('donations:newManualDonation.validation.donor_required'), variant: "destructive" });
+      setIsSaving(false); return;
+    }
+    if (!selectedDonationType) {
+      toast({ title: t('common:error'), description: t('donations:newManualDonation.validation.type_required'), variant: "destructive" });
+      setIsSaving(false); return;
+    }
+    if (!selectedPaymentMethod) {
+      toast({ title: t('common:error'), description: t('donations:newManualDonation.validation.method_required'), variant: "destructive" });
+      setIsSaving(false); return;
+    }
+
+    const params: CreateManualDonationParams = {
+      churchId,
+      amount: Math.round(parseFloat(manualDonationAmount) * 100), // Convert to cents
+      donationDate: manualDonationDate,
+      donorId: selectedDonorId,
+      donationTypeName: selectedDonationType,
+      paymentMethod: selectedPaymentMethod,
+      notes: manualDonationNotes || null,
+    };
+
+    try {
+      const result = await createManualDonation(params);
+      if (result.error) {
+        toast({ title: t('common:error'), description: result.error, variant: "destructive" });
+      } else {
+        toast({ title: t('common:success'), description: t('donations:newManualDonation.success_message') });
+        onSuccess(); // Call parent's success handler (closes modal, refreshes data)
+      }
+    } catch (error) {
+      console.error("Failed to save manual donation:", error);
+      toast({ title: t('common:error'), description: t('common:errors.unexpected_error'), variant: "destructive" });
+    }
+    setIsSaving(false);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[525px]">
+        <DialogHeader>
+          <DialogTitle>{t('donations:newManualDonation.title')}</DialogTitle>
+          <DialogDescription>
+            {t('donations:newManualDonation.description')}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="amount">{t('donations:newManualDonation.amount')}</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={manualDonationAmount}
+                onChange={(e) => setManualDonationAmount(e.target.value)}
+                placeholder="0.00"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="date">{t('donations:newManualDonation.date')}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal mt-1",
+                      !manualDonationDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {manualDonationDate ? format(manualDonationDate, "PPP") : <span>{t('donations:newManualDonation.pickDate')}</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <DatePickerCalendar
+                    mode="single"
+                    selected={manualDonationDate}
+                    onSelect={setManualDonationDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="donor">{t('donations:newManualDonation.donor')}</Label>
+            <Popover open={isDonorComboboxOpen} onOpenChange={setIsDonorComboboxOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={isDonorComboboxOpen}
+                  className="w-full justify-between mt-1"
+                >
+                  {selectedDonorId
+                    ? donors.find((donor) => donor.id === selectedDonorId)?.name
+                    : t('donations:newManualDonation.selectDonor')}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                  <CommandInput placeholder={t('donations:newManualDonation.searchDonor')} />
+                  <CommandEmpty>{t('donations:newManualDonation.noDonorFound')}</CommandEmpty>
+                  <CommandGroup>
+                    <ScrollArea className="h-[200px]">
+                      {donors.map((donor) => (
+                        <CommandItem
+                          key={donor.id}
+                          value={donor.name} // Ensure value is unique and useful for search
+                          onSelect={() => {
+                            setSelectedDonorId(donor.id === selectedDonorId ? null : donor.id);
+                            setIsDonorComboboxOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedDonorId === donor.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {donor.name}
+                        </CommandItem>
+                      ))}
+                    </ScrollArea>
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="donationType">{t('donations:newManualDonation.donationType')}</Label>
+              <Select value={selectedDonationType} onValueChange={setSelectedDonationType}>
+                <SelectTrigger id="donationType" className="mt-1">
+                  <SelectValue placeholder={t('donations:newManualDonation.selectDonationType')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Tithe">{t('donations:funds.tithe')}</SelectItem>
+                  <SelectItem value="Offering">{t('donations:funds.offering')}</SelectItem>
+                  {/* TODO: Add other fund types if necessary */}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="paymentMethod">{t('donations:newManualDonation.paymentMethod')}</Label>
+              <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                <SelectTrigger id="paymentMethod" className="mt-1">
+                  <SelectValue placeholder={t('donations:newManualDonation.selectPaymentMethod')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cash">{t('donations:methods.cash')}</SelectItem>
+                  <SelectItem value="Check">{t('donations:methods.check')}</SelectItem>
+                  <SelectItem value="Bank Transfer">{t('donations:methods.bankTransfer')}</SelectItem>
+                  <SelectItem value="Other">{t('donations:methods.other')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="notes">{t('donations:newManualDonation.notes')}</Label>
+            <Textarea
+              id="notes"
+              value={manualDonationNotes}
+              onChange={(e) => setManualDonationNotes(e.target.value)}
+              placeholder={t('donations:newManualDonation.notesPlaceholder')}
+              className="mt-1"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>{t('donations:newManualDonation.cancelButton')}</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('donations:newManualDonation.saving')}</>
+            ) : (
+              t('donations:newManualDonation.saveButton')
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

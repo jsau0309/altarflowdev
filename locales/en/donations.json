@@ -12,6 +12,9 @@
   "campaign": "Campaign",
   "status": "Status",
   "notes": "Notes",
+  "selectDonor": "Select a donor...",
+  "searchDonor": "Search for a donor...",
+  "noDonorFound": "No donor found.",
   "dateRange": "Date Range",
   "category": "Category",
   "frequency": "Frequency",
@@ -55,11 +58,14 @@
       "allDonations": "All Donations"
     },
     "allDonations": {
+      "title": "All Donations",
+      "description": "View, search, and filter all donations",
       "subtitle": "View, search, and filter all donations",
       "searchPlaceholder": "Search donations (donor, campaign, amount...)"
     },
     "filter": {
-      "title": "Filter Donations"
+      "title": "Filter Donations",
+      "clear": "Clear"
     },
     "empty": {
       "title": "No donations found",
@@ -95,9 +101,9 @@
   "newManualDonation": {
     "title": "New Manual Donation",
     "description": "Record a donation made via cash, check, or other non-stripe methods.",
-    "amountLabel": "Amount",
-    "dateLabel": "Date",
-    "donorLabel": "Donor",
+    "amount": "Amount",
+    "date": "Date",
+    "donor": "Donor",
     "selectDonor": "Select a donor...",
     "searchDonor": "Search for a donor...",
     "noDonorFound": "No donor found.",
@@ -111,13 +117,14 @@
     "saveButton": "Save Donation",
     "cancelButton": "Cancel",
     "saving": "Saving...",
+    "success": "Success",
     "success_message": "Manual donation saved successfully.",
     "validation": {
       "invalid_amount": "Please enter a valid donation amount.",
       "date_required": "Please select a donation date.",
       "donor_required": "Please select a donor.",
-      "donation_type_required": "Please select a donation type.",
-      "payment_method_required": "Please select a payment method."
+      "type_required": "Please select a donation type.",
+      "method_required": "Please select a payment method."
     }
   },
   "donorsContent": {
@@ -158,6 +165,10 @@
     "adding": "Adding...",
     "success": "Donor {{firstName}} {{lastName}} added successfully",
     "error": "Failed to add donor. Please try again.",
+    "toast": {
+      "success_title": "Donor Added",
+      "success_description": "The new donor has been successfully added to the system."
+    },
     "errors": {
       "firstNameRequired": "First name is required",
       "lastNameRequired": "Last name is required",

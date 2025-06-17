@@ -60,11 +60,14 @@
         "allDonations": "Todas las Donaciones"
       },
       "allDonations": {
+        "title": "Todas las Donaciones",
+        "description": "Ver, buscar y filtrar todas las donaciones",
         "subtitle": "Ver, buscar y filtrar todas las donaciones",
         "searchPlaceholder": "Buscar donaciones (donante, campaña, cantidad...)"
       },
       "filter": {
-        "title": "Filtrar Donaciones"
+        "title": "Filtrar Donaciones",
+        "clear": "Limpiar"
       },
       "empty": {
         "title": "No se encontraron donaciones",
@@ -104,29 +107,30 @@
     "newManualDonation": {
       "title": "Nueva Donación Manual",
       "description": "Registra una donación hecha en efectivo, cheque u otros métodos que no sean de Stripe.",
-      "amountLabel": "Cantidad",
-      "dateLabel": "Fecha",
-      "donorLabel": "Donante",
-      "selectDonor": "Selecciona un donante...",
-      "searchDonor": "Busca un donante...",
+      "amount": "Monto",
+      "date": "Fecha",
+      "donor": "Donante",
+      "selectDonor": "Seleccione un donante...",
+      "searchDonor": "Buscar donante...",
       "noDonorFound": "No se encontró ningún donante.",
       "addNewDonor": "+ Agregar Nuevo Donante",
       "donationType": "Tipo de Donación",
-      "selectDonationType": "Selecciona tipo...",
+      "selectDonationType": "Seleccione tipo...",
       "paymentMethod": "Método de Pago",
-      "selectPaymentMethod": "Selecciona método...",
+      "selectPaymentMethod": "Seleccione método...",
       "notes": "Notas (Opcional)",
-      "notesPlaceholder": "Agrega cualquier nota interna para esta donación...",
+      "notesPlaceholder": "Agregue cualquier nota interna para esta donación...",
       "saveButton": "Guardar Donación",
       "cancelButton": "Cancelar",
       "saving": "Guardando...",
-      "success_message": "Donación manual guardada exitosamente.",
+      "success": "Éxito",
+      "success_message": "Donación manual agregada exitosamente.",
       "validation": {
-        "invalid_amount": "Por favor, ingresa una cantidad de donación válida.",
-        "date_required": "Por favor, selecciona una fecha para la donación.",
-        "donor_required": "Por favor, selecciona un donante.",
-        "donation_type_required": "Por favor, selecciona un tipo de donación.",
-        "payment_method_required": "Por favor, selecciona un método de pago."
+        "invalid_amount": "Por favor ingrese un monto de donación válido.",
+        "date_required": "La fecha de la donación es requerida.",
+        "donor_required": "Por favor seleccione un donante.",
+        "type_required": "Por favor seleccione un tipo de donación.",
+        "method_required": "Por favor seleccione un método de pago."
       }
     },
     
@@ -169,6 +173,10 @@
       "adding": "Agregando...",
       "success": "Donante {{firstName}} {{lastName}} agregado exitosamente",
       "error": "Error al agregar donante. Por favor, inténtalo de nuevo.",
+      "toast": {
+        "success_title": "Donante Agregado",
+        "success_description": "El nuevo donante ha sido agregado exitosamente al sistema."
+      },
       "errors": {
         "firstNameRequired": "El nombre es requerido",
         "lastNameRequired": "El apellido es requerido",

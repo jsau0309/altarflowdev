@@ -44,9 +44,28 @@
     "newDonation": "Nueva donación",
     "newExpense": "Nuevo gasto",
     "addMember": "Agregar miembro",
-    "generateReport": "Generar informe",
+    "generateReport": "Generar Informe",
+    "aiSummary": "Generar Resumen con IA",
     "recordDonation": "Registrar donación",
     "recordExpense": "Registrar gasto",
     "viewReports": "Ver informes"
+  },
+  "aiSummaryModal": {
+    "title": "Resumen del Informe con IA",
+    "description": "Obtén un resumen de las métricas clave de tu iglesia para el mes actual, generado por IA.",
+    "loading": "Generando tu resumen...",
+    "initialPrompt": "Haz clic en el botón de abajo para generar el resumen de tu informe.",
+    "generateButton": "Generar Resumen",
+    "regenerateButton": "Volver a generar",
+    "error": {
+      "fetchFailed": "No se pudo generar el resumen."
+    },
+    "summaryTitle": "Aquí tienes tu resumen generado por IA:",
+    "sections": {
+      "overall": "📊 Resumen General",
+      "donations": "💰 Resumen de Donaciones",
+      "expenses": "📉 Resumen de Gastos",
+      "members": "👥 Actividad de Miembros"
+    }
   }
-} 
+}

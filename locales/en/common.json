@@ -73,7 +73,9 @@
     "invalidEmailFormat": "Please enter a valid email format.",
     "fetchFailed": "Failed to load data. Please try again.",
     "errorTitle": "Error",
-    "default": "An unexpected error occurred. Please try again."
+    "default": "An unexpected error occurred. Please try again.",
+    "churchId_not_found": "Church ID not found. Please ensure you are properly logged in and associated with a church.",
+    "unexpected": "An unexpected error occurred. Please try again or contact support."
   },
   "success": {
     "donationCreated": "Donation recorded successfully",

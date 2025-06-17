@@ -20,12 +20,13 @@ import type { Expense } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library';
 
 interface NewExpenseModalProps {
-  isOpen: boolean
-  onClose: () => void
-  expenseToEdit?: Expense
+  isOpen: boolean;
+  onClose: () => void;
+  expenseToEdit?: Expense; // Restored for editing existing expenses
+  onSuccess?: () => void; // For refreshing data after action
 }
 
-export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseModalProps) {
+export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: NewExpenseModalProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
@@ -72,30 +73,23 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
         setReceiptImage(expenseToEdit.receiptUrl || null);
         setReceiptPath(expenseToEdit.receiptPath || null); // Populate receiptPath for editing
       } else {
-        // New mode: Reset form to defaults
-        setFormData({
-          amount: "",
-          expenseDate: new Date().toISOString().split("T")[0],
-          vendor: "",
-          category: "",
-          description: "",
-        });
-        setReceiptImage(null);
-        setReceiptPath(null);
+        // New mode: Reset form to defaults using the resetForm function
+        resetForm();
       }
-    } else {
-        // Optional: Reset form when modal closes, though resetting on open is key
-        setFormData({
-            amount: "",
-            expenseDate: new Date().toISOString().split("T")[0],
-            vendor: "",
-            category: "",
-            description: "",
-        });
-        setReceiptImage(null);
-        setReceiptPath(null);
     }
   }, [isOpen, expenseToEdit]); // Dependency array includes isOpen and expenseToEdit
+
+  const resetForm = () => {
+    setFormData({
+      amount: "",
+      expenseDate: formatDateForInput(new Date()), // Use formatDateForInput for consistency
+      vendor: "",
+      category: "",
+      description: "",
+    });
+    setReceiptImage(null);
+    setReceiptPath(null);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
@@ -171,11 +165,22 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit }: NewExpenseMo
       // Show success toast
       if (expenseToEdit) {
         toast.success(t('newExpenseModal.updateSuccess', 'Expense updated successfully!'));
+        // For edit, refresh is handled by the page, or onSuccess if provided for dashboard context
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose(); // Close modal after successful edit
       } else {
-        toast.success(t('newExpenseModal.createSuccess', 'Expense created successfully!'));
+        // For new expense creation
+        toast.success(t('expenses:newExpenseModal.successMessage', 'Expense created successfully!'));
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.refresh(); // Fallback if no onSuccess is provided
+        }
+        resetForm();
+        onClose(); // Ensure modal closes after successful creation
       }
-
-      onClose();
 
     } catch (err) {
       console.error("Expense form submission error:", err);

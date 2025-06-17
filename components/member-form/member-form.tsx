@@ -62,7 +62,7 @@ export const createFormSchema = (t: TFunction<"members" | "common">, phoneMessag
       }
     }),
   // smsConsent: z.boolean().optional(),
-  relationshipStatus: z.string().optional(), // Example: "visitor", "member", "inactive"
+  membershipStatus: z.string().optional(), // Example: "visitor", "member", "inactive"
   joinDate: z.date().nullable().optional(),
 
   // Fields from the old add-member-modal and likely needed for a new member
@@ -110,7 +110,7 @@ export function MemberForm({ onSubmitSuccess }: { onSubmitSuccess?: (data: Membe
       lastName: "",
       email: "",
       phone: "",
-      relationshipStatus: "visitor",
+      membershipStatus: "visitor",
       joinDate: null,
       address: "",
       city: "",

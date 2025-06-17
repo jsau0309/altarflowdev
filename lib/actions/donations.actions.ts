@@ -261,7 +261,7 @@ export interface CreateManualDonationParams {
   donorId: string; // ID of an existing Donor record
   donationTypeName: string; // e.g., "Tithe", "Offering"
   paymentMethod: string; // e.g., "Cash", "Check"
-  // notes?: string; // Temporarily removed
+  notes?: string | null;
 }
 
 export interface CreateManualDonationResult {

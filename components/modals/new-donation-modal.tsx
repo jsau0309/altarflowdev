@@ -25,18 +25,28 @@ interface NewDonationModalProps {
   onClose: () => void
   fromDashboard?: boolean
   initialData?: Partial<Donation>
+  onSuccess?: () => void; // Added from previous session, ensure it's here
 }
 
-const initialFormData: Omit<Partial<Donation>, "amount"> & { amount: string } = {
+interface NewDonationFormData {
+  amount: string;
+  donationDate: string;
+  memberId: string;
+  campaignId: string | null | undefined;
+  paymentMethod: string;
+  notes: string;
+}
+
+const initialLocalFormData: NewDonationFormData = {
   amount: "",
-  date: new Date().toISOString().split("T")[0],
-  donorId: "",
-  campaignId: "",
+  donationDate: new Date().toISOString().split("T")[0],
+  memberId: "",
+  campaignId: "", // Default to empty string for form, can be null/undefined from initialData
   paymentMethod: "",
   notes: "",
-}
+};
 
-export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initialData }: NewDonationModalProps) {
+export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initialData, onSuccess }: NewDonationModalProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useTranslation('donations')
@@ -44,11 +54,19 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
   const [members, setMembers] = useState<Member[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [showNewDonorForm, setShowNewDonorForm] = useState(false)
-  const [formData, setFormData] = useState(() => ({
-    ...initialFormData,
-    ...(initialData || {}),
-    amount: initialData?.amount?.toString() ?? "",
-  }))
+  const [formData, setFormData] = useState<NewDonationFormData>(() => {
+    let combinedData = { ...initialLocalFormData };
+    if (initialData) {
+      combinedData.amount = initialData.amount?.toString() ?? initialLocalFormData.amount;
+      if (initialData.donationDate !== undefined) combinedData.donationDate = initialData.donationDate;
+      if (initialData.memberId !== undefined) combinedData.memberId = initialData.memberId ?? ""; 
+      if (initialData.campaignId !== undefined) combinedData.campaignId = initialData.campaignId;
+      // paymentMethod and notes are not in Donation type, so they are not mapped from initialData
+      // If initialData could have them, then Partial<Donation> is not the right type for it, or Donation type needs update.
+      // Assuming initialData adheres strictly to Partial<Donation> where notes and paymentMethod are not present.
+    }
+    return combinedData;
+  })
   const [newDonor, setNewDonor] = useState({
     firstName: "",
     lastName: "",
@@ -99,10 +117,10 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
   const handleDonorChange = (value: string) => {
     if (value === "new") {
       setShowNewDonorForm(true)
-      setFormData((prev) => ({ ...prev, donorId: "" }))
+      setFormData((prev) => ({ ...prev, memberId: "" }))
     } else {
       setShowNewDonorForm(false)
-      setFormData((prev) => ({ ...prev, donorId: value }))
+      setFormData((prev) => ({ ...prev, memberId: value }))
     }
   }
 
@@ -115,7 +133,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     e.preventDefault()
     setIsLoading(true)
 
-    let donorId = formData.donorId
+    let currentMemberId = formData.memberId
 
     // If adding a new donor, create the donor first
     if (showNewDonorForm) {
@@ -131,7 +149,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
       try {
         // TODO: Replace with actual API call
         // const createdDonor = await createDonor(newDonor);
-        // donorId = createdDonor.id;
+        // currentMemberId = createdDonor.id;
         console.log("Creating new donor:", newDonor)
       } catch (error) {
         console.error("Error creating donor:", error)
@@ -144,10 +162,10 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
       }
     }
 
-    const donorIdToSave = showNewDonorForm ? donorId : formData.donorId
+    const memberIdToSave = showNewDonorForm ? currentMemberId : formData.memberId
 
     // Ensure donorIdToSave is valid before proceeding
-    if (!donorIdToSave) {
+    if (!memberIdToSave) {
       toast({
         description: t('donations:newDonationModal.errors.selectOrAddDonor'),
         variant: "destructive"
@@ -169,10 +187,10 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     const donationPayload = {
       ...formData,
       amount: parsedAmount,
-      donorId: donorIdToSave,
+      memberId: memberIdToSave,
       isDigital: formData.paymentMethod === "online",
       receiptUrl: receiptImage,
-      date: formData.date || new Date().toISOString().split("T")[0],
+      donationDate: formData.donationDate,
     }
 
     try {
@@ -200,14 +218,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
   }
 
   const resetForm = () => {
-    setFormData({
-      amount: "",
-      date: new Date().toISOString().split("T")[0],
-      donorId: "",
-      campaignId: "",
-      paymentMethod: "",
-      notes: "",
-    })
+    setFormData(initialLocalFormData)
     setNewDonor({
       firstName: "",
       lastName: "",
@@ -228,7 +239,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
       setFormData((prev) => ({
         ...prev,
         amount: receiptData.total || prev.amount,
-        date: receiptData.date || prev.date,
+        donationDate: receiptData.date || prev.donationDate,
         notes: receiptData.description || prev.notes,
       }))
 
@@ -277,8 +288,8 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="date">{t('donations:date')}</Label>
-                <Input id="date" type="date" value={formData.date} onChange={handleChange} required />
+                <Label htmlFor="donationDate">{t('donations:date')}</Label>
+                <Input id="donationDate" type="date" value={formData.donationDate} onChange={handleChange} required />
               </div>
             </div>
 
@@ -286,7 +297,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
               <Label htmlFor="donor">{t('donations:newDonationModal.donorLabel')}</Label>
               <Select
                 required={!showNewDonorForm}
-                value={formData.donorId}
+                value={formData.memberId}
                 onValueChange={handleDonorChange}
                 disabled={showNewDonorForm}
               >
@@ -370,7 +381,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
               <Label htmlFor="campaign">{t('donations:newDonationModal.donationTypeLabel')}</Label>
               <Select
                 required
-                value={formData.campaignId}
+                value={formData.campaignId ?? undefined}
                 onValueChange={(value) => handleSelectChange("campaignId", value)}
               >
                 <SelectTrigger id="campaign">

@@ -45,8 +45,27 @@
     "newExpense": "New Expense",
     "addMember": "Add Member",
     "generateReport": "Generate Report",
+    "aiSummary": "Generate AI Summary",
     "recordDonation": "Record Donation",
     "recordExpense": "Record Expense",
     "viewReports": "View Reports"
+  },
+  "aiSummaryModal": {
+    "title": "AI Report Summary",
+    "description": "Get an AI-powered summary of your church's key metrics for the current month.",
+    "loading": "Generating your summary...",
+    "initialPrompt": "Click the button below to generate your report summary.",
+    "generateButton": "Generate Summary",
+    "regenerateButton": "Regenerate",
+    "error": {
+      "fetchFailed": "Failed to generate summary."
+    },
+    "summaryTitle": "Here's your AI-Generated Summary:",
+    "sections": {
+      "overall": "📊 Overall Summary",
+      "donations": "💰 Donation Summary",
+      "expenses": "📉 Expense Summary",
+      "members": "👥 Member Activity"
+    }
   }
-} 
+}

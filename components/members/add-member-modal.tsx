@@ -24,6 +24,7 @@ import { createFormSchema } from "../member-form/member-form";
 import { PersonalInfoSection } from '../member-form/personal-info-section'
 import { AddressSection } from '../member-form/address-section'
 import { LifeStageSection } from '../member-form/life-stage-section'
+import { MembershipInfoSection } from "../member-form/membership-info-section"
 import { MinistriesSelector } from '../member-form/ministries-selector'
 import { ServiceTimesSelector } from '../member-form/service-times-selector'
 import { getFlowConfiguration } from "@/lib/actions/flows.actions"
@@ -60,7 +61,7 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
       lastName: "",
       email: "",
       phone: "",
-      relationshipStatus: "visitor", 
+      membershipStatus: "visitor", 
       joinDate: null,
       address: "", 
       city: "",    
@@ -115,7 +116,7 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
       email: data.email || null,
       phone: data.phone || null,
       joinDate: data.joinDate ? new Date(data.joinDate).toISOString() : null,
-      membershipStatus: data.relationshipStatus, 
+      membershipStatus: data.membershipStatus || "visitor", 
       language: data.language,
       address: data.address || null,
       city: data.city || null,
@@ -197,7 +198,8 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
           <div className="overflow-y-auto pr-1 flex-grow"> {/* Added scroll for content overflow */}
             <form id="add-member-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
               <PersonalInfoSection />
-              <AddressSection /> 
+              <AddressSection />
+              <MembershipInfoSection />
               {configError && <p className="text-sm text-red-500 py-2">{configError}</p>}
               <LifeStageSection />
               <MinistriesSelector options={ministryOptions} isLoading={isLoadingConfig} />

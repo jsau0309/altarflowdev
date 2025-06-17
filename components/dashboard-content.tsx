@@ -1,21 +1,21 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowRight, ChevronUp, DollarSign, FileText, User, Users } from "lucide-react"
+import { ArrowRight, ChevronDown, ChevronUp, DollarSign, FileText, User, Users, Wand2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { NewDonationModal } from "@/components/modals/new-donation-modal"
+import { ManualDonationDialog } from "@/components/modals/manual-donation-dialog";
+import { getDistinctDonorsForFilter, DonorFilterItem } from "@/lib/actions/donations.actions";
 import { NewExpenseModal } from "@/components/modals/new-expense-modal"
 import { AddMemberModal } from "@/components/members/add-member-modal"
-import { GenerateReportModal } from "@/components/modals/generate-report-modal"
+import { GenerateReportModal } from "@/components/modals/generate-report-modal";
+import { AiSummaryModal } from "@/components/modals/ai-summary-modal";
 import LoaderOne from "@/components/ui/loader-one";
-// Import Member type
-import type { Member } from "@/lib/types"
+import { getDashboardSummary } from "@/lib/actions/reports.actions";
 
 // Define a basic structure for the dashboard data
-// TODO: Update this with the actual data structure from the API
 interface DashboardData {
   donationSummary: {
     monthlyChange: number;
@@ -42,42 +42,60 @@ interface DashboardData {
 }
 
 export function DashboardContent() {
-  // Load dashboard namespace
-  const { t } = useTranslation('dashboard')
-  const [activeModal, setActiveModal] = useState<string | null>(null)
-  const [dashboardData] = useState<DashboardData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { t } = useTranslation(['dashboard', 'donations']);
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [donorsList, setDonorsList] = useState<DonorFilterItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Replace with actual API call to fetch dashboard data
-    const timer = setTimeout(() => {
-      // const data = await fetchDashboardData(); // Example API call
-      // setDashboardData(data);
-      setIsLoading(false)
-    }, 500) // Keep loading simulation for now
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const churchId = localStorage.getItem("churchId");
+        const [summaryData, donorsData] = await Promise.all([
+          getDashboardSummary(),
+          churchId ? getDistinctDonorsForFilter() : Promise.resolve([] as DonorFilterItem[])
+        ]);
+        setDashboardData(summaryData);
+        setDonorsList(donorsData);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data or donors:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer)
-  }, [])
+    fetchData();
+  }, []);
 
   const openModal = (modalName: string) => {
-    setActiveModal(modalName)
-  }
+    setActiveModal(modalName);
+  };
 
   const closeModal = () => {
-    setActiveModal(null)
-  }
+    setActiveModal(null);
+  };
 
-  const handleMemberAdded = () => {
-    // TODO: Refresh dashboard data after adding a member via API call
-    // const data = await fetchDashboardData();
-    // setDashboardData(data);
-  }
+  const handleDataRefresh = async (actionContext?: string) => {
+    const contextMessage = actionContext ? ` after ${actionContext}` : "";
+    console.log(`Refreshing dashboard data${contextMessage}...`);
+    // setIsLoading(true); // Consider uncommenting if refresh is slow
+    try {
+      const data = await getDashboardSummary();
+      setDashboardData(data);
+    } catch (error) {
+      console.error(`Failed to refresh dashboard data${contextMessage}:`, error);
+    } finally {
+      // setIsLoading(false); // Ensure this matches any setIsLoading(true) above
+    }
+  };
 
-  // Define the success handler (can be empty for dashboard)
-  const handleAddMemberSuccess = () => {
-    console.log("Member added from dashboard quick action.");
-    // Optionally trigger a refetch of dashboard summary data if needed in the future
-    // fetchDashboardData(); 
+  const formatCurrency = (amount: number | null | undefined) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount ?? 0);
   };
 
   return (
@@ -101,22 +119,26 @@ export function DashboardContent() {
                 <CardTitle className="text-lg">{t('dashboard:donationSummary.title', 'Donation Summary')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-sm text-green-600">
-                  <ChevronUp className="h-4 w-4" />
-                  <span>{t('dashboard:vsLastMonth', '+{{change}}% vs last month', { change: dashboardData?.donationSummary?.monthlyChange ?? 0 })}</span>
+                <div className={`flex items-center text-sm ${(dashboardData?.donationSummary?.monthlyChange ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {(dashboardData?.donationSummary?.monthlyChange ?? 0) >= 0 ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  <span>
+                    {t('dashboard:vsLastMonth', '{{change}}% vs last month', { 
+                      change: Math.round(dashboardData?.donationSummary?.monthlyChange ?? 0)
+                    })}
+                  </span>
                 </div>
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">{t('dashboard:thisWeek', 'This Week')}</p>
-                    <p className="text-2xl font-bold">${dashboardData?.donationSummary?.weeklyTotal?.toLocaleString() ?? 0}</p>
+                    <p className="text-2xl font-bold">{formatCurrency(dashboardData?.donationSummary?.weeklyTotal)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">{t('dashboard:thisMonth', 'This Month')}</p>
-                    <p className="text-2xl font-bold">${dashboardData?.donationSummary?.monthlyTotal?.toLocaleString() ?? 0}</p>
+                    <p className="text-2xl font-bold">{formatCurrency(dashboardData?.donationSummary?.monthlyTotal)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">{t('dashboard:thisYear', 'This Year')}</p>
-                    <p className="text-2xl font-bold">${dashboardData?.donationSummary?.yearlyTotal?.toLocaleString() ?? 0}</p>
+                    <p className="text-2xl font-bold">{formatCurrency(dashboardData?.donationSummary?.yearlyTotal)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -129,22 +151,26 @@ export function DashboardContent() {
                 <CardTitle className="text-lg">{t('dashboard:expenseSummary.title', 'Expense Summary')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-sm text-red-600">
-                  <ChevronUp className="h-4 w-4 rotate-180" />
-                  <span>{t('dashboard:vsLastMonthExpense', '{{change}}% vs last month', { change: dashboardData?.expenseSummary?.monthlyChange ?? 0 })}</span>
+                <div className={`flex items-center text-sm ${(dashboardData?.expenseSummary?.monthlyChange ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {(dashboardData?.expenseSummary?.monthlyChange ?? 0) >= 0 ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  <span>
+                    {t('dashboard:vsLastMonth', '{{change}}% vs last month', { 
+                      change: Math.round(dashboardData?.expenseSummary?.monthlyChange ?? 0)
+                    })}
+                  </span>
                 </div>
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">{t('dashboard:thisWeek', 'This Week')}</p>
-                    <p className="text-2xl font-bold">${dashboardData?.expenseSummary?.weeklyTotal?.toLocaleString() ?? 0}</p>
+                    <p className="text-2xl font-bold">{formatCurrency(dashboardData?.expenseSummary?.weeklyTotal)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">{t('dashboard:thisMonth', 'This Month')}</p>
-                    <p className="text-2xl font-bold">${dashboardData?.expenseSummary?.monthlyTotal?.toLocaleString() ?? 0}</p>
+                    <p className="text-2xl font-bold">{formatCurrency(dashboardData?.expenseSummary?.monthlyTotal)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">{t('dashboard:thisYear', 'This Year')}</p>
-                    <p className="text-2xl font-bold">${dashboardData?.expenseSummary?.yearlyTotal?.toLocaleString() ?? 0}</p>
+                    <p className="text-2xl font-bold">{formatCurrency(dashboardData?.expenseSummary?.yearlyTotal)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -160,56 +186,32 @@ export function DashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-lg bg-muted p-4 text-center">
+                  <div className="text-center">
                     <p className="text-4xl font-bold">{dashboardData?.memberActivity?.newMembers ?? 0}</p>
-                    <p className="text-sm text-muted-foreground">{t('dashboard:memberActivity.newMembersLabel', 'New Members')}</p>
-                    <p className="text-xs text-muted-foreground">{t('dashboard:memberActivity.newMembersSubtitle', 'This month')}</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard:memberActivity.newMembers', 'New Members')}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard:memberActivity.thisMonth', 'This month')}</p>
                   </div>
-                  <div className="rounded-lg bg-muted p-4 text-center">
+                  <div className="text-center">
                     <p className="text-4xl font-bold">{dashboardData?.memberActivity?.activeMembers ?? 0}</p>
-                    <p className="text-sm text-muted-foreground">{t('dashboard:memberActivity.activeMembersLabel', 'Active Members')}</p>
-                    <p className="text-xs text-muted-foreground">{t('dashboard:memberActivity.activeMembersSubtitle', 'Total')}</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard:memberActivity.activeMembers', 'Active Members')}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard:memberActivity.total', 'Total')}</p>
                   </div>
                 </div>
-
-                <div className="mt-6">
-                  <h3 className="mb-4 text-sm font-medium">{t('dashboard:memberActivity.recentMembersTitle', 'Recent Members')}</h3>
-                  <div className="space-y-4">
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium">{t('dashboard:memberActivity.recentMembers', 'Recent Members')}</h4>
+                  <div className="mt-2 space-y-2">
                     {dashboardData?.memberActivity?.recentMembers?.length ? (
-                      dashboardData.memberActivity.recentMembers.map((member: { id: string; firstName: string; lastName: string; joinDate: string | null }) => {
-                        let joinedText: string;
-                        if (member.joinDate) { 
-                          const joinedDays = Math.round(
-                            (new Date().getTime() - new Date(member.joinDate).getTime()) / (1000 * 60 * 60 * 24)
-                          );
-                          if (joinedDays === 0) {
-                            joinedText = t('dashboard:memberActivity.joinedToday', 'Joined today');
-                          } else if (joinedDays === 1) {
-                            joinedText = t('dashboard:memberActivity.joinedYesterday', 'Joined yesterday');
-                          } else {
-                            joinedText = t('dashboard:memberActivity.joinedDaysAgo', 'Joined {{count}} days ago', { count: joinedDays });
-                          }
-                        } else {
-                           joinedText = t('dashboard:memberActivity.joinDateUnknown', 'Join date unknown');
-                        }
-
-                        return (
-                          <div key={member.id} className="flex items-center gap-4">
-                            <Avatar>
-                              <AvatarFallback>
-                                {member.firstName?.charAt(0)}
-                                {member.lastName?.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-sm font-medium">
-                                {member.firstName} {member.lastName}
-                              </p>
-                              <p className="text-xs text-muted-foreground">{joinedText}</p>
-                            </div>
+                      dashboardData.memberActivity.recentMembers.map((member) => (
+                        <div key={member.id} className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback>{member.firstName?.[0]}{member.lastName?.[0]}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{member.firstName} {member.lastName}</div>
+                            <div className="text-xs text-muted-foreground">{t('dashboard:memberActivity.joined', 'Joined {{date}}', { date: new Date(member.joinDate).toLocaleDateString() })}</div>
                           </div>
-                        );
-                      })
+                        </div>
+                      ))
                     ) : (
                       <p className="text-sm text-muted-foreground">{t('dashboard:memberActivity.noRecentMembers', 'No recent members found.')}</p>
                     )}
@@ -221,9 +223,9 @@ export function DashboardContent() {
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{t('dashboard:quickActions.title', 'Quick Actions')}</CardTitle>
+                <CardTitle>{t('dashboard:quickActions.title', 'Quick Actions')}</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-4">
+              <CardContent className="grid gap-2">
                 <button
                   onClick={() => openModal("donation")}
                   className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted"
@@ -272,6 +274,18 @@ export function DashboardContent() {
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground" />
                 </button>
+                <button
+                  onClick={() => openModal("aiSummary")}
+                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Wand2 className="h-5 w-5" />
+                    </div>
+                    <div>{t('dashboard:quickActions.aiSummary', 'Generate AI Summary')}</div>
+                  </div>
+                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                </button>
               </CardContent>
             </Card>
           </div>
@@ -279,14 +293,15 @@ export function DashboardContent() {
       )}
 
       {/* Modals */}
-      <NewDonationModal isOpen={activeModal === "donation"} onClose={closeModal} fromDashboard={true} />
-      <NewExpenseModal isOpen={activeModal === "expense"} onClose={closeModal} />
+      <ManualDonationDialog isOpen={activeModal === "donation"} onClose={closeModal} onSuccess={() => handleDataRefresh("new manual donation")} donors={donorsList} />
+      <NewExpenseModal isOpen={activeModal === "expense"} onClose={closeModal} onSuccess={() => handleDataRefresh("new expense")} />
       <AddMemberModal 
         open={activeModal === "member"} 
         onClose={closeModal} 
-        onSuccess={handleAddMemberSuccess} 
+        onSuccess={() => handleDataRefresh("adding member")} 
       />
       <GenerateReportModal isOpen={activeModal === "report"} onClose={closeModal} />
+      <AiSummaryModal isOpen={activeModal === "aiSummary"} onClose={closeModal} />
     </div>
-  )
+  );
 }
