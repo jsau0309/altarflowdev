@@ -52,13 +52,18 @@
   },
   "aiSummaryModal": {
     "title": "Resumen del Informe con IA",
-    "description": "Obtén un resumen de las métricas clave de tu iglesia para el mes actual, generado por IA.",
+    "description": "Explore las métricas clave de su iglesia con información impulsada por IA y chat interactivo.",
     "loading": "Generando tu resumen...",
-    "initialPrompt": "Haz clic en el botón de abajo para generar el resumen de tu informe.",
+    "generatePrompt": "Descubra información sobre el desempeño de su iglesia este mes. Haga clic en 'Generar Resumen' para comenzar.",
     "generateButton": "Generar Resumen",
     "regenerateButton": "Volver a generar",
     "error": {
-      "fetchFailed": "No se pudo generar el resumen."
+      "fetchFailed": "No se pudo generar el resumen.",
+      "noSummaryData": "No se recibieron datos del resumen.",
+      "churchIdMissing": "Falta el ID de la iglesia. Las preguntas de seguimiento están deshabilitadas.",
+      "churchIdMissingFollowup": "No se puede hacer pregunta de seguimiento: Falta el ID de la iglesia.",
+      "followUpFailed": "Error al obtener respuesta: {{statusText}}",
+      "emptyResponse": "Se recibió una respuesta vacía del servidor."
     },
     "summaryTitle": "Aquí tienes tu resumen generado por IA:",
     "sections": {
@@ -66,6 +71,16 @@
       "donations": "💰 Resumen de Donaciones",
       "expenses": "📉 Resumen de Gastos",
       "members": "👥 Actividad de Miembros"
+    },
+    "questions": {
+      "prompt": "Haga una pregunta de seguimiento:",
+      "topDonorsThisMonth": "¿Quiénes fueron los principales donantes este mes?",
+      "mostUsedPaymentMethodThisMonth": "¿Cuál fue el método de pago más utilizado para las donaciones este mes?",
+      "biggestDonationThisMonth": "¿Cuál fue la donación individual más grande este mes (y de quién, si se sabe)?",
+      "expenseTrendLast6Months": "¿Cuál es la tendencia de gastos de los últimos 6 meses?",
+      "donationTrendLast6Months": "¿Cuál es la tendencia de donaciones de los últimos 6 meses?",
+      "activeMembers": "¿Puedes listar nuestros miembros activos?",
+      "recentVisitors": "¿Quiénes son nuestros visitantes más recientes?"
     }
   }
 }

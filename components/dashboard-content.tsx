@@ -47,15 +47,17 @@ export function DashboardContent() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [donorsList, setDonorsList] = useState<DonorFilterItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentChurchId, setCurrentChurchId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const churchId = localStorage.getItem("churchId");
+        const churchIdFromStorage = localStorage.getItem("churchId");
+        setCurrentChurchId(churchIdFromStorage); // Set churchId in state
         const [summaryData, donorsData] = await Promise.all([
           getDashboardSummary(),
-          churchId ? getDistinctDonorsForFilter() : Promise.resolve([] as DonorFilterItem[])
+          churchIdFromStorage ? getDistinctDonorsForFilter() : Promise.resolve([] as DonorFilterItem[])
         ]);
         setDashboardData(summaryData);
         setDonorsList(donorsData);
@@ -301,7 +303,7 @@ export function DashboardContent() {
         onSuccess={() => handleDataRefresh("adding member")} 
       />
       <GenerateReportModal isOpen={activeModal === "report"} onClose={closeModal} />
-      <AiSummaryModal isOpen={activeModal === "aiSummary"} onClose={closeModal} />
+      <AiSummaryModal isOpen={activeModal === "aiSummary"} onClose={closeModal} churchId={currentChurchId || undefined} />
     </div>
   );
 }

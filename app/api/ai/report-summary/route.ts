@@ -46,6 +46,7 @@ Overall Guidelines for all text fields:
 - For any financial numbers, always prefix with a '$' sign (e.g., $5,300).
 - Use commas as thousands separators for numbers (e.g., $5,300, not $5300).
 - If data for 'change from last month' is available and relevant to the field, clearly mention it (e.g., "up from $2,000" or "a decrease of $150").
+- Critically, ensure that the very first word of the text generated for each field is a complete, correctly spelled word, and that all sentences start cleanly without typos or artifacts.
 
 Specific instructions for each field of the 'generate_church_summary' function:
 

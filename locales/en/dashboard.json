@@ -52,13 +52,16 @@
   },
   "aiSummaryModal": {
     "title": "AI Report Summary",
-    "description": "Get an AI-powered summary of your church's key metrics for the current month.",
+    "description": "Explore your church's key metrics with AI-powered insights and interactive chat.",
     "loading": "Generating your summary...",
-    "initialPrompt": "Click the button below to generate your report summary.",
+    "generatePrompt": "Unlock insights into your church's performance this month. Click 'Generate Summary' to begin.",
     "generateButton": "Generate Summary",
     "regenerateButton": "Regenerate",
     "error": {
-      "fetchFailed": "Failed to generate summary."
+      "fetchFailed": "Failed to generate summary.",
+      "churchIdMissingFollowup": "Cannot ask follow-up question: Church ID is missing. Please close and reopen the modal.",
+      "followUpFailed": "Failed to get answer: {{statusText}}",
+      "emptyResponse": "Received an empty response from the server. Please try again."
     },
     "summaryTitle": "Here's your AI-Generated Summary:",
     "sections": {
@@ -66,6 +69,16 @@
       "donations": "💰 Donation Summary",
       "expenses": "📉 Expense Summary",
       "members": "👥 Member Activity"
+    },
+    "questions": {
+      "prompt": "Ask a follow-up question:",
+      "topDonorsThisMonth": "Who were the top donors this month?",
+      "mostUsedPaymentMethodThisMonth": "What was the most used payment method this month?",
+      "biggestDonationThisMonth": "What was the biggest donation this month?",
+      "expenseTrendLast6Months": "What is the expense trend for the last 6 months?",
+      "donationTrendLast6Months": "What is the donation trend for the last 6 months?",
+      "activeMembers": "How many active members are there?",
+      "recentVisitors": "Who were the recent visitors?"
     }
   }
 }
