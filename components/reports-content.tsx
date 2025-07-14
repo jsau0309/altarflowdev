@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Download, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
-import { format } from "date-fns"
+import { format, subYears, isWithinInterval } from "date-fns";
+import { es } from 'date-fns/locale/es';
+import { enUS } from 'date-fns/locale/en-US';
 import { cn } from "@/lib/utils"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
@@ -16,12 +18,22 @@ import { ExpenseCharts } from "./charts/expense-charts"
 import { CampaignCharts } from "./charts/campaign-charts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import LoaderOne from "@/components/ui/loader-one";
-import { Donation, Expense, Campaign, Member } from "@/lib/types"
-
-import { usePathname } from 'next/navigation'
+import { Donation, Expense, Campaign, Member, DonationTransactionFE } from "@/lib/types";
+import { getDonationTransactions } from "../lib/actions/donations.actions";
+import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next'
+import { useOrganization } from "@clerk/nextjs"
 
-export function ReportsContent() {
+interface ReportsContentProps {
+}
+
+interface ReportSummary {
+  totalDonations: number;
+  averageDonation: number;
+  uniqueDonors: number;
+}
+
+export function ReportsContent({ }: ReportsContentProps) {
   const pathname = usePathname()
 
   const [activeTab, setActiveTab] = useState("donations")
@@ -33,11 +45,18 @@ export function ReportsContent() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   // State for data
-  const [donations, setDonations] = useState<Donation[]>([])
+  const [donations, setDonations] = useState<DonationTransactionFE[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [members, setMembers] = useState<Member[]>([])
+  const [reportSummary, setReportSummary] = useState<ReportSummary>({ 
+    totalDonations: 0, 
+    averageDonation: 0, 
+    uniqueDonors: 0 
+  });
+  const [allDonationsForChart, setAllDonationsForChart] = useState<DonationTransactionFE[]>([]);
   const [isLoading, setIsLoading] = useState(true)
+  const [totalDonationsCount, setTotalDonationsCount] = useState(0);
 
   // Pagination state
   const [donationsPerPage, setDonationsPerPage] = useState(10)
@@ -48,35 +67,110 @@ export function ReportsContent() {
   const [campaignsCurrentPage, setCampaignsCurrentPage] = useState(1)
   // Load required namespaces
   const { t, i18n } = useTranslation(['reports', 'common', 'donations', 'expenses', 'campaigns']);
+  const { organization } = useOrganization();
 
   // Fetch data
   useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      // TODO: Replace with actual API calls
-      // For now, we'll just simulate a fetch
-      setDonations([]);
-      setExpenses([]);
-      setCampaigns([]);
-      setMembers([]);
-      console.log("TODO: Fetch report data");
-      setIsLoading(false);
-    }, 500);
-  }, [pathname, dateRange]);
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        if (activeTab === "donations") {
+          // Fetch detailed data for charts and table
+          if (organization) {
+            // Fetch paginated data for the table
+            const tableResult = await getDonationTransactions({
+              clerkOrgId: organization.id,
+              startDate: dateRange.from,
+              endDate: dateRange.to,
+              page: donationsCurrentPage,
+              limit: donationsPerPage,
+            });
+            if (tableResult.donations) {
+              setDonations(tableResult.donations);
+              setTotalDonationsCount(tableResult.totalCount || 0);
+            } else {
+              setDonations([]);
+              setTotalDonationsCount(0);
+            }
 
-  // Filter data based on date range
-  const filteredDonations = donations.filter((donation) => {
-    if (!dateRange.from && !dateRange.to) return true
-    const donationDate = new Date(donation.donationDate)
-    if (dateRange.from && dateRange.to) {
-      return donationDate >= dateRange.from && donationDate <= dateRange.to
-    } else if (dateRange.from) {
-      return donationDate >= dateRange.from
-    } else if (dateRange.to) {
-      return donationDate <= dateRange.to
+            // Fetch all data for the charts, without pagination
+            const chartResult = await getDonationTransactions({
+              clerkOrgId: organization.id,
+              // Fetch a wider range for year-over-year comparison
+              startDate: dateRange.from ? subYears(dateRange.from, 1) : undefined,
+              endDate: dateRange.to,
+            });
+            if (chartResult.donations) {
+              setAllDonationsForChart(chartResult.donations);
+              // Also update the summary based on the full chart data if a date range is applied
+              if (dateRange.from && dateRange.to) {
+                // We must filter the chart's data to *only* the current period for the summary
+                const summaryDonations = chartResult.donations.filter(d => 
+                  isWithinInterval(new Date(d.transactionDate), { start: dateRange.from!, end: dateRange.to! })
+                );
+                const summary = calculateSummary(summaryDonations);
+                setReportSummary(summary);
+              }
+            } else {
+              setAllDonationsForChart([]);
+            }
+          }
+        } else if (activeTab === "expenses") {
+          console.log("TODO: Fetch expense report data for", dateRange);
+          setDonations([]); 
+          setExpenses([]); 
+          setCampaigns([]);
+        } else if (activeTab === "campaigns") {
+          console.log("TODO: Fetch campaign report data for", dateRange);
+          setDonations([]); 
+          setExpenses([]); 
+          setCampaigns([]); 
+        }
+      } catch (error) {
+        console.error("Error fetching report data:", error);
+        // Set empty state on error
+        setDonations([]);
+        setAllDonationsForChart([]);
+        setTotalDonationsCount(0);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [activeTab, dateRange, organization, donationsCurrentPage, donationsPerPage]);
+
+  useEffect(() => {
+    // This effect recalculates the summary whenever the donations data changes.
+    // This should only run when NO date range is active. Otherwise, the summary is calculated
+    // inside fetchData with the full, non-paginated dataset for the selected range.
+    if (!dateRange.from && !dateRange.to) {
+      if (donations.length > 0) {
+        // In the absence of a date range, the summary reflects the currently visible (paginated) donations.
+        // This could be changed to reflect all-time totals if desired, but would require another fetch.
+        const summary = calculateSummary(donations);
+        setReportSummary(summary);
+      } else {
+        // Clear summary if there's no data
+        setReportSummary({ totalDonations: 0, averageDonation: 0, uniqueDonors: 0 });
+      }
     }
-    return true
-  })
+  }, [donations, dateRange.from, dateRange.to]);
+
+  const calculateSummary = (donations: DonationTransactionFE[]) => {
+    const uniqueDonors = new Set(donations.map(donation => donation.donorId)).size;
+    const totalDonations = donations.reduce((sum, donation) => sum + parseFloat(donation.amount), 0);
+    const averageDonation = donations.length ? totalDonations / donations.length : 0;
+
+    return {
+      totalDonations,
+      averageDonation,
+      uniqueDonors,
+    };
+  };
+
+  // Client-side filtering for donations is removed as it's now server-side.
+  // const filteredDonations = donations.filter(...)
 
   const filteredExpenses = expenses.filter((expense) => {
     if (!dateRange.from && !dateRange.to) return true
@@ -94,13 +188,12 @@ export function ReportsContent() {
   const activeCampaigns = campaigns.filter((campaign: Campaign) => campaign.isActive && parseFloat(campaign.goalAmount || '0') > 0)
 
   // Calculate totals
-  const totalDonations = filteredDonations.reduce((sum, donation) => sum + parseFloat(donation.amount || '0'), 0)
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
   // Net income calculation
-  const netIncome = totalDonations - totalExpenses
+  const netIncome = reportSummary.totalDonations - totalExpenses
 
   // Pagination calculations
-  const donationsTotalPages = Math.max(1, Math.ceil(filteredDonations.length / donationsPerPage))
+  const donationsTotalPages = Math.ceil(totalDonationsCount / donationsPerPage);
   const expensesTotalPages = Math.max(1, Math.ceil(filteredExpenses.length / expensesPerPage))
   const campaignsTotalPages = Math.max(1, Math.ceil(activeCampaigns.length / campaignsPerPage))
 
@@ -132,10 +225,9 @@ export function ReportsContent() {
   ])
 
   // Paginated data
-  const paginatedDonations = filteredDonations.slice(
-    (donationsCurrentPage - 1) * donationsPerPage,
-    donationsCurrentPage * donationsPerPage,
-  )
+  const donationsStartIndex = (donationsCurrentPage - 1) * donationsPerPage;
+  const donationsEndIndex = donationsStartIndex + donationsPerPage;
+  const paginatedDonations = donations.slice(donationsStartIndex, donationsEndIndex);
 
   const paginatedExpenses = filteredExpenses.slice(
     (expensesCurrentPage - 1) * expensesPerPage,
@@ -164,7 +256,7 @@ export function ReportsContent() {
   }
 
   // Helper function to format currency using i18n locale
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat(i18n.language, {
       style: "currency",
       currency: "USD", // TODO: Make dynamic
@@ -172,11 +264,41 @@ export function ReportsContent() {
   }
 
   // Helper function to format date using i18n locale
-  const formatDate = (dateString: string) => {
-    // Use require dynamically for date-fns locales
-    const locale = i18n.language === 'es' ? require('date-fns/locale/es') : require('date-fns/locale/en-US');
-    return format(new Date(dateString), "PPP", { locale })
-  }
+  const formatDate = (dateString: string, formatStyle: string = 'PPP'): string => {
+    if (!dateString) return ''; // Guard against undefined or empty dateString
+    const dLocale = i18n.language === 'es' ? es : enUS;
+    return format(new Date(dateString), formatStyle, { locale: dLocale });
+  };
+
+  // Helper function to format date range for CSV title
+  const formatDateRangeForCSV = (from?: Date, to?: Date): string => {
+    const locale = i18n.language === 'es' ? es : enUS; // Determine locale for date formatting
+    if (!from && !to) return t('common:allTime');
+    
+    const fromDate = from ? new Date(from) : null;
+    const toDate = to ? new Date(to) : null;
+
+    if (fromDate && !toDate) return t('common:csvTitles.dateRangeFrom', { fromDate: format(fromDate, 'MMM d, yyyy', { locale }) });
+    if (!fromDate && toDate) return t('common:csvTitles.dateRangeTo', { toDate: format(toDate, 'MMM d, yyyy', { locale }) });
+    
+    if (fromDate && toDate) {
+      if (fromDate.getFullYear() === toDate.getFullYear()) {
+        if (fromDate.getMonth() === toDate.getMonth() && fromDate.getDate() === toDate.getDate()) {
+          return format(fromDate, 'MMM d, yyyy', { locale }); // Single day
+        }
+        // Same year
+        const fromStr = format(fromDate, 'MMM d', { locale });
+        const toStr = format(toDate, 'MMM d, yyyy', { locale });
+        return t('common:csvTitles.dateRange', { fromDate: fromStr, toDate: toStr });
+      } else {
+        // Different years
+        const fromStr = format(fromDate, 'MMM d, yyyy', { locale });
+        const toStr = format(toDate, 'MMM d, yyyy', { locale });
+        return t('common:csvTitles.dateRange', { fromDate: fromStr, toDate: toStr });
+      }
+    }
+    return ''; // Should not happen
+  };
 
   // Helper function to format payment method/category
   const formatDisplayString = (key: string | undefined | null, namespace: 'donations' | 'expenses', prefix: string, fallback: string) => {
@@ -201,14 +323,73 @@ export function ReportsContent() {
 
   // Handle export
   const handleExport = () => {
-    console.log(`Exporting ${activeTab} report as ${exportFormat}`)
-    console.log(
-      `Date range: ${dateRange.from ? formatDate(dateRange.from.toISOString()) : "All"} to ${
-        dateRange.to ? formatDate(dateRange.to.toISOString()) : "Present"
-      }`,
-    )
-    // TODO: Implement actual export logic using jsPDF or papaparse
-  }
+    if (activeTab === "donations" && exportFormat === "csv") {
+      if (!donations || donations.length === 0) {
+        alert(t('reports:reportsContent.noDataToExport'));
+        return;
+      }
+
+      const dateRangeString = formatDateRangeForCSV(dateRange.from, dateRange.to);
+      const combinedTitle = t('common:csvTitles.csvCombinedTitle', { dateRange: dateRangeString });
+
+      const titleRows = [
+        combinedTitle,
+        '' // Add an empty line for spacing after the title
+      ];
+
+      const headers = [
+        t('common:csvHeaders.date'),
+        t('common:csvHeaders.donorName'),
+        t('common:csvHeaders.fundName'),
+        t('common:csvHeaders.paymentMethod'),
+        t('common:csvHeaders.amountUSD'),
+        t('common:csvHeaders.status')
+      ];
+
+      const csvRows = [
+        ...titleRows,
+        headers.join(',')
+      ]; 
+
+      const dLocale = i18n.language === 'es' ? es : enUS; // Determine locale for date formatting
+      donations.forEach(donation => {
+        const row = [
+          `"${formatDate(donation.transactionDate)}"`, // Quote and use locale
+          `"${donation.donorName || t('common:anonymous')}"`, 
+          `"${donation.donationTypeName || t('common:notApplicable')}"`, 
+          `"${donation.paymentMethodType || t('common:notApplicable')}"`, 
+          parseFloat(donation.amount).toFixed(2), // Amount is likely already in dollars
+          `"${donation.status || t('common:unknown')}"` 
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      const csvString = csvRows.join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      if (link.download !== undefined) { 
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'donation_report.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        alert(t('reports:reportsContent.csvExportNotSupported'));
+      }
+    } else if (activeTab === "donations" && exportFormat === "pdf") {
+      console.log("TODO: Implement PDF export for donations");
+      alert(t('reports:reportsContent.pdfExportNotImplemented', { tabName: t('reports:tabs.donations') }));
+    } else if (activeTab === "expenses") {
+      console.log(`TODO: Implement ${exportFormat.toUpperCase()} export for expenses`);
+      alert(t('reports:reportsContent.exportNotImplemented', { exportFormat: exportFormat.toUpperCase(), tabName: t('reports:tabs.expenses') }));
+    } else if (activeTab === "campaigns") {
+      console.log(`TODO: Implement ${exportFormat.toUpperCase()} export for campaigns`);
+      alert(t('reports:reportsContent.exportNotImplemented', { exportFormat: exportFormat.toUpperCase(), tabName: t('reports:tabs.campaigns') }));
+    }
+  };  
 
   // Generate page numbers to display
   const getPageNumbers = (currentPage: number, totalPages: number) => {
@@ -483,8 +664,8 @@ export function ReportsContent() {
         ) : (
           <>
         <TabsContent value="donations" className="space-y-4 pt-4">
-          <DonationCharts
-            donations={filteredDonations}
+          <DonationCharts 
+            donations={allDonationsForChart}
             startDate={dateRange.from}
             endDate={dateRange.to}
             campaigns={campaigns}
@@ -496,10 +677,10 @@ export function ReportsContent() {
                 <CardTitle className="text-sm font-medium">{t('reports:reportsContent.donations.totalTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(totalDonations)}</div>
+                <div className="text-2xl font-bold">{formatCurrency(reportSummary.totalDonations)}</div>
                 <p className="text-xs text-muted-foreground">
                    {/* Use reports namespace */}
-                  {t('reports:reportsContent.donations.totalSubtitle', { count: filteredDonations.length })}
+                  {t('reports:reportsContent.donations.totalDonationsSubtitle', { count: donations.length })}
                 </p>
               </CardContent>
             </Card>
@@ -510,7 +691,7 @@ export function ReportsContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(filteredDonations.length ? totalDonations / filteredDonations.length : 0)}
+                  {formatCurrency(donations.length ? reportSummary.totalDonations / donations.length : 0)}
                 </div>
                  {/* Use reports namespace */}
                 <p className="text-xs text-muted-foreground">{t('reports:reportsContent.donations.averageSubtitle')}</p>
@@ -522,7 +703,7 @@ export function ReportsContent() {
                 <CardTitle className="text-sm font-medium">{t('reports:reportsContent.donations.uniqueDonorsTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{new Set(filteredDonations.map((d: Donation) => d.memberId)).size}</div>
+                <div className="text-2xl font-bold">{reportSummary.uniqueDonors}</div>
                  {/* Use reports namespace */}
                 <p className="text-xs text-muted-foreground">{t('reports:reportsContent.donations.uniqueDonorsSubtitle')}</p>
               </CardContent>
@@ -534,7 +715,7 @@ export function ReportsContent() {
               <CardTitle>{t('reports:reportsContent.donations.recordsTitle')}</CardTitle>
               <CardDescription>
                  {/* Use reports and common namespaces */}
-                {t('reports:reportsContent.showingCount', { count: filteredDonations.length })}
+                {t('reports:reportsContent.showingCount', { count: donations.length })}
                 {dateRange.from || dateRange.to
                   ? t('reports:reportsContent.dateRangeSuffix', {
                       start: dateRange.from ? formatDate(dateRange.from.toISOString()) : t('common:allTime'),
@@ -548,23 +729,21 @@ export function ReportsContent() {
                 <TableHeader>
                   <TableRow>
                      {/* Use donations namespace */}
-                    <TableHead>{t('donations:date')}</TableHead>
                     <TableHead>{t('donations:donor')}</TableHead>
-                    <TableHead>{t('donations:campaign')}</TableHead>
-                    <TableHead className="hidden md:table-cell">{t('donations:method')}</TableHead>
+                    <TableHead>{t('donations:fund')}</TableHead>
+                    <TableHead>{t('donations:paymentMethod')}</TableHead>
+                    <TableHead>{t('donations:date')}</TableHead>
                     <TableHead className="text-right">{t('donations:amount')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedDonations.length > 0 ? (
-                    paginatedDonations.map((donation: Donation) => (
+                    paginatedDonations.map((donation) => (
                       <TableRow key={donation.id}>
-                        <TableCell>{formatDate(donation.donationDate)}</TableCell>
-                        <TableCell>{getDonorName(donation.memberId)}</TableCell>
-                        <TableCell>{getCampaignName(donation.campaignId)}</TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {t('common:notAvailable')}
-                        </TableCell>
+                        <TableCell>{donation.donorName || t('common:anonymous')}</TableCell>
+                        <TableCell>{donation.donationTypeName}</TableCell>
+                        <TableCell>{formatDisplayString(donation.paymentMethodType, 'donations', 'paymentMethods', 'N/A')}</TableCell>
+                        <TableCell>{formatDate(donation.transactionDate)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(parseFloat(donation.amount))}</TableCell>
                       </TableRow>
                     ))
@@ -579,7 +758,7 @@ export function ReportsContent() {
                 </TableBody>
               </Table>
             </CardContent>
-            {filteredDonations.length > 0 && (
+            {(donations.length > 0) && (
               <div className="border-t px-4">
                 <InternalTablePagination
                   currentPage={donationsCurrentPage}
@@ -587,7 +766,7 @@ export function ReportsContent() {
                   onPageChange={setDonationsCurrentPage}
                   itemsPerPage={donationsPerPage}
                   onItemsPerPageChange={setDonationsPerPage}
-                  totalItems={filteredDonations.length}
+                  totalItems={totalDonationsCount}
                 />
               </div>
             )}
@@ -595,10 +774,10 @@ export function ReportsContent() {
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4 pt-4">
-          <ExpenseCharts
-            expenses={filteredExpenses}
-            startDate={dateRange.from}
-            endDate={dateRange.to}
+          <ExpenseCharts 
+            expenses={filteredExpenses} 
+            startDate={dateRange.from} 
+            endDate={dateRange.to} 
           />
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
@@ -707,12 +886,11 @@ export function ReportsContent() {
         </TabsContent>
 
         <TabsContent value="campaigns" className="space-y-4 pt-4">
-          <CampaignCharts 
-            donations={filteredDonations} 
-            expenses={filteredExpenses} 
-            campaigns={campaigns} 
+          <DonationCharts 
+            donations={allDonationsForChart} 
+            campaigns={campaigns}
             startDate={dateRange.from} 
-            endDate={dateRange.to} 
+            endDate={dateRange.to}
           />
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
@@ -734,7 +912,7 @@ export function ReportsContent() {
               <CardContent>
                 <div className="text-2xl font-bold">
                    {/* TODO: Add raised calculation */} 
-                  {formatCurrency(filteredDonations.reduce((sum, d) => sum + parseFloat(d.amount || '0'), 0))}
+                  {formatCurrency(reportSummary.totalDonations)}
                 </div>
                  {/* Use reports namespace */}
                 <p className="text-xs text-muted-foreground">{t('reports:reportsContent.campaigns.totalRaisedSubtitle')}</p>

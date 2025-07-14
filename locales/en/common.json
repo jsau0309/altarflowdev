@@ -140,13 +140,27 @@
     "state": "State",
     "zipExample": "12345"
   },
+  "csvHeaders": {
+    "date": "Date",
+    "donorName": "Donor Name",
+    "fundName": "Fund Name",
+    "paymentMethod": "Payment Method",
+    "amountUSD": "Amount (USD)",
+    "status": "Status"
+  },
+  "csvTitles": {
+    "dateRange": "From {{fromDate}} to {{toDate}}",
+    "dateRangeFrom": "From {{fromDate}}",
+    "dateRangeTo": "Until {{toDate}}",
+    "csvCombinedTitle": "Donation Report ( {{dateRange}} ) - Powered by Altarflow"
+  },
   "deleteMemberConfirmation": {
     "title": "Delete Member?",
     "description": "Are you sure you want to delete this member? This action cannot be undone."
   },
   "updateMemberError": {
     "title": "Update Error",
-    "description": "Failed to update member information. Please try again."
+    "description": "Could not update member information. Please try again."
   },
   "updateMemberSuccess": {
     "title": "Member Updated",
@@ -171,5 +185,17 @@
   "noPhoneNumber": "No phone",
   "noEmailAddress": "No Email",
   "searchPlaceholderMembers": "Search members...",
-  "retry": "Try Again"
-} 
+  "retry": "Try Again",
+  "saveChanges": "Save Changes",
+  "unknownChurch": "Unknown Church",
+  "charts": {
+    "donationCharts": {
+      "trendsTitle": "Donation Trends",
+      "currentYearLegend": "Current Year {{year}}: ",
+      "previousYearLegend": "Previous Year {{year}}: ",
+      "unknownFund": "Unknown Fund",
+      "amountLabel": "Amount",
+      "donationsLegend": "Donations"
+    }
+  }
+}

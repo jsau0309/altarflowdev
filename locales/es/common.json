@@ -138,6 +138,20 @@
     "state": "Estado",
     "zipExample": "12345"
   },
+  "csvHeaders": {
+    "date": "Fecha",
+    "donorName": "Nombre Donante",
+    "fundName": "Fondo",
+    "paymentMethod": "Método de Pago",
+    "amountUSD": "Monto (USD)",
+    "status": "Estado"
+  },
+  "csvTitles": {
+    "dateRange": "Desde {{fromDate}} hasta {{toDate}}",
+    "dateRangeFrom": "Desde {{fromDate}}",
+    "dateRangeTo": "Hasta {{toDate}}",
+    "csvCombinedTitle": "Reporte de Donaciones ( {{dateRange}} ) - Impulsado por Altarflow"
+  },
   "deleteMemberConfirmation": {
     "title": "¿Eliminar Miembro?",
     "description": "¿Estás seguro de que quieres eliminar a este miembro? Esta acción no se puede deshacer."
@@ -171,15 +185,18 @@
   "notApplicable": "N/A",
   "noPhoneNumber": "Sin teléfono",
   "noEmailAddress": "Sin correo",
-
   "searchPlaceholderMembers": "Buscar miembros...",
   "retry": "Intentar de Nuevo",
-  "saveChanges": "Guardar Cambios"
-} 
-
-
-
-
-
-
-
+  "saveChanges": "Guardar Cambios",
+  "unknownChurch": "Iglesia Desconocida",
+  "charts": {
+    "donationCharts": {
+      "trendsTitle": "Tendencias de Donaciones",
+      "currentYearLegend": "Año Actual {{year}}: ",
+      "previousYearLegend": "Año Anterior {{year}}: ",
+      "unknownFund": "Fondo Desconocido",
+      "amountLabel": "Monto",
+      "donationsLegend": "Donaciones"
+    }
+  }
+}

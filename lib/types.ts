@@ -166,7 +166,13 @@ export type DonorDetailsData = {
   }>;
 };
 
-
+// Interface for the data returned by the function
+export interface DonationReportData {
+  totalDonations: number;
+  averageDonation: number;
+  uniqueDonors: number;
+  donationRecords: DonationTransactionFE[];
+}
 
 export type DonationTransactionFE = Omit<Donation, 'amount'> & {
   amount: string; // amount is a string because Decimal is not supported in client components

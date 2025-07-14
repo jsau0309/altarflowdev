@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { Prisma } from "@prisma/client";
 
 /**
  * @description Get aggregated data for the AI summary report.
@@ -554,6 +555,146 @@ export async function getVisitorList(churchId: string): Promise<Array<{ id: stri
   }
 }
 
+// Interface for the data returned by the function
+export interface DonationReportData {
+  totalDonations: number;
+  averageDonation: number;
+  uniqueDonors: number;
+  donationRecords: Array<{
+    id: string;
+    transactionDate: Date;
+    donorName: string | null; // Combined firstName and lastName
+    donorId: string | null;
+    fundName: string | null; // From DonationType.name
+    fundId: string | null;   // From DonationType.id
+    paymentMethodType: string | null; // From DonationTransaction.paymentMethodType (String?)
+    source: string | null; // e.g., 'stripe', 'manual'
+    amount: number; // Already divided by 100
+    status: string; // From DonationTransaction.status (String)
+  }>;
+}
+
+export async function getDonationReportData(
+  startDate?: Date,
+  endDate?: Date
+): Promise<DonationReportData> {
+  const { orgId } = await auth();
+  if (!orgId) {
+    console.warn("getDonationReportData called without authentication. Returning empty data.");
+    return {
+      totalDonations: 0,
+      averageDonation: 0,
+      uniqueDonors: 0,
+      donationRecords: [],
+    };
+  }
+
+  try {
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: orgId },
+      select: { id: true },
+    });
+
+    if (!church) {
+      console.warn(`No church found for orgId: ${orgId} in getDonationReportData.`);
+      return {
+        totalDonations: 0,
+        averageDonation: 0,
+        uniqueDonors: 0,
+        donationRecords: [],
+      };
+    }
+    const churchId = church.id;
+
+    const dateFilter: Prisma.DateTimeFilter = {};
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      dateFilter.gte = start;
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+
+    const whereClause: Prisma.DonationTransactionWhereInput = {
+      churchId,
+      OR: [{ status: 'succeeded' }, { source: 'manual' }],
+      ...( (startDate || endDate) && { transactionDate: dateFilter } )
+    };
+
+    const transactions = await prisma.donationTransaction.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        transactionDate: true,
+        amount: true,
+        paymentMethodType: true,
+        source: true,
+        status: true,
+        donor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        donationType: { // Changed from 'donation' to 'donationType'
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        transactionDate: 'desc',
+      },
+    });
+
+    let totalDonationsAmount = 0;
+    const donorIds = new Set<string>();
+
+    const donationRecords = transactions.map(t => {
+      const amountInDollars = t.amount / 100;
+      totalDonationsAmount += amountInDollars;
+      if (t.donor?.id) {
+        donorIds.add(t.donor.id);
+      }
+      return {
+        id: t.id,
+        transactionDate: t.transactionDate,
+        donorName: t.donor ? `${t.donor.firstName || ''} ${t.donor.lastName || ''}`.trim() || 'Anonymous' : 'Anonymous',
+        donorId: t.donor?.id || null,
+        fundName: t.donationType?.name || null,
+        fundId: t.donationType?.id || null,
+        paymentMethodType: t.paymentMethodType,
+        source: t.source,
+        amount: amountInDollars,
+        status: t.status,
+      };
+    });
+
+    const uniqueDonors = donorIds.size;
+    const averageDonation = transactions.length > 0 ? totalDonationsAmount / transactions.length : 0;
+
+    return {
+      totalDonations: totalDonationsAmount,
+      averageDonation,
+      uniqueDonors,
+      donationRecords,
+    };
+
+  } catch (error) {
+    console.error("Error fetching donation report data:", error);
+    return {
+      totalDonations: 0,
+      averageDonation: 0,
+      uniqueDonors: 0,
+      donationRecords: [],
+    };
+  }
+}
 
 
 
