@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // import { cookies } from 'next/headers'; // <-- Remove if not used
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@clerk/nextjs/server'; // <-- Use getAuth
+import { revalidateTag } from 'next/cache';
 
 // Removed Supabase getUser helper function
 
@@ -106,6 +107,10 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Invalidate dashboard cache after creating expense
+    console.log(`[API] Expense created successfully. Invalidating cache for org: ${orgId}`);
+    revalidateTag(`dashboard-${orgId}`);
 
     return NextResponse.json(newExpense, { status: 201 });
 

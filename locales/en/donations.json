@@ -31,7 +31,9 @@
   },
   "types": {
     "oneTime": "One-time",
-    "recurring": "Recurring"
+    "recurring": "Recurring",
+    "tithe": "Tithe",
+    "offering": "Offering"
   },
   "frequencies": {
     "weekly": "Weekly",
@@ -250,5 +252,33 @@
     "errorLoadingFailed": "Failed to load donor details. Please try again.",
     "noDataAvailable": "No donor data available."
   },
-  "noMembersFound": "No members found for this church"
+  "noMembersFound": "No members found for this church",
+  "donationDetails": {
+    "title": "Donation Details",
+    "editableFor": "Editable for",
+    "locked": "This donation is locked (editing period expired)",
+    "editDonation": "Edit Donation",
+    "donationInfo": "Donation Information",
+    "donorInfo": "Donor Information",
+    "editHistory": "Edit History",
+    "lastEdited": "Last edited",
+    "editReason": "Edit Reason",
+    "transactionDetails": "Transaction Details",
+    "transactionId": "Transaction ID",
+    "processed": "Processed",
+    "source": "Source",
+    "status": "Status"
+  },
+  "editDonation": {
+    "title": "Edit Manual Donation",
+    "description": "Make changes to this manual donation. All edits are tracked and logged.",
+    "reasonForEdit": "Reason for Edit",
+    "typoInAmount": "Typo in amount",
+    "wrongDonor": "Wrong donor selected",
+    "incorrectDate": "Incorrect date",
+    "other": "Other",
+    "reasonPlaceholder": "Please describe the reason for this edit...",
+    "reasonDescription": "This reason will be stored in the edit history",
+    "editSuccess": "Donation updated successfully"
+  }
 }

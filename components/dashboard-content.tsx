@@ -13,7 +13,8 @@ import { AddMemberModal } from "@/components/members/add-member-modal"
 import { GenerateReportModal } from "@/components/modals/generate-report-modal";
 import { AiSummaryModal } from "@/components/modals/ai-summary-modal";
 import LoaderOne from "@/components/ui/loader-one";
-import { getDashboardSummary } from "@/lib/actions/reports.actions";
+import { getDashboardSummaryOptimized } from "@/lib/actions/dashboard-optimized.actions";
+import { useOrganization } from "@clerk/nextjs";
 
 // Define a basic structure for the dashboard data
 interface DashboardData {
@@ -43,26 +44,34 @@ interface DashboardData {
 
 export function DashboardContent() {
   const { t } = useTranslation(['dashboard', 'donations']);
+  const { organization } = useOrganization();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [donorsList, setDonorsList] = useState<DonorFilterItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentChurchId, setCurrentChurchId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const churchIdFromStorage = localStorage.getItem("churchId");
-        setCurrentChurchId(churchIdFromStorage); // Set churchId in state
         const [summaryData, donorsData] = await Promise.all([
-          getDashboardSummary(),
+          getDashboardSummaryOptimized(),
           churchIdFromStorage ? getDistinctDonorsForFilter() : Promise.resolve([] as DonorFilterItem[])
         ]);
-        setDashboardData(summaryData);
+        
+        if (!summaryData) {
+          setError("Failed to load dashboard data. Please try refreshing the page.");
+        } else {
+          setDashboardData(summaryData);
+        }
+        
         setDonorsList(donorsData);
       } catch (error) {
         console.error("Failed to fetch dashboard data or donors:", error);
+        setError("An error occurred while loading the dashboard.");
       } finally {
         setIsLoading(false);
       }
@@ -84,7 +93,7 @@ export function DashboardContent() {
     console.log(`Refreshing dashboard data${contextMessage}...`);
     // setIsLoading(true); // Consider uncommenting if refresh is slow
     try {
-      const data = await getDashboardSummary();
+      const data = await getDashboardSummaryOptimized();
       setDashboardData(data);
     } catch (error) {
       console.error(`Failed to refresh dashboard data${contextMessage}:`, error);
@@ -110,6 +119,19 @@ export function DashboardContent() {
       {isLoading ? (
         <div className="flex justify-center items-center h-[500px]">
           <LoaderOne />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center h-[400px] text-center">
+          <div className="text-destructive mb-4">
+            <FileText className="h-12 w-12 mx-auto mb-2" />
+            <p className="text-lg font-semibold">{error}</p>
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            {t('common:retry', 'Retry')}
+          </button>
         </div>
       ) : (
         <>
@@ -303,7 +325,7 @@ export function DashboardContent() {
         onSuccess={() => handleDataRefresh("adding member")} 
       />
       <GenerateReportModal isOpen={activeModal === "report"} onClose={closeModal} />
-      <AiSummaryModal isOpen={activeModal === "aiSummary"} onClose={closeModal} churchId={currentChurchId || undefined} />
+      <AiSummaryModal isOpen={activeModal === "aiSummary"} onClose={closeModal} churchId={organization?.id} />
     </div>
   );
 }

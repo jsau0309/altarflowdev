@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Filter, Plus, Users, X, DollarSign, ChevronsUpDown, Check } from "lucide-react"
+import { Search, Filter, Plus, Users, X, DollarSign, ChevronsUpDown, Check, Edit3, Lock } from "lucide-react"
 import { format, parseISO } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -273,6 +273,25 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
     setSelectedDonationTypes([]);
   };
 
+  // Helper function to normalize payment method for translation key
+  const getPaymentMethodKey = (method: string) => {
+    // Convert various formats to translation keys
+    const methodMap: Record<string, string> = {
+      'Bank Transfer': 'bankTransfer',
+      'banktransfer': 'bankTransfer',  // Handle lowercase no space
+      'bankTransfer': 'bankTransfer',  // Handle camelCase
+      'Credit/Debit Card': 'card',
+      'card': 'card',
+      'cash': 'cash',
+      'check': 'check',
+      'other': 'other',
+      'Cash': 'cash',
+      'Check': 'check',
+      'Other': 'other'
+    };
+    return methodMap[method] || method;
+  };
+
   const getActiveFilterCount = () => {
     let count = 0;
     if (date) count++;
@@ -364,18 +383,13 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                   {t('donations:donationsContent.allDonations.description', 'View, search, and filter all donations')}
                 </CardDescription>
               </div>
-              <Button onClick={handleNewDonationClick} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                {t('donations:newDonation', 'New Donation')}
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-end gap-2">
+              
+              <div className="flex gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="flex items-center gap-2">
                       <Filter className="h-4 w-4" />
-                      {t('donations:donationsContent.filter.title', 'Filter')}
+                      {t('donations:donationsContent.filter.title', 'Filter Donations')}
                       {getActiveFilterCount() > 0 && <Badge>{getActiveFilterCount()}</Badge>}
                     </Button>
                   </PopoverTrigger>
@@ -401,24 +415,38 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                             <Label>{t('donations:type', 'Type')}</Label>
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <Checkbox id="one-time" checked={selectedDonationTypes.includes('one-time')} onCheckedChange={() => handleDonationTypeFilterChange('one-time')} />
-                                <Label htmlFor="one-time">{t('donations:types.oneTime', 'One-time')}</Label>
+                                <Checkbox id="tithe" checked={selectedDonationTypes.includes('Tithe')} onCheckedChange={() => handleDonationTypeFilterChange('Tithe')} />
+                                <Label htmlFor="tithe">{t('donations:types.tithe', 'Tithe')}</Label>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Checkbox id="recurring" checked={selectedDonationTypes.includes('recurring')} onCheckedChange={() => handleDonationTypeFilterChange('recurring')} />
-                                <Label htmlFor="recurring">{t('donations:types.recurring', 'Recurring')}</Label>
+                                <Checkbox id="offering" checked={selectedDonationTypes.includes('Offering')} onCheckedChange={() => handleDonationTypeFilterChange('Offering')} />
+                                <Label htmlFor="offering">{t('donations:types.offering', 'Offering')}</Label>
                               </div>
                             </div>
                           </div>
                           <div className="space-y-2">
                             <Label>{t('donations:method', 'Method')}</Label>
                             <div className="space-y-1">
-                              {Object.entries(t('donations:methods', { returnObjects: true })).map(([key, value]) => (
-                                <div key={key} className="flex items-center gap-2">
-                                  <Checkbox id={key} checked={selectedDonationMethods.includes(key)} onCheckedChange={() => handleDonationMethodFilterChange(key)} />
-                                  <Label htmlFor={key}>{value as string}</Label>
-                                </div>
-                              ))}
+                              <div className="flex items-center gap-2">
+                                <Checkbox id="cash" checked={selectedDonationMethods.includes('cash')} onCheckedChange={() => handleDonationMethodFilterChange('cash')} />
+                                <Label htmlFor="cash">{t('donations:methods.cash', 'Cash')}</Label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Checkbox id="check" checked={selectedDonationMethods.includes('check')} onCheckedChange={() => handleDonationMethodFilterChange('check')} />
+                                <Label htmlFor="check">{t('donations:methods.check', 'Check')}</Label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Checkbox id="bankTransfer" checked={selectedDonationMethods.includes('bankTransfer')} onCheckedChange={() => handleDonationMethodFilterChange('bankTransfer')} />
+                                <Label htmlFor="bankTransfer">{t('donations:methods.bankTransfer', 'Bank Transfer')}</Label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Checkbox id="other" checked={selectedDonationMethods.includes('other')} onCheckedChange={() => handleDonationMethodFilterChange('other')} />
+                                <Label htmlFor="other">{t('donations:methods.other', 'Other')}</Label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Checkbox id="card" checked={selectedDonationMethods.includes('card')} onCheckedChange={() => handleDonationMethodFilterChange('card')} />
+                                <Label htmlFor="card">{t('donations:methods.card', 'Credit/Debit Card')}</Label>
+                              </div>
                             </div>
                           </div>
                           <div className="space-y-2">
@@ -470,7 +498,14 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                     </div>
                   </PopoverContent>
                 </Popover>
+                
+                <Button onClick={handleNewDonationClick} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  {t('donations:newDonation', 'New Donation')}
+                </Button>
               </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
 
               {getActiveFilterCount() > 0 && (
                 <div className="flex items-center gap-2 mb-4">
@@ -495,18 +530,43 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                               <TableHead>{t('donations:method', 'Method')}</TableHead>
                               <TableHead>{t('donations:type', 'Type')}</TableHead>
                               <TableHead className="text-right">{t('donations:amount', 'Amount')}</TableHead>
+                              <TableHead className="text-center w-[50px]">Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {donations.map((donation) => (
-                              <TableRow key={donation.id} onClick={() => handleViewDonationDetails(donation.id)} className="cursor-pointer">
-                                <TableCell>{format(parseISO(donation.transactionDate), 'PP')}</TableCell>
-                                <TableCell>{donation.donorName}</TableCell>
-                                <TableCell>{t(`donations:methods.${donation.paymentMethodType}`, donation.paymentMethodType)}</TableCell>
-                                <TableCell>{donation.donationTypeName}</TableCell>
-                                <TableCell className="text-right">${parseFloat(donation.amount).toFixed(2)}</TableCell>
-                              </TableRow>
-                            ))}
+                            {donations.map((donation) => {
+                              // Check if donation is editable (manual and within 24 hours)
+                              const isManual = donation.source === 'manual';
+                              // Use processedAt if available, otherwise use transactionDate
+                              const referenceDate = donation.processedAt || donation.transactionDate;
+                              const createdAt = new Date(referenceDate);
+                              const now = new Date();
+                              const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+                              const isEditable = isManual && hoursSinceCreation <= 24;
+                              
+                              return (
+                                <TableRow key={donation.id} onClick={() => handleViewDonationDetails(donation.id)} className="cursor-pointer">
+                                  <TableCell>{format(parseISO(donation.transactionDate), 'PP')}</TableCell>
+                                  <TableCell>{donation.donorName}</TableCell>
+                                  <TableCell>{t(`donations:methods.${getPaymentMethodKey(donation.paymentMethodType)}`, donation.paymentMethodType)}</TableCell>
+                                  <TableCell>{donation.donationTypeName}</TableCell>
+                                  <TableCell className="text-right">${parseFloat(donation.amount).toFixed(2)}</TableCell>
+                                  <TableCell className="text-center">
+                                    {isManual ? (
+                                      isEditable ? (
+                                        <div title="Editable">
+                                          <Edit3 className="h-4 w-4 text-blue-600 inline" />
+                                        </div>
+                                      ) : (
+                                        <div title="Locked">
+                                          <Lock className="h-4 w-4 text-gray-400 inline" />
+                                        </div>
+                                      )
+                                    ) : null}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
@@ -608,6 +668,10 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
           isOpen={showDonationDetails}
           onClose={() => setShowDonationDetails(false)}
           donationId={selectedDonationId}
+          onDonationUpdated={() => {
+            // Refresh donations list when a donation is edited
+            fetchDonations();
+          }}
         />
       )}
       {selectedDonorIdForDetails && (

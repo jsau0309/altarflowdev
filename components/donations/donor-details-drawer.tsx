@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { User, Mail, Phone, Edit, CreditCard, FileText, Home, Loader2, AlertTriangle } from "lucide-react"
+import { User, Mail, Phone, CreditCard, FileText, Home, Loader2, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { EditDonorModal } from "@/components/modals/edit-donor-modal"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getDonorDetails } from "@/lib/actions/donors.actions"
 import type { DonorDetailsData } from "@/lib/types";
@@ -24,7 +23,6 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
   const { t } = useTranslation('donations');
   const { t: tCommon } = useTranslation('common');
   const [activeTab, setActiveTab] = useState("details")
-  const [showEditModal, setShowEditModal] = useState(false)
   const [donorData, setDonorData] = useState<DonorDetailsData | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
@@ -57,17 +55,6 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
     }
   }, [donorId, isOpen])
 
-  const handleEditClick = () => {
-    if (donorData) {
-      setShowEditModal(true)
-    }
-  }
-
-  const handleEditModalClose = () => {
-    setShowEditModal(false)
-    // Potentially refetch data if edits were made, or rely on optimistic updates
-    // For now, just closes modal. Refetch can be added if EditDonorModal signals success.
-  }
 
   const totalDonated = donorData?.donations.reduce((sum, donation) => sum + parseFloat(donation.amount), 0) ?? 0
 
@@ -260,24 +247,11 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <SheetContent className="sm:max-w-md overflow-y-auto">
           <SheetHeader className="space-y-0 pb-2 border-b">
-            <div className="flex justify-between items-center">
-              <SheetTitle>{t('viewDonorDetails.title', 'Donor Details')}</SheetTitle>
-              {donorData && !isLoading && !error && (
-                <div className="pr-8">
-                  <Button variant="outline" size="sm" className="gap-1" onClick={handleEditClick} disabled={!donorData}>
-                    <Edit className="h-3.5 w-3.5" />
-                    <span>{t('viewDonorDetails.editButtonLabel', 'Edit')}</span>
-                  </Button>
-                </div>
-              )}
-            </div>
+            <SheetTitle>{t('viewDonorDetails.title', 'Donor Details')}</SheetTitle>
           </SheetHeader>
           {renderContent()}
         </SheetContent>
       </Sheet>
-      {showEditModal && donorData && (
-        <EditDonorModal isOpen={showEditModal} onClose={handleEditModalClose} donor={donorData} currentChurchId={donorData?.churchId || null} />
-      )}
     </>
   )
 }

@@ -1,156 +1,324 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { FileImage, Calendar, Target, CreditCard, FileText } from "lucide-react"
+import { DollarSign, Loader2, AlertTriangle, Edit, Clock, Lock, History } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
+import { useTranslation } from "react-i18next"
+import { getDonationById, type DonationWithEditHistory } from "@/lib/actions/get-donation-by-id.action"
+import { isDonationEditable } from "@/lib/actions/donation-edit.actions"
+import { EditDonationDialog } from "./edit-donation-dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface DonationDetailsDrawerProps {
   isOpen: boolean
   onClose: () => void
   donationId: string | null
+  onDonationUpdated?: () => void
 }
 
-export function DonationDetailsDrawer({ isOpen, onClose, donationId }: DonationDetailsDrawerProps) {
-  if (!donationId) return null
+export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationUpdated }: DonationDetailsDrawerProps) {
+  const { t } = useTranslation(['donations', 'common'])
+  const [donation, setDonation] = useState<DonationWithEditHistory | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isEditable, setIsEditable] = useState(false)
+  const [editTimeRemaining, setEditTimeRemaining] = useState<string | null>(null)
+  const [showEditDialog, setShowEditDialog] = useState(false)
 
-  // const donation = mockDataService.getDonation(donationId) // TODO: Implement real data fetching
-  // if (!donation) return null // This will make the component render null until data fetching is added
-  const donation = null; // Placeholder to allow build to pass, component will render null
-  if (!donation) return null;
+  useEffect(() => {
+    if (isOpen && donationId) {
+      fetchDonationDetails()
+    } else if (!isOpen) {
+      // Reset state when drawer closes
+      setDonation(null)
+      setIsLoading(false)
+      setError(null)
+      setIsEditable(false)
+      setEditTimeRemaining(null)
+    }
+  }, [isOpen, donationId])
 
-  // const donor = mockDataService.getMember(donation.donorId) // TODO: Implement real data fetching
-  // const campaign = mockDataService.getCampaign(donation.campaignId) // TODO: Implement real data fetching
-  const donor = null; // Placeholder
-  const campaign = null; // Placeholder
+  const fetchDonationDetails = async () => {
+    if (!donationId) return
 
-  /* TODO: Implement real data fetching and uncomment below
-  const donationDate = new Date(donation.date)
+    setIsLoading(true)
+    setError(null)
 
-  // Format donation method to be more readable
-  const formatDonationMethod = (method: string) => {
-    return method
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ")
+    try {
+      // Fetch the specific donation
+      const foundDonation = await getDonationById(donationId)
+      
+      if (foundDonation) {
+        setDonation(foundDonation)
+        
+        // Check if editable (only for manual donations)
+        if (foundDonation.source === 'manual') {
+          const editableStatus = await isDonationEditable(donationId)
+          setIsEditable(editableStatus.editable)
+          setEditTimeRemaining(editableStatus.timeRemaining || null)
+        }
+      } else {
+        setError(t('common:errors.notFound', 'Donation not found'))
+      }
+    } catch (err) {
+      console.error("Failed to fetch donation details:", err)
+      setError(t('common:errors.fetchFailed', 'Failed to load donation details'))
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-md overflow-y-auto">
-        <SheetHeader className="space-y-0 pb-2 border-b">
-          <SheetTitle>Donation Details</SheetTitle>
-        </SheetHeader>
+  const handleEditSuccess = () => {
+    setShowEditDialog(false)
+    fetchDonationDetails() // Refresh the drawer data
+    onDonationUpdated?.() // Notify parent to refresh list
+  }
 
-        <div className="py-6">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h2 className="text-2xl font-bold">${donation.amount.toLocaleString()}</h2>
-              <p className="text-muted-foreground">
-                {format(donationDate, "MMMM d, yyyy")} at {format(donationDate, "h:mm a")}
-              </p>
-            </div>
-            <Badge variant={donation.isDigital ? "default" : "outline"}>
-              {formatDonationMethod(donation.paymentMethod)}
-            </Badge>
-          </div>
+  const getPaymentMethodDisplay = (method: string) => {
+    // Normalize payment method for translation key
+    const methodMap: Record<string, string> = {
+      'Bank Transfer': 'bankTransfer',
+      'banktransfer': 'bankTransfer',  // Handle lowercase no space
+      'bankTransfer': 'bankTransfer',  // Handle camelCase
+      'Credit/Debit Card': 'card',
+      'card': 'card',
+      'cash': 'cash',
+      'check': 'check',
+      'other': 'other',
+      'Cash': 'cash',
+      'Check': 'check',
+      'Other': 'other'
+    };
+    const translationKey = methodMap[method] || method;
+    return t(`donations:methods.${translationKey}`, method)
+  }
 
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <h3 className="text-sm font-medium text-muted-foreground">Campaign</h3>
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{campaign?.name || "Unknown Campaign"}</span>
-              </div>
-              {campaign?.description && <p className="text-sm text-muted-foreground">{campaign.description}</p>}
-            </div>
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'succeeded':
+        return 'default'
+      case 'pending':
+        return 'secondary'
+      case 'failed':
+        return 'destructive'
+      default:
+        return 'outline'
+    }
+  }
 
-            <div className="space-y-1">
-              <h3 className="text-sm font-medium text-muted-foreground">Donation Method</h3>
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                <span>{formatDonationMethod(donation.paymentMethod)}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {donation.isDigital ? "Processed electronically" : "Processed manually"}
-              </p>
-            </div>
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      )
+    }
 
-            {donor && (
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">Donor</h3>
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[400px]">
+          <AlertTriangle className="h-8 w-8 text-destructive mb-2" />
+          <p className="text-center text-destructive">{error}</p>
+        </div>
+      )
+    }
+
+    if (!donation) {
+      return null
+    }
+
+    return (
+      <ScrollArea className="h-[calc(100vh-120px)]">
+        <div className="space-y-6 pr-4 pt-4">
+          {/* Edit Status Banner */}
+          {donation.source === 'manual' && (
+            <div className={`p-3 rounded-lg ${isEditable ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'}`}>
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span>
-                    {donor.firstName} {donor.lastName}
-                  </span>
+                  {isEditable ? (
+                    <>
+                      <Clock className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">
+                        {t('donations:donationDetails.editableFor')} {editTimeRemaining}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 text-gray-600" />
+                      <span className="text-sm font-medium text-gray-700">
+                        {t('donations:donationDetails.locked')}
+                      </span>
+                    </>
+                  )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => {
-                    // This would navigate to the member details page
-                    // For now, we'll just close the drawer
-                    onClose()
-                  }}
-                >
-                  View Donor Profile
-                </Button>
+                {isEditable && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setShowEditDialog(true)}
+                    className="gap-1"
+                  >
+                    <Edit className="h-3 w-3" />
+                    {t('donations:donationDetails.editDonation')}
+                  </Button>
+                )}
               </div>
-            )}
+            </div>
+          )}
 
-            <div className="space-y-1">
-              <h3 className="text-sm font-medium text-muted-foreground">Date & Time</h3>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {format(donationDate, "MMMM d, yyyy")} at {format(donationDate, "h:mm a")}
-                </span>
+          {/* Main Details */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">{t('donations:donationDetails.donationInfo')}</h3>
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Amount</span>
+                  <span className="font-medium text-lg">${donation.amount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Type</span>
+                  <span>{donation.donationTypeName}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Date</span>
+                  <span>{format(new Date(donation.transactionDate), 'PPP')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Method</span>
+                  <span>{getPaymentMethodDisplay(donation.paymentMethodType)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{t('donations:donationDetails.status')}</span>
+                  <Badge variant={getStatusBadgeVariant(donation.status)}>
+                    {donation.status}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{t('donations:donationDetails.source')}</span>
+                  <Badge variant={donation.source === 'manual' ? 'secondary' : 'default'}>
+                    {donation.source}
+                  </Badge>
+                </div>
               </div>
             </div>
 
-            {donation.notes && (
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
-                <div className="flex items-start gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <p className="text-sm">{donation.notes}</p>
+            <Separator />
+
+            {/* Donor Details */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">{t('donations:donationDetails.donorInfo')}</h3>
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Name</span>
+                  <span>{donation.donorName || t('common:anonymous', 'Anonymous')}</span>
                 </div>
+                {donation.donorEmail && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Email</span>
+                    <span className="text-sm">{donation.donorEmail}</span>
+                  </div>
+                )}
               </div>
+            </div>
+
+            {/* Edit History */}
+            {donation.source === 'manual' && donation.updatedAt !== donation.createdAt && (
+              <>
+                <Separator />
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <History className="h-4 w-4" />
+                    <h3 className="text-lg font-semibold">{t('donations:donationDetails.editHistory')}</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">
+                      {t('donations:donationDetails.lastEdited')}: {format(new Date(donation.updatedAt), 'PPp')}
+                    </div>
+                    {donation.editReason && (
+                      <div className="p-3 bg-gray-50 rounded-md">
+                        <p className="text-sm font-medium">{t('donations:donationDetails.editReason')}:</p>
+                        <p className="text-sm text-muted-foreground mt-1">{donation.editReason}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
 
-            {donation.receiptUrl && (
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">Receipt</h3>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <FileImage className="h-4 w-4" />
-                      View Receipt
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <div className="flex flex-col items-center">
-                      <h3 className="text-lg font-semibold mb-4">Donation Receipt</h3>
-                      <div className="border rounded-md overflow-hidden">
-                        <img
-                          src={donation.receiptUrl || "/placeholder.svg"}
-                          alt="Receipt"
-                          className="max-w-full h-auto"
-                        />
-                      </div>
+            {/* Transaction Details */}
+            {donation.stripePaymentIntentId && (
+              <>
+                <Separator />
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">{t('donations:donationDetails.transactionDetails')}</h3>
+                  <div className="grid gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Transaction ID</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm font-mono truncate max-w-[150px]">
+                              {donation.stripePaymentIntentId}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{donation.stripePaymentIntentId}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
+                    {donation.processedAt && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Processed</span>
+                        <span className="text-sm">
+                          {format(new Date(donation.processedAt), 'PPp')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </ScrollArea>
+    )
+  }
+
+  return (
+    <>
+      <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              {t('donations:donationDetails.title')}
+            </SheetTitle>
+          </SheetHeader>
+          {renderContent()}
+        </SheetContent>
+      </Sheet>
+
+      {donation && (
+        <EditDonationDialog
+          isOpen={showEditDialog}
+          onClose={() => setShowEditDialog(false)}
+          onSuccess={handleEditSuccess}
+          donation={donation}
+        />
+      )}
+    </>
   )
-  */
 }

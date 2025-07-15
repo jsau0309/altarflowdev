@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
+import { revalidateTag } from 'next/cache';
 
 // Schema for validating new member data (POST)
 const memberCreateSchema = z.object({
@@ -118,6 +119,10 @@ export async function POST(request: NextRequest) {
         }
       },
     });
+
+    // Invalidate dashboard cache after creating member
+    console.log(`[API] Member created successfully. Invalidating cache for org: ${orgId}`);
+    revalidateTag(`dashboard-${orgId}`);
 
     return NextResponse.json(newMember, { status: 201 }); // 201 Created
 

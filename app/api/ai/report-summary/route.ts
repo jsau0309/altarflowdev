@@ -45,7 +45,9 @@ Overall Guidelines for all text fields:
 - Maintain a clear, encouraging, professional, and pastoral tone.
 - For any financial numbers, always prefix with a '$' sign (e.g., $5,300).
 - Use commas as thousands separators for numbers (e.g., $5,300, not $5300).
-- If data for 'change from last month' is available and relevant to the field, clearly mention it (e.g., "up from $2,000" or "a decrease of $150").
+- When mentioning changes from last month, use the exact 'differenceFromLastMonth' value provided in the data.
+- Format differences as absolute values with proper currency formatting (e.g., "a decrease of $2,481" or "an increase of $150").
+- Do NOT calculate differences yourself - use the provided 'differenceFromLastMonth' values.
 - Critically, ensure that the very first word of the text generated for each field is a complete, correctly spelled word, and that all sentences start cleanly without typos or artifacts.
 
 Specific instructions for each field of the 'generate_church_summary' function:
@@ -55,12 +57,13 @@ Specific instructions for each field of the 'generate_church_summary' function:
 
 2.  'donation_summary':
     - State the total donation amount.
-    - Mention the change from last month.
+    - Mention the change from last month using the 'differenceFromLastMonth' value (this is the dollar amount difference, not percentage).
     - Include recurring donation percentage if available.
     - Maintain an encouraging tone.
 
 3.  'expense_summary':
     - State the total expense amount.
+    - Mention the change from last month using the 'differenceFromLastMonth' value (this is the dollar amount difference, not percentage).
     - Briefly describe the primary use of funds (e.g., operations, outreach, specific projects).
     - If there are no expenses, state this positively.
 

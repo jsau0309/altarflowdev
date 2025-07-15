@@ -164,7 +164,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
 
       // Show success toast
       if (expenseToEdit) {
-        toast.success(t('newExpenseModal.updateSuccess', 'Expense updated successfully!'));
+        toast.success(t('expenses:newExpenseModal.updateSuccess'));
         // For edit, refresh is handled by the page, or onSuccess if provided for dashboard context
         if (onSuccess) {
           onSuccess();
@@ -172,7 +172,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
         onClose(); // Close modal after successful edit
       } else {
         // For new expense creation
-        toast.success(t('expenses:newExpenseModal.successMessage', 'Expense created successfully!'));
+        toast.success(t('expenses:newExpenseModal.createSuccess'));
         if (onSuccess) {
           onSuccess();
         } else {
@@ -187,9 +187,9 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
       apiError = err instanceof Error ? err.message : "An unexpected error occurred.";
       // Show error toast
       if (expenseToEdit) {
-        toast.error(`${t('newExpenseModal.updateError', 'Failed to update expense')}: ${apiError}`);
+        toast.error(`${t('expenses:newExpenseModal.updateError')}: ${apiError}`);
       } else {
-        toast.error(`${t('newExpenseModal.createError', 'Failed to create expense')}: ${apiError}`);
+        toast.error(`${t('expenses:newExpenseModal.createError')}: ${apiError}`);
       }
     } finally {
       setIsLoading(false);

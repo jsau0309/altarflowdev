@@ -23,6 +23,15 @@ import { Input } from "@/components/ui/input";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { createDonor, CreateDonorPayload } from "@/lib/actions/donors.actions";
+import { useState, useEffect } from "react";
+import { getAllMembersForLinking, MemberForLinkingSummary } from '@/lib/actions/members.actions';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -34,6 +43,7 @@ const formSchema = z.object({
   state: z.string().optional(),
   postalCode: z.string().optional(),
   country: z.string().optional(),
+  memberId: z.string().nullable().optional(),
 });
 
 interface NewDonorModalProps {
@@ -44,6 +54,10 @@ interface NewDonorModalProps {
 
 export function NewDonorModal({ isOpen, onClose, onSuccess }: NewDonorModalProps) {
   const { t } = useTranslation('donations');
+  const [members, setMembers] = useState<MemberForLinkingSummary[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -56,12 +70,48 @@ export function NewDonorModal({ isOpen, onClose, onSuccess }: NewDonorModalProps
       state: "",
       postalCode: "",
       country: "",
+      memberId: null,
     },
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      const fetchMembers = async () => {
+        setLoadingMembers(true);
+        try {
+          const data = await getAllMembersForLinking();
+          setMembers(data);
+        } catch (error) {
+          console.error('Failed to fetch members:', error);
+          toast.error(t('fetchMembersFailed'));
+          setMembers([]);
+        } finally {
+          setLoadingMembers(false);
+        }
+      };
+      fetchMembers();
+    } else {
+      // Reset state when modal closes
+      setMembers([]);
+      setSelectedMemberId(null);
+      setLoadingMembers(false);
+      form.reset();
+    }
+  }, [isOpen, form, t]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Convert empty strings to undefined for optional fields
     const payload: CreateDonorPayload = {
-        ...values,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email?.trim() || undefined,
+        phone: values.phone?.trim() || undefined,
+        addressLine1: values.addressLine1?.trim() || undefined,
+        city: values.city?.trim() || undefined,
+        state: values.state?.trim() || undefined,
+        postalCode: values.postalCode?.trim() || undefined,
+        country: values.country?.trim() || undefined,
+        memberId: selectedMemberId,
     };
     const result = await createDonor(payload);
     if (result.success) {
@@ -70,6 +120,7 @@ export function NewDonorModal({ isOpen, onClose, onSuccess }: NewDonorModalProps
     } else {
         // Handle error
         console.error(result.error);
+        toast.error(result.error || t('addDonorModal.error'));
     }
   }
 
@@ -202,6 +253,53 @@ export function NewDonorModal({ isOpen, onClose, onSuccess }: NewDonorModalProps
                 )}
               />
             </div>
+            {/* Link to Member Section */}
+            <FormField
+              control={form.control}
+              name="memberId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('linkToMember')}</FormLabel>
+                  <Select
+                    value={selectedMemberId || ''}
+                    onValueChange={(value) => {
+                      const newValue = value === '__none__' ? null : value;
+                      setSelectedMemberId(newValue);
+                      field.onChange(newValue);
+                    }}
+                    disabled={loadingMembers}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('selectMemberToLink')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loadingMembers ? (
+                        <SelectItem value="__loading__" disabled>
+                          {t('loadingMembers')}...
+                        </SelectItem>
+                      ) : (
+                        <>
+                          <SelectItem value="__none__">
+                            {t('noMemberOrUnlink')}
+                          </SelectItem>
+                          {members.map((member: MemberForLinkingSummary) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.firstName} {member.lastName} ({member.email ?? t('common:noEmail', 'No email')})
+                            </SelectItem>
+                          ))}
+                          {(!members || members.length === 0) && !loadingMembers && (
+                            <SelectItem value="__no_members_found__" disabled>
+                              {t('noMembersFound')}
+                            </SelectItem>
+                          )}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={onClose}>{t('common:cancel', 'Cancel')}</Button>
               <Button type="submit">{t('addDonorModal.submit', 'Add Donor')}</Button>

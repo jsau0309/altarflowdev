@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 import type { DonationTransactionFE } from '@/lib/types';
 import { Prisma } from '@prisma/client';
+import { revalidateTag } from 'next/cache';
 
 export interface DonorFilterItem {
   id: string; // donorId from DonationTransaction
@@ -57,6 +58,10 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
   };
 }>;
 
+// Simple in-memory cache for church ID lookups
+const churchIdCache = new Map<string, { id: string; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export async function getDonationTransactions({
   clerkOrgId, // Renamed from churchId for clarity, this is the Clerk Organization ID
   page = 1,
@@ -68,26 +73,33 @@ export async function getDonationTransactions({
   paymentMethods,
 }: GetDonationTransactionsParams): Promise<GetDonationTransactionsResult> {
   if (!clerkOrgId) {
-    console.error('[getDonationTransactions] clerkOrgId is required.');
     return { donations: [], totalCount: 0, error: 'Organization ID is required.' };
   }
 
   // Ensure pageNumber is at least 1
   const validPageNumber = Math.max(1, page);
 
-  // Find the Church by clerkOrgId to get its UUID
-  const church = await prisma.church.findUnique({
-    where: { clerkOrgId: clerkOrgId }, // Use the passed clerkOrgId
-    select: { id: true },
-  });
+  // Check cache first
+  const cachedChurch = churchIdCache.get(clerkOrgId);
+  let churchUuid: string;
+  
+  if (cachedChurch && Date.now() - cachedChurch.timestamp < CACHE_DURATION) {
+    churchUuid = cachedChurch.id;
+  } else {
+    // Find the Church by clerkOrgId to get its UUID
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: clerkOrgId },
+      select: { id: true },
+    });
 
-  if (!church) {
-    console.error(`[getDonationTransactions] No church found with clerkOrgId: ${clerkOrgId}`);
-    return { donations: [], totalCount: 0, error: 'Church configuration not found.' };
+    if (!church) {
+      return { donations: [], totalCount: 0, error: 'Church configuration not found.' };
+    }
+
+    churchUuid = church.id;
+    // Cache the result
+    churchIdCache.set(clerkOrgId, { id: churchUuid, timestamp: Date.now() });
   }
-
-  const churchUuid = church.id; // This is the actual UUID for the church
-  console.log(`[getDonationTransactions] Found church UUID: ${churchUuid} for clerkOrgId: ${clerkOrgId}`);
 
   const skip = (validPageNumber - 1) * limit;
 
@@ -126,7 +138,6 @@ export async function getDonationTransactions({
       };
     }
 
-    console.log('[getDonationTransactions] Querying DonationTransactions with whereClause (using churchUuid):', JSON.stringify(whereClause, null, 2));
     const transactions: TransactionWithDonationTypeName[] = await prisma.donationTransaction.findMany({
       where: whereClause,
       select: {
@@ -160,7 +171,6 @@ export async function getDonationTransactions({
       take: limit,
     });
 
-    console.log('[getDonationTransactions] Raw transactions from Prisma:', JSON.stringify(transactions, null, 2));
     const totalCount = await prisma.donationTransaction.count({
       where: whereClause,
     });
@@ -190,13 +200,9 @@ export async function getDonationTransactions({
       updatedAt: t.processedAt?.toISOString() ?? t.transactionDate.toISOString(), // Fallback: Using processedAt or transactionDate
     }));
 
-    console.log('[getDonationTransactions] Formatted donations:', JSON.stringify(formattedDonations, null, 2));
-    console.log('[getDonationTransactions] Total count:', totalCount);
-
     return { donations: formattedDonations, totalCount };
 
   } catch (error) {
-    console.error('[getDonationTransactions] Error fetching donation transactions:', error);
     let errorMessage = 'Failed to fetch donation transactions.';
     if (error instanceof Error) {
         errorMessage = error.message;
@@ -208,20 +214,29 @@ export async function getDonationTransactions({
 export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
   const { orgId } = await auth();
   if (!orgId) {
-    console.error('[getDistinctDonorsForFilter] User not authenticated or no organization ID found.');
     return [];
   }
 
-  const church = await prisma.church.findUnique({
-    where: { clerkOrgId: orgId },
-    select: { id: true },
-  });
+  // Check cache first
+  const cachedChurch = churchIdCache.get(orgId);
+  let churchUuid: string;
+  
+  if (cachedChurch && Date.now() - cachedChurch.timestamp < CACHE_DURATION) {
+    churchUuid = cachedChurch.id;
+  } else {
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: orgId },
+      select: { id: true },
+    });
 
-  if (!church) {
-    console.error(`[getDistinctDonorsForFilter] No church found with clerkOrgId: ${orgId}`);
-    return [];
+    if (!church) {
+      return [];
+    }
+    
+    churchUuid = church.id;
+    // Cache the result
+    churchIdCache.set(orgId, { id: churchUuid, timestamp: Date.now() });
   }
-  const churchUuid = church.id;
 
   try {
     const donors = await prisma.donor.findMany({
@@ -247,7 +262,7 @@ export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
     return donorList;
 
   } catch (error) {
-    console.error('[getDistinctDonorsForFilter] Error fetching donors:', error);
+    // Error fetching donors
     return [];
   }
 }
@@ -273,7 +288,7 @@ export interface CreateManualDonationResult {
 export async function createManualDonation(
   params: CreateManualDonationParams
 ): Promise<CreateManualDonationResult> {
-  console.log('[createManualDonation] Received params:', params);
+  // Manual donation creation
   const {
     churchId,
     amount,
@@ -404,10 +419,14 @@ export async function createManualDonation(
       updatedAt: newTransaction.processedAt?.toISOString() ?? newTransaction.transactionDate.toISOString(),
     };
 
+    // Invalidate dashboard cache after creating donation
+    console.log(`[ACTION] Manual donation created successfully. Invalidating cache for org: ${clerkOrgId}`);
+    revalidateTag(`dashboard-${clerkOrgId}`);
+
     return { success: true, donation: formattedDonation };
 
   } catch (error) {
-    console.error("[createManualDonation] Error:", error);
+    // Error creating manual donation
     let errorMessage = "Failed to create manual donation.";
     if (error instanceof Error) {
       errorMessage = error.message;

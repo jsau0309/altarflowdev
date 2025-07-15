@@ -30,7 +30,9 @@
     
     "types": {
       "oneTime": "Una vez",
-      "recurring": "Recurrente"
+      "recurring": "Recurrente",
+      "tithe": "Diezmo",
+      "offering": "Ofrenda"
     },
     
     "frequencies": {
@@ -261,5 +263,33 @@
         "submissionMessage": "Tu donación ha sido recibida.",
         "goHomeButton": "Volver al Inicio",
         "contactSupportMessage": "Si tienes alguna pregunta, por favor contacta a soporte: hola@altarflow.com"
+    },
+    "donationDetails": {
+      "title": "Detalles de Donación",
+      "editableFor": "Editable por",
+      "locked": "Esta donación está bloqueada (período de edición expirado)",
+      "editDonation": "Editar Donación",
+      "donationInfo": "Información de Donación",
+      "donorInfo": "Información del Donante",
+      "editHistory": "Historial de Ediciones",
+      "lastEdited": "Última edición",
+      "editReason": "Razón de Edición",
+      "transactionDetails": "Detalles de Transacción",
+      "transactionId": "ID de Transacción",
+      "processed": "Procesado",
+      "source": "Fuente",
+      "status": "Estado"
+    },
+    "editDonation": {
+      "title": "Editar Donación Manual",
+      "description": "Realiza cambios a esta donación manual. Todas las ediciones son rastreadas y registradas.",
+      "reasonForEdit": "Razón para Editar",
+      "typoInAmount": "Error en el monto",
+      "wrongDonor": "Donante incorrecto seleccionado",
+      "incorrectDate": "Fecha incorrecta",
+      "other": "Otro",
+      "reasonPlaceholder": "Por favor describe la razón de esta edición...",
+      "reasonDescription": "Esta razón será guardada en el historial de ediciones",
+      "editSuccess": "Donación actualizada exitosamente"
     }
   } 

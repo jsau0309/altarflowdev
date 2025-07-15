@@ -17,6 +17,7 @@ export type CreateDonorPayload = {
   state?: string;
   postalCode?: string;
   country?: string;
+  memberId?: string | null;
 };
 import { auth } from '@clerk/nextjs/server';
 
@@ -296,34 +297,83 @@ export async function createDonor(
       return { success: false, error: "Church not found for the user." };
     }
     
-    // Check for existing donor with the same email or phone for the same church
-    const orConditions: Prisma.DonorWhereInput[] = [];
-    if (payload.email) {
-      orConditions.push({ email: payload.email, churchId: church.id });
-    }
-    if (payload.phone) {
-      orConditions.push({ phone: payload.phone, churchId: church.id });
-    }
+    // Only check for duplicates if email or phone are provided
+    if (payload.email || payload.phone) {
+      const orConditions: Prisma.DonorWhereInput[] = [];
+      
+      // Only add email condition if email is provided and not empty
+      if (payload.email && payload.email.trim() !== '') {
+        orConditions.push({ 
+          email: payload.email, 
+          churchId: church.id 
+        });
+      }
+      
+      // Only add phone condition if phone is provided and not empty
+      if (payload.phone && payload.phone.trim() !== '') {
+        orConditions.push({ 
+          phone: payload.phone, 
+          churchId: church.id 
+        });
+      }
 
-    if (orConditions.length > 0) {
-      const existingDonor = await prisma.donor.findFirst({
-        where: {
-          OR: orConditions,
-        },
-      });
+      if (orConditions.length > 0) {
+        const existingDonor = await prisma.donor.findFirst({
+          where: {
+            OR: orConditions,
+          },
+        });
 
-      if (existingDonor) {
-        return { success: false, error: 'A donor with this email or phone number already exists in this church.' };
+        if (existingDonor) {
+          // Provide more specific error message
+          if (payload.email && existingDonor.email === payload.email) {
+            return { success: false, error: 'A donor with this email address already exists in this church.' };
+          } else if (payload.phone && existingDonor.phone === payload.phone) {
+            return { success: false, error: 'A donor with this phone number already exists in this church.' };
+          }
+        }
       }
     }
+    
+    // Check for exact name match (non-blocking - just for logging/future warning system)
+    const nameMatch = await prisma.donor.findFirst({
+      where: {
+        churchId: church.id,
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+      },
+    });
+    
+    if (nameMatch) {
+      console.log(`Warning: A donor with the name ${payload.firstName} ${payload.lastName} already exists in this church.`);
+      // In the future, you might want to return a warning flag with the success response
+    }
 
+    // Extract memberId from payload and handle it separately
+    const { memberId, ...donorData } = payload;
+    
     const newDonor = await prisma.donor.create({
       data: {
-        ...payload,
+        ...donorData,
         churchId: church.id, // Associate donor with the church
+        memberId: memberId || undefined, // Link to member if provided
       },
     });
 
+    // Fetch the created donor with member details to get the linked member name
+    const donorWithMember = await prisma.donor.findUnique({
+      where: { id: newDonor.id },
+      include: {
+        member: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          }
+        }
+      }
+    });
+    
     const donorFE: DonorFE = {
       id: newDonor.id,
       firstName: newDonor.firstName,
@@ -336,8 +386,8 @@ export async function createDonor(
       zipCode: newDonor.postalCode,
       createdAt: newDonor.createdAt.toISOString(),
       updatedAt: newDonor.updatedAt.toISOString(),
-      memberId: null,
-      linkedMemberName: null,
+      memberId: donorWithMember?.member?.id || null,
+      linkedMemberName: donorWithMember?.member ? `${donorWithMember.member.firstName} ${donorWithMember.member.lastName}`.trim() : null,
       churchId: newDonor.churchId,
     };
 

@@ -10,7 +10,7 @@ import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast"; // Assuming shadcn/ui toast, adjust if sonner is used here
+import { toast } from "sonner";
 import { createManualDonation, CreateManualDonationParams } from "@/lib/actions/donations.actions";
 import { DonorFilterItem } from "@/lib/actions/donations.actions";
 import { format } from "date-fns";
@@ -58,38 +58,30 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess, donors }: Man
     const churchId = localStorage.getItem("churchId"); // Consider passing as prop for better testability/flexibility
 
     if (!churchId) {
-      toast({
-        title: t('common:error'),
-        description: t('common:errors.churchId_not_found'),
-        variant: "destructive",
-      });
+      toast.error(t('common:errors.churchId_not_found'));
       setIsSaving(false);
       return;
     }
 
     if (!manualDonationAmount || parseFloat(manualDonationAmount) <= 0) {
-      toast({
-        title: t('common:error'),
-        description: t('donations:newManualDonation.validation.invalid_amount'),
-        variant: "destructive",
-      });
+      toast.error(t('donations:newManualDonation.validation.invalid_amount'));
       setIsSaving(false);
       return;
     }
     if (!manualDonationDate) {
-      toast({ title: t('common:error'), description: t('donations:newManualDonation.validation.date_required'), variant: "destructive" });
+      toast.error(t('donations:newManualDonation.validation.date_required'));
       setIsSaving(false); return;
     }
     if (!selectedDonorId) {
-      toast({ title: t('common:error'), description: t('donations:newManualDonation.validation.donor_required'), variant: "destructive" });
+      toast.error(t('donations:newManualDonation.validation.donor_required'));
       setIsSaving(false); return;
     }
     if (!selectedDonationType) {
-      toast({ title: t('common:error'), description: t('donations:newManualDonation.validation.type_required'), variant: "destructive" });
+      toast.error(t('donations:newManualDonation.validation.type_required'));
       setIsSaving(false); return;
     }
     if (!selectedPaymentMethod) {
-      toast({ title: t('common:error'), description: t('donations:newManualDonation.validation.method_required'), variant: "destructive" });
+      toast.error(t('donations:newManualDonation.validation.method_required'));
       setIsSaving(false); return;
     }
 
@@ -106,16 +98,19 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess, donors }: Man
     try {
       const result = await createManualDonation(params);
       if (result.error) {
-        toast({ title: t('common:error'), description: result.error, variant: "destructive" });
+        toast.error(result.error);
+        setIsSaving(false);
       } else {
-        toast({ title: t('common:success'), description: t('donations:newManualDonation.success_message') });
-        onSuccess(); // Call parent's success handler (closes modal, refreshes data)
+        toast.success(t('donations:newManualDonation.success_message', 'Donation created successfully!'));
+        onSuccess(); // Call parent's success handler to refresh data
+        onClose(); // Close the modal
+        return; // Exit early to prevent setIsSaving(false) below
       }
     } catch (error) {
       console.error("Failed to save manual donation:", error);
-      toast({ title: t('common:error'), description: t('common:errors.unexpected_error'), variant: "destructive" });
+      toast.error(t('common:errors.unexpected_error', 'An unexpected error occurred'));
+      setIsSaving(false);
     }
-    setIsSaving(false);
   };
 
   if (!isOpen) return null;

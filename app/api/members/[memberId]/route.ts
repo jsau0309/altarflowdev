@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
+import { revalidateTag } from 'next/cache';
 
 // Schema for validating updated member data (PATCH)
 const memberUpdateSchema = z.object({
@@ -133,6 +134,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Member not found or access denied' }, { status: 404 });
     }
 
+    // Invalidate dashboard cache after updating member
+    console.log(`[API] Member updated successfully. Invalidating cache for org: ${orgId}`);
+    revalidateTag(`dashboard-${orgId}`);
+
     // 6. Fetch the updated member to return it (optional, but good practice)
     const updatedMember = await prisma.member.findFirst({
       where: {
@@ -198,7 +203,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Member not found or access denied' }, { status: 404 });
     }
 
-    console.log(`Member ${memberId} deleted successfully by user ${userId} (org ${orgId})`);
+    // Invalidate dashboard cache after deleting member
+    console.log(`[API] Member ${memberId} deleted successfully by user ${userId} (org ${orgId}). Invalidating cache.`);
+    revalidateTag(`dashboard-${orgId}`);
+    
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {

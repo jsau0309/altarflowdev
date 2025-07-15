@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod'; // Using Zod for validation
 import { createClient } from '@supabase/supabase-js'; // Import standard Supabase client
+import { revalidateTag } from 'next/cache';
 
 // Define schema for PATCH validation (optional but recommended)
 const expenseUpdateSchema = z.object({
@@ -135,6 +136,10 @@ export async function PATCH(
       data: dataToUpdate,
     });
 
+    // Invalidate dashboard cache after updating expense
+    console.log(`[API] Expense updated successfully. Invalidating cache for org: ${orgId}`);
+    revalidateTag(`dashboard-${orgId}`);
+
     // 6. Check if the update was successful
     if (updateResult.count === 0) {
       // This could happen if the expense was modified between the fetch and update (race condition)
@@ -238,6 +243,10 @@ export async function DELETE(
         // submitterId: userId 
       },
     });
+
+    // Invalidate dashboard cache after deleting expense
+    console.log(`[API] Expense deleted successfully. Invalidating cache for org: ${orgId}`);
+    revalidateTag(`dashboard-${orgId}`);
 
     // 6. Check count (should be 1 if initial findFirst succeeded)
     if (deleteResult.count === 0) {
