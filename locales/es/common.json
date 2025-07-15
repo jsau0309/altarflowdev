@@ -198,5 +198,14 @@
       "amountLabel": "Monto",
       "donationsLegend": "Donaciones"
     }
-  }
+  },
+  "summary": "Resumen",
+  "transactionDetails": "Detalles de Transacciones",
+  "from": "Desde",
+  "to": "Hasta",
+  "donor": "Donante",
+  "vendor": "Proveedor",
+  "category": "Categoría",
+  "payment": "Pago",
+  "paymentMethod": "Método de Pago"
 }

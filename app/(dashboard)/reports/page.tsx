@@ -1,5 +1,5 @@
-import { ReportsContent } from "@/components/reports-content"
+import { ReportsPage } from "@/components/reports/reports-page"
 
-export default async function ReportsPage() {
-  return <ReportsContent />
+export default async function Reports() {
+  return <ReportsPage />
 }

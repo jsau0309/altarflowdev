@@ -1,703 +1,411 @@
 "use server"
 
-import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
-import { Prisma } from "@prisma/client";
+import { prisma } from '@/lib/prisma'
+import { format } from 'date-fns'
 
-/**
- * @description Get aggregated data for the AI summary report.
- * @param {string} clerkOrgId - The Clerk organization ID.
- * @returns {Promise<object>} - A promise that resolves to the summary data.
- */
-export async function getAiSummaryData(clerkOrgId: string) {
-  try {
-    const church = await prisma.church.findUnique({
-      where: { clerkOrgId },
-      select: { id: true },
-    });
-
-    if (!church) {
-      throw new Error("Church not found");
-    }
-
-    const churchId = church.id;
-
-    // Define date ranges
-    const now = new Date();
-    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-
-    // 1. Query Donations
-    const donationsCurrentMonth = await prisma.donationTransaction.aggregate({
-      where: {
-        churchId,
-        OR: [
-          { status: 'succeeded' },
-          { source: 'manual' }
-        ],
-        transactionDate: { gte: startOfCurrentMonth },
-      },
-      _sum: { amount: true },
-    });
-
-    const donationsPreviousMonth = await prisma.donationTransaction.aggregate({
-      where: {
-        churchId,
-        OR: [
-          { status: 'succeeded' },
-          { source: 'manual' }
-        ],
-        transactionDate: { gte: startOfPreviousMonth, lte: endOfPreviousMonth },
-      },
-      _sum: { amount: true },
-    });
-
-    // 2. Query Members
-    const newMembersThisMonth = await prisma.member.count({
-      where: {
-        churchId,
-        joinDate: { gte: startOfCurrentMonth },
-      },
-    });
-
-    const totalMembers = await prisma.member.count({
-      where: { churchId },
-    });
-
-    // 3. Query Expenses
-    const expensesCurrentMonth = await prisma.expense.aggregate({
-      where: {
-        churchId,
-        expenseDate: { gte: startOfCurrentMonth }, 
-      },
-      _sum: { amount: true },
-    });
-
-    const summaryData = {
-      donations: {
-        currentMonth: (donationsCurrentMonth?._sum?.amount ?? 0) / 100,
-        previousMonth: (donationsPreviousMonth?._sum?.amount ?? 0) / 100,
-      },
-      members: {
-        newThisMonth: newMembersThisMonth ?? 0,
-        total: totalMembers ?? 0,
-      },
-      expenses: {
-        currentMonth: expensesCurrentMonth?._sum?.amount?.toNumber() ?? 0,
-      },
-    };
-
-    return summaryData;
-
-  } catch (error) {
-    console.error("Error fetching AI summary data:", error);
-    // Return a default structure on error to prevent API failure
-    return {
-      donations: { currentMonth: 0, previousMonth: 0 },
-      members: { newThisMonth: 0, total: 0 },
-      expenses: { currentMonth: 0 },
-    };
-  }
+export interface MonthlyReportData {
+  month: string
+  amount: number
+  count: number
 }
 
-
-// Helper to get start of week (Sunday)
-const getStartOfWeek = (date: Date) => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day;
-  const newDate = new Date(d.setDate(diff));
-  newDate.setHours(0, 0, 0, 0);
-  return newDate;
+export interface CategoryReportData {
+  category: string
+  amount: number
+  percentage: number
 }
 
-export async function getDashboardSummary() {
-  const { orgId } = await auth();
-
-  if (!orgId) {
-    console.warn("getDashboardSummary called without authentication. Returning empty data.");
-    return {
-      donationSummary: { weeklyTotal: 0, monthlyTotal: 0, yearlyTotal: 0, monthlyChange: 0 },
-      expenseSummary: { weeklyTotal: 0, monthlyTotal: 0, yearlyTotal: 0, monthlyChange: 0 },
-      memberActivity: { newMembers: 0, activeMembers: 0, recentMembers: [] },
-    };
-  }
-
-  try {
-    const church = await prisma.church.findUnique({
-      where: { clerkOrgId: orgId },
-      select: { id: true },
-    });
-
-    if (!church) {
-      console.warn(`No church found for orgId: ${orgId}. Returning empty data.`);
-      return {
-        donationSummary: { weeklyTotal: 0, monthlyTotal: 0, yearlyTotal: 0, monthlyChange: 0 },
-        expenseSummary: { weeklyTotal: 0, monthlyTotal: 0, yearlyTotal: 0, monthlyChange: 0 },
-        memberActivity: { newMembers: 0, activeMembers: 0, recentMembers: [] },
-      };
-    }
-
-    const churchId = church.id;
-
-    // --- Date Ranges ---
-    const now = new Date();
-    const startOfWeek = getStartOfWeek(now);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    endOfPreviousMonth.setHours(23, 59, 59, 999);
-
-    // --- Aggregation Queries ---
-    const donationWhereClause = {
-      churchId,
-      OR: [{ status: 'succeeded' as const }, { source: 'manual' as const }]
-    };
-
-    const expenseWhereClause = { churchId };
-
-    const [
-      donationsThisWeek,
-      donationsThisMonth,
-      donationsThisYear,
-      donationsPreviousMonth,
-      expensesThisWeek,
-      expensesThisMonth,
-      expensesThisYear,
-      expensesPreviousMonth,
-      newMembersThisMonth,
-      activeMembers,
-      recentMembers
-    ] = await prisma.$transaction([
-      // Donations
-      prisma.donationTransaction.aggregate({ where: { ...donationWhereClause, transactionDate: { gte: startOfWeek } }, _sum: { amount: true } }),
-      prisma.donationTransaction.aggregate({ where: { ...donationWhereClause, transactionDate: { gte: startOfMonth } }, _sum: { amount: true } }),
-      prisma.donationTransaction.aggregate({ where: { ...donationWhereClause, transactionDate: { gte: startOfYear } }, _sum: { amount: true } }),
-      prisma.donationTransaction.aggregate({ where: { ...donationWhereClause, transactionDate: { gte: startOfPreviousMonth, lte: endOfPreviousMonth } }, _sum: { amount: true } }),
-      // Expenses
-      prisma.expense.aggregate({ where: { ...expenseWhereClause, expenseDate: { gte: startOfWeek } }, _sum: { amount: true } }),
-      prisma.expense.aggregate({ where: { ...expenseWhereClause, expenseDate: { gte: startOfMonth } }, _sum: { amount: true } }),
-      prisma.expense.aggregate({ where: { ...expenseWhereClause, expenseDate: { gte: startOfYear } }, _sum: { amount: true } }),
-      prisma.expense.aggregate({ where: { ...expenseWhereClause, expenseDate: { gte: startOfPreviousMonth, lte: endOfPreviousMonth } }, _sum: { amount: true } }),
-      // Members
-      prisma.member.count({ where: { churchId, joinDate: { gte: startOfMonth } } }),
-      prisma.member.count({ where: { churchId, membershipStatus: 'Member' } }),
-      prisma.member.findMany({ where: { churchId }, orderBy: { joinDate: 'desc' }, take: 5, select: { id: true, firstName: true, lastName: true, joinDate: true } })
-    ]);
-
-    // --- Process Donation Results ---
-    const prevMonthDonations = (donationsPreviousMonth._sum.amount ?? 0) / 100;
-    const currentMonthDonations = (donationsThisMonth._sum.amount ?? 0) / 100;
-    let donationChange = 0;
-    if (prevMonthDonations > 0) {
-      donationChange = ((currentMonthDonations - prevMonthDonations) / prevMonthDonations) * 100;
-    } else if (currentMonthDonations > 0) {
-      donationChange = 100; 
-    }
-
-    // --- Process Expense Results ---
-    const prevMonthExpenses = expensesPreviousMonth._sum.amount?.toNumber() ?? 0;
-    const currentMonthExpenses = expensesThisMonth._sum.amount?.toNumber() ?? 0;
-    let expenseChange = 0;
-    if (prevMonthExpenses > 0) {
-      expenseChange = ((currentMonthExpenses - prevMonthExpenses) / prevMonthExpenses) * 100;
-    } else if (currentMonthExpenses > 0) {
-      expenseChange = 100;
-    }
-
-    const recentMembersData = recentMembers.map(m => ({
-        ...m,
-        joinDate: m.joinDate?.toISOString() ?? new Date().toISOString(),
-    }));
-
-    return {
-      donationSummary: {
-        weeklyTotal: (donationsThisWeek._sum.amount ?? 0) / 100,
-        monthlyTotal: currentMonthDonations,
-        yearlyTotal: (donationsThisYear._sum.amount ?? 0) / 100,
-        monthlyChange: donationChange,
-      },
-      expenseSummary: {
-        weeklyTotal: expensesThisWeek._sum.amount?.toNumber() ?? 0,
-        monthlyTotal: currentMonthExpenses,
-        yearlyTotal: expensesThisYear._sum.amount?.toNumber() ?? 0,
-        monthlyChange: expenseChange,
-      },
-      memberActivity: {
-        newMembers: newMembersThisMonth,
-        activeMembers: activeMembers,
-        recentMembers: recentMembersData,
-      },
-    };
-
-  } catch (error) {
-    console.error("Error fetching dashboard summary:", error);
-    return {
-      donationSummary: { weeklyTotal: 0, monthlyTotal: 0, yearlyTotal: 0, monthlyChange: 0 },
-      expenseSummary: { weeklyTotal: 0, monthlyTotal: 0, yearlyTotal: 0, monthlyChange: 0 },
-      memberActivity: { newMembers: 0, activeMembers: 0, recentMembers: [] },
-    };
-  }
+export interface ReportSummary {
+  total: number
+  average: number
+  count?: number
+  netIncome?: number
 }
 
-export async function getTopDonorsThisMonth(churchId: string): Promise<Array<{ donorName: string; totalAmount: number }>> {
+// Get monthly donation summary
+export async function getMonthlyDonationSummary(
+  churchId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<MonthlyReportData[]> {
   try {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of current month
-
-    const topDonorSums = await prisma.donationTransaction.groupBy({
-      by: ['donorId'],
-      where: {
-        churchId,
-        transactionDate: { gte: startOfMonth, lte: endOfMonth },
-        OR: [{ status: 'succeeded' }, { source: 'manual' }],
-        donorId: { not: null }, // Ensure we only consider transactions linked to a donor
-      },
-      _sum: {
-        amount: true,
-      },
-      orderBy: {
-        _sum: {
-          amount: 'desc',
-        },
-      },
-      take: 3,
-    });
-
-    if (!topDonorSums || topDonorSums.length === 0) {
-      return [];
-    }
-
-    const donorIds = topDonorSums.map(sum => sum.donorId).filter(id => id !== null) as string[];
-
-    if (donorIds.length === 0) {
-        return [];
-    }
-
-    const donors = await prisma.donor.findMany({
-      where: {
-        id: { in: donorIds },
-        churchId: churchId, 
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-      },
-    });
-
-    const donorMap = new Map(donors.map(donor => [donor.id, donor]));
-
-    const result = topDonorSums.map(sum => {
-      const donor = donorMap.get(sum.donorId as string); 
-      const firstName = donor?.firstName ?? '';
-      const lastName = donor?.lastName ?? '';
-      let donorName = `${firstName} ${lastName}`.trim();
-      
-      if (!donorName) {
-        donorName = "Anonymous Donor"; 
-      }
-      
-      return {
-        donorName,
-        totalAmount: (sum._sum.amount ?? 0) / 100,
-      };
-    });
     
-    return result;
-
-  } catch (error) {
-    console.error("Error fetching top donors this month:", error);
-    throw new Error("Failed to fetch top donors."); 
-  }
-}
-
-export async function getMostUsedPaymentMethodThisMonth(churchId: string): Promise<{ paymentMethodType: string; count: number } | null> {
-  try {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of current month
-
-    const result = await prisma.donationTransaction.groupBy({
-      by: ['paymentMethodType'], // Corrected
+    const donations = await prisma.donationTransaction.findMany({
       where: {
-        churchId,
-        transactionDate: { gte: startOfMonth, lte: endOfMonth },
-        OR: [{ status: 'succeeded' }, { source: 'manual' }],
-        paymentMethodType: { not: null }, // Corrected
-      },
-      _count: {
-        paymentMethodType: true, // Corrected
-      },
-      orderBy: {
-        _count: {
-          paymentMethodType: 'desc', // Corrected
+        church: { clerkOrgId: churchId },
+        transactionDate: {
+          gte: startDate,
+          lte: endDate
         },
-      },
-      take: 1,
-    });
-
-    if (!result || result.length === 0 || !result[0].paymentMethodType) { // Corrected
-      return null; 
-    }
-    
-    return {
-      paymentMethodType: result[0].paymentMethodType, // Corrected
-      count: result[0]._count.paymentMethodType,   // Corrected
-    };
-
-  } catch (error) {
-    console.error("Error fetching most used payment method this month:", error);
-    throw new Error("Failed to fetch most used payment method.");
-  }
-}
-
-export async function getBiggestDonationThisMonth(churchId: string): Promise<{ donorName?: string; amount: number } | null> {
-  try {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    const biggestDonation = await prisma.donationTransaction.findFirst({
-      where: {
-        churchId,
-        transactionDate: { gte: startOfMonth, lte: endOfMonth },
-        OR: [{ status: 'succeeded' }, { source: 'manual' }],
-      },
-      orderBy: {
-        amount: 'desc',
-      },
-      include: {
-        donor: { // Include donor details
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-    });
-
-    if (!biggestDonation) {
-      return null;
-    }
-
-    let donorName;
-    if (biggestDonation.donor) {
-      const firstName = biggestDonation.donor.firstName ?? '';
-      const lastName = biggestDonation.donor.lastName ?? '';
-      donorName = `${firstName} ${lastName}`.trim();
-      if (!donorName) donorName = "Anonymous Donor";
-    } else if (biggestDonation.donorClerkId) {
-      // If donor relationship is not populated but donorClerkId exists,
-      // you might want to fetch donor details using donorClerkId here.
-      // For simplicity, we'll mark as "Registered Donor (Details Unavailable)" or similar.
-      // Or, if donorName was directly on DonationTransaction, use that.
-      // For now, let's assume if `donor` isn't populated, we can't easily get the name here.
-      // The schema might have a direct `donorName` field on `DonationTransaction` for manual entries.
-      // If `biggestDonation.donorName` exists on the model, use it:
-      // donorName = biggestDonation.donorName || "Anonymous Donor";
-    }
-     if (!donorName && biggestDonation.donorName) { // Check if donorName field exists directly on transaction
-      donorName = biggestDonation.donorName;
-    }
-
-
-    return {
-      donorName: donorName || "Anonymous Donor", // Default if no name could be constructed
-      amount: biggestDonation.amount / 100,
-    };
-
-  } catch (error) {
-    console.error("Error fetching biggest donation this month:", error);
-    throw new Error("Failed to fetch biggest donation.");
-  }
-}
-
-export async function getExpenseTrendData(churchId: string): Promise<Array<{ month: string; totalExpenses: number }>> {
-  try {
-    const now = new Date();
-    const trendData: Array<{ month: string; totalExpenses: number }> = [];
-
-    for (let i = 5; i >= 0; i--) { // Loop for current month and 5 previous months
-      const targetMonthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const startOfMonth = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth(), 1);
-      const endOfMonth = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth() + 1, 0); // Last day of target month
-
-      const monthlyExpense = await prisma.expense.aggregate({
-        where: {
-          churchId,
-          expenseDate: { gte: startOfMonth, lte: endOfMonth },
-        },
-        _sum: {
-          amount: true,
-        },
-      });
-
-      const monthYear = `${startOfMonth.getFullYear()}-${(startOfMonth.getMonth() + 1).toString().padStart(2, '0')}`;
-      trendData.push({
-        month: monthYear,
-        totalExpenses: monthlyExpense._sum.amount?.toNumber() ?? 0,
-      });
-    }
-
-    return trendData;
-
-  } catch (error) {
-    console.error("Error fetching expense trend data:", error);
-    throw new Error("Failed to fetch expense trend data.");
-  }
-}
-
-export async function getDonationTrendData(churchId: string): Promise<Array<{ month: string; totalDonations: number }>> {
-  try {
-    const now = new Date();
-    const trendData: Array<{ month: string; totalDonations: number }> = [];
-
-    for (let i = 5; i >= 0; i--) { // Loop for current month and 5 previous months
-      const targetMonthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const startOfMonth = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth(), 1);
-      const endOfMonth = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth() + 1, 0); // Last day of target month
-
-      const monthlyDonation = await prisma.donationTransaction.aggregate({
-        where: {
-          churchId,
-          transactionDate: { gte: startOfMonth, lte: endOfMonth },
-          OR: [{ status: 'succeeded' }, { source: 'manual' }],
-        },
-        _sum: {
-          amount: true,
-        },
-      });
-
-      const monthYear = `${startOfMonth.getFullYear()}-${(startOfMonth.getMonth() + 1).toString().padStart(2, '0')}`;
-      trendData.push({
-        month: monthYear,
-        totalDonations: (monthlyDonation._sum.amount ?? 0) / 100,
-      });
-    }
-
-    return trendData;
-
-  } catch (error) {
-    console.error("Error fetching donation trend data:", error);
-    throw new Error("Failed to fetch donation trend data.");
-  }
-}
-
-export async function getActiveMemberList(churchId: string): Promise<Array<{ id: string; firstName: string | null; lastName: string | null; email: string | null }>> {
-  try {
-    const activeMembers = await prisma.member.findMany({
-      where: {
-        churchId,
-        membershipStatus: 'Member',
+        status: {
+          in: ['succeeded', 'succeeded\n']
+        }
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        // Potentially add joinDate or other relevant fields if needed for the LLM context
-      },
-      orderBy: [
-        { lastName: 'asc' },
-        { firstName: 'asc' },
-      ]
-    });
-
-    return activeMembers.map(member => ({
-      id: member.id,
-      firstName: member.firstName,
-      lastName: member.lastName,
-      email: member.email,
-    }));
-
-  } catch (error) {
-    console.error("Error fetching active member list:", error);
-    throw new Error("Failed to fetch active member list.");
-  }
-}
-
-export async function getVisitorList(churchId: string): Promise<Array<{ id: string; firstName: string | null; lastName: string | null; email: string | null; createdAt: Date }>> {
-  try {
-    const visitorMembers = await prisma.member.findMany({
-      where: {
-        churchId,
-        membershipStatus: 'Visitor',
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        createdAt: true, // To give an idea of when they became a visitor
-      },
-      orderBy: [
-        { createdAt: 'desc' }, // Show newest visitors first
-        { lastName: 'asc' },
-        { firstName: 'asc' },
-      ]
-    });
-
-    return visitorMembers.map(member => ({
-      id: member.id,
-      firstName: member.firstName,
-      lastName: member.lastName,
-      email: member.email,
-      createdAt: member.createdAt,
-    }));
-
-  } catch (error) {
-    console.error("Error fetching visitor list:", error);
-    throw new Error("Failed to fetch visitor list.");
-  }
-}
-
-// Interface for the data returned by the function
-export interface DonationReportData {
-  totalDonations: number;
-  averageDonation: number;
-  uniqueDonors: number;
-  donationRecords: Array<{
-    id: string;
-    transactionDate: Date;
-    donorName: string | null; // Combined firstName and lastName
-    donorId: string | null;
-    fundName: string | null; // From DonationType.name
-    fundId: string | null;   // From DonationType.id
-    paymentMethodType: string | null; // From DonationTransaction.paymentMethodType (String?)
-    source: string | null; // e.g., 'stripe', 'manual'
-    amount: number; // Already divided by 100
-    status: string; // From DonationTransaction.status (String)
-  }>;
-}
-
-export async function getDonationReportData(
-  startDate?: Date,
-  endDate?: Date
-): Promise<DonationReportData> {
-  const { orgId } = await auth();
-  if (!orgId) {
-    console.warn("getDonationReportData called without authentication. Returning empty data.");
-    return {
-      totalDonations: 0,
-      averageDonation: 0,
-      uniqueDonors: 0,
-      donationRecords: [],
-    };
-  }
-
-  try {
-    const church = await prisma.church.findUnique({
-      where: { clerkOrgId: orgId },
-      select: { id: true },
-    });
-
-    if (!church) {
-      console.warn(`No church found for orgId: ${orgId} in getDonationReportData.`);
-      return {
-        totalDonations: 0,
-        averageDonation: 0,
-        uniqueDonors: 0,
-        donationRecords: [],
-      };
-    }
-    const churchId = church.id;
-
-    const dateFilter: Prisma.DateTimeFilter = {};
-    if (startDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      dateFilter.gte = start;
-    }
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      dateFilter.lte = end;
-    }
-
-    const whereClause: Prisma.DonationTransactionWhereInput = {
-      churchId,
-      OR: [{ status: 'succeeded' }, { source: 'manual' }],
-      ...( (startDate || endDate) && { transactionDate: dateFilter } )
-    };
-
-    const transactions = await prisma.donationTransaction.findMany({
-      where: whereClause,
-      select: {
-        id: true,
         transactionDate: true,
-        amount: true,
-        paymentMethodType: true,
-        source: true,
-        status: true,
-        donor: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        donationType: { // Changed from 'donation' to 'donationType'
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: {
-        transactionDate: 'desc',
-      },
-    });
-
-    let totalDonationsAmount = 0;
-    const donorIds = new Set<string>();
-
-    const donationRecords = transactions.map(t => {
-      const amountInDollars = t.amount / 100;
-      totalDonationsAmount += amountInDollars;
-      if (t.donor?.id) {
-        donorIds.add(t.donor.id);
+        amount: true
       }
-      return {
-        id: t.id,
-        transactionDate: t.transactionDate,
-        donorName: t.donor ? `${t.donor.firstName || ''} ${t.donor.lastName || ''}`.trim() || 'Anonymous' : 'Anonymous',
-        donorId: t.donor?.id || null,
-        fundName: t.donationType?.name || null,
-        fundId: t.donationType?.id || null,
-        paymentMethodType: t.paymentMethodType,
-        source: t.source,
-        amount: amountInDollars,
-        status: t.status,
-      };
-    });
+    })
 
-    const uniqueDonors = donorIds.size;
-    const averageDonation = transactions.length > 0 ? totalDonationsAmount / transactions.length : 0;
 
-    return {
-      totalDonations: totalDonationsAmount,
-      averageDonation,
-      uniqueDonors,
-      donationRecords,
-    };
+    // Group by month
+    const monthlyData = donations.reduce((acc, donation) => {
+      const monthKey = format(new Date(donation.transactionDate), 'yyyy-MM')
+      if (!acc[monthKey]) {
+        acc[monthKey] = { total: 0, count: 0 }
+      }
+      acc[monthKey].total += parseFloat(donation.amount.toString()) / 100
+      acc[monthKey].count += 1
+      return acc
+    }, {} as Record<string, { total: number; count: number }>)
 
+    // Generate all months from start to end date
+    const allMonths: MonthlyReportData[] = []
+    const currentDate = new Date(startDate)
+    
+    while (currentDate <= endDate) {
+      const monthKey = format(currentDate, 'yyyy-MM')
+      const data = monthlyData[monthKey] || { total: 0, count: 0 }
+      
+      allMonths.push({
+        month: format(currentDate, 'MMM'),
+        amount: data.total,
+        count: data.count
+      })
+      
+      // Move to next month
+      currentDate.setMonth(currentDate.getMonth() + 1)
+    }
+
+    return allMonths
   } catch (error) {
-    console.error("Error fetching donation report data:", error);
-    return {
-      totalDonations: 0,
-      averageDonation: 0,
-      uniqueDonors: 0,
-      donationRecords: [],
-    };
+    console.error('Error fetching monthly donation summary:', error)
+    return []
   }
 }
 
+// Get donation category breakdown
+export async function getDonationCategoryBreakdown(
+  churchId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<CategoryReportData[]> {
+  try {
+    
+    const donations = await prisma.donationTransaction.findMany({
+      where: {
+        church: { clerkOrgId: churchId },
+        transactionDate: {
+          gte: startDate,
+          lte: endDate
+        },
+        status: {
+          in: ['succeeded', 'succeeded\n']
+        }
+      },
+      select: {
+        amount: true,
+        donationType: {
+          select: {
+            name: true
+          }
+        }
+      }
+    })
 
 
+    // Group by category
+    const categoryTotals = donations.reduce((acc, donation) => {
+      const category = donation.donationType.name
+      if (!acc[category]) {
+        acc[category] = 0
+      }
+      acc[category] += parseFloat(donation.amount.toString()) / 100
+      return acc
+    }, {} as Record<string, number>)
 
+    // Calculate percentages
+    const total = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0)
+    
+    const categoryData = Object.entries(categoryTotals).map(([category, amount]) => ({
+      category,
+      amount,
+      percentage: total > 0 ? Math.round((amount / total) * 100) : 0
+    }))
 
+    return categoryData
+  } catch (error) {
+    console.error('Error fetching donation category breakdown:', error)
+    return []
+  }
+}
 
+// Get donation summary
+export async function getDonationSummary(
+  churchId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<ReportSummary> {
+  try {
+    const donations = await prisma.donationTransaction.findMany({
+      where: {
+        church: { clerkOrgId: churchId },
+        transactionDate: {
+          gte: startDate,
+          lte: endDate
+        },
+        status: {
+          in: ['succeeded', 'succeeded\n']
+        }
+      },
+      select: {
+        amount: true,
+        donorId: true
+      }
+    })
+
+    const total = donations.reduce((sum, d) => sum + parseFloat(d.amount.toString()) / 100, 0)
+    const uniqueDonors = new Set(donations.map(d => d.donorId).filter(Boolean)).size
+    const average = donations.length > 0 ? total / donations.length : 0
+
+    return {
+      total,
+      average,
+      count: uniqueDonors
+    }
+  } catch (error) {
+    console.error('Error fetching donation summary:', error)
+    return { total: 0, average: 0, count: 0 }
+  }
+}
+
+// Get monthly expense summary
+export async function getMonthlyExpenseSummary(
+  churchId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<MonthlyReportData[]> {
+  try {
+    const expenses = await prisma.expense.findMany({
+      where: {
+        church: { clerkOrgId: churchId },
+        expenseDate: {
+          gte: startDate,
+          lte: endDate
+        },
+        status: {
+          in: ['APPROVED', 'PENDING']
+        }
+      },
+      select: {
+        expenseDate: true,
+        amount: true
+      }
+    })
+
+    // Group by month
+    const monthlyData = expenses.reduce((acc, expense) => {
+      const monthKey = format(new Date(expense.expenseDate), 'yyyy-MM')
+      if (!acc[monthKey]) {
+        acc[monthKey] = { total: 0, count: 0 }
+      }
+      acc[monthKey].total += parseFloat(expense.amount.toString())
+      acc[monthKey].count += 1
+      return acc
+    }, {} as Record<string, { total: number; count: number }>)
+
+    // Generate all months from start to end date
+    const allMonths: MonthlyReportData[] = []
+    const currentDate = new Date(startDate)
+    
+    while (currentDate <= endDate) {
+      const monthKey = format(currentDate, 'yyyy-MM')
+      const data = monthlyData[monthKey] || { total: 0, count: 0 }
+      
+      allMonths.push({
+        month: format(currentDate, 'MMM'),
+        amount: data.total,
+        count: data.count
+      })
+      
+      // Move to next month
+      currentDate.setMonth(currentDate.getMonth() + 1)
+    }
+
+    return allMonths
+  } catch (error) {
+    console.error('Error fetching monthly expense summary:', error)
+    return []
+  }
+}
+
+// Get expense category breakdown
+export async function getExpenseCategoryBreakdown(
+  churchId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<CategoryReportData[]> {
+  try {
+    const expenses = await prisma.expense.findMany({
+      where: {
+        church: { clerkOrgId: churchId },
+        expenseDate: {
+          gte: startDate,
+          lte: endDate
+        },
+        status: {
+          in: ['APPROVED', 'PENDING']
+        }
+      },
+      select: {
+        amount: true,
+        category: true
+      }
+    })
+
+    // Group by category
+    const categoryTotals = expenses.reduce((acc, expense) => {
+      const category = expense.category
+      if (!acc[category]) {
+        acc[category] = 0
+      }
+      acc[category] += parseFloat(expense.amount.toString())
+      return acc
+    }, {} as Record<string, number>)
+
+    // Calculate percentages
+    const total = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0)
+    
+    const categoryData = Object.entries(categoryTotals).map(([category, amount]) => ({
+      category,
+      amount,
+      percentage: total > 0 ? Math.round((amount / total) * 100) : 0
+    }))
+
+    return categoryData
+  } catch (error) {
+    console.error('Error fetching expense category breakdown:', error)
+    return []
+  }
+}
+
+// Get expense summary
+export async function getExpenseSummary(
+  churchId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<ReportSummary> {
+  try {
+    const expenses = await prisma.expense.findMany({
+      where: {
+        church: { clerkOrgId: churchId },
+        expenseDate: {
+          gte: startDate,
+          lte: endDate
+        },
+        status: {
+          in: ['APPROVED', 'PENDING']
+        }
+      },
+      select: {
+        amount: true
+      }
+    })
+
+    const donations = await prisma.donationTransaction.findMany({
+      where: {
+        church: { clerkOrgId: churchId },
+        transactionDate: {
+          gte: startDate,
+          lte: endDate
+        },
+        status: {
+          in: ['succeeded', 'succeeded\n']
+        }
+      },
+      select: {
+        amount: true
+      }
+    })
+
+    const totalExpenses = expenses.reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0)
+    const totalDonations = donations.reduce((sum, d) => sum + parseFloat(d.amount.toString()) / 100, 0)
+    const average = expenses.length > 0 ? totalExpenses / expenses.length : 0
+    const netIncome = totalDonations - totalExpenses
+
+    return {
+      total: totalExpenses,
+      average,
+      netIncome
+    }
+  } catch (error) {
+    console.error('Error fetching expense summary:', error)
+    return { total: 0, average: 0, netIncome: 0 }
+  }
+}
+
+// Get all transactions for export
+export async function getTransactionsForExport(
+  churchId: string,
+  type: 'donations' | 'expenses',
+  startDate: Date,
+  endDate: Date
+) {
+  try {
+    if (type === 'donations') {
+      const donations = await prisma.donationTransaction.findMany({
+        where: {
+          church: { clerkOrgId: churchId },
+          transactionDate: {
+            gte: startDate,
+            lte: endDate
+          },
+          status: {
+          in: ['succeeded', 'succeeded\n']
+        }
+        },
+        include: {
+          donationType: true,
+          donor: true
+        },
+        orderBy: {
+          transactionDate: 'desc'
+        }
+      })
+
+      return donations.map(d => ({
+        date: d.transactionDate,
+        description: d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : d.donorName || 'Anonymous',
+        category: d.donationType.name,
+        amount: parseFloat(d.amount.toString()) / 100,
+        paymentMethod: d.paymentMethodType
+      }))
+    } else {
+      const expenses = await prisma.expense.findMany({
+        where: {
+          church: { clerkOrgId: churchId },
+          expenseDate: {
+            gte: startDate,
+            lte: endDate
+          },
+          status: {
+          in: ['APPROVED', 'PENDING']
+        }
+        },
+        orderBy: {
+          expenseDate: 'desc'
+        }
+      })
+
+      return expenses.map(e => ({
+        date: e.expenseDate,
+        description: e.vendor || e.description || 'Expense',
+        category: e.category,
+        amount: parseFloat(e.amount.toString())
+      }))
+    }
+  } catch (error) {
+    console.error('Error fetching transactions for export:', error)
+    return []
+  }
+}

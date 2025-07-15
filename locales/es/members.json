@@ -117,5 +117,13 @@
     },
     "Basic Information": "Información Básica",
     "streetAddrLabel": "Dirección (Calle)",
-    "drawerEditTitle": "Editar Miembro"
+    "drawerEditTitle": "Editar Miembro",
+    "filterByStatus": "Filtrar por Estado",
+    "name": "Nombre",
+    "contact": "Contacto",
+    "empty": {
+      "title": "No se encontraron miembros",
+      "adjustSearch": "Intenta ajustar tus términos de búsqueda.",
+      "addFirst": "Agrega tu primer miembro para comenzar."
+    }
   }

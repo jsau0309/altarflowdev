@@ -1,10 +1,19 @@
 "use client"
-import { Users } from "lucide-react"
+import { Users, Filter } from "lucide-react"
 import { EnhancedMemberDirectory } from "@/components/members/enhanced-member-directory"
 import { AddMemberButton } from "@/components/members/add-member-button"
 import { useTranslation } from 'react-i18next'
 import { useState, useEffect } from "react"
 import { type Member } from "@/lib/types"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function MembersContent() {
   const { t } = useTranslation(['members', 'common'])
@@ -44,6 +53,14 @@ export function MembersContent() {
     fetchMembers();
   }
 
+  // Helper to get status text for badges and dropdown
+  const getStatusText = (status: string | undefined | null) => {
+    if (!status) return t('common:unknown');
+    // Convert to lowercase for translation key
+    const statusKey = status.toLowerCase();
+    return t(`members:statuses.${statusKey}`, status.charAt(0).toUpperCase() + status.slice(1));
+  }
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between mb-6">
@@ -62,7 +79,42 @@ export function MembersContent() {
             </h3>
             <p className="text-sm text-muted-foreground mt-1">{t('members:membersContent.directorySubtitle', 'View, add, and manage your church members')}</p>
           </div>
-          <AddMemberButton onMemberAdded={handleAddMemberSuccess} />
+          
+          <div className="flex gap-2">
+            {/* Filter dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  {t('common:filter', 'Filter')}
+                  {filterStatus && <span className="ml-2 text-xs text-muted-foreground">({getStatusText(filterStatus)})</span>}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{t('members:filterByStatus', 'Filter by Status')}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {/* Option to clear filter */}
+                <DropdownMenuCheckboxItem
+                  checked={!filterStatus}
+                  onSelect={() => setFilterStatus(null)}
+                >
+                  {t('common:allStatuses', 'All Statuses')}
+                </DropdownMenuCheckboxItem>
+                {/* Options for each status */}
+                {["Member", "Visitor", "Inactive"].map((status) => (
+                  <DropdownMenuCheckboxItem
+                    key={status}
+                    checked={filterStatus === status}
+                    onSelect={() => setFilterStatus(status)}
+                  >
+                    {getStatusText(status)}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <AddMemberButton onMemberAdded={handleAddMemberSuccess} />
+          </div>
         </div>
 
         <div className="p-4">

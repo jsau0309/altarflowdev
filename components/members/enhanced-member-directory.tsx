@@ -15,14 +15,6 @@ import { AddMemberButton } from "./add-member-button"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslation } from "react-i18next"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 // Add props for filter state and handler
 interface EnhancedMemberDirectoryProps {
@@ -195,57 +187,22 @@ export function EnhancedMemberDirectory({
   // Helper to get status text for badges and dropdown
   const getStatusText = (status: string | undefined | null) => {
     if (!status) return t('common:unknown');
-    return t(`members:statuses.${status}`, status.charAt(0).toUpperCase() + status.slice(1));
+    // Convert to lowercase for translation key
+    const statusKey = status.toLowerCase();
+    return t(`members:statuses.${statusKey}`, status.charAt(0).toUpperCase() + status.slice(1));
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder={t('common:searchPlaceholderMembers', 'Search members...')}
-            className="w-full rounded-md pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Implement DropdownMenu for Filter button */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter className="h-4 w-4" />
-                {t('common:filter', 'Filter')}
-                {filterStatus && <span className="ml-2 text-xs text-muted-foreground">({getStatusText(filterStatus)})</span>}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('members:filterByStatus', 'Filter by Status')}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {/* Option to clear filter */}
-              <DropdownMenuCheckboxItem
-                checked={!filterStatus} // Checked if no status is selected
-                onSelect={() => onFilterChange(null)} // Call handler with null
-              >
-                {t('common:allStatuses', 'All Statuses')}
-              </DropdownMenuCheckboxItem>
-              {/* Options for each status */}
-              {[ "new", "active", "visitor", "inactive"].map((status) => (
-                <DropdownMenuCheckboxItem
-                  key={status}
-                  checked={filterStatus === status}
-                  onSelect={() => onFilterChange(status)}
-                >
-                  {getStatusText(status)}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {/* Removed AddMemberButton instance from here */}
-          {/* {showAddButton && <AddMemberButton onMemberAdded={handleAddMemberSuccess} />} */}
-        </div>
+      <div className="relative w-full">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder={t('common:searchPlaceholderMembers', 'Search members...')}
+          className="w-full rounded-md pl-8"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
       {/* Use isLoading prop */}
@@ -304,16 +261,16 @@ export function EnhancedMemberDirectory({
                   <TableCell className="text-center">
                     <Badge
                       variant={
-                        member.membershipStatus === "Member" // Changed from "active"
+                        member.membershipStatus === "Member"
                           ? "default"
-                          : member.membershipStatus === "Visitor" // Changed from "new"
+                          : member.membershipStatus === "Visitor"
                             ? "secondary"
                             : "outline"
                       }
                       className={
-                        member.membershipStatus === "Member" // Changed from "active"
+                        member.membershipStatus === "Member"
                           ? "bg-green-100 text-green-800 hover:bg-green-100"
-                          : member.membershipStatus === "Visitor" // Changed from "new"
+                          : member.membershipStatus === "Visitor"
                             ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
                             : ""
                       }

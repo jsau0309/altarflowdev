@@ -45,7 +45,7 @@ export function DonationCharts({ donations, campaigns, startDate, endDate }: Don
   // Filter donations based on date range from props (this is the global filter)
   const globallyFilteredDonations = donations.filter((donation: Donation) => {
     if (!startDate && !endDate) return true;
-    const donationDate = new Date(donation.donationDate);
+    const donationDate = new Date(donation.transactionDate);
     if (startDate && endDate) {
       return donationDate >= startDate && donationDate <= endDate;
     } else if (startDate) {
@@ -60,11 +60,18 @@ export function DonationCharts({ donations, campaigns, startDate, endDate }: Don
   const currentYear = getYear(today);
   const previousYear = currentYear - 1;
 
-  // Helper to aggregate donations by month (0-indexed)
-  const aggregateByMonth = (donationsToAggregate: Donation[]) => {
-    return donationsToAggregate.reduce((acc: { [key: number]: number }, donation: Donation) => {
-      const month = getMonth(new Date(donation.donationDate)); // 0 for Jan, 1 for Feb, etc.
-      acc[month] = (acc[month] || 0) + parseFloat(donation.amount);
+  // Helper to aggregate donations by year-month key
+  const aggregateByYearMonth = (donationsToAggregate: Donation[]) => {
+    return donationsToAggregate.reduce((acc: { [key: string]: number }, donation: Donation) => {
+      const date = new Date(donation.transactionDate);
+      const year = getYear(date);
+      const month = getMonth(date); // 0 for Jan, 1 for Feb, etc.
+      const key = `${year}-${month}`;
+      
+      // Parse amount - it should be a string from the API
+      const amount = parseFloat(donation.amount) || 0;
+      
+      acc[key] = (acc[key] || 0) + amount;
       return acc;
     }, {});
   };
@@ -76,7 +83,7 @@ export function DonationCharts({ donations, campaigns, startDate, endDate }: Don
       const prevStartDate = subYears(startDate, 1);
       const prevEndDate = subYears(endDate, 1);
       const previousDonations = donations.filter(d =>
-        isWithinInterval(new Date(d.donationDate), { start: prevStartDate, end: prevEndDate })
+        isWithinInterval(new Date(d.transactionDate), { start: prevStartDate, end: prevEndDate })
       );
       
       return {
@@ -90,14 +97,14 @@ export function DonationCharts({ donations, campaigns, startDate, endDate }: Don
       const currentYearStart = startOfYear(today);
       const currentYearEnd = endOfYear(today);
       const currentDonations = globallyFilteredDonations.filter(d =>
-        isWithinInterval(new Date(d.donationDate), { start: currentYearStart, end: currentYearEnd })
+        isWithinInterval(new Date(d.transactionDate), { start: currentYearStart, end: currentYearEnd })
       );
 
       const previousYearRefDate = subYears(today, 1);
       const previousYearStart = startOfYear(previousYearRefDate);
       const previousYearEnd = endOfYear(previousYearRefDate);
       const previousDonations = donations.filter(d =>
-        isWithinInterval(new Date(d.donationDate), { start: previousYearStart, end: previousYearEnd })
+        isWithinInterval(new Date(d.transactionDate), { start: previousYearStart, end: previousYearEnd })
       );
 
       return {
@@ -109,22 +116,60 @@ export function DonationCharts({ donations, campaigns, startDate, endDate }: Don
     }
   })();
 
-  const aggregatedCurrentPeriod = aggregateByMonth(currentPeriodDonations);
-  const aggregatedPreviousPeriod = aggregateByMonth(previousPeriodDonations);
+  const aggregatedCurrentPeriod = aggregateByYearMonth(currentPeriodDonations);
+  const aggregatedPreviousPeriod = aggregateByYearMonth(previousPeriodDonations);
 
   // Get locale for month formatting
   const dLocale = i18n.language === 'es' ? es : enUS;
 
-  // Prepare data for the line chart (Jan to Dec)
-  const trendChartData = Array.from({ length: 12 }, (_, i) => {
-    // Create a date for the first day of each month (of the current year, year doesn't matter for month name)
-    const monthDate = new Date(currentYear, i, 1);
-    return {
-      month: format(monthDate, 'MMM', { locale: dLocale }), // e.g., "Jan", "Feb" or "Ene", "Feb"
-      currentYearAmount: aggregatedCurrentPeriod[i] || 0,
-      previousYearAmount: aggregatedPreviousPeriod[i] || 0,
-    };
-  });
+  // Prepare data for the line chart
+  const trendChartData = (() => {
+    if (startDate && endDate) {
+      // When date range is selected, only show months within that range
+      const months = [];
+      const currentDate = new Date(startDate);
+      
+      // Iterate through each month in the range
+      while (currentDate <= endDate) {
+        const year = getYear(currentDate);
+        const month = getMonth(currentDate);
+        const currentKey = `${year}-${month}`;
+        
+        // For previous period, subtract 1 year
+        const prevYear = year - 1;
+        const prevKey = `${prevYear}-${month}`;
+        
+        // Only show year if the range spans multiple years
+        const showYear = getYear(startDate) !== getYear(endDate);
+        const monthFormat = showYear ? 'MMM yyyy' : 'MMM';
+        
+        months.push({
+          month: format(currentDate, monthFormat, { locale: dLocale }),
+          currentYearAmount: aggregatedCurrentPeriod[currentKey] || 0,
+          previousYearAmount: aggregatedPreviousPeriod[prevKey] || 0,
+        });
+        
+        // Move to next month
+        currentDate.setMonth(currentDate.getMonth() + 1);
+      }
+      
+      return months;
+    } else {
+      // No date range selected, show months from January to current month
+      const currentMonth = getMonth(today);
+      return Array.from({ length: currentMonth + 1 }, (_, i) => {
+        const monthDate = new Date(currentYear, i, 1);
+        const currentKey = `${currentYear}-${i}`;
+        const prevKey = `${previousYear}-${i}`;
+        
+        return {
+          month: format(monthDate, 'MMM', { locale: dLocale }),
+          currentYearAmount: aggregatedCurrentPeriod[currentKey] || 0,
+          previousYearAmount: aggregatedPreviousPeriod[prevKey] || 0,
+        };
+      });
+    }
+  })();
 
   // --- Original aggregations for Pie chart (Donations by Fund) ---
   const getFundNameForChart = (fundNameFromData: string | null | undefined) => {

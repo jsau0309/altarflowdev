@@ -197,5 +197,14 @@
       "amountLabel": "Amount",
       "donationsLegend": "Donations"
     }
-  }
+  },
+  "summary": "Summary",
+  "transactionDetails": "Transaction Details",
+  "from": "From",
+  "to": "To",
+  "donor": "Donor",
+  "vendor": "Vendor",
+  "category": "Category",
+  "payment": "Payment",
+  "paymentMethod": "Payment Method"
 }

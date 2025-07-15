@@ -117,5 +117,13 @@
   },
   "Basic Information": "Basic Information",
   "streetAddrLabel": "Street Address",
-  "drawerEditTitle": "Edit Member"
+  "drawerEditTitle": "Edit Member",
+  "filterByStatus": "Filter by Status",
+  "name": "Name",
+  "contact": "Contact",
+  "empty": {
+    "title": "No members found",
+    "adjustSearch": "Try adjusting your search terms.",
+    "addFirst": "Add your first member to get started."
+  }
 } 
