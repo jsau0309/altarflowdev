@@ -265,6 +265,7 @@ model Flow {
   name        String
   type        FlowType     @default(NEW_MEMBER)
   slug        String       @unique
+  customSlug  String?      @unique
   configJson  Json
   isEnabled   Boolean      @default(true)
   createdAt   DateTime     @default(now())

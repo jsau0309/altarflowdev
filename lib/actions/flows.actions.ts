@@ -232,12 +232,14 @@ export async function saveFlowConfiguration(
     }
 
     let churchId: string;
+    let churchSlug: string;
     try {
         const church = await prisma.church.findUniqueOrThrow({
             where: { clerkOrgId: orgId },
-            select: { id: true }
+            select: { id: true, slug: true }
         });
         churchId = church.id;
+        churchSlug = church.slug;
     } catch (error) {
          console.error(`saveFlowConfiguration Error: Church not found for orgId ${orgId}.`);
          return { success: false, message: "Associated church record not found." };
@@ -249,7 +251,7 @@ export async function saveFlowConfiguration(
         settings: config.settings,
     };
     const flowName = `${flowType.charAt(0) + flowType.slice(1).toLowerCase().replace(/_/g, ' ')} Flow`;
-    const flowSlug = `connect-${orgId}`; 
+    const flowSlug = churchSlug; // Use church slug as the default 
 
     try {
         const createdFlow = await prisma.flow.create({
@@ -316,14 +318,30 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
         return null;
     }
     try {
-        const flow = await prisma.flow.findUnique({
-            where: { slug: slug, isEnabled: true },
+        // First try to find by customSlug, then fall back to slug
+        let flow = await prisma.flow.findFirst({
+            where: { 
+                customSlug: slug, 
+                isEnabled: true 
+            },
             select: {
                 id: true,
                 configJson: true,
                 church: { select: { name: true } }
             },
         });
+        
+        // If not found by customSlug, try the regular slug
+        if (!flow) {
+            flow = await prisma.flow.findUnique({
+                where: { slug: slug, isEnabled: true },
+                select: {
+                    id: true,
+                    configJson: true,
+                    church: { select: { name: true } }
+                },
+            });
+        }
 
         if (!flow) {
             console.log(`getPublicFlowBySlug: Flow not found or not enabled for slug: ${slug}`);
@@ -453,6 +471,9 @@ async function sendPrayerRequestEmail(
   }
 }
 
+// Simple in-memory rate limiting (replace with Redis in production)
+const submissionCache = new Map<string, number[]>();
+
 export async function submitFlow(
     flowId: string, 
     formData: SubmitFlowInput
@@ -461,6 +482,23 @@ export async function submitFlow(
     let churchId: string; 
     let memberId: string = "";
     const submissionTimestamp = new Date();
+    
+    // Simple rate limiting by email (5 submissions per hour)
+    const hourAgo = Date.now() - (60 * 60 * 1000);
+    const emailSubmissions = submissionCache.get(formData.email) || [];
+    const recentSubmissions = emailSubmissions.filter(time => time > hourAgo);
+    
+    if (recentSubmissions.length >= 5) {
+        console.warn(`[SubmitFlow] Rate limit exceeded for email: ${formData.email}`);
+        return { 
+            success: false, 
+            message: "Too many submissions. Please try again later." 
+        };
+    }
+    
+    // Update submission cache
+    recentSubmissions.push(Date.now());
+    submissionCache.set(formData.email, recentSubmissions);
     // Ensure language is part of validatedFormData, if not, default or handle error
     // For now, assuming it's present as per SubmitFlowInput interface
 

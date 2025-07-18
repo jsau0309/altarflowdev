@@ -53,6 +53,8 @@ const createFormSchema = (t: (key: string) => string) => z.object({
     prayerRequested: z.boolean().optional().default(false),
     // Add validation for prayerRequest if prayerRequested is true
     prayerRequest: z.string().optional(),
+    // Honeypot field for spam protection - should be empty
+    website: z.string().optional().default(""),
 }).refine(data => !data.prayerRequested || (data.prayerRequested && data.prayerRequest && data.prayerRequest.length > 0), {
     message: t('common:errors.required'), // Reuse common required message
     path: ["prayerRequest"], // Apply validation to prayerRequest field
@@ -83,6 +85,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
             referralSource: "",
             prayerRequested: false,
             prayerRequest: "",
+            website: "", // Honeypot field
         },
     });
 
@@ -104,6 +107,17 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                      // smsConsent is removed as it's no longer part of the form/schema
                  };
                  console.log("[ConnectForm] Submitting data:", submissionData);
+
+                 // Check honeypot field - if filled, it's likely a bot
+                 if (submissionData.website && submissionData.website.length > 0) {
+                     console.warn('Potential spam submission detected - honeypot field was filled');
+                     // Silently reject but show success to confuse bots
+                     setSubmitResult({ 
+                         success: true, 
+                         message: t('connect-form:submitSuccess') 
+                     });
+                     return;
+                 }
 
                  // Initialize optional fields as undefined initially
                  const dataToSubmit = {
@@ -209,6 +223,17 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
             </CardHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
                 <CardContent className="space-y-6">
+                    {/* Honeypot field for spam protection - hidden from users */}
+                    <input 
+                        type="text"
+                        id="website"
+                        className="hidden"
+                        tabIndex={-1}
+                        autoComplete="off"
+                        {...register("website")}
+                        aria-hidden="true"
+                    />
+                    
                     {/* --- Standard Fields --- */} 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">

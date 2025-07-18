@@ -28,7 +28,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@clerk/nextjs'
-import { usePathname } from 'next/navigation'
 import { StripeConnectButton, type StripeAccount } from './stripe-connect-button'
 import StripeConnectEmbeddedWrapper from './stripe/StripeConnectEmbeddedWrapper';
 import LoaderOne from '@/components/ui/loader-one';
@@ -40,11 +39,13 @@ export function BankingContent() {
   const [error, setError] = useState<string | null>(null)
   const [churchId, setChurchId] = useState<string | null>(null)
   const { t } = useTranslation(['banking', 'common'])
-  const pathname = usePathname()
 
   const { orgId, isLoaded: isClerkLoaded } = useAuth() // Renamed for clarity
 
   useEffect(() => {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+
     const fetchStripeAccountInternal = async () => {
       // If Clerk is not loaded yet, set loading and wait.
       if (!isClerkLoaded) {
@@ -54,61 +55,76 @@ export function BankingContent() {
 
       // Clerk is loaded, now check for orgId.
       if (!orgId) {
-        setError(t('common:errors.noOrganizationSelected'));
-        setStripeAccount(null);
-        setIsLoading(false); // Finished this path
+        if (isMounted) {
+          setError(t('common:errors.unknownError'));
+          setStripeAccount(null);
+          setIsLoading(false);
+        }
         return;
       }
 
       // Clerk is loaded and orgId is available. Proceed to fetch.
-      setIsLoading(true); // For the Stripe API call itself
-      setChurchId(orgId);
-
-      // TODO: The actual fetch call to /api/stripe needs to be here
-      // For now, let's assume it's done and we're just setting loading states
-      // Example: 
-      // try {
-      //   const response = await fetch(...);
-      //   const data = await response.json();
-      //   setStripeAccount(data.account);
-      // } catch (e) {
-      //   setError(t('common:errors.failedToFetchStripeAccount'));
-      // } finally {
-      //   setIsLoading(false);
-      // }
-      // Simulating end of fetch for now if no actual fetch is in this block
-      // If fetchStripeAccountInternal is supposed to do the fetch, ensure setIsLoading(false) is called appropriately after it. 
-      // If the fetch is done elsewhere and this effect only sets up, this might be okay.
- 
-      setError(null); // Clear previous errors
+      if (isMounted) {
+        setIsLoading(true);
+        setChurchId(orgId);
+        setError(null); // Clear previous errors
+      }
 
       try {
+        // Add a small delay to prevent race conditions on initial load
+        await new Promise(resolve => {
+          timeoutId = setTimeout(resolve, 100);
+        });
+
+        if (!isMounted) return;
         
         // Fetch the latest Stripe account status
         const stripeResponse = await fetch('/api/stripe', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Idempotency-Key': `get_account_${Date.now()}`
+            'Idempotency-Key': `get_account_${orgId}_${Date.now()}_${Math.random()}`
           },
           body: JSON.stringify({
             action: 'getAccount',
-            churchId: orgId, // Use orgId directly
+            churchId: orgId,
             refresh: true
           })
         })
+
+        if (!isMounted) return;
 
         if (!stripeResponse.ok) {
           // If no account exists, that's fine - we'll show the connect button
           if (stripeResponse.status === 404) {
             setStripeAccount(null);
+            setIsLoading(false);
             return;
           }
           const errorData = await stripeResponse.json().catch(() => ({}));
           throw new Error(errorData.error || 'Failed to fetch Stripe account');
         }
 
-        const account = await stripeResponse.json();
+        // Check if response has content before parsing
+        const contentType = stripeResponse.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          console.error('Expected JSON response but got:', contentType);
+          throw new Error('Invalid response format from server');
+        }
+
+        const responseText = await stripeResponse.text();
+        if (!responseText) {
+          console.error('Empty response from Stripe API');
+          throw new Error('Empty response from server');
+        }
+        
+        let account;
+        try {
+          account = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse response:', responseText);
+          throw new Error('Invalid JSON response from server');
+        }
         
         // Log the account status for debugging
         console.log('Stripe Account Status:', {
@@ -119,17 +135,30 @@ export function BankingContent() {
           requirements: account.requirements
         });
         
-        setStripeAccount(account);
+        if (isMounted) {
+          setStripeAccount(account);
+        }
       } catch (err) {
         console.error('Error fetching Stripe account:', err);
-        setError(err instanceof Error ? err.message : t('common:errors.unknownError'))
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : t('common:errors.unknownError'))
+        }
       } finally {
-        setIsLoading(false)
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
     }
 
     fetchStripeAccountInternal();
-  }, [isClerkLoaded, orgId, pathname])
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isClerkLoaded, orgId, t])
 
   // If Clerk auth state is not loaded yet, show a loader for the whole content.
   // This must come AFTER all hook calls.

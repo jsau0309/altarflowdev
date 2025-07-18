@@ -367,21 +367,39 @@ export async function POST(request: Request) {
       },
     });
     } catch (dbError: any) {
-      if (dbError.code === 'P2002' && dbError.meta?.target?.includes('stripePaymentIntentId')) {
-        console.log(`[API /donations/initiate] Unique constraint on stripePaymentIntentId for PI ${paymentIntent.id}. Another request likely created it. Fetching existing.`);
-        const existingTx = await prisma.donationTransaction.findUnique({
-          where: { stripePaymentIntentId: paymentIntent.id },
-        });
-        if (existingTx) {
-          return NextResponse.json({
-            clientSecret: paymentIntent.client_secret,
-            transactionId: existingTx.id,
-            message: 'Transaction already recorded due to concurrent request.'
-          }, { status: 200 });
-        } else {
-          console.error(`[API /donations/initiate] P2002 on stripePaymentIntentId but failed to retrieve existing transaction for PI ${paymentIntent.id}.`, dbError);
-          throw dbError;
+      if (dbError.code === 'P2002') {
+        // Handle unique constraint violation for either stripePaymentIntentId or idempotencyKey
+        const target = dbError.meta?.target as string[] || [];
+        
+        if (target.includes('stripePaymentIntentId')) {
+          console.log(`[API /donations/initiate] Unique constraint on stripePaymentIntentId for PI ${paymentIntent.id}. Another request likely created it. Fetching existing.`);
+          const existingTx = await prisma.donationTransaction.findUnique({
+            where: { stripePaymentIntentId: paymentIntent.id },
+          });
+          if (existingTx) {
+            return NextResponse.json({
+              clientSecret: paymentIntent.client_secret,
+              transactionId: existingTx.id,
+              message: 'Transaction already recorded due to concurrent request.'
+            }, { status: 200 });
+          }
+        } else if (target.includes('idempotencyKey')) {
+          console.log(`[API /donations/initiate] Unique constraint on idempotencyKey ${idempotencyKey}. Another request likely created it. Fetching existing.`);
+          const existingTx = await prisma.donationTransaction.findUnique({
+            where: { idempotencyKey: idempotencyKey },
+          });
+          if (existingTx) {
+            return NextResponse.json({
+              clientSecret: paymentIntent.client_secret,
+              transactionId: existingTx.id,
+              message: 'Transaction already recorded due to concurrent request.'
+            }, { status: 200 });
+          }
         }
+        
+        // If we couldn't find the existing transaction, throw the error
+        console.error(`[API /donations/initiate] P2002 but failed to retrieve existing transaction for PI ${paymentIntent.id}.`, dbError);
+        throw dbError;
       } else {
         console.error(`[API /donations/initiate] Database error during DonationTransaction creation for PI ${paymentIntent.id}:`, dbError);
         throw dbError;

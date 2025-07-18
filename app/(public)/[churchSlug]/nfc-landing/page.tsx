@@ -13,7 +13,7 @@ interface NfcLandingPageProps {
 }
 
 async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const langCookie = cookieStore.get('NEXT_LOCALE');
   const locale = langCookie?.value === 'es' ? 'es' : 'en'; // Default to 'en' if cookie is not 'es' or not set
   const t = await getTranslationsForServer(locale, 'nfc');
@@ -45,16 +45,18 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
           {t('nfcWelcomeMessage', { churchName: church.name })}
         </h1>
         <div className="space-y-4">
-          <Link href={`/${churchSlug}`} passHref legacyBehavior>
-            <a className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out">
-              {t('nfcDonateButton')}
-            </a>
+          <Link 
+            href={`/${churchSlug}`} 
+            className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
+          >
+            {t('nfcDonateButton')}
           </Link>
           {connectUrl && (
-            <Link href={connectUrl} passHref legacyBehavior>
-              <a className="block w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out">
-                {t('nfcConnectButton')}
-              </a>
+            <Link 
+              href={connectUrl} 
+              className="block w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
+            >
+              {t('nfcConnectButton')}
             </Link>
           )}
         </div>
@@ -68,12 +70,13 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
 }
 
 export default async function NfcLandingPage({ params }: NfcLandingPageProps) {
-  return <NfcLandingContent churchSlug={params.churchSlug} />;
+  const { churchSlug } = await params;
+  return <NfcLandingContent churchSlug={churchSlug} />;
 }
 
 // Metadata export for page title
 export async function generateMetadata({ params }: NfcLandingPageProps): Promise<any> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const langCookie = cookieStore.get('NEXT_LOCALE');
   const locale = langCookie?.value === 'es' ? 'es' : 'en'; // Default to 'en'
   const t = await getTranslationsForServer(locale, 'nfc');

@@ -5,39 +5,138 @@ import { Resend } from 'resend';
 import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
+import { captureWebhookEvent, capturePaymentError } from '@/lib/sentry';
+
+// Disable body parsing, we need the raw body for webhook signature verification
+export const runtime = 'nodejs';
 
 // Initialize Resend client (ensure RESEND_API_KEY is in .env)
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = (await headers()).get('Stripe-Signature') as string;
+  let body: string;
+  let signature: string | null;
+
+  try {
+    // Important: Get the raw body as text for signature verification
+    body = await req.text();
+    const headersList = await headers();
+    signature = headersList.get('stripe-signature');
+    
+    if (!body) {
+      console.error('[Stripe Webhook] Empty body received');
+      return NextResponse.json(
+        { error: 'Webhook Error: Empty request body' },
+        { status: 400 }
+      );
+    }
+    
+    if (!signature) {
+      console.error('[Stripe Webhook] No signature header found');
+      return NextResponse.json(
+        { error: 'Webhook Error: No stripe-signature header' },
+        { status: 400 }
+      );
+    }
+  } catch (bodyError) {
+    console.error('[Stripe Webhook] Error reading request body:', bodyError);
+    return NextResponse.json(
+      { error: 'Webhook Error: Failed to read request body' },
+      { status: 400 }
+    );
+  }
 
   let event: Stripe.Event;
 
-  console.log('[Stripe Webhook] Received request.');
+  // Only log in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Stripe Webhook] Received request.');
+    console.log(`[Stripe Webhook] Body length: ${body?.length || 0}`);
+  }
 
   try {
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      const webhookSecretLength = process.env.STRIPE_WEBHOOK_SECRET?.length || 0;
+      const webhookSecretPrefix = process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 10) || 'not-set';
+      console.log(`[Stripe Webhook] Using webhook secret: ${webhookSecretPrefix}... (length: ${webhookSecretLength})`);
+      console.log(`[Stripe Webhook] Signature header present: ${!!signature}`);
+    }
+    
     event = stripe.webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-    console.log(`[Stripe Webhook] Event constructed: ${event.type}, ID: ${event.id}`);
+    // Sentry will capture this with context
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Stripe Webhook] Event constructed: ${event.type}, ID: ${event.id}`);
+    }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    console.error(`[Stripe Webhook] Signature verification failed: ${errorMessage}`, { body, signature });
-    return NextResponse.json({ error: `Webhook Error: Signature verification failed` }, { status: 400 });
+    console.error(`[Stripe Webhook] Signature verification failed: ${errorMessage}`);
+    console.error(`[Stripe Webhook] Debug info:`, {
+      signaturePresent: !!signature,
+      signatureLength: signature?.length,
+      bodyLength: body?.length,
+      webhookSecretSet: !!process.env.STRIPE_WEBHOOK_SECRET,
+      error: errorMessage
+    });
+    
+    // In development/testing, you might want to process anyway with a warning
+    if (process.env.NODE_ENV === 'development' && process.env.SKIP_WEBHOOK_VERIFICATION === 'true') {
+      console.warn('[Stripe Webhook] DEVELOPMENT MODE: Skipping signature verification');
+      try {
+        event = JSON.parse(body) as Stripe.Event;
+      } catch (parseErr) {
+        console.error('[Stripe Webhook] Failed to parse body as JSON:', parseErr);
+        return NextResponse.json({ error: `Webhook Error: Invalid JSON body` }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({ error: `Webhook Error: Signature verification failed - ${errorMessage}` }, { status: 400 });
+    }
   }
 
   try {
+    // Capture important events in Sentry
+    captureWebhookEvent(event.type, {
+      eventId: event.id,
+      livemode: event.livemode,
+      created: event.created
+    });
+    
     switch (event.type) {
       case 'payment_intent.succeeded':
         const paymentIntentSucceeded = event.data.object as Stripe.PaymentIntent;
-        console.log(`[Stripe Webhook] Processing payment_intent.succeeded for PI: ${paymentIntentSucceeded.id}`);
+        
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Stripe Webhook] Processing payment_intent.succeeded for PI: ${paymentIntentSucceeded.id}`);
+        }
 
         let transaction;
         try {
+          // First, check if the transaction exists
+          const existingTransaction = await prisma.donationTransaction.findUnique({
+            where: { stripePaymentIntentId: paymentIntentSucceeded.id }
+          });
+          
+          if (!existingTransaction) {
+            captureWebhookEvent('transaction_not_found', {
+              paymentIntentId: paymentIntentSucceeded.id,
+              amount: paymentIntentSucceeded.amount,
+              currency: paymentIntentSucceeded.currency
+            }, 'warning');
+            // Don't fail the webhook - Stripe might retry
+            return NextResponse.json({ received: true, warning: 'Transaction not found' });
+          }
+          
+          console.log(`[Stripe Webhook] Found existing transaction:`, {
+            id: existingTransaction.id,
+            currentStatus: existingTransaction.status,
+            stripePaymentIntentId: existingTransaction.stripePaymentIntentId
+          });
+          
           transaction = await prisma.donationTransaction.update({
             where: { stripePaymentIntentId: paymentIntentSucceeded.id },
             data: {
@@ -47,7 +146,11 @@ export async function POST(req: Request) {
           });
           console.log(`[Stripe Webhook] Successfully updated DonationTransaction ${transaction.id} status to succeeded for PI: ${paymentIntentSucceeded.id}`);
         } catch (error) {
-          console.error(`[Stripe Webhook] Error updating DonationTransaction for PI: ${paymentIntentSucceeded.id}`, error);
+          capturePaymentError(error as Error, {
+            paymentIntentId: paymentIntentSucceeded.id,
+            amount: paymentIntentSucceeded.amount / 100,
+            customerId: paymentIntentSucceeded.customer as string
+          });
           return NextResponse.json({ error: 'Failed to update transaction record.' }, { status: 500 });
         }
 
@@ -195,6 +298,13 @@ export async function POST(req: Request) {
     }
   } catch (error) {
     console.error('[Stripe Webhook] General error processing webhook event:', error);
+    console.error('[Stripe Webhook] Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      eventType: event?.type,
+      eventId: event?.id
+    });
     return NextResponse.json({ error: 'Webhook handler failed. View logs.' }, { status: 500 });
   }
 

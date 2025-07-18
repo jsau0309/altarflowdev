@@ -139,11 +139,18 @@ async function withIdempotency(
   if (cachedResponse) {
     console.log(`[DEBUG] Idempotency: Returning cached response for key: ${cacheKey}`);
     const parsedData = JSON.parse(cachedResponse.responseData);
+    
+    // If body is empty or undefined, ensure we return an empty string not null/undefined
+    const bodyContent = parsedData.body || '';
+    
     // Reconstruct the NextResponse from cached parts
-    return new NextResponse(parsedData.body, {
+    const reconstructedResponse = new NextResponse(bodyContent, {
       status: parsedData.status,
       headers: parsedData.headers,
     });
+    
+    console.log(`[DEBUG] Idempotency: Reconstructed response with body length: ${bodyContent.length}`);
+    return reconstructedResponse;
   }
   
   // Execute the operation, which returns a NextResponse
@@ -156,11 +163,21 @@ async function withIdempotency(
   }
 
   // If operation was successful, prepare response for caching
+  const bodyText = await response.clone().text(); // Clone because body can be read once
+  
+  // Don't cache empty responses for successful operations
+  if (response.status === 200 && (!bodyText || bodyText.trim() === '')) {
+    console.warn(`[DEBUG] Idempotency: Skipping cache for empty 200 response (key: ${cacheKey})`);
+    return response;
+  }
+  
   const responseToCache = {
-    body: await response.clone().text(), // Clone because body can be read once
+    body: bodyText,
     status: response.status,
     headers: Object.fromEntries(response.headers.entries()),
   };
+  
+  console.log(`[DEBUG] Idempotency: Caching response with body length: ${bodyText.length}, status: ${response.status}`);
 
   try {
     await extendedPrisma.idempotencyCache.create({
@@ -291,7 +308,9 @@ export async function POST(req: Request) {
         ), { keyPrefix: `createAccount_${body.churchId}` });
       }
       else if (isGetAccountRequest(body)) {
-        return await withIdempotency(req, () => handleGetAccount(body));
+        return await withIdempotency(req, () => handleGetAccount(body), { 
+          keyPrefix: `getAccount_${body.churchId || body.accountId || 'unknown'}` 
+        });
       }
       else if (isCreateAccountLinkRequest(body)) {
         // The client sends churchId. handleCreateAccount takes clerkOrgId (which is churchId)
@@ -651,7 +670,16 @@ async function handleGetAccount({
       // mapping from stripeAccount (live Stripe data) or updatedAccount (local DB record) as appropriate.
     };
 
-    return NextResponse.json(responseAccount);
+    console.log('[handleGetAccount] Returning response account:', JSON.stringify(responseAccount, null, 2));
+    
+    // Ensure we're returning a proper NextResponse with content
+    const jsonResponse = JSON.stringify(responseAccount);
+    return new NextResponse(jsonResponse, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (error) {
     console.error('Error fetching Stripe account:', error);
     return NextResponse.json(
