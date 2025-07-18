@@ -28,6 +28,8 @@
       "membershipReports": "Reportes de membresía",
       "settings": "Configuraciones",
       "banking": "Banco",
+      "billing": "Facturación",
+      "flows": "Flujos",
       "signOut": "Cerrar sesión"
     },
     

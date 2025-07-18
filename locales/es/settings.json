@@ -139,5 +139,101 @@
         },
         "inviteError": "Error al enviar invitación: {{message}}",
         "noUsers": "No se encontraron usuarios."
+    },
+
+    "tabs": {
+      "general": "General",
+      "generalDesc": "Información básica e preferencias de la iglesia",
+      "account": "Gestión de Cuenta",
+      "accountDesc": "Administrar usuarios y permisos",
+      "landing": "Gestor de Página",
+      "landingDesc": "Personaliza la página pública de tu iglesia"
+    },
+
+    "general": {
+      "language": "Idioma",
+      "languageDescription": "Elige tu idioma preferido para la interfaz",
+      "displayLanguage": "Idioma de Visualización",
+      "languageChanged": "Idioma actualizado con éxito",
+      "languageChangeFailed": "Error al actualizar el idioma",
+      "appearance": "Apariencia",
+      "appearanceDescription": "Personaliza cómo se ve Altarflow en tu dispositivo",
+      "theme": "Tema",
+      "lightTheme": "Claro",
+      "darkTheme": "Oscuro",
+      "themeChanged": "Tema actualizado con éxito",
+      "themeChangeFailed": "Error al actualizar el tema",
+      "saving": "Guardando...",
+      "saveChanges": "Guardar Cambios",
+      "unsavedChanges": "Tienes cambios sin guardar"
+    },
+
+    "landing": {
+      "qrCode": "Código QR de Página NFC",
+      "qrCodeDesc": "Imprime este código QR y colócalo en la entrada de tu iglesia para fácil acceso",
+      "pageUrl": "URL de la Página de Destino",
+      "downloadQR": "Descargar Código QR",
+      "preview": "Vista Previa",
+      "tip": "Consejo: Imprime este código QR en un letrero o etiqueta y colócalo en la entrada de tu iglesia. Los visitantes pueden escanearlo para donar o conectarse con tu iglesia.",
+      "buttonVisibility": "Contenido de la Página",
+      "buttonVisibilityDesc": "Elige qué acciones están disponibles en tu página de destino",
+      "donateButton": "Botón de Donar",
+      "donateButtonDesc": "Permite a los visitantes hacer donaciones rápidas",
+      "stripeRequired": "Se requiere cuenta de Stripe. Configúrala en Banca.",
+      "stripeNotActive": "Completa la configuración de Stripe para habilitar donaciones.",
+      "connectButton": "Botón de Conectar",
+      "connectButtonDesc": "Permite a nuevos visitantes llenar tu formulario de miembro",
+      "flowRequired": "Crea un flujo primero. Ve a la página de Flujos.",
+      "noButtonsWarning": "⚠️ Al menos un botón debe estar habilitado",
+      "changesSaved": "Los cambios se reflejarán inmediatamente en tu página de destino",
+      "futureFeatures": "Próximamente: Programación Avanzada",
+      "futureDesc": "En futuras actualizaciones, podrás programar diferentes botones para que aparezcan en horarios y días específicos de la semana.",
+      "loadError": "Error al cargar configuración",
+      "saved": "Configuración de página guardada con éxito",
+      "saveError": "Error al guardar configuración"
+    },
+
+    "comingSoon": "Próximamente",
+
+    "billing": {
+      "title": "Suscripción y Facturación",
+      "description": "Administra tu suscripción e información de facturación",
+      "status": {
+        "pendingPayment": "Pago Requerido",
+        "active": "Activa",
+        "pastDue": "Vencida",
+        "canceled": "Cancelada"
+      },
+      "plans": {
+        "monthly": "Plan Mensual",
+        "annual": "Plan Anual"
+      },
+      "noActivePlan": "Sin Plan Activo",
+      "renewsOn": "Se renueva el",
+      "chooseAPlan": "Elegir un Plan",
+      "manageSubscription": "Administrar Suscripción",
+      "portalComingSoon": "¡Portal de facturación próximamente!",
+      "subscriptionRequired": "Suscripción Requerida",
+      "selectPlanToContinue": "Por favor selecciona un plan para continuar usando AltarFlow.",
+      "yourPlanIncludes": "Tu Plan Incluye",
+      "features": {
+        "unlimitedMembers": "Miembros ilimitados de la iglesia",
+        "donationTracking": "Seguimiento de donaciones y recibos",
+        "financialReporting": "Informes financieros",
+        "expenseManagement": "Gestión de gastos",
+        "emailCommunications": "Comunicaciones por correo electrónico",
+        "customDonationForms": "Formularios de donación personalizados",
+        "nfcQrPages": "Páginas NFC y códigos QR",
+        "prioritySupport": "Soporte prioritario"
+      }
+    },
+
+    "account": {
+      "teamManagement": "Gestión del Equipo",
+      "teamDescription": "Administra los miembros de tu equipo y sus permisos",
+      "admin": "Administrador",
+      "adminDescription": "Acceso completo a todas las funciones",
+      "you": "Tú",
+      "inviteTeamMember": "Invitar Miembro del Equipo"
     }
   } 

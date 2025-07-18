@@ -9,7 +9,7 @@ import Image from "next/image"
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3, CreditCard, DollarSign, LayoutDashboard, 
-  Settings, Users, RefreshCcw, FileText // Removed HelpCircle as it's no longer used for the button
+  Settings, Users, RefreshCcw, FileText // Removed HelpCircle and Receipt as they're no longer used
 } from "lucide-react"
 
 // Assuming hooks are in lib or similar - adjust path if needed
@@ -233,6 +233,11 @@ const Sidebar = React.forwardRef<
         name: t('layout:sidebar.flows', 'Flows'),
         path: "/flows",
         icon: RefreshCcw,
+      },
+      {
+        name: t('layout:sidebar.settings', 'Settings'),
+        path: "/settings",
+        icon: Settings,
       },
 
     ]

@@ -136,10 +136,12 @@ export async function POST(req: Request) {
             clerkOrgId: orgId,
             name: name, // Original name from Clerk
             slug: slug, // Generated slug
+            // Initialize as pending payment
+            subscriptionStatus: 'pending_payment',
             // Add other default Church fields if necessary
           }
         });
-        console.log(`Successfully created church for Org ID: ${orgId} with internal ID: ${newChurch.id}`);
+        console.log(`Successfully created church for Org ID: ${orgId} with internal ID: ${newChurch.id} - awaiting payment`);
 
         // Now, create default donation types for the new church
         const defaultDonationTypesData = [

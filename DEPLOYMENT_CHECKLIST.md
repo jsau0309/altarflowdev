@@ -18,7 +18,7 @@ This document outlines all requirements, credentials, and configurations needed 
 ```env
 # Application
 NODE_ENV=production
-NEXT_PUBLIC_APP_URL=https://your-production-domain.com
+NEXT_PUBLIC_APP_URL=https://your-production-domain.com  # CRITICAL: Set to your actual domain for QR codes and public URLs
 
 # Database (Supabase)
 DATABASE_URL=postgresql://[user]:[password]@[host]:[port]/[database]?schema=public
@@ -173,6 +173,14 @@ TXT   _dmarc         v=DMARC1; p=none;
 TXT   @              v=spf1 include:resend.com ~all
 CNAME resend._domainkey    [Resend CNAME Value]
 ```
+
+### Public URLs Configuration
+- [ ] **Landing Pages**: The NFC landing pages will use the format: `https://your-domain.com/[church-slug]/nfc-landing`
+- [ ] **QR Codes**: Generated QR codes will automatically use the `NEXT_PUBLIC_APP_URL` environment variable
+- [ ] **Development vs Production**: 
+  - Development: Can use ngrok URLs temporarily (e.g., `https://testaltarflow.ngrok.app`)
+  - Production: MUST use your actual domain for QR codes to work permanently
+- [ ] **Important**: Once QR codes are printed, the domain cannot change without reprinting
 
 ---
 

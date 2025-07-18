@@ -24,6 +24,11 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
   }
   const { church } = churchData;
 
+  // Get landing page settings
+  const settings = church.settingsJson as any || {};
+  const showDonateButton = settings.landing?.showDonateButton ?? true;
+  const showConnectButton = settings.landing?.showConnectButton ?? true;
+
   const activeFlows = await getActiveFlowsByChurchId(church.id);
   const firstActiveFlow = activeFlows && activeFlows.length > 0 ? activeFlows[0] : null;
   const connectUrl = firstActiveFlow && firstActiveFlow.slug ? `/connect/${firstActiveFlow.slug}` : null;
@@ -45,19 +50,26 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
           {t('nfcWelcomeMessage', { churchName: church.name })}
         </h1>
         <div className="space-y-4">
-          <Link 
-            href={`/${churchSlug}`} 
-            className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
-          >
-            {t('nfcDonateButton')}
-          </Link>
-          {connectUrl && (
+          {showDonateButton && (
+            <Link 
+              href={`/${churchSlug}`} 
+              className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
+            >
+              {t('nfcDonateButton')}
+            </Link>
+          )}
+          {showConnectButton && connectUrl && (
             <Link 
               href={connectUrl} 
               className="block w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
             >
               {t('nfcConnectButton')}
             </Link>
+          )}
+          {!showDonateButton && !showConnectButton && (
+            <p className="text-gray-600">
+              {t('nfcNoActionsAvailable', 'No actions available at this time.')}
+            </p>
           )}
         </div>
       </div>

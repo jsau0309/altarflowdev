@@ -1,23 +1,17 @@
 "use client"
 
 import type React from "react"
-import { useTheme } from "next-themes"
-import { Menu, Moon, Sun } from "lucide-react"
-import Link from "next/link"
 import { useTranslation } from 'react-i18next';
 import { UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 // Import the new sidebar trigger 
 import { SidebarTrigger } from "@/components/layout/enhanced-sidebar" 
 // Remove import for old Sidebar if no longer needed for mobile Sheet
 // import { Sidebar } from "@/components/layout/sidebar"
-import { LanguageToggle } from "@/components/language-toggle"
 
 export function DashboardHeader() {
-  const { setTheme, theme } = useTheme()
   const { t } = useTranslation(['layout', 'common']); 
 
   return (
@@ -41,19 +35,6 @@ export function DashboardHeader() {
 
        {/* Right side: Controls */}
        <div className="flex items-center gap-4"> 
-         <LanguageToggle />
-         <DropdownMenu>
-           <DropdownMenuTrigger asChild>
-             <Button variant="ghost" size="icon" className="rounded-full">
-               {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-               <span className="sr-only">{t('toggleTheme', 'Toggle theme')}</span>
-             </Button>
-           </DropdownMenuTrigger>
-           <DropdownMenuContent align="end">
-             <DropdownMenuItem onClick={() => setTheme("light")}>{t('themeToggle.light', 'Light')}</DropdownMenuItem>
-             <DropdownMenuItem onClick={() => setTheme("dark")}>{t('themeToggle.dark', 'Dark')}</DropdownMenuItem>
-           </DropdownMenuContent>
-         </DropdownMenu>
          <OrganizationSwitcher hidePersonal={true} />
          <UserButton afterSignOutUrl="/" />
        </div>

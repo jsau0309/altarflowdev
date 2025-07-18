@@ -140,5 +140,101 @@
     },
     "inviteError": "Failed to send invitation: {{message}}",
     "noUsers": "No users found."
+  },
+
+  "tabs": {
+    "general": "General",
+    "generalDesc": "Basic church information and preferences",
+    "account": "Account Management",
+    "accountDesc": "Manage users and permissions",
+    "landing": "Landing Manager",
+    "landingDesc": "Customize your church's public page"
+  },
+
+  "general": {
+    "language": "Language",
+    "languageDescription": "Choose your preferred language for the interface",
+    "displayLanguage": "Display Language",
+    "languageChanged": "Language updated successfully",
+    "languageChangeFailed": "Failed to update language",
+    "appearance": "Appearance",
+    "appearanceDescription": "Customize how Altarflow looks on your device",
+    "theme": "Theme",
+    "lightTheme": "Light",
+    "darkTheme": "Dark",
+    "themeChanged": "Theme updated successfully",
+    "themeChangeFailed": "Failed to update theme",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "unsavedChanges": "You have unsaved changes"
+  },
+
+  "landing": {
+    "qrCode": "NFC Landing Page QR Code",
+    "qrCodeDesc": "Print this QR code and place it at your church entrance for easy access",
+    "pageUrl": "Landing Page URL",
+    "downloadQR": "Download QR Code",
+    "preview": "Preview Page",
+    "tip": "Tip: Print this QR code on a sign or sticker and place it at your church entrance. Visitors can scan it to donate or connect with your church.",
+    "buttonVisibility": "Page Content",
+    "buttonVisibilityDesc": "Choose which actions are available on your landing page",
+    "donateButton": "Donate Button",
+    "donateButtonDesc": "Allow visitors to make quick donations",
+    "stripeRequired": "Stripe account required. Set up in Banking.",
+    "stripeNotActive": "Complete Stripe setup to enable donations.",
+    "connectButton": "Connect Button",
+    "connectButtonDesc": "Let new visitors fill out your member form",
+    "flowRequired": "Create a flow first. Go to Flows page.",
+    "noButtonsWarning": "⚠️ At least one button should be enabled",
+    "changesSaved": "Changes will be reflected immediately on your landing page",
+    "futureFeatures": "Coming Soon: Advanced Scheduling",
+    "futureDesc": "In future updates, you'll be able to schedule different buttons to appear at specific times and days of the week.",
+    "loadError": "Failed to load settings",
+    "saved": "Landing page settings saved successfully",
+    "saveError": "Failed to save settings"
+  },
+
+  "comingSoon": "Coming soon",
+
+  "billing": {
+    "title": "Subscription & Billing",
+    "description": "Manage your subscription and billing information",
+    "status": {
+      "pendingPayment": "Payment Required",
+      "active": "Active",
+      "pastDue": "Past Due",
+      "canceled": "Canceled"
+    },
+    "plans": {
+      "monthly": "Monthly Plan",
+      "annual": "Annual Plan"
+    },
+    "noActivePlan": "No Active Plan",
+    "renewsOn": "Renews on",
+    "chooseAPlan": "Choose a Plan",
+    "manageSubscription": "Manage Subscription",
+    "portalComingSoon": "Billing portal coming soon!",
+    "subscriptionRequired": "Subscription Required",
+    "selectPlanToContinue": "Please select a plan to continue using AltarFlow.",
+    "yourPlanIncludes": "Your Plan Includes",
+    "features": {
+      "unlimitedMembers": "Unlimited church members",
+      "donationTracking": "Donation tracking & receipts",
+      "financialReporting": "Financial reporting",
+      "expenseManagement": "Expense management",
+      "emailCommunications": "Email communications",
+      "customDonationForms": "Custom donation forms",
+      "nfcQrPages": "NFC & QR code pages",
+      "prioritySupport": "Priority support"
+    }
+  },
+
+  "account": {
+    "teamManagement": "Team Management",
+    "teamDescription": "Manage your team members and their permissions",
+    "admin": "Admin",
+    "adminDescription": "Full access to all features",
+    "you": "You",
+    "inviteTeamMember": "Invite Team Member"
   }
 } 

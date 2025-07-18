@@ -1,29 +1,33 @@
-// app/(dashboard)/layout.tsx (Server Component)
-
 import type React from 'react';
-import { auth } from '@clerk/nextjs/server'; // <-- Import Clerk auth
-import { redirect } from 'next/navigation'; // <-- Import redirect
-// Removed unused imports: cookies, headers, createServerClient, prisma
-
-// Import the client layout component
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/db';
 import ClientDashboardLayout from './_client-layout'; 
 
-// Make the layout an async function
 export default async function ServerDashboardLayout({ children }: { children: React.ReactNode }) {
-  // Get userId, awaiting the auth() call
-  const { userId } = await auth(); 
-
-  // If no userId, redirect to sign-in
+  const { userId, orgId } = await auth();
+  
   if (!userId) {
     console.log('[ServerDashboardLayout] No userId found, redirecting to /signin');
     redirect('/signin');
   }
 
-  // If userId exists, the user is authenticated.
+  // Check if organization has active subscription
+  if (orgId) {
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: orgId },
+      select: { subscriptionStatus: true }
+    });
+
+    // If church exists but hasn't paid yet, redirect to settings account tab
+    if (church && church.subscriptionStatus === 'pending_payment') {
+      redirect('/settings?tab=account');
+    }
+  }
+
   console.log(`[ServerDashboardLayout] Rendering for user ${userId}...`);
   
   return (
     <ClientDashboardLayout>{children}</ClientDashboardLayout>
   );
 }
-

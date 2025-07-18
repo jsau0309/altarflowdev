@@ -293,6 +293,147 @@ export async function POST(req: Request) {
         }
         break;
 
+      case 'account.updated':
+        const account = event.data.object as Stripe.Account;
+        console.log(`[Stripe Webhook] Processing account.updated for account: ${account.id}`);
+        
+        try {
+          // Find the StripeConnectAccount record
+          const stripeConnectAccount = await prisma.stripeConnectAccount.findUnique({
+            where: { stripeAccountId: account.id }
+          });
+          
+          if (!stripeConnectAccount) {
+            console.log(`[Stripe Webhook] StripeConnectAccount not found for account ${account.id}`);
+            // Don't fail the webhook - this might be for an account we don't track
+            return NextResponse.json({ received: true });
+          }
+          
+          // Determine verification status
+          let verificationStatus = 'unverified';
+          if (account.charges_enabled && account.payouts_enabled) {
+            verificationStatus = 'verified';
+          } else if (account.details_submitted && account.requirements?.disabled_reason) {
+            verificationStatus = account.requirements.disabled_reason === 'requirements.pending_verification' 
+              ? 'pending' 
+              : 'restricted';
+          } else if (account.details_submitted) {
+            verificationStatus = 'pending';
+          }
+          
+          // Update the account record
+          await prisma.stripeConnectAccount.update({
+            where: { id: stripeConnectAccount.id },
+            data: {
+              chargesEnabled: account.charges_enabled || false,
+              payoutsEnabled: account.payouts_enabled || false,
+              detailsSubmitted: account.details_submitted || false,
+              verificationStatus,
+              requirementsCurrentlyDue: account.requirements?.currently_due || [],
+              requirementsEventuallyDue: account.requirements?.eventually_due || [],
+              requirementsDisabledReason: account.requirements?.disabled_reason || null,
+              tosAcceptanceDate: account.tos_acceptance?.date 
+                ? new Date(account.tos_acceptance.date * 1000)
+                : null,
+              metadata: account.metadata || {},
+              updatedAt: new Date()
+            }
+          });
+          
+          console.log(`[Stripe Webhook] Successfully updated StripeConnectAccount for ${account.id}. Status: ${verificationStatus}, Charges: ${account.charges_enabled}, Payouts: ${account.payouts_enabled}`);
+        } catch (error) {
+          console.error(`[Stripe Webhook] Error updating StripeConnectAccount for account ${account.id}:`, error);
+          // Don't fail the webhook - log the error but allow Stripe to consider it successful
+          captureWebhookEvent('account_update_error', {
+            accountId: account.id,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }, 'error');
+        }
+        break;
+
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log(`[Stripe Webhook] Processing checkout.session.completed for session: ${session.id}`);
+        
+        // Get the organization ID from client_reference_id
+        const orgId = session.client_reference_id;
+        if (!orgId) {
+          console.error('[Stripe Webhook] No client_reference_id found in checkout session');
+          return NextResponse.json({ error: 'Missing organization ID' }, { status: 400 });
+        }
+        
+        try {
+          // Get subscription details
+          const subscriptionId = session.subscription as string;
+          let subscriptionEnd = null;
+          let plan = 'monthly'; // default
+          
+          if (subscriptionId) {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            subscriptionEnd = new Date(subscription.current_period_end * 1000);
+            
+            // Determine plan based on interval
+            if (subscription.items.data[0]?.price?.recurring?.interval === 'year') {
+              plan = 'annual';
+            }
+          }
+          
+          // Update church subscription status
+          await prisma.church.update({
+            where: { clerkOrgId: orgId },
+            data: {
+              subscriptionStatus: 'active',
+              subscriptionId: subscriptionId || session.id,
+              subscriptionPlan: plan,
+              subscriptionEndsAt: subscriptionEnd,
+              stripeCustomerId: session.customer as string,
+            }
+          });
+          
+          console.log(`[Stripe Webhook] Updated church ${orgId} to active subscription`);
+        } catch (error) {
+          console.error('[Stripe Webhook] Error updating church subscription:', error);
+          return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 });
+        }
+        break;
+      }
+
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log(`[Stripe Webhook] Processing ${event.type} for subscription: ${subscription.id}`);
+        
+        try {
+          // Find church by subscription ID
+          const church = await prisma.church.findFirst({
+            where: { subscriptionId: subscription.id }
+          });
+          
+          if (!church) {
+            console.log(`[Stripe Webhook] No church found for subscription ${subscription.id}`);
+            break;
+          }
+          
+          // Update subscription status
+          const status = subscription.status === 'active' ? 'active' : 
+                        subscription.status === 'past_due' ? 'past_due' :
+                        subscription.status === 'canceled' ? 'canceled' : 'inactive';
+          
+          await prisma.church.update({
+            where: { id: church.id },
+            data: {
+              subscriptionStatus: status,
+              subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+            }
+          });
+          
+          console.log(`[Stripe Webhook] Updated church ${church.id} subscription status to ${status}`);
+        } catch (error) {
+          console.error('[Stripe Webhook] Error updating subscription:', error);
+        }
+        break;
+      }
+
       default:
         console.log(`[Stripe Webhook] Unhandled event type ${event.type}`);
     }

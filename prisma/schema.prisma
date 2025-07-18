@@ -58,6 +58,13 @@ model Church {
   serviceTimesJson     Json?                 @db.Json
   settingsJson         Json?                 @db.Json
   slug                 String                @unique
+  // Billing fields for Stripe integration
+  subscriptionId       String?               @unique
+  subscriptionStatus   String                @default("pending_payment") // pending_payment, active, past_due, canceled
+  subscriptionPlan     String?               // monthly, annual
+  trialEndsAt          DateTime?
+  subscriptionEndsAt   DateTime?
+  stripeCustomerId     String?               @unique
   campaigns            Campaign[]
   donations            Donation[]
   donationTransactions DonationTransaction[]

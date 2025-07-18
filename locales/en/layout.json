@@ -28,6 +28,8 @@
     "membershipReports": "Membership Reports",
     "settings": "Settings",
     "banking": "Banking",
+    "billing": "Billing",
+    "flows": "Flows",
     "signOut": "Sign Out"
   },
   
