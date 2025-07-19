@@ -9,7 +9,7 @@ import Image from "next/image"
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3, CreditCard, DollarSign, LayoutDashboard, 
-  Settings, Users, RefreshCcw, FileText // Removed HelpCircle and Receipt as they're no longer used
+  Settings, Users, RefreshCcw, FileText, Lock // Removed HelpCircle and Receipt as they're no longer used
 } from "lucide-react"
 
 // Assuming hooks are in lib or similar - adjust path if needed
@@ -196,48 +196,82 @@ const Sidebar = React.forwardRef<
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
     const pathname = usePathname()
+    const router = useRouter()
     const { t } = useTranslation(['layout', 'common']);
+    const [subscriptionInfo, setSubscriptionInfo] = React.useState<{
+      status: string;
+      daysLeftInTrial: number | null;
+    } | null>(null);
+
+    React.useEffect(() => {
+      const fetchSubscription = async () => {
+        try {
+          const res = await fetch('/api/subscription');
+          const data = await res.json();
+          if (data) {
+            setSubscriptionInfo({
+              status: data.subscriptionStatus,
+              daysLeftInTrial: data.daysLeftInTrial
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch subscription:', error);
+        }
+      };
+      fetchSubscription();
+    }, []);
+
+    const premiumRoutes = ['/donations', '/expenses', '/reports', '/banking'];
+    const isRestrictedUser = subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period';
 
     const routes = [
       {
         name: t('layout:sidebar.dashboard'),
         path: "/dashboard",
         icon: LayoutDashboard, 
+        isPremium: false,
       },
       {
         name: t('layout:sidebar.donations'),
         path: "/donations",
         icon: DollarSign,
+        isPremium: true,
       },
       {
         name: t('layout:sidebar.expenses'),
         path: "/expenses",
         icon: FileText, // User changed this icon
+        isPremium: true,
       },
       {
         name: t('layout:sidebar.members'),
         path: "/members",
         icon: Users,
+        isPremium: false,
       },
       {
         name: t('layout:sidebar.reports'),
         path: "/reports",
         icon: BarChart3,
+        isPremium: true,
       },
       {
         name: t('layout:sidebar.banking'), // Assuming banking is still needed
         path: "/banking",
         icon: CreditCard, 
+        isPremium: true,
       },
       {
         name: t('layout:sidebar.flows', 'Flows'),
         path: "/flows",
         icon: RefreshCcw,
+        isPremium: false,
       },
       {
         name: t('layout:sidebar.settings', 'Settings'),
         path: "/settings",
         icon: Settings,
+        isPremium: false,
       },
 
     ]
@@ -284,20 +318,31 @@ const Sidebar = React.forwardRef<
               </SidebarHeader>
               <SidebarContent>
                 <SidebarMenu>
-                  {routes.map((route) => (
-                    <SidebarMenuItem key={route.path}>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={pathname === route.path}
-                        onClick={() => setOpenMobile(false)}
-                      >
-                        <Link href={route.path}>
-                          <route.icon className="size-4" />
-                          <span>{route.name}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {routes.map((route) => {
+                    const isLocked = route.isPremium && isRestrictedUser;
+                    
+                    return (
+                      <SidebarMenuItem key={route.path}>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={pathname === route.path}
+                          onClick={() => {
+                            if (isLocked) {
+                              router.push('/settings?tab=account');
+                            }
+                            setOpenMobile(false);
+                          }}
+                          className={isLocked ? 'opacity-50' : ''}
+                        >
+                          <Link href={isLocked ? '#' : route.path} onClick={(e) => isLocked && e.preventDefault()}>
+                            <route.icon className="size-4" />
+                            <span>{route.name}</span>
+                            {isLocked && <Lock className="size-3 ml-auto" />}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarContent>
             </div>
@@ -364,20 +409,30 @@ const Sidebar = React.forwardRef<
 
             <SidebarContent>
               <SidebarMenu>
-                {routes.map((route) => (
-                  <SidebarMenuItem key={route.path}>
-                    <SidebarMenuButton 
-                      asChild 
-                      tooltip={route.name} 
-                      isActive={pathname === route.path}
-                    >
-                       <Link href={route.path}>
-                          <route.icon className="size-4" />
-                          <span>{route.name}</span> 
-                       </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {routes.map((route) => {
+                  const isLocked = route.isPremium && isRestrictedUser;
+                  
+                  return (
+                    <SidebarMenuItem key={route.path}>
+                      <SidebarMenuButton 
+                        asChild 
+                        tooltip={isLocked ? `${route.name} (${t('layout:upgradeRequired', 'Upgrade required')})` : route.name} 
+                        isActive={pathname === route.path}
+                        className={isLocked ? 'opacity-50' : ''}
+                        onClick={isLocked ? () => router.push('/settings?tab=account') : undefined}
+                      >
+                         <Link 
+                           href={isLocked ? '#' : route.path}
+                           onClick={(e) => isLocked && e.preventDefault()}
+                         >
+                            <route.icon className="size-4" />
+                            <span>{route.name}</span>
+                            {isLocked && <Lock className="size-3 ml-auto" />}
+                         </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarContent>
 

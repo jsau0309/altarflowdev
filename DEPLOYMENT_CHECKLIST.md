@@ -42,19 +42,16 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxxxx
 
 # Stripe Webhooks (CRITICAL: Use production endpoint secrets)
 STRIPE_WEBHOOK_SECRET=whsec_xxxxx  # From Stripe Dashboard > Webhooks
-STRIPE_CONNECT_WEBHOOK_SECRET=whsec_xxxxx
 
-# Stripe Products (for Subscriptions)
-STRIPE_PRO_PRICE_ID=price_xxxxx
-
-# Test Mode Configuration (Optional)
-ENABLE_TEST_MODE=false  # Set to true only during initial testing
-TEST_EMAIL_DOMAIN=@altarflow.test
+# Stripe Payment Links (for SaaS Subscriptions)
+NEXT_PUBLIC_STRIPE_MONTHLY_LINK=https://buy.stripe.com/xxxxx  # $99/month plan
+NEXT_PUBLIC_STRIPE_ANNUAL_LINK=https://buy.stripe.com/xxxxx   # $830/year plan (30% discount)
 ```
 
 ### Email Service (Resend)
 ```env
 RESEND_API_KEY=re_xxxxx
+RESEND_FROM_EMAIL='Altarflow <no-reply@your-domain.com>'
 YOUR_VERIFIED_RESEND_DOMAIN=your-domain.com
 ```
 
@@ -63,12 +60,21 @@ YOUR_VERIFIED_RESEND_DOMAIN=your-domain.com
 OPENAI_API_KEY=sk-xxxxx
 ```
 
+### SMS Services (Twilio)
+```env
+# Twilio Configuration (for SMS verification)
+TWILIO_ACCOUNT_SID=ACxxxxx
+TWILIO_AUTH_TOKEN=xxxxx
+TWILIO_PHONE_NUMBER=+1xxxxxxxxxx
+TWILIO_VERIFY_SERVICE_SID=VAxxxxx
+```
+
 ### External Services
 ```env
 # Mindee API (Receipt Scanning)
 MINDEE_API_KEY=xxxxx
 
-# Sentry (Error Tracking) - Optional
+# Sentry (Error Tracking) - Optional but recommended
 SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
 ```
 
@@ -85,12 +91,33 @@ SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
 
 ### 2. **Clerk (Authentication)**
 - [ ] Production instance created
+- [ ] Multi-tenant architecture configured (Organizations enabled)
 - [ ] OAuth providers configured (Google, Apple, etc.)
 - [ ] Webhook endpoint added: `https://your-domain.com/api/clerk-webhook`
+- [ ] Webhook events selected:
+  - [ ] `organization.created`
+  - [ ] `organization.updated` 
+  - [ ] `organization.deleted`
 - [ ] Custom domain configured (optional)
 - [ ] Email templates customized
+- [ ] Organization features enabled in dashboard
 
 ### 3. **Stripe (Payments)**
+
+#### Platform Billing (SaaS Subscriptions)
+- [ ] Payment Links created:
+  - [ ] Monthly plan: $99/month
+  - [ ] Annual plan: $830/year (30% discount)
+  - [ ] Redirect URL set to: `https://your-domain.com/payment-success`
+  - [ ] Collect customer details enabled
+- [ ] Customer Portal configured:
+  - [ ] Portal URL set to: `https://your-domain.com/settings?tab=account`
+  - [ ] Subscription management enabled
+  - [ ] Invoice history enabled
+  - [ ] Payment method updates allowed
+  - [ ] Plan switching enabled (between monthly/annual)
+
+#### Church Payment Processing (Stripe Connect)
 - [ ] Production account activated
 - [ ] Connect account settings configured:
   - [ ] OAuth settings configured for Connect
@@ -98,11 +125,16 @@ SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
   - [ ] Onboarding settings reviewed
 - [ ] Webhook endpoints added:
   - [ ] `https://your-domain.com/api/webhooks/stripe` (Main webhook)
-  - [ ] `https://your-domain.com/api/webhooks/stripe-connect` (Connect webhook)
-  - [ ] Selected events: `payment_intent.succeeded`, `payment_intent.failed`, `payment_intent.processing`
+  - [ ] Selected events: 
+    - [ ] `checkout.session.completed` (for subscriptions)
+    - [ ] `customer.subscription.created`
+    - [ ] `customer.subscription.updated`
+    - [ ] `customer.subscription.deleted`
+    - [ ] `account.updated` (for Connect accounts)
+    - [ ] `payment_intent.succeeded` (for donations)
+    - [ ] `payment_intent.failed`
   - [ ] Webhook secrets copied to environment variables
   - [ ] Webhook signature verification tested
-- [ ] Products and pricing created for subscriptions
 - [ ] Payment methods enabled (Card, ACH, etc.)
 - [ ] Test mode setup:
   - [ ] Demo Connect account created for testing
@@ -124,6 +156,13 @@ SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
 - [ ] API key obtained
 - [ ] Usage limits understood
 
+### 7. **Twilio (SMS Verification)**
+- [ ] Account created and verified
+- [ ] Phone number purchased
+- [ ] Verify service created
+- [ ] Test SMS delivery
+- [ ] International SMS enabled (if needed)
+
 ---
 
 ## 🗄️ Database Setup
@@ -140,11 +179,18 @@ npx prisma migrate deploy
 npx prisma db pull --print
 ```
 
-### Required Indexes (Already in Schema)
-- Church lookup by slug
-- Donation queries by date and status
-- Member queries by church and status
-- Flow lookups by slug
+### Required Tables & Indexes (Already in Schema)
+- Church table with subscription fields
+- StripeConnectAccount for church payment processing
+- DonationTransaction with comprehensive tracking
+- Member management with SMS consent
+- Flow system for custom forms
+- Indexes optimized for:
+  - Church lookup by slug and clerkOrgId
+  - Donation queries by date, status, and church
+  - Member queries by church and status
+  - Flow lookups by slug
+  - Transaction lookups by payment intent ID
 
 ---
 
@@ -214,15 +260,32 @@ CNAME resend._domainkey    [Resend CNAME Value]
 - [ ] Build succeeds without errors
 - [ ] All API integrations tested
 - [ ] Email sending verified
-- [ ] Payment flow tested end-to-end:
-  - [ ] Donation flow with real card (small amount)
+
+### Subscription & Billing Testing
+- [ ] Church subscription flow:
+  - [ ] New organization redirects to payment required
+  - [ ] Payment links work correctly
+  - [ ] Webhook processes subscription creation
+  - [ ] Customer portal access works
+  - [ ] Plan switching tested
+  - [ ] Subscription cancellation tested
+- [ ] Billing page shows correct status
+- [ ] Feature gating based on subscription status
+
+### Church Payment Processing Testing  
+- [ ] Donation flow tested end-to-end:
+  - [ ] Public donation form works
+  - [ ] Stripe Connect onboarding completes
+  - [ ] Donation with real card (small amount)
   - [ ] Webhook processing verified
   - [ ] Receipt email delivery confirmed
-  - [ ] Transaction status updates working
-  - [ ] Connect account onboarding tested
+  - [ ] Transaction appears in dashboard
+- [ ] Landing pages:
+  - [ ] NFC landing page loads correctly
+  - [ ] QR codes scan properly
+  - [ ] Donate/Connect buttons work
 - [ ] Test/Demo setup:
   - [ ] Demo church account created
-  - [ ] Test email accounts configured (@altarflow.test)
   - [ ] Demo Connect account for presentations
 
 ### Content & Legal
@@ -251,13 +314,31 @@ CNAME resend._domainkey    [Resend CNAME Value]
   - [ ] Payment success rate dashboard
   - [ ] Failed payment alerts
 
-### Testing
-- [ ] Church registration flow
-- [ ] Member form submission
-- [ ] Donation processing
-- [ ] Email notifications
-- [ ] Multi-language support
+### Feature Testing
+- [ ] Church registration & onboarding
+- [ ] Member management:
+  - [ ] Add/edit members
+  - [ ] Import from CSV
+  - [ ] SMS consent tracking
+- [ ] Donation processing:
+  - [ ] Manual entry
+  - [ ] Public form submission
+  - [ ] Recurring donations
+- [ ] Financial features:
+  - [ ] Expense tracking
+  - [ ] Receipt scanning (OCR)
+  - [ ] Reports generation
+  - [ ] AI report summaries
+- [ ] Communication:
+  - [ ] Email notifications
+  - [ ] SMS verification
+  - [ ] Multi-language support (English/Spanish)
+- [ ] Settings:
+  - [ ] General settings
+  - [ ] Landing page manager
+  - [ ] Account/billing management
 - [ ] Mobile responsiveness
+- [ ] Flow builder for custom forms
 
 ---
 
@@ -294,11 +375,26 @@ Document key contacts for production issues:
 - Maintain separate staging environment for testing
 - Document any custom deployment procedures
 
-### Stripe Production Notes
+### Production Notes
+
+#### Stripe Configuration
 - **Webhook Secrets**: Production webhook secrets are different from CLI/test secrets
 - **Demo Accounts**: Use test routing number 110000000 and account 000000000000 for demos
 - **Test Cards**: 4242 4242 4242 4242 (success), 4000 0000 0000 0002 (decline)
 - **Connect Testing**: Test SSN 000-00-0000, Test EIN 00-0000000
 - **Monitoring**: Check Stripe Dashboard > Developers > Webhooks for delivery status
+- **Payment Links**: Must include `?client_reference_id={organizationId}` for proper tracking
+
+#### Critical Configuration
+- **NEXT_PUBLIC_APP_URL**: MUST be set to production domain before printing QR codes
+- **Subscription Model**: One subscription per church organization
+- **Payment Required**: New churches cannot access features until subscription is active
+- **Customer Portal**: Allows self-service subscription management
+
+#### Feature Flags & Limits
+- **SMS Verification**: Optional, controlled by phone number presence
+- **File Uploads**: Limited to 10MB for receipts
+- **AI Summaries**: Rate limited to prevent abuse
+- **Public Forms**: Protected by honeypot spam prevention
 
 Last Updated: 2025-01-18

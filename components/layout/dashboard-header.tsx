@@ -10,7 +10,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { SidebarTrigger } from "@/components/layout/enhanced-sidebar" 
 // Remove import for old Sidebar if no longer needed for mobile Sheet
 // import { Sidebar } from "@/components/layout/sidebar"
-
 export function DashboardHeader() {
   const { t } = useTranslation(['layout', 'common']); 
 
@@ -36,7 +35,7 @@ export function DashboardHeader() {
        {/* Right side: Controls */}
        <div className="flex items-center gap-4"> 
          <OrganizationSwitcher hidePersonal={true} />
-         <UserButton afterSignOutUrl="/" />
+         <UserButton />
        </div>
     </header>
   );

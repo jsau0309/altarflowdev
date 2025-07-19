@@ -207,5 +207,14 @@
   "vendor": "Proveedor",
   "category": "Categoría",
   "payment": "Pago",
-  "paymentMethod": "Método de Pago"
+  "paymentMethod": "Método de Pago",
+  "goBack": "Volver",
+  "access": {
+    "restrictedTitle": "Acceso Restringido",
+    "trialRestriction": "Esta función no está disponible durante tu período de prueba. Actualiza para acceder a todas las funciones.",
+    "subscriptionRequired": "Se requiere una suscripción activa para acceder a esta función.",
+    "trialFeatures": "Durante tu período de prueba, tienes acceso a Flujos, Miembros y Configuración.",
+    "limitedFeatures": "Con tu plan actual, tienes acceso a Flujos, Miembros y Configuración.",
+    "upgradeNow": "Actualizar Ahora"
+  }
 }

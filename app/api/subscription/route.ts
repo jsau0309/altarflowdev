@@ -21,6 +21,7 @@ export async function GET() {
         subscriptionPlan: true,
         subscriptionEndsAt: true,
         stripeCustomerId: true,
+        trialEndsAt: true,
       }
     });
     
@@ -31,7 +32,32 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(church);
+    // Calculate subscription info
+    let daysUntilEnd = null;
+    let graceDaysRemaining = null;
+    
+    if (church.subscriptionStatus === 'canceled' && church.subscriptionEndsAt) {
+      const now = new Date();
+      const subEnd = new Date(church.subscriptionEndsAt);
+      const daysLeft = Math.ceil((subEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      daysUntilEnd = Math.max(0, daysLeft);
+    }
+    
+    if (church.subscriptionStatus === 'grace_period' && church.subscriptionEndsAt) {
+      const now = new Date();
+      const gracePeriodEnd = new Date(church.subscriptionEndsAt);
+      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 2); // 2 day grace period
+      const daysLeft = Math.ceil((gracePeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      graceDaysRemaining = Math.max(0, daysLeft);
+    }
+
+    return NextResponse.json({
+      ...church,
+      daysUntilEnd,
+      graceDaysRemaining,
+      // For backward compatibility
+      daysLeftInTrial: null,
+    });
   } catch (error) {
     console.error("[GET /api/subscription] Error:", error);
     return NextResponse.json(

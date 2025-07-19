@@ -48,7 +48,8 @@
     "aiSummary": "Generar Resumen con IA",
     "recordDonation": "Registrar donación",
     "recordExpense": "Registrar gasto",
-    "viewReports": "Ver informes"
+    "viewReports": "Ver informes",
+    "upgradeRequired": "Actualización requerida"
   },
   "aiSummaryModal": {
     "title": "Resumen del Informe con IA",
@@ -82,5 +83,16 @@
       "activeMembers": "¿Puedes listar nuestros miembros activos?",
       "recentVisitors": "¿Quiénes son nuestros visitantes más recientes?"
     }
-  }
+  },
+  "freeActive": "Estás usando AltarFlow Gratis",
+  "freeDescription": "Actualiza para desbloquear donaciones, gastos y reportes financieros.",
+  "gracePeriodActive": "Tu suscripción ha expirado",
+  "graceDayRemaining": "1 día de período de gracia restante. Renueva ahora para mantener tus funciones premium.",
+  "graceDaysRemaining": "{{days}} días de período de gracia restantes. Renueva ahora para mantener tus funciones premium.",
+  "canceledActive": "Suscripción cancelada",
+  "canceledDayRemaining": "Las funciones premium expiran en 1 día.",
+  "canceledDaysRemaining": "Las funciones premium expiran en {{days}} días.",
+  "upgradeNow": "Actualizar Ahora",
+  "renewNow": "Renovar Ahora",
+  "reactivate": "Reactivar"
 }

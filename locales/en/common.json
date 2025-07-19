@@ -206,5 +206,14 @@
   "vendor": "Vendor",
   "category": "Category",
   "payment": "Payment",
-  "paymentMethod": "Payment Method"
+  "paymentMethod": "Payment Method",
+  "goBack": "Go Back",
+  "access": {
+    "restrictedTitle": "Access Restricted",
+    "trialRestriction": "This feature is not available during your trial. Upgrade to access all features.",
+    "subscriptionRequired": "An active subscription is required to access this feature.",
+    "trialFeatures": "During your trial, you have access to Flows, Members, and Settings.",
+    "limitedFeatures": "With your current plan, you have access to Flows, Members, and Settings.",
+    "upgradeNow": "Upgrade Now"
+  }
 }

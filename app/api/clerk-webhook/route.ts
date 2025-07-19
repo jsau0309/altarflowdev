@@ -131,17 +131,18 @@ export async function POST(req: Request) {
         // Note: Prisma's @unique constraint on 'slug' will handle collisions.
         // A more advanced system might check for existing slugs and append a counter if a collision occurs.
 
+
         const newChurch = await prisma.church.create({
           data: {
             clerkOrgId: orgId,
             name: name, // Original name from Clerk
             slug: slug, // Generated slug
-            // Initialize as pending payment
-            subscriptionStatus: 'pending_payment',
+            // Initialize with free status
+            subscriptionStatus: 'free',
             // Add other default Church fields if necessary
           }
         });
-        console.log(`Successfully created church for Org ID: ${orgId} with internal ID: ${newChurch.id} - awaiting payment`);
+        console.log(`Successfully created church for Org ID: ${orgId} with internal ID: ${newChurch.id} - Free plan activated`);
 
         // Now, create default donation types for the new church
         const defaultDonationTypesData = [

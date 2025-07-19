@@ -197,14 +197,34 @@
   "comingSoon": "Coming soon",
 
   "billing": {
+    "loading": "Loading...",
+    "billingHistory": "Billing History",
+    "changePlan": "Change Plan",
+    "selectPlan": "Select a Plan",
+    "changePlanDesc": "Switch between monthly and annual billing",
+    "selectPlanDesc": "Choose the plan that works best for your church",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "save30": "Save 30%",
+    "bestValue": "Best Value",
+    "currentPlan": "Current Plan",
+    "perMonth": "month",
+    "perYear": "year",
+    "switchPlan": "Switch to this plan",
+    "subscribe": "Subscribe",
+    "portalError": "Failed to open billing portal",
     "title": "Subscription & Billing",
     "description": "Manage your subscription and billing information",
     "status": {
       "pendingPayment": "Payment Required",
       "active": "Active",
       "pastDue": "Past Due",
-      "canceled": "Canceled"
+      "canceled": "Canceled",
+      "free": "Free",
+      "gracePeriod": "Grace Period"
     },
+    "endsIn": "Ends in {{days}} days",
+    "graceDaysLeft": "{{days}} grace days remaining",
     "plans": {
       "monthly": "Monthly Plan",
       "annual": "Annual Plan"
@@ -216,6 +236,12 @@
     "portalComingSoon": "Billing portal coming soon!",
     "subscriptionRequired": "Subscription Required",
     "selectPlanToContinue": "Please select a plan to continue using AltarFlow.",
+    "freeActive": "Free Plan",
+    "freeMessage": "You're currently on the free plan with limited access. Upgrade to unlock all features.",
+    "gracePeriodActive": "Grace Period",
+    "gracePeriodMessage": "Your subscription expired. You have {{days}} days left to renew before losing premium features.",
+    "canceledActive": "Subscription Canceled", 
+    "canceledMessage": "Your subscription will end on {{date}}. Renew to keep your premium features.",
     "yourPlanIncludes": "Your Plan Includes",
     "features": {
       "unlimitedMembers": "Unlimited church members",
@@ -225,7 +251,8 @@
       "emailCommunications": "Email communications",
       "customDonationForms": "Custom donation forms",
       "nfcQrPages": "NFC & QR code pages",
-      "prioritySupport": "Priority support"
+      "prioritySupport": "Priority support",
+      "savePerYear": "Save $358 per year"
     }
   },
 

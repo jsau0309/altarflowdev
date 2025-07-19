@@ -79,7 +79,7 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
         </Sidebar>
         <SidebarInset> {/* Use SidebarInset for the main content area */} 
           <DashboardHeader /> {/* Place the new header here */} 
-          {children} {/* Render page content */} 
+          {children} {/* Render page content without wrapper - will add to individual pages */}
         </SidebarInset>
         <CrispChat />
       </SidebarProvider>

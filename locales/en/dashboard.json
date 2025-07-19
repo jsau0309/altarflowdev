@@ -48,7 +48,8 @@
     "aiSummary": "Generate AI Summary",
     "recordDonation": "Record Donation",
     "recordExpense": "Record Expense",
-    "viewReports": "View Reports"
+    "viewReports": "View Reports",
+    "upgradeRequired": "Upgrade required"
   },
   "aiSummaryModal": {
     "title": "AI Report Summary",
@@ -80,5 +81,16 @@
       "activeMembers": "How many active members are there?",
       "recentVisitors": "Who were the recent visitors?"
     }
-  }
+  },
+  "freeActive": "You're on AltarFlow Free",
+  "freeDescription": "Upgrade to unlock donations, expenses, and financial reports.",
+  "gracePeriodActive": "Your subscription has expired",
+  "graceDayRemaining": "1 day grace period remaining. Renew now to keep your premium features.",
+  "graceDaysRemaining": "{{days}} days grace period remaining. Renew now to keep your premium features.",
+  "canceledActive": "Subscription canceled",
+  "canceledDayRemaining": "Premium features expire in 1 day.",
+  "canceledDaysRemaining": "Premium features expire in {{days}} days.",
+  "upgradeNow": "Upgrade Now",
+  "renewNow": "Renew Now",
+  "reactivate": "Reactivate"
 }

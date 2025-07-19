@@ -20,8 +20,8 @@ CLERK_WEBHOOK_SECRET=whsec_xxxxx
 
 ### 2. Stripe Setup
 1. Create test payment links in Stripe Dashboard:
-   - Monthly plan ($49/month)
-   - Annual plan ($490/year)
+   - Monthly plan ($99/month)
+   - Annual plan ($830/year)
 2. Configure metadata on payment links:
    - Add `organizationId` as a required field
 3. Set up webhook endpoint in Stripe:
@@ -50,8 +50,8 @@ npx prisma generate
 1. **Navigate to** `/settings?tab=account` as unpaid organization
 2. **Verify:**
    - Page displays both pricing options
-   - Monthly plan shows $49/month
-   - Annual plan shows $490/year with savings
+   - Monthly plan shows $99/month
+   - Annual plan shows $830/year with 30% savings
    - Links include organization ID in URL
 
 ### Test 3: Stripe Payment Flow

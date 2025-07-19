@@ -196,14 +196,34 @@
     "comingSoon": "Próximamente",
 
     "billing": {
+      "loading": "Cargando...",
+      "billingHistory": "Historial de Facturación",
+      "changePlan": "Cambiar Plan",
+      "selectPlan": "Seleccionar un Plan",
+      "changePlanDesc": "Cambia entre facturación mensual y anual",
+      "selectPlanDesc": "Elige el plan que mejor funcione para tu iglesia",
+      "monthly": "Mensual",
+      "annual": "Anual",
+      "save30": "Ahorra 30%",
+      "bestValue": "Mejor Valor",
+      "currentPlan": "Plan Actual",
+      "perMonth": "mes",
+      "perYear": "año",
+      "switchPlan": "Cambiar a este plan",
+      "subscribe": "Suscribirse",
+      "portalError": "Error al abrir el portal de facturación",
       "title": "Suscripción y Facturación",
       "description": "Administra tu suscripción e información de facturación",
       "status": {
         "pendingPayment": "Pago Requerido",
         "active": "Activa",
         "pastDue": "Vencida",
-        "canceled": "Cancelada"
+        "canceled": "Cancelada",
+        "free": "Gratis",
+        "gracePeriod": "Período de Gracia"
       },
+      "endsIn": "Termina en {{days}} días",
+      "graceDaysLeft": "{{days}} días de gracia restantes",
       "plans": {
         "monthly": "Plan Mensual",
         "annual": "Plan Anual"
@@ -215,6 +235,12 @@
       "portalComingSoon": "¡Portal de facturación próximamente!",
       "subscriptionRequired": "Suscripción Requerida",
       "selectPlanToContinue": "Por favor selecciona un plan para continuar usando AltarFlow.",
+      "freeActive": "Plan Gratuito",
+      "freeMessage": "Actualmente estás en el plan gratuito con acceso limitado. Actualiza para desbloquear todas las funciones.",
+      "gracePeriodActive": "Período de Gracia",
+      "gracePeriodMessage": "Tu suscripción expiró. Tienes {{days}} días para renovar antes de perder las funciones premium.",
+      "canceledActive": "Suscripción Cancelada",
+      "canceledMessage": "Tu suscripción terminará el {{date}}. Renueva para mantener tus funciones premium.",
       "yourPlanIncludes": "Tu Plan Incluye",
       "features": {
         "unlimitedMembers": "Miembros ilimitados de la iglesia",
@@ -224,7 +250,8 @@
         "emailCommunications": "Comunicaciones por correo electrónico",
         "customDonationForms": "Formularios de donación personalizados",
         "nfcQrPages": "Páginas NFC y códigos QR",
-        "prioritySupport": "Soporte prioritario"
+        "prioritySupport": "Soporte prioritario",
+        "savePerYear": "Ahorra $358 por año"
       }
     },
 

@@ -45,5 +45,12 @@
     "english": "English",
     "spanish": "Spanish",
     "toggleLabel": "Change language - Current: {{language}}"
-  }
+  },
+  
+  "trial": {
+    "dayRemaining": "1 day left in trial",
+    "daysRemaining": "{{days}} days left in trial"
+  },
+  
+  "upgradeRequired": "Upgrade required"
 } 

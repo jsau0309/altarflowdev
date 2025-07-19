@@ -355,10 +355,15 @@ export async function POST(req: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log(`[Stripe Webhook] Processing checkout.session.completed for session: ${session.id}`);
         
-        // Get the organization ID from client_reference_id
-        const orgId = session.client_reference_id;
+        // Get the organization ID from metadata or client_reference_id
+        const orgId = session.metadata?.organizationId || session.client_reference_id;
+        
+        console.log('[Stripe Webhook] Session metadata:', session.metadata);
+        console.log('[Stripe Webhook] Client reference ID:', session.client_reference_id);
+        console.log('[Stripe Webhook] Extracted orgId:', orgId);
+        
         if (!orgId) {
-          console.error('[Stripe Webhook] No client_reference_id found in checkout session');
+          console.error('[Stripe Webhook] No organizationId found in metadata or client_reference_id');
           return NextResponse.json({ error: 'Missing organization ID' }, { status: 400 });
         }
         
@@ -376,6 +381,21 @@ export async function POST(req: Request) {
             if (subscription.items.data[0]?.price?.recurring?.interval === 'year') {
               plan = 'annual';
             }
+          }
+          
+          // First check if church exists
+          const existingChurch = await prisma.church.findUnique({
+            where: { clerkOrgId: orgId }
+          });
+          
+          if (!existingChurch) {
+            console.error(`[Stripe Webhook] Church not found with clerkOrgId: ${orgId}`);
+            // List all churches for debugging
+            const allChurches = await prisma.church.findMany({
+              select: { id: true, name: true, clerkOrgId: true }
+            });
+            console.log('[Stripe Webhook] All churches:', allChurches);
+            throw new Error(`Church not found with clerkOrgId: ${orgId}`);
           }
           
           // Update church subscription status
@@ -402,6 +422,8 @@ export async function POST(req: Request) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         console.log(`[Stripe Webhook] Processing ${event.type} for subscription: ${subscription.id}`);
+        console.log(`[Stripe Webhook] Subscription status: ${subscription.status}, cancel_at_period_end: ${subscription.cancel_at_period_end}`);
+        console.log(`[Stripe Webhook] Current period end: ${new Date(subscription.current_period_end * 1000).toISOString()}`);
         
         try {
           // Find church by subscription ID
@@ -414,22 +436,66 @@ export async function POST(req: Request) {
             break;
           }
           
+          console.log(`[Stripe Webhook] Found church: ${church.name} (${church.id}), current status: ${church.subscriptionStatus}`);
+          
           // Update subscription status
-          const status = subscription.status === 'active' ? 'active' : 
+          // Note: When a subscription is canceled but still in the current period, 
+          // Stripe keeps it as 'active' with cancel_at_period_end = true
+          const status = subscription.status === 'active' && subscription.cancel_at_period_end ? 'canceled' :
+                        subscription.status === 'active' ? 'active' : 
                         subscription.status === 'past_due' ? 'past_due' :
                         subscription.status === 'canceled' ? 'canceled' : 'inactive';
           
-          await prisma.church.update({
-            where: { id: church.id },
-            data: {
-              subscriptionStatus: status,
-              subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+          // Determine the plan based on price ID or interval
+          let plan = church.subscriptionPlan; // Keep existing plan by default
+          if (subscription.items.data.length > 0) {
+            const priceId = subscription.items.data[0].price.id;
+            const interval = subscription.items.data[0].price.recurring?.interval;
+            
+            // Map based on interval (month or year)
+            if (interval === 'month') {
+              plan = 'monthly';
+            } else if (interval === 'year') {
+              plan = 'annual';
             }
+            
+            console.log(`[Stripe Webhook] Detected plan: ${plan} (interval: ${interval}, priceId: ${priceId})`);
+          }
+          
+          // For canceled subscriptions, we need to update the subscriptionEndsAt to show when it will actually end
+          const updateData: any = {
+            subscriptionStatus: status,
+            subscriptionPlan: plan,
+          };
+          
+          // Only update subscriptionEndsAt if the subscription is canceled or will end
+          if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
+            updateData.subscriptionEndsAt = new Date(subscription.current_period_end * 1000);
+            console.log(`[Stripe Webhook] Subscription is canceled/ending. Setting subscriptionEndsAt to: ${updateData.subscriptionEndsAt}`);
+          } else if (subscription.status === 'active') {
+            // Clear subscriptionEndsAt if the subscription is active (e.g., reactivated)
+            updateData.subscriptionEndsAt = null;
+          }
+          
+          const updatedChurch = await prisma.church.update({
+            where: { id: church.id },
+            data: updateData
           });
           
-          console.log(`[Stripe Webhook] Updated church ${church.id} subscription status to ${status}`);
+          console.log(`[Stripe Webhook] Update complete for church ${church.id}:`);
+          console.log(`[Stripe Webhook] - Status: ${church.subscriptionStatus} -> ${updatedChurch.subscriptionStatus}`);
+          console.log(`[Stripe Webhook] - Plan: ${church.subscriptionPlan} -> ${updatedChurch.subscriptionPlan}`);
+          console.log(`[Stripe Webhook] - SubscriptionEndsAt: ${updatedChurch.subscriptionEndsAt ? updatedChurch.subscriptionEndsAt.toISOString() : 'null'}`);
         } catch (error) {
           console.error('[Stripe Webhook] Error updating subscription:', error);
+          console.error('[Stripe Webhook] Full error details:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            churchId: church?.id,
+            subscriptionId: subscription.id
+          });
+          // Re-throw to ensure webhook fails and Stripe retries
+          throw error;
         }
         break;
       }

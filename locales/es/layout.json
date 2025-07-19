@@ -45,5 +45,12 @@
       "english": "Inglés",
       "spanish": "Español",
       "toggleLabel": "Cambiar idioma - Actual: {{language}}"
-    }
+    },
+    
+    "trial": {
+      "dayRemaining": "1 día restante de prueba",
+      "daysRemaining": "{{days}} días restantes de prueba"
+    },
+    
+    "upgradeRequired": "Actualización requerida"
   } 

@@ -1,111 +1,103 @@
-import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
-import { redirect } from "next/navigation";
-
-export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'canceled' | 'paused';
+export type SubscriptionStatus = 'free' | 'active' | 'past_due' | 'canceled' | 'pending_payment' | 'inactive' | 'grace_period';
 
 export interface SubscriptionInfo {
   status: SubscriptionStatus;
-  plan: string | null;
-  trialEndsAt: Date | null;
-  subscriptionEndsAt: Date | null;
   isActive: boolean;
-  daysLeftInTrial: number | null;
+  isFree: boolean;
+  isGracePeriod: boolean;
+  isCanceled: boolean;
+  graceDaysRemaining?: number;
+  subscriptionEndsAt?: Date;
+  canAccessPremiumFeatures: boolean;
 }
 
 /**
- * Get the current organization's subscription info
+ * Calculate subscription information
  */
-export async function getSubscriptionInfo(): Promise<SubscriptionInfo | null> {
-  const { orgId } = await auth();
+export function getSubscriptionInfo(church: {
+  subscriptionStatus: string;
+  subscriptionEndsAt?: Date | null;
+}): SubscriptionInfo {
+  const now = new Date();
+  const status = church.subscriptionStatus as SubscriptionStatus;
   
-  if (!orgId) {
-    return null;
+  // Check basic status flags
+  const isActive = status === 'active';
+  const isFree = status === 'free';
+  const isGracePeriod = status === 'grace_period';
+  const isCanceled = status === 'canceled';
+  
+  let graceDaysRemaining: number | undefined;
+  
+  // Calculate grace period days if applicable
+  if (isGracePeriod && church.subscriptionEndsAt) {
+    const gracePeriodEnd = new Date(church.subscriptionEndsAt);
+    gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 2); // 2 day grace period
+    const daysUntilGraceEnd = Math.ceil((gracePeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntilGraceEnd > 0) {
+      graceDaysRemaining = daysUntilGraceEnd;
+    }
   }
-
-  const church = await prisma.church.findUnique({
-    where: { clerkOrgId: orgId },
-    select: {
-      subscriptionStatus: true,
-      subscriptionPlan: true,
-      trialEndsAt: true,
-      subscriptionEndsAt: true,
-    },
-  });
-
-  if (!church) {
-    return null;
+  
+  // Determine if they can access premium features
+  // Premium features are available for active, canceled (before end date), and grace period users
+  let canAccessPremiumFeatures = false;
+  
+  if (isActive) {
+    canAccessPremiumFeatures = true;
+  } else if (isCanceled && church.subscriptionEndsAt) {
+    const subEnd = new Date(church.subscriptionEndsAt);
+    canAccessPremiumFeatures = now <= subEnd;
+  } else if (isGracePeriod) {
+    canAccessPremiumFeatures = true;
   }
-
-  // Calculate days left in trial
-  let daysLeftInTrial = null;
-  if (church.subscriptionStatus === 'trial' && church.trialEndsAt) {
-    const now = new Date();
-    const trialEnd = new Date(church.trialEndsAt);
-    const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    daysLeftInTrial = Math.max(0, daysLeft);
-  }
-
-  // Determine if subscription is active (trial, active, or past_due)
-  const isActive = ['trial', 'active', 'past_due'].includes(church.subscriptionStatus);
-
+  
   return {
-    status: church.subscriptionStatus as SubscriptionStatus,
-    plan: church.subscriptionPlan,
-    trialEndsAt: church.trialEndsAt,
-    subscriptionEndsAt: church.subscriptionEndsAt,
+    status,
     isActive,
-    daysLeftInTrial,
+    isFree,
+    isGracePeriod,
+    isCanceled,
+    graceDaysRemaining,
+    subscriptionEndsAt: church.subscriptionEndsAt ? new Date(church.subscriptionEndsAt) : undefined,
+    canAccessPremiumFeatures
   };
 }
 
 /**
- * Check if the current organization has an active subscription
- * Redirects to billing page if not active
+ * Get accessible routes based on subscription status
+ * Free users: only Dashboard, Flows, Members, and Settings
+ * Premium users (active, canceled before end date, grace period): all routes
  */
-export async function requireActiveSubscription() {
-  const subscription = await getSubscriptionInfo();
+export function getAccessibleRoutes(subscriptionInfo: SubscriptionInfo): string[] {
+  const limitedRoutes = ['/flows', '/members', '/settings'];
+  const allRoutes = [
+    '/dashboard',
+    '/donations', 
+    '/expenses',
+    '/members',
+    '/reports',
+    '/banking',
+    '/flows',
+    '/settings'
+  ];
   
-  if (!subscription || !subscription.isActive) {
-    redirect('/billing?reason=subscription_required');
+  // If they have premium access, give them all routes
+  if (subscriptionInfo.canAccessPremiumFeatures) {
+    return allRoutes;
   }
   
-  return subscription;
+  // Otherwise, only limited routes
+  return limitedRoutes;
 }
 
 /**
- * Check if a specific feature is available for the current plan
+ * Check if a specific route is accessible
  */
-export async function hasFeature(feature: string): Promise<boolean> {
-  const subscription = await getSubscriptionInfo();
+export function isRouteAccessible(pathname: string, subscriptionInfo: SubscriptionInfo): boolean {
+  const accessibleRoutes = getAccessibleRoutes(subscriptionInfo);
   
-  if (!subscription || !subscription.isActive) {
-    return false;
-  }
-
-  // For MVP, all features are available with any active subscription
-  // Later, you can implement plan-based feature gating
-  // Example:
-  // const planFeatures = {
-  //   starter: ['basic_features'],
-  //   pro: ['basic_features', 'advanced_features'],
-  //   enterprise: ['all_features'],
-  // };
-  
-  return true;
-}
-
-/**
- * Get billing portal URL for the current organization
- */
-export async function getBillingPortalUrl(): Promise<string> {
-  const { orgId } = await auth();
-  
-  if (!orgId) {
-    throw new Error('No organization found');
-  }
-
-  // For Clerk Billing, you would use their API to generate a billing portal session
-  // This is a placeholder - replace with actual Clerk Billing API call
-  return `/organizations/${orgId}/billing`;
+  // Check if the pathname starts with any of the accessible routes
+  return accessibleRoutes.some(route => pathname.startsWith(route));
 }

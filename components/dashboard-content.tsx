@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowRight, ChevronDown, ChevronUp, DollarSign, FileText, User, Users, Wand2 } from "lucide-react"
+import { ArrowRight, ChevronDown, ChevronUp, DollarSign, FileText, User, Users, Wand2, AlertCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +15,8 @@ import { AiSummaryModal } from "@/components/modals/ai-summary-modal";
 import LoaderOne from "@/components/ui/loader-one";
 import { getDashboardSummaryOptimized } from "@/lib/actions/dashboard-optimized.actions";
 import { useOrganization } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 // Define a basic structure for the dashboard data
 interface DashboardData {
@@ -45,11 +47,18 @@ interface DashboardData {
 export function DashboardContent() {
   const { t } = useTranslation(['dashboard', 'donations']);
   const { organization } = useOrganization();
+  const router = useRouter();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [donorsList, setDonorsList] = useState<DonorFilterItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{
+    status: string;
+    daysLeftInTrial: number | null;
+    daysUntilEnd: number | null;
+    graceDaysRemaining: number | null;
+  } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,9 +66,10 @@ export function DashboardContent() {
       setError(null);
       try {
         const churchIdFromStorage = localStorage.getItem("churchId");
-        const [summaryData, donorsData] = await Promise.all([
+        const [summaryData, donorsData, subscriptionData] = await Promise.all([
           getDashboardSummaryOptimized(),
-          churchIdFromStorage ? getDistinctDonorsForFilter() : Promise.resolve([] as DonorFilterItem[])
+          churchIdFromStorage ? getDistinctDonorsForFilter() : Promise.resolve([] as DonorFilterItem[]),
+          fetch('/api/subscription').then(res => res.json()).catch(() => null)
         ]);
         
         if (!summaryData) {
@@ -69,6 +79,15 @@ export function DashboardContent() {
         }
         
         setDonorsList(donorsData);
+        
+        if (subscriptionData) {
+          setSubscriptionInfo({
+            status: subscriptionData.subscriptionStatus,
+            daysLeftInTrial: subscriptionData.daysLeftInTrial,
+            daysUntilEnd: subscriptionData.daysUntilEnd,
+            graceDaysRemaining: subscriptionData.graceDaysRemaining
+          });
+        }
       } catch (error) {
         console.error("Failed to fetch dashboard data or donors:", error);
         setError("An error occurred while loading the dashboard.");
@@ -135,6 +154,92 @@ export function DashboardContent() {
         </div>
       ) : (
         <>
+          {/* Subscription Banner */}
+          {subscriptionInfo && (
+            <>
+              {/* Free Plan Banner */}
+              {subscriptionInfo.status === 'free' && (
+                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 mb-6">
+                  <CardContent className="flex items-center justify-between p-6">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="h-6 w-6 text-blue-600" />
+                      <div>
+                        <h3 className="font-semibold text-blue-900 dark:text-blue-200">
+                          {t('dashboard:freeActive', 'You\'re on AltarFlow Free')}
+                        </h3>
+                        <p className="text-sm text-blue-800 dark:text-blue-300">
+                          {t('dashboard:freeDescription', 'Upgrade to unlock donations, expenses, and financial reports.')}
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => router.push('/settings?tab=account')}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {t('dashboard:upgradeNow', 'Upgrade Now')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Grace Period Banner */}
+              {subscriptionInfo.status === 'grace_period' && subscriptionInfo.graceDaysRemaining !== null && (
+                <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 mb-6">
+                  <CardContent className="flex items-center justify-between p-6">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="h-6 w-6 text-red-600" />
+                      <div>
+                        <h3 className="font-semibold text-red-900 dark:text-red-200">
+                          {t('dashboard:gracePeriodActive', 'Your subscription has expired')}
+                        </h3>
+                        <p className="text-sm text-red-800 dark:text-red-300">
+                          {subscriptionInfo.graceDaysRemaining === 1
+                            ? t('dashboard:graceDayRemaining', '1 day grace period remaining. Renew now to keep your premium features.')
+                            : t('dashboard:graceDaysRemaining', '{{days}} days grace period remaining. Renew now to keep your premium features.', { days: subscriptionInfo.graceDaysRemaining })
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => router.push('/settings?tab=account')}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {t('dashboard:renewNow', 'Renew Now')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Canceled Subscription Banner */}
+              {subscriptionInfo.status === 'canceled' && subscriptionInfo.daysUntilEnd !== null && (
+                <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 mb-6">
+                  <CardContent className="flex items-center justify-between p-6">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="h-6 w-6 text-amber-600" />
+                      <div>
+                        <h3 className="font-semibold text-amber-900 dark:text-amber-200">
+                          {t('dashboard:canceledActive', 'Subscription canceled')}
+                        </h3>
+                        <p className="text-sm text-amber-800 dark:text-amber-300">
+                          {subscriptionInfo.daysUntilEnd === 1
+                            ? t('dashboard:canceledDayRemaining', 'Premium features expire in 1 day.')
+                            : t('dashboard:canceledDaysRemaining', 'Premium features expire in {{days}} days.', { days: subscriptionInfo.daysUntilEnd })
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => router.push('/settings?tab=account')}
+                      className="bg-amber-600 hover:bg-amber-700"
+                    >
+                      {t('dashboard:reactivate', 'Reactivate')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+
           <div className="grid gap-4 md:grid-cols-2">
             {/* Donation Summary */}
             <Card>
@@ -251,26 +356,48 @@ export function DashboardContent() {
               </CardHeader>
               <CardContent className="grid gap-2">
                 <button
-                  onClick={() => openModal("donation")}
-                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted"
+                  onClick={() => (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') ? router.push('/settings?tab=account') : openModal("donation")}
+                  className={`flex items-center justify-between rounded-lg border p-4 transition-colors ${
+                    (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period')
+                      ? 'opacity-50 cursor-pointer hover:bg-muted/50' 
+                      : 'hover:bg-muted'
+                  }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                      (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') ? 'bg-muted' : 'bg-primary/10'
+                    } text-primary`}>
                       <DollarSign className="h-5 w-5" />
                     </div>
-                    <div>{t('dashboard:quickActions.newDonation', 'New Donation')}</div>
+                    <div>
+                      <div>{t('dashboard:quickActions.newDonation', 'New Donation')}</div>
+                      {(subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') && (
+                        <div className="text-xs text-muted-foreground">{t('dashboard:quickActions.upgradeRequired', 'Upgrade required')}</div>
+                      )}
+                    </div>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground" />
                 </button>
                 <button
-                  onClick={() => openModal("expense")}
-                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted"
+                  onClick={() => (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') ? router.push('/settings?tab=account') : openModal("expense")}
+                  className={`flex items-center justify-between rounded-lg border p-4 transition-colors ${
+                    (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period')
+                      ? 'opacity-50 cursor-pointer hover:bg-muted/50' 
+                      : 'hover:bg-muted'
+                  }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                      (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') ? 'bg-muted' : 'bg-primary/10'
+                    } text-primary`}>
                       <FileText className="h-5 w-5" />
                     </div>
-                    <div>{t('dashboard:quickActions.newExpense', 'New Expense')}</div>
+                    <div>
+                      <div>{t('dashboard:quickActions.newExpense', 'New Expense')}</div>
+                      {(subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') && (
+                        <div className="text-xs text-muted-foreground">{t('dashboard:quickActions.upgradeRequired', 'Upgrade required')}</div>
+                      )}
+                    </div>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground" />
                 </button>
@@ -287,26 +414,48 @@ export function DashboardContent() {
                   <ArrowRight className="h-5 w-5 text-muted-foreground" />
                 </button>
                 <button
-                  onClick={() => openModal("report")}
-                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted"
+                  onClick={() => (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') ? router.push('/settings?tab=account') : openModal("report")}
+                  className={`flex items-center justify-between rounded-lg border p-4 transition-colors ${
+                    (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period')
+                      ? 'opacity-50 cursor-pointer hover:bg-muted/50' 
+                      : 'hover:bg-muted'
+                  }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                      (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') ? 'bg-muted' : 'bg-primary/10'
+                    } text-primary`}>
                       <FileText className="h-5 w-5" />
                     </div>
-                    <div>{t('dashboard:quickActions.generateReport', 'Generate Report')}</div>
+                    <div>
+                      <div>{t('dashboard:quickActions.generateReport', 'Generate Report')}</div>
+                      {(subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') && (
+                        <div className="text-xs text-muted-foreground">{t('dashboard:quickActions.upgradeRequired', 'Upgrade required')}</div>
+                      )}
+                    </div>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground" />
                 </button>
                 <button
-                  onClick={() => openModal("aiSummary")}
-                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted"
+                  onClick={() => (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') ? router.push('/settings?tab=account') : openModal("aiSummary")}
+                  className={`flex items-center justify-between rounded-lg border p-4 transition-colors ${
+                    (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period')
+                      ? 'opacity-50 cursor-pointer hover:bg-muted/50' 
+                      : 'hover:bg-muted'
+                  }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                      (subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') ? 'bg-muted' : 'bg-primary/10'
+                    } text-primary`}>
                       <Wand2 className="h-5 w-5" />
                     </div>
-                    <div>{t('dashboard:quickActions.aiSummary', 'Generate AI Summary')}</div>
+                    <div>
+                      <div>{t('dashboard:quickActions.aiSummary', 'Generate AI Summary')}</div>
+                      {(subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') && (
+                        <div className="text-xs text-muted-foreground">{t('dashboard:quickActions.upgradeRequired', 'Upgrade required')}</div>
+                      )}
+                    </div>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground" />
                 </button>
