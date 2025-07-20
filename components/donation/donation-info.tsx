@@ -130,7 +130,7 @@ export default function DonationInfo({
             </div>
             <Button
                   onClick={() => {
-                    console.log("DonationInfo: Submit OTP button clicked, attempting to call handleCheckOtp");
+                    // Debug logging removed: OTP submission
                     handleCheckOtp(); // This calls the prop passed from DonationForm
                   }}
                   disabled={isLoadingOtpAction || enteredOtp.length < 4 || phoneVerificationStage === 'verifying_otp'}

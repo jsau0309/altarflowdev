@@ -106,7 +106,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                      language: currentLanguage, // Add current language to submission data
                      // smsConsent is removed as it's no longer part of the form/schema
                  };
-                 console.log("[ConnectForm] Submitting data:", submissionData);
+                 // Debug logging removed: submitting form data
 
                  // Check honeypot field - if filled, it's likely a bot
                  if (submissionData.website && submissionData.website.length > 0) {
@@ -146,7 +146,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                  }
 
                 // Log the data being sent
-                console.log('Submitting data to backend:', dataToSubmit); 
+                // Debug logging removed: data being sent to backend 
                 
                 // Pass the structured object including language
                 const result = await submitFlow(flowId, dataToSubmit);

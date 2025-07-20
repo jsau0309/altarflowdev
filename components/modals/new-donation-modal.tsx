@@ -150,7 +150,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
         // TODO: Replace with actual API call
         // const createdDonor = await createDonor(newDonor);
         // currentMemberId = createdDonor.id;
-        console.log("Creating new donor:", newDonor)
+        // Debug logging removed: creating new donor
       } catch (error) {
         console.error("Error creating donor:", error)
         toast({
@@ -196,7 +196,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     try {
       // TODO: Replace with actual API call
       // await createDonation(donationPayload);
-      console.log("Creating donation:", donationPayload)
+      // Debug logging removed: creating donation with payload
 
       toast({
         description: t('donations:newDonationModal.success'),

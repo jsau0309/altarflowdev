@@ -122,7 +122,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
 
   // Handlers lifted from EditMemberForm
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    console.log('handleChange for:', e.target.name);
+    // Debug logging removed: handling form field change
     const { name, value } = e.target; // Use name attribute now
     setFormData((prev: EditFormData) => ({ ...prev, [name]: value }));
 
@@ -153,7 +153,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
   }
 
   const handleSubmit = async (e?: React.FormEvent) => {
-    console.log('handleSubmit triggered:', new Date().toISOString(), e?.type);
+    // Debug logging removed: form submission triggered
     e?.preventDefault(); // Prevent default if called from form submit event
     if (phoneError || emailError) return;
     
@@ -173,7 +173,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
     }
 
     // *** ADD THIS LOG ***
-  console.log('[MemberDetailsDrawer.handleSubmit] formData.joinDate:', formData.joinDate, 'finalJoinDate to be sent:', finalJoinDate);
+  // Debug logging removed: join date formatting for submission
 
   const dataToUpdate = {
       firstName: formData.firstName,

@@ -38,14 +38,7 @@ export function AccessControlWrapper({ children }: AccessControlWrapperProps) {
           const isTrialAccessiblePath = TRIAL_ACCESSIBLE_PATHS.some(path => pathname.startsWith(path))
           const isSubscriptionOnlyPath = SUBSCRIPTION_ONLY_PATHS.some(path => pathname.startsWith(path))
           
-          console.log('[AccessControl] Debug:', {
-            pathname,
-            status,
-            isTrialAccessiblePath,
-            isSubscriptionOnlyPath,
-            TRIAL_ACCESSIBLE_PATHS,
-            SUBSCRIPTION_ONLY_PATHS
-          });
+          // Debug logging removed: access control path validation
           
           if (status === 'active' || status === 'past_due') {
             // Full access

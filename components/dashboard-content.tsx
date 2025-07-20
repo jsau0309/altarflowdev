@@ -109,7 +109,7 @@ export function DashboardContent() {
 
   const handleDataRefresh = async (actionContext?: string) => {
     const contextMessage = actionContext ? ` after ${actionContext}` : "";
-    console.log(`Refreshing dashboard data${contextMessage}...`);
+    // Debug logging removed: refreshing dashboard data
     // setIsLoading(true); // Consider uncommenting if refresh is slow
     try {
       const data = await getDashboardSummaryOptimized();

@@ -45,14 +45,8 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
   useEffect(() => {
     // Listen for CSP violations
     const handleCSPViolation = (e: SecurityPolicyViolationEvent) => {
-      console.log('CSP Violation:', {
-        blockedURI: e.blockedURI,
-        violatedDirective: e.violatedDirective,
-        originalPolicy: e.originalPolicy,
-        sourceFile: e.sourceFile,
-        lineNumber: e.lineNumber,
-        columnNumber: e.columnNumber,
-      });
+      // Debug logging removed: CSP violation details
+      // Consider sending to error tracking service in production instead
     };
     document.addEventListener('securitypolicyviolation', handleCSPViolation);
     return () => {
@@ -90,7 +84,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
     setMessage(null);
 
     const calculatedReturnUrl = `${window.location.origin}/${churchSlug}/donation-successful`;
-    console.log('[CheckoutForm] Attempting stripe.confirmPayment with return_url:', calculatedReturnUrl, 'churchSlug:', churchSlug);
+    // Debug logging removed: confirming Stripe payment
 
     const { error } = await stripe.confirmPayment({ // paymentIntent is not reliably returned here with redirect: 'always'
       elements,
@@ -170,7 +164,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
   // Effect to fetch client secret when relevant formData changes
   useEffect(() => {
     let isEffectMounted = true;
-    console.log(`[DonationPayment useEffect] START. IdempotencyKey: ${idempotencyKey}. Amount: ${formData.amount}, CoverFees: ${formData.coverFees}, TypeID: ${formData.donationTypeId}, ChurchID: ${churchId}, Anonymous: ${formData.isAnonymous}`);
+    // Debug logging removed: donation payment effect starting
 
     const initiateDonationPayment = async () => {
       if (!isEffectMounted) return;
@@ -183,7 +177,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
         }
 
         if (!formData.donationTypeId || formData.amount <= 0 || !churchId) {
-          console.log('[DonationPayment useEffect] Conditions not met for fetching client secret (e.g., amount is 0, or donation type not selected).');
+          // Debug logging removed: conditions not met for client secret
           if (isEffectMounted && clientSecret) { // Clear stale client secret
             setClientSecret(null);
           }
@@ -255,7 +249,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
     // Cleanup function
     return () => {
       isEffectMounted = false;
-      console.log(`[DonationPayment useEffect] CLEANUP. Amount: ${formData.amount}. Effect instance is being cleaned up.`);
+      // Debug logging removed: effect cleanup
     };
   }, [
     churchId,

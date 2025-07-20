@@ -227,11 +227,11 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
         (payloadForUpdate as any)[key] === undefined && delete (payloadForUpdate as any)[key]
       );
 
-      console.log('[EditDonorModal] Submitting payload to action:', payloadForUpdate);
+      // Debug logging removed: submitting donor update payload
       const result = await updateDonorDetails(donor.id, payloadForUpdate);
 
       if (result) { // result is DonorDetailsData if successful, null otherwise
-        console.log("Donor updated successfully:", result);
+        // Debug logging removed: donor updated successfully
         toast.success(t('editDonorModal.updateSuccess', { ns: 'donations' }));
         if (onDonorUpdate) {
           onDonorUpdate(result); // result is the full DonorDetailsData

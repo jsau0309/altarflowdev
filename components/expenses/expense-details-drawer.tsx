@@ -70,7 +70,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
       console.error('[ExpenseDetailsDrawer refreshReceiptUrl] Aborted: expense or expense.id is null/undefined.');
       return null;
     }
-    console.log('[ExpenseDetailsDrawer refreshReceiptUrl] Called for expense ID:', expense.id);
+    // Debug logging removed: refreshing receipt URL for expense
     try {
       setIsLoadingReceipt(true);
       
@@ -83,7 +83,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
       });
 
       const responseText = await response.text();
-      console.log('[ExpenseDetailsDrawer refreshReceiptUrl] Raw API response text:', responseText);
+      // Debug logging removed: raw API response text
 
       if (!response.ok) {
         let errorData = {};
@@ -110,13 +110,13 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
       }
       const newUrl = data.receiptUrl;
 
-      console.log("[ExpenseDetailsDrawer] Fetched new signed URL from API:", newUrl);
+      // Debug logging removed: fetched new signed URL
 
       if (newUrl) {
         try {
-          console.log("[ExpenseDetailsDrawer] Attempting to test-fetch new URL:", newUrl);
+          // Debug logging removed: testing new URL
           const testResponse = await fetch(newUrl);
-          console.log("[ExpenseDetailsDrawer] Test fetch status:", testResponse.status, "OK:", testResponse.ok);
+          // Debug logging removed: test fetch status
           if (!testResponse.ok) {
             console.error("[ExpenseDetailsDrawer] Test fetch FAILED for new URL:", newUrl, "Status Text:", testResponse.statusText);
           }
@@ -141,7 +141,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
   }, [expense?.id, t, setIsLoadingReceipt, setCurrentReceiptUrl, setReceiptUrlExpiry]);
 
   useEffect(() => {
-    console.log('[ExpenseDetailsDrawer useEffect] Triggered. Open:', open, 'Expense ID:', expense?.id, 'Raw Expense Prop Receipt Path:', expense?.receiptPath, 'Current Expense Object:', JSON.stringify(expense));
+    // Debug logging removed: expense details drawer effect triggered
     const isMounted = true; // To prevent state updates on unmounted component
 
     if (open && expense?.id) { // Only act if drawer is open and there's an expense
@@ -171,7 +171,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
 
   // Cast expense to include receiptPath if needed (adjust based on actual type)
   const expenseWithPath = expense as Expense & { receiptPath?: string | null };
-  console.log('[ExpenseDetailsDrawer Render] expenseWithPath for UI:', expenseWithPath, 'Receipt Path from expenseWithPath:', expenseWithPath?.receiptPath);
+  // Debug logging removed: expense with path for UI rendering
 
   const handleEdit = () => {
     onEdit(expense)
@@ -226,7 +226,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
 
 
 
-  console.log(`[ExpenseDetailsDrawer Render] isLoadingReceipt: ${isLoadingReceipt}, currentReceiptUrl: ${currentReceiptUrl ? 'exists' : 'null'}`);
+  // Debug logging removed: receipt loading state
 
   return (
     <>

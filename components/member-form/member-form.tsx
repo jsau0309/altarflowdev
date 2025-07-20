@@ -131,7 +131,7 @@ export function MemberForm({ onSubmitSuccess }: { onSubmitSuccess?: (data: Membe
   const { handleSubmit, formState: { isSubmitting }, reset } = methods;
 
   const processSubmit = async (data: MemberFormValues) => {
-    console.log("MemberForm submitted:", data);
+    // Debug logging removed: member form submitted
     try {
       // This is a placeholder for actual submission logic (e.g., API call)
       // For a reusable MemberForm, the actual API call might be passed in or handled by a parent.

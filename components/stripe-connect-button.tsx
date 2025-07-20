@@ -63,16 +63,7 @@ export function StripeConnectButton({
     const account = currentAccount || accountData;
 
     if (account?.stripeAccountId) {
-      console.log('Stripe Account Data for Button Config:', {
-        id: account.id,
-        stripeAccountId: account.stripeAccountId,
-        verificationStatus: account.verificationStatus,
-        charges_enabled: account.charges_enabled,
-        payouts_enabled: account.payouts_enabled,
-        details_submitted: account.details_submitted,
-        requirementsCurrentlyDue: account.requirementsCurrentlyDue,
-        requirementsDisabledReason: account.requirementsDisabledReason,
-      });
+      // Debug logging removed: Stripe account data for button config
     }
 
     if (!account || !account.stripeAccountId) {
@@ -188,7 +179,7 @@ export function StripeConnectButton({
       if (!isMountedRef.current) return;
       
       try {
-        console.log('[StripeConnectButton] Polling account status for:', churchId);
+        // Debug logging removed: polling account status
         const response = await fetch('/api/stripe', {
           method: 'POST',
           headers: {
@@ -207,7 +198,7 @@ export function StripeConnectButton({
 
         const data = await response.json();
         if (data.account && isMountedRef.current) {
-          console.log('[StripeConnectButton] Polled account data:', data.account);
+          // Debug logging removed: polled account data
           setCurrentAccount(data.account);
 
           // Check if it's now fully connected based on new criteria
@@ -236,23 +227,10 @@ export function StripeConnectButton({
   }, [shouldPoll, churchId, onConnectSuccess]);
 
   const handleMainAction = async () => {
-    console.log('[StripeConnectButton] handleMainAction entered. Initial isLoading state:', isLoading);
+    // Debug logging removed: handleMainAction execution details
     setIsLoading(true);
-    console.log('[StripeConnectButton] setIsLoading(true) called. Current isLoading state should be true now.');
     try {
-      console.log('[StripeConnectButton] Inside try block.');
-      console.log('[StripeConnectButton]   currentAccount (state):', JSON.stringify(currentAccount));
-      console.log('[StripeConnectButton]   accountData (prop):', JSON.stringify(accountData));
       const account = currentAccount || accountData;
-      console.log('[StripeConnectButton]   Resolved account object:', JSON.stringify(account));
-      // Log buttonConfig properties selectively to avoid cyclic structure error with React elements
-      console.log('[StripeConnectButton]   buttonConfig object properties:', {
-        text: buttonConfig?.text,
-        variant: buttonConfig?.variant,
-        tooltip: buttonConfig?.tooltip,
-        actionType: buttonConfig?.actionType,
-        icon: buttonConfig?.icon ? '<ReactElement>' : undefined // Avoid stringifying the icon
-      });
 
       if (!buttonConfig || !buttonConfig.actionType) {
         console.error('[StripeConnectButton] CRITICAL: buttonConfig or buttonConfig.actionType is undefined!');
@@ -271,7 +249,7 @@ export function StripeConnectButton({
           returnUrl: window.location.href, 
           refreshUrl: window.location.href,
         };
-        console.log('[StripeConnectButton] Creating account link for church:', churchId);
+        // Debug logging removed: creating account link
       } else { // 'createLoginLink'
         apiAction = 'createLoginLink';
         if (!account?.stripeAccountId) {
@@ -283,7 +261,7 @@ export function StripeConnectButton({
           action: apiAction,
           accountId: account.stripeAccountId,
         };
-        console.log('[StripeConnectButton] Creating login link for account:', account.stripeAccountId);
+        // Debug logging removed: creating login link
       }
 
       const response = await fetch('/api/stripe', {
@@ -301,11 +279,11 @@ export function StripeConnectButton({
       }
 
       const responseData = await response.json();
-      console.log('[StripeConnectButton] Stripe API Response:', responseData);
+      // Debug logging removed: Stripe API response
 
       const url = responseData.url; // Expect 'url' key directly
       if (url) {
-        console.log('[StripeConnectButton] Attempting to open URL in new tab:', url);
+        // Debug logging removed: opening URL in new tab
         window.open(url, '_blank');
       } else {
         console.error('[StripeConnectButton] URL missing or invalid in response!', responseData);

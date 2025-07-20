@@ -219,7 +219,7 @@ async function withIdempotency(
 async function getAdminEmailForOrganization(clerkOrgId: string): Promise<string | null> {
   try {
     const client = await clerkClient(); 
-    console.log(`[DEBUG] Fetching memberships for organization: ${clerkOrgId}`);
+    // Debug logging removed: fetching memberships for organization
     const membershipsResponse = await client.organizations.getOrganizationMembershipList({
       organizationId: clerkOrgId,
     });
@@ -241,7 +241,7 @@ async function getAdminEmailForOrganization(clerkOrgId: string): Promise<string 
     }
 
     const adminUserId = adminMembership.publicUserData.userId;
-    console.log(`[DEBUG] Found admin member with userId: ${adminUserId}`);
+    // Debug logging removed: admin member userId
 
     const adminUser = await client.users.getUser(adminUserId);
 
@@ -251,7 +251,7 @@ async function getAdminEmailForOrganization(clerkOrgId: string): Promise<string 
     }
 
     const adminEmail = adminUser.primaryEmailAddress.emailAddress;
-    console.log(`[INFO] Successfully fetched admin email: ${adminEmail} for organization: ${clerkOrgId}`);
+    // Debug logging removed: admin email fetched for organization
     return adminEmail;
 
   } catch (error) {
@@ -291,7 +291,7 @@ function isDeleteAccountRequest(req: StripeApiRequest): req is DeleteAccountRequ
 export async function POST(req: Request) {
   try {
     const body = await req.json() as StripeApiRequest;
-    console.log(`[DEBUG] Inside POST handler - action: ${body.action}, body:`, body);
+    // Debug logging removed: POST handler action and body details
 
     // Define default URLs within the POST function's scope to ensure availability
     const localDefaultReturnUrl = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/banking` : 'http://localhost:3000/banking';
@@ -415,10 +415,10 @@ async function handleCreateAccount(
   passedDefaultRefreshUrl?: string, // Added parameter
   passedDefaultReturnUrl?: string    // Added parameter
 ): Promise<NextResponse> {
-  console.log('[DEBUG] handleCreateAccount - Input clerkOrgId:', clerkOrgId);
+  // Debug logging removed: handleCreateAccount input
 
   try {
-    console.log(`[DEBUG] Fetching church details for clerkOrgId: ${clerkOrgId}`);
+    // Debug logging removed: fetching church details
     const church = await prisma.church.findUnique({
       where: { clerkOrgId: clerkOrgId },
       select: { id: true, name: true }, 
@@ -433,14 +433,14 @@ async function handleCreateAccount(
     }
     const churchDatabaseId = church.id;
     const churchName = church.name;
-    console.log(`[DEBUG] Found church in DB (ID: ${churchDatabaseId}, Name: ${churchName}) for clerkOrgId: ${clerkOrgId}`);
+    // Debug logging removed: church details found in DB
 
     const existingStripeConnectAccount = await prisma.stripeConnectAccount.findUnique({
       where: { churchId: clerkOrgId }, 
     });
 
     if (existingStripeConnectAccount) {
-      console.log(`[INFO] Existing StripeConnectAccount found for clerkOrgId ${clerkOrgId}: ${existingStripeConnectAccount.stripeAccountId}`);
+      // Debug logging removed: existing Stripe account found
       const finalRefreshUrlExisting = customRefreshUrl || passedDefaultRefreshUrl;
       const finalReturnUrlExisting = customReturnUrl || passedDefaultReturnUrl;
       console.log('[handleCreateAccount - Existing Account] Values for account link creation:');
@@ -450,7 +450,7 @@ async function handleCreateAccount(
       console.log('[handleCreateAccount - Existing Account] customReturnUrl:', customReturnUrl);
       console.log('[handleCreateAccount - Existing Account] defaultReturnUrl:', passedDefaultReturnUrl);
       console.log('[handleCreateAccount - Existing Account] FINAL return_url for Stripe:', finalReturnUrlExisting);
-      console.log('[handleCreateAccount - Existing Account] Stripe Account ID for link:', existingStripeConnectAccount.stripeAccountId);
+      // Debug logging removed: Stripe Account ID for link
 
       const accountLink = await stripe.accountLinks.create({
         account: existingStripeConnectAccount.stripeAccountId,
@@ -486,7 +486,7 @@ async function handleCreateAccount(
       );
     }
 
-    console.log(`[INFO] Using admin email for Stripe: ${adminEmail} for organization ${clerkOrgId}`);
+    // Debug logging removed: admin email for Stripe
 
     const newStripeAccount = await stripe.accounts.create({
       type: 'express',
@@ -505,7 +505,7 @@ async function handleCreateAccount(
         churchDatabaseId: churchDatabaseId, 
       },
     });
-    console.log(`[DEBUG] New Stripe account created successfully: ${newStripeAccount.id} for clerkOrgId: ${clerkOrgId}`);
+    // Debug logging removed: new Stripe account created
 
     await prisma.stripeConnectAccount.create({
       data: {
@@ -526,7 +526,7 @@ async function handleCreateAccount(
     console.log('[handleCreateAccount - New Account] customReturnUrl:', customReturnUrl);
     console.log('[handleCreateAccount - New Account] defaultReturnUrl:', passedDefaultReturnUrl);
     console.log('[handleCreateAccount - New Account] FINAL return_url for Stripe:', finalReturnUrlNew);
-    console.log('[handleCreateAccount - New Account] Stripe Account ID for link:', newStripeAccount.id);
+    // Debug logging removed: Stripe Account ID for link
 
     const newAccountLink = await stripe.accountLinks.create({
       account: newStripeAccount.id,
@@ -670,7 +670,7 @@ async function handleGetAccount({
       // mapping from stripeAccount (live Stripe data) or updatedAccount (local DB record) as appropriate.
     };
 
-    console.log('[handleGetAccount] Returning response account:', JSON.stringify(responseAccount, null, 2));
+    // Debug logging removed: full account response details
     
     // Ensure we're returning a proper NextResponse with content
     const jsonResponse = JSON.stringify(responseAccount);

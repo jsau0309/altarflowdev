@@ -71,8 +71,14 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
   const isCurrentPlan = (planId: string) => currentPlan === planId;
 
   const handleSubscribe = async (plan: PricingPlan) => {
-    // If there's an active subscription, redirect to customer portal for plan changes
-    if (currentStatus === "active") {
+    // Only use payment links for users with 'free' status (new or expired subscriptions)
+    if (currentStatus === "free") {
+      if (plan.paymentLink) {
+        const url = `${plan.paymentLink}?client_reference_id=${organizationId}`;
+        window.location.href = url;
+      }
+    } else {
+      // For ALL other statuses (active, canceled, past_due, grace_period), use customer portal
       try {
         const response = await fetch("/api/stripe/portal", {
           method: "POST",
@@ -85,10 +91,6 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
       } catch (error) {
         console.error("Error opening customer portal:", error);
       }
-    } else if (plan.paymentLink) {
-      // For new subscriptions, use payment links with client_reference_id
-      const url = `${plan.paymentLink}?client_reference_id=${organizationId}`;
-      window.location.href = url;
     }
   };
 

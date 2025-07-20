@@ -179,10 +179,10 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
       // TODO: Replace with actual API call
       if (campaignId) {
         // await updateCampaign(campaignId, campaignData)
-        console.log("Updating campaign:", campaignId, campaignData)
+        // Debug logging removed: updating campaign
       } else {
         // await createCampaign(campaignData)
-        console.log("Creating new campaign:", campaignData)
+        // Debug logging removed: creating new campaign
       }
 
       // Simulate API call

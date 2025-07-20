@@ -137,7 +137,7 @@ export async function PATCH(
     });
 
     // Invalidate dashboard cache after updating expense
-    console.log(`[API] Expense updated successfully. Invalidating cache for org: ${orgId}`);
+    // Debug logging removed: expense updated, invalidating cache
     revalidateTag(`dashboard-${orgId}`);
 
     // 6. Check if the update was successful

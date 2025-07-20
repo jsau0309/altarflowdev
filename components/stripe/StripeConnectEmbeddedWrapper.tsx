@@ -151,7 +151,7 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
   return (
     <ConnectComponentsProvider connectInstance={connectInstance}>
       {componentKey === 'accountManagement' && <ConnectAccountManagement />}
-      {componentKey === 'accountOnboarding' && <ConnectAccountOnboarding onExit={() => console.log('User exited onboarding')} />}
+      {componentKey === 'accountOnboarding' && <ConnectAccountOnboarding onExit={() => {/* User exited onboarding */}} />}
       {componentKey === 'balances' && <ConnectBalances />}
       {componentKey === 'payments' && <ConnectPayments />}
       {componentKey === 'payouts' && <ConnectPayouts />}

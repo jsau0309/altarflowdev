@@ -110,12 +110,16 @@ SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
   - [ ] Annual plan: $830/year (30% discount)
   - [ ] Redirect URL set to: `https://your-domain.com/payment-success`
   - [ ] Collect customer details enabled
+  - [ ] **IMPORTANT**: Remove any metadata fields (use client_reference_id only)
+  - [ ] Test both payment links with `?client_reference_id=test_org_id`
 - [ ] Customer Portal configured:
   - [ ] Portal URL set to: `https://your-domain.com/settings?tab=account`
   - [ ] Subscription management enabled
   - [ ] Invoice history enabled
   - [ ] Payment method updates allowed
   - [ ] Plan switching enabled (between monthly/annual)
+  - [ ] Cancellation reason collection enabled
+  - [ ] Proration behavior set to "Always invoice immediately"
 
 #### Church Payment Processing (Stripe Connect)
 - [ ] Production account activated
@@ -263,14 +267,27 @@ CNAME resend._domainkey    [Resend CNAME Value]
 
 ### Subscription & Billing Testing
 - [ ] Church subscription flow:
-  - [ ] New organization redirects to payment required
-  - [ ] Payment links work correctly
+  - [ ] New organization starts with 'free' status
+  - [ ] Free users see upgrade prompts and locked features
+  - [ ] Payment links work correctly with client_reference_id
   - [ ] Webhook processes subscription creation
-  - [ ] Customer portal access works
-  - [ ] Plan switching tested
-  - [ ] Subscription cancellation tested
-- [ ] Billing page shows correct status
-- [ ] Feature gating based on subscription status
+  - [ ] Subscription status updates to 'active'
+  - [ ] Customer portal access works for active/canceled users
+  - [ ] Plan switching tested (monthly ↔ annual)
+  - [ ] Subscription cancellation flow:
+    - [ ] Cancel via customer portal
+    - [ ] Status updates to 'canceled' with end date
+    - [ ] "Reactivate" button appears
+    - [ ] Can reactivate before period ends
+    - [ ] Transitions to 'free' after period ends
+  - [ ] Grace period (2 days) activates after expiration
+- [ ] Billing page shows correct status and messaging
+- [ ] Feature gating based on subscription status:
+  - [ ] Free/Grace Period: Cannot access Donations, Expenses, Reports, Banking
+  - [ ] Active/Canceled: Full access until period ends
+- [ ] Payment routing logic:
+  - [ ] Free users → Payment link
+  - [ ] All others → Customer portal
 
 ### Church Payment Processing Testing  
 - [ ] Donation flow tested end-to-end:
@@ -388,8 +405,13 @@ Document key contacts for production issues:
 #### Critical Configuration
 - **NEXT_PUBLIC_APP_URL**: MUST be set to production domain before printing QR codes
 - **Subscription Model**: One subscription per church organization
-- **Payment Required**: New churches cannot access features until subscription is active
-- **Customer Portal**: Allows self-service subscription management
+- **Free-by-Default**: New churches start on free plan with limited features
+- **Customer Portal**: Manages all subscription changes for existing customers
+- **Webhook Processing**: Handles subscription lifecycle (active → canceled → free)
+- **Grace Period**: 2 days after subscription expires before limiting features
+- **Payment Routing**:
+  - Free status → Stripe Payment Links (new subscriptions)
+  - All other statuses → Stripe Customer Portal (modifications)
 
 #### Feature Flags & Limits
 - **SMS Verification**: Optional, controlled by phone number presence
@@ -397,4 +419,17 @@ Document key contacts for production issues:
 - **AI Summaries**: Rate limited to prevent abuse
 - **Public Forms**: Protected by honeypot spam prevention
 
-Last Updated: 2025-01-18
+#### Subscription States & Access Control
+- **Free**: New churches, no access to premium features
+- **Active**: Full access to all features
+- **Canceled**: Full access until subscription period ends
+- **Grace Period**: 2 days after expiration, limited access with urgent renewal prompts
+- **Past Due**: Payment failed but retry pending, full access maintained
+
+#### Important Webhook Configuration
+- The webhook MUST handle `customer.subscription.updated` events
+- Stripe keeps subscriptions as 'active' when canceled but sets `cancel_at_period_end = true`
+- Our webhook interprets this as 'canceled' status in the database
+- Ensure webhook endpoint has proper error handling and logging
+
+Last Updated: 2025-01-19

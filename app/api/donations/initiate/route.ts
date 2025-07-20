@@ -79,8 +79,7 @@ export async function POST(request: Request) {
 
     // Update Donor record if donorId is provided and details are available
     if (donorId && !isAnonymous) {
-      console.log(`[API /donations/initiate] Attempting to update Donor. donorId: ${donorId}`);
-      console.log(`[API /donations/initiate] Validation data for donor update:`, JSON.stringify(validation.data, null, 2));
+      // Debug logging removed: attempting to update donor with validation data
       const donorUpdateData: any = {};
       if (validation.data.firstName) donorUpdateData.firstName = validation.data.firstName;
       if (validation.data.lastName) donorUpdateData.lastName = validation.data.lastName;
@@ -95,7 +94,7 @@ export async function POST(request: Request) {
       // If this API is hit after OTP for a public donation, the phone is considered verified for this donor.
       donorUpdateData.isPhoneVerified = true;
 
-      console.log(`[API /donations/initiate] Constructed donorUpdateData:`, JSON.stringify(donorUpdateData, null, 2));
+      // Debug logging removed: constructed donor update data
 
       if (Object.keys(donorUpdateData).length > 0) {
         try {
@@ -103,18 +102,18 @@ export async function POST(request: Request) {
             where: { id: donorId },
             data: donorUpdateData,
           });
-          console.log(`[API /donations/initiate] Successfully updated Donor ${donorId}`);
+          // Debug logging removed: donor successfully updated
         } catch (dbError) {
           console.error("[API /donations/initiate] Error updating donor in DB:", dbError);
         }
       } else {
-         console.log(`[API /donations/initiate] donorUpdateData is empty for donorId ${donorId}. No update performed.`);
+         // Debug logging removed: no donor update performed (empty data)
       }
     } else {
-        console.log(`[API /donations/initiate] Skipped Donor update. donorId: ${donorId}, isAnonymous: ${isAnonymous}`);
+        // Debug logging removed: skipped donor update
     }
 
-    console.log(`Attempting to find church with internal UUID: '${churchUUIDFromInput}'`);
+    // Debug logging removed: attempting to find church
 
     const existingTransaction = await prisma.donationTransaction.findUnique({
       where: { idempotencyKey },
@@ -147,11 +146,11 @@ export async function POST(request: Request) {
       where: { id: churchUUIDFromInput }, 
     });
 
-    console.log('Result of prisma.church.findUnique:', church);
+    // Debug logging removed: church lookup result
 
     if (!church) {
       const allChurches = await prisma.church.findMany({ select: { id: true, name: true, clerkOrgId: true } });
-      console.log('All Church IDs in DB:', allChurches.map(c => ({ name: c.name, id: c.id, clerkOrgId: c.clerkOrgId })));
+      // Debug logging removed: all church IDs in database
       return NextResponse.json({ error: 'Church not found for the provided churchId (UUID).' }, { status: 404 });
     }
 
@@ -180,7 +179,7 @@ export async function POST(request: Request) {
       calculatedProcessingFeeInCents = finalAmountForStripe - baseAmount;
     }
     // If coverFees is false, finalAmountForStripe remains baseAmount (initial value), and calculatedProcessingFeeInCents remains 0.
-    console.log(`[API /donations/initiate] Fee Calculation: baseAmount: ${baseAmount}, coverFees: ${coverFees}, calculatedProcessingFeeInCents: ${calculatedProcessingFeeInCents}, finalAmountForStripe: ${finalAmountForStripe}`);
+    // Debug logging removed: fee calculation details
 
     if (!church.clerkOrgId) {
       console.error(`Church with UUID ${church.id} does not have a clerkOrgId.`);
@@ -233,7 +232,7 @@ export async function POST(request: Request) {
         if (Object.keys(updatePayload).length > 0) {
           try {
             await stripe.customers.update(stripeCustomerId, updatePayload);
-            console.log(`[API /donations/initiate] Updated Stripe customer ${stripeCustomerId}`);
+            // Debug logging removed: Stripe customer updated
           } catch (stripeError) {
             console.error(`[API /donations/initiate] Error updating Stripe customer ${stripeCustomerId}:`, stripeError);
           }
@@ -273,7 +272,7 @@ export async function POST(request: Request) {
         stripeCustomerId = newStripeCustomer.id;
       }
     } else if (isAnonymous) {
-      console.log('[API /donations/initiate] Anonymous donation, not creating/linking Stripe customer by email.');
+      // Debug logging removed: anonymous donation, no Stripe customer
     }
 
     // Update Donor record with Stripe Customer ID if available
@@ -285,16 +284,16 @@ export async function POST(request: Request) {
         });
 
         if (existingDonor && existingDonor.stripeCustomerId !== stripeCustomerId) {
-          console.log(`[API /donations/initiate] Attempting to update Donor ${donorId} with stripeCustomerId ${stripeCustomerId}`);
+          // Debug logging removed: attempting to update donor with Stripe customer ID
           await prisma.donor.update({
             where: { id: donorId },
             data: { stripeCustomerId: stripeCustomerId },
           });
-          console.log(`[API /donations/initiate] Successfully updated Donor ${donorId} with stripeCustomerId.`);
+          // Debug logging removed: donor updated with Stripe customer ID
         } else if (!existingDonor) {
-          console.log(`[API /donations/initiate] Donor ${donorId} not found, cannot update stripeCustomerId.`);
+          // Debug logging removed: donor not found for Stripe customer ID update
         } else {
-          console.log(`[API /donations/initiate] Donor ${donorId} already has stripeCustomerId ${stripeCustomerId} or no update needed.`);
+          // Debug logging removed: donor already has Stripe customer ID
         }
       } catch (dbError) {
         console.error(`[API /donations/initiate] Error updating Donor ${donorId} with stripeCustomerId:`, dbError);
@@ -322,7 +321,7 @@ export async function POST(request: Request) {
       paymentIntentParams.receipt_email = validation.data.donorEmail;
     }
     
-    console.log('[API /donations/initiate] Creating/retrieving Stripe PaymentIntent with params:', paymentIntentParams, 'and idempotencyKey:', idempotencyKey);
+    // Debug logging removed: creating Stripe PaymentIntent with params
     const paymentIntent = await stripe.paymentIntents.create(
       paymentIntentParams,
       { idempotencyKey: idempotencyKey }
@@ -345,7 +344,7 @@ export async function POST(request: Request) {
 
     let donationTransaction;
     try {
-      console.log(`[API /donations/initiate] Attempting to create new DonationTransaction for PI ${paymentIntent.id}`);
+      // Debug logging removed: creating new DonationTransaction
       donationTransaction = await prisma.donationTransaction.create({
       data: {
         churchId: church.id,
@@ -372,7 +371,7 @@ export async function POST(request: Request) {
         const target = dbError.meta?.target as string[] || [];
         
         if (target.includes('stripePaymentIntentId')) {
-          console.log(`[API /donations/initiate] Unique constraint on stripePaymentIntentId for PI ${paymentIntent.id}. Another request likely created it. Fetching existing.`);
+          // Debug logging removed: unique constraint on stripePaymentIntentId
           const existingTx = await prisma.donationTransaction.findUnique({
             where: { stripePaymentIntentId: paymentIntent.id },
           });
@@ -384,7 +383,7 @@ export async function POST(request: Request) {
             }, { status: 200 });
           }
         } else if (target.includes('idempotencyKey')) {
-          console.log(`[API /donations/initiate] Unique constraint on idempotencyKey ${idempotencyKey}. Another request likely created it. Fetching existing.`);
+          // Debug logging removed: unique constraint on idempotencyKey
           const existingTx = await prisma.donationTransaction.findUnique({
             where: { idempotencyKey: idempotencyKey },
           });

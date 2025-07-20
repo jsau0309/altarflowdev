@@ -18,7 +18,7 @@ const I18nClientProvider: React.FC<I18nClientProviderProps> = ({ children }) => 
 
     // This function will be called whenever the language changes
     const handleLanguageChanged = (lng: string) => {
-      console.log("Language changed in provider:", lng);
+      // Debug logging removed: language changed
       setLanguage(lng); // Update state to trigger re-render
       document.documentElement.lang = lng;
     };

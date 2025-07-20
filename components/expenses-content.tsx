@@ -179,7 +179,7 @@ export function ExpensesContent() {
   const totalPages = Math.max(1, Math.ceil(filteredExpenses.length / itemsPerPage))
 
   const formatCurrency = (amount: number | Decimal | string | null | undefined) => {
-    console.log("Formatting currency for:", typeof amount, amount);
+    // Debug logging removed: formatting currency value
     if (amount === null || amount === undefined) return '-';
 
     let numericAmount: number;

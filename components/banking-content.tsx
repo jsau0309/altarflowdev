@@ -126,14 +126,7 @@ export function BankingContent() {
           throw new Error('Invalid JSON response from server');
         }
         
-        // Log the account status for debugging
-        console.log('Stripe Account Status:', {
-          id: account.id,
-          charges_enabled: account.charges_enabled,
-          payouts_enabled: account.payouts_enabled,
-          details_submitted: account.details_submitted,
-          requirements: account.requirements
-        });
+        // Debug logging removed: Stripe account status details
         
         if (isMounted) {
           setStripeAccount(account);

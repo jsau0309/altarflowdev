@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Invalidate dashboard cache after creating member
-    console.log(`[API] Member created successfully. Invalidating cache for org: ${orgId}`);
+    // Debug logging removed: member created, invalidating cache
     revalidateTag(`dashboard-${orgId}`);
 
     return NextResponse.json(newMember, { status: 201 }); // 201 Created

@@ -47,11 +47,11 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
   useEffect(() => {
     if (orgId && typeof window !== 'undefined') {
       localStorage.setItem("churchId", orgId);
-      console.log(`[ClientDashboardLayout] churchId (orgId: ${orgId}) set in localStorage.`);
+      // churchId stored in localStorage
     } else if (typeof window !== 'undefined') {
       // Optional: Clear churchId if orgId is not available (e.g., user logs out of org)
       // localStorage.removeItem("churchId");
-      // console.log("[ClientDashboardLayout] orgId not available, churchId potentially cleared from localStorage.");
+      // orgId not available, churchId potentially cleared from localStorage
     }
   }, [orgId]);
 

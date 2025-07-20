@@ -93,8 +93,7 @@ export async function PATCH(
 
     const body = await request.json();
 
-    // *** CASCADE LOG ***
-    console.log(`[API PATCH /api/members/${memberId}] Received body.joinDate:`, body.joinDate);
+    // Debug logging removed: received join date in request body
     
     // 2. Validate input data
     const validation = memberUpdateSchema.safeParse(body);
@@ -108,8 +107,7 @@ export async function PATCH(
     const dataToUpdate: any = { ...memberData };
     if (memberData.joinDate !== undefined) {
       dataToUpdate.joinDate = memberData.joinDate ? new Date(memberData.joinDate) : null;
-      // *** CASCADE LOG ***
-      console.log(`[API PATCH /api/members/${memberId}] Prepared dataToUpdate.joinDate (Date object):`, dataToUpdate.joinDate);
+      // Debug logging removed: prepared join date for update
     }
     if (memberData.smsConsentDate !== undefined) {
       dataToUpdate.smsConsentDate = memberData.smsConsentDate ? new Date(memberData.smsConsentDate) : null;
@@ -135,7 +133,7 @@ export async function PATCH(
     }
 
     // Invalidate dashboard cache after updating member
-    console.log(`[API] Member updated successfully. Invalidating cache for org: ${orgId}`);
+    // Debug logging removed: member updated, invalidating cache
     revalidateTag(`dashboard-${orgId}`);
 
     // 6. Fetch the updated member to return it (optional, but good practice)
@@ -204,7 +202,7 @@ export async function DELETE(
     }
 
     // Invalidate dashboard cache after deleting member
-    console.log(`[API] Member ${memberId} deleted successfully by user ${userId} (org ${orgId}). Invalidating cache.`);
+    // Debug logging removed: member deleted, invalidating cache
     revalidateTag(`dashboard-${orgId}`);
     
     return new NextResponse(null, { status: 204 }); // No Content

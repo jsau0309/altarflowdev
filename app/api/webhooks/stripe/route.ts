@@ -131,11 +131,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ received: true, warning: 'Transaction not found' });
           }
           
-          console.log(`[Stripe Webhook] Found existing transaction:`, {
-            id: existingTransaction.id,
-            currentStatus: existingTransaction.status,
-            stripePaymentIntentId: existingTransaction.stripePaymentIntentId
-          });
+          // Debug logging removed: transaction details found
           
           transaction = await prisma.donationTransaction.update({
             where: { stripePaymentIntentId: paymentIntentSucceeded.id },
@@ -144,7 +140,7 @@ export async function POST(req: Request) {
               paymentMethodType: paymentIntentSucceeded.payment_method_types[0] || null,
             },
           });
-          console.log(`[Stripe Webhook] Successfully updated DonationTransaction ${transaction.id} status to succeeded for PI: ${paymentIntentSucceeded.id}`);
+          // Debug logging removed: transaction status updated
         } catch (error) {
           capturePaymentError(error as Error, {
             paymentIntentId: paymentIntentSucceeded.id,
@@ -155,13 +151,13 @@ export async function POST(req: Request) {
         }
 
         if (transaction && transaction.donorId) {
-          console.log(`[Stripe Webhook] Attempting to update Donor ${transaction.donorId} for PI: ${paymentIntentSucceeded.id}`);
+          // Debug logging removed: attempting donor update
           const donor = await prisma.donor.findUnique({
             where: { id: transaction.donorId },
           });
 
           if (donor) {
-            console.log(`[Stripe Webhook] Found Donor ${donor.id}. Preparing update data.`);
+            // Debug logging removed: donor found, preparing update
             const donorUpdateData: Prisma.DonorUpdateInput = {};
             
             let stripeName: string | null = null;
@@ -186,14 +182,14 @@ export async function POST(req: Request) {
             if (paymentIntentSucceeded.shipping) {
               stripeName = paymentIntentSucceeded.shipping.name ?? null;
               stripeAddress = paymentIntentSucceeded.shipping.address ?? null;
-              console.log(`[Stripe Webhook] From shipping: name='${stripeName}', address='${JSON.stringify(stripeAddress)}'`);
+              // Debug logging removed: shipping information extracted
             }
 
             if (charge?.billing_details) {
               if (!stripeName) stripeName = charge.billing_details.name ?? null;
               if (!stripeAddress) stripeAddress = charge.billing_details.address ?? null;
               if (!stripeEmail) stripeEmail = charge.billing_details.email ?? null;
-              console.log(`[Stripe Webhook] From charge.billing_details: name='${stripeName}', email='${stripeEmail}', address='${JSON.stringify(stripeAddress)}'`);
+              // Debug logging removed: charge billing details extracted
             }
 
             if (paymentMethod?.billing_details) {

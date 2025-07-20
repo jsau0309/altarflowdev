@@ -33,12 +33,12 @@ export default async function ServerDashboardLayout({ children }: { children: Re
           where: { clerkOrgId: orgId },
           data: { subscriptionStatus: 'pending_payment' }
         });
-        console.log(`[ServerDashboardLayout] Trial expired for org ${orgId}, updated to pending_payment`);
+        // Trial expired, status updated to pending_payment
       }
     }
   }
 
-  console.log(`[ServerDashboardLayout] Rendering for user ${userId}...`);
+  // Server-side layout rendering
   
   return (
     <ClientDashboardLayout>{children}</ClientDashboardLayout>

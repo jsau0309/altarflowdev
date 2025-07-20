@@ -125,8 +125,7 @@ export default function DonationForm({ churchId, churchName, donationTypes, chur
   };
 
   const handleCheckOtp = async () => {
-    console.log("DonationForm: handleCheckOtp FUNCTION WAS CALLED."); 
-    console.log("DonationForm Values - Phone:", formData.phone, "OTP:", enteredOtp);
+    // Debug logging removed: handling OTP check with phone and code
     if (!formData.phone || !enteredOtp) {
       setApiErrorMessage('Client Check: Phone number and OTP are required.'); // Added "Client Check:"
       return;
@@ -198,7 +197,7 @@ export default function DonationForm({ churchId, churchName, donationTypes, chur
   };
 
   const handleChangePhoneNumber = () => {
-    console.log("handleChangePhoneNumber called");
+    // Debug logging removed: changing phone number
     setPhoneVerificationStage('initial');
     setApiErrorMessage(null);
     setEnteredOtp(''); // Clear OTP when changing number

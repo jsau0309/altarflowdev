@@ -97,11 +97,7 @@ export function ReportsPage() {
     
     try {
       if (!organization?.slug || !dateRange.from || !dateRange.to) {
-        console.log('Missing required data:', {
-          hasOrg: !!organization?.slug,
-          hasFrom: !!dateRange.from,
-          hasTo: !!dateRange.to
-        })
+        // Debug logging removed: missing required data for report generation
         return
       }
       

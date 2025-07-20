@@ -38,10 +38,7 @@ export async function POST(request: NextRequest) {
       // phoneNumber will be used in the where clause for upsert
     };
 
-    // Logging before the upsert operation
-    console.log('--- Debug Donor Upsert ---');
-    console.log('Phone number for WHERE clause:', phoneNumber);
-    console.log('Data for UPDATE/CREATE (donorData):', JSON.stringify(donorData, null, 2));
+    // Debug logging removed: donor upsert operation details
 
     const donor = await prisma.donor.upsert({
       where: { phone: phoneNumber }, // Correct: Use 'phone' for the where clause
@@ -52,9 +49,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Logging after the upsert operation
-    console.log('Result from prisma.donor.upsert (donor):', JSON.stringify(donor, null, 2));
-    console.log('--- End Debug Donor Upsert ---');
+    // Debug logging removed: donor upsert result
 
     return NextResponse.json({ success: true, donor: donor }, { status: donor ? 200 : 201 }); // 200 if updated, 201 if created
 

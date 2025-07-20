@@ -41,7 +41,6 @@ export function AccountManagement() {
       });
       if (response.ok) {
         const data = await response.json();
-        console.log('Fetched church data:', data);
         setChurchData(data);
       }
     } catch (error) {
@@ -55,28 +54,6 @@ export function AccountManagement() {
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchChurchData();
-  };
-  
-  const handleSyncWithStripe = async () => {
-    setRefreshing(true);
-    try {
-      const response = await fetch('/api/sync-subscription', {
-        method: 'POST',
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Sync successful:', data);
-        // Refresh the data after sync
-        await fetchChurchData();
-      } else {
-        console.error('Sync failed');
-      }
-    } catch (error) {
-      console.error('Error syncing with Stripe:', error);
-    } finally {
-      setRefreshing(false);
-    }
   };
 
   const openCustomerPortal = async () => {
@@ -142,24 +119,14 @@ export function AccountManagement() {
               {t("settings:billing.description", "Manage your subscription and billing information")}
             </CardDescription>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSyncWithStripe}
-              disabled={refreshing}
-            >
-              Sync with Stripe
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

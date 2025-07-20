@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Invalidate dashboard cache after creating expense
-    console.log(`[API] Expense created successfully. Invalidating cache for org: ${orgId}`);
+    // Debug logging removed: expense created, invalidating cache
     revalidateTag(`dashboard-${orgId}`);
 
     return NextResponse.json(newExpense, { status: 201 });

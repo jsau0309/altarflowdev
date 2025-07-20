@@ -37,7 +37,7 @@ const initialFormState: NewMemberData = {
   city: "",
   state: "",
   zipCode: "",
-  language: "spanish" as "english" | "spanish" | "both", // Default might need review
+  preferredLanguage: "spanish", // Default might need review
   smsConsent: false,
   notes: null, // notes is string | null as per Member type
   ministryInvolvement: null,
@@ -104,7 +104,7 @@ export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
 
     try {
       // --- TODO: Replace with actual API call to save the member --- 
-      console.log("Submitting new member data:", newMember)
+      // Debug logging removed: submitting new member data
       // Example: const response = await fetch('/api/members', { method: 'POST', body: JSON.stringify(newMember) });
       // if (!response.ok) throw new Error('Failed to add member');
       
@@ -261,9 +261,9 @@ export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
                  </div>
                   {/* Preferred Language - Assuming Select component usage */}
                  <div className="space-y-1">
-                   <Label htmlFor="language">{t('preferredLanguage')}</Label>
+                   <Label htmlFor="preferredLanguage">{t('preferredLanguage')}</Label>
                    {/* Replace with actual Select component if needed */}
-                   <Input id="language" name="language" value={newMember.language ?? ""} onChange={handleChange} placeholder="Select Language" disabled={isLoading} />
+                   <Input id="preferredLanguage" name="preferredLanguage" value={newMember.preferredLanguage ?? ""} onChange={handleChange} placeholder="Select Language" disabled={isLoading} />
                  </div>
                </div>
            </div>
