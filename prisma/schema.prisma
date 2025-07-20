@@ -58,6 +58,9 @@ model Church {
   serviceTimesJson     Json?                 @db.Json
   settingsJson         Json?                 @db.Json
   slug                 String                @unique
+  // Onboarding fields
+  onboardingCompleted  Boolean               @default(false)
+  onboardingStep       Int                   @default(1)
   // Billing fields for Stripe integration
   subscriptionId       String?               @unique
   subscriptionStatus   String                @default("pending_payment") // pending_payment, active, past_due, canceled

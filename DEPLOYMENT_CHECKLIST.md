@@ -28,10 +28,18 @@ DIRECT_URL=postgresql://[user]:[password]@[host]:[port]/[database]?schema=public
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx
 CLERK_SECRET_KEY=sk_live_xxxxx
 CLERK_WEBHOOK_SECRET=whsec_xxxxx
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+
+# IMPORTANT: Update these URLs to your production domain
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/signin
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding/welcome
+
+# For development with ngrok:
+# NEXT_PUBLIC_CLERK_SIGN_IN_URL=https://testaltarflow.ngrok.app/signin
+# NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://testaltarflow.ngrok.app/signup
+# NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=https://testaltarflow.ngrok.app/dashboard
+# NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=https://testaltarflow.ngrok.app/onboarding/step-1
 ```
 
 ### Payment Processing (Stripe)
@@ -93,14 +101,25 @@ SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
 - [ ] Production instance created
 - [ ] Multi-tenant architecture configured (Organizations enabled)
 - [ ] OAuth providers configured (Google, Apple, etc.)
+- [ ] Redirect URLs configured:
+  - [ ] Sign-in redirect: `/dashboard`
+  - [ ] Sign-up redirect: `/onboarding/step-1`
+  - [ ] Or use environment variables (recommended)
 - [ ] Webhook endpoint added: `https://your-domain.com/api/clerk-webhook`
 - [ ] Webhook events selected:
   - [ ] `organization.created`
   - [ ] `organization.updated` 
   - [ ] `organization.deleted`
+  - [ ] `user.created`
+  - [ ] `user.updated`
+  - [ ] `organizationMembership.created`
+  - [ ] `organizationMembership.deleted`
 - [ ] Custom domain configured (optional)
 - [ ] Email templates customized
 - [ ] Organization features enabled in dashboard
+- [ ] Session token configuration:
+  - [ ] Enable "Use short-lived session tokens" for better security
+  - [ ] Set appropriate session lifetime (recommended: 1-7 days)
 
 ### 3. **Stripe (Payments)**
 
@@ -432,4 +451,17 @@ Document key contacts for production issues:
 - Our webhook interprets this as 'canceled' status in the database
 - Ensure webhook endpoint has proper error handling and logging
 
-Last Updated: 2025-01-19
+#### Authentication & Data Isolation
+- **Multi-tenant Architecture**: Each church is an "Organization" in Clerk
+- **Data Isolation**: All queries filter by `orgId` from Clerk session
+- **User Access**: Users can belong to multiple organizations (churches)
+- **Session Management**: 
+  - Clerk provides `userId` and `orgId` in every authenticated request
+  - API routes use `const { userId, orgId } = await auth()` to get context
+  - Database queries filter by `clerkOrgId` to ensure data isolation
+- **Organization Switching**: Users can switch between churches they belong to
+- **Redirect URLs**: 
+  - Development: Use full ngrok URLs in environment variables
+  - Production: Use relative paths or full production URLs
+
+Last Updated: 2025-01-20

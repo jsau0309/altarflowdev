@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   }
 
   // Get the headers
-  const headerPayload = headers();
+  const headerPayload = await headers();
   const svix_id = headerPayload.get("svix-id");
   const svix_timestamp = headerPayload.get("svix-timestamp");
   const svix_signature = headerPayload.get("svix-signature");
@@ -139,6 +139,9 @@ export async function POST(req: Request) {
             slug: slug, // Generated slug
             // Initialize with free status
             subscriptionStatus: 'free',
+            // Initialize onboarding state
+            onboardingCompleted: false,
+            onboardingStep: 2, // Start at step 2 since org is already created
             // Add other default Church fields if necessary
           }
         });
@@ -210,11 +213,8 @@ export async function POST(req: Request) {
           role: prismaRole,    // Set the application role
         };
 
-        // If this membership is for the organization creator, mark onboarding complete
-        if (userId === organization.created_by) {
-          console.log(`Marking onboarding complete for creator User ID: ${userId} in Org ID: ${orgId}`);
-          updateData.onboardingComplete = true;
-        }
+        // Don't mark onboarding complete anymore - they need to go through the full flow
+        // This ensures all users complete the onboarding process
 
         await prisma.profile.update({
           where: { id: userId },

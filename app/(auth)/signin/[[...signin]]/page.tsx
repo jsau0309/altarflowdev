@@ -1,35 +1,65 @@
 'use client';
 
-// import { SignInForm } from "@/components/sign-in-form"
 import { SignIn } from '@clerk/nextjs';
-import { Building2 } from "lucide-react"
-import Link from "next/link"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { LanguageToggle } from "@/components/language-toggle"
+import Image from "next/image";
 import { useTranslation } from 'react-i18next';
 
 export default function SignInPage() {
   const { t } = useTranslation(['common', 'auth', 'dashboard']);
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-12 bg-background">
-      <div className="absolute top-4 right-4 flex gap-2">
-        <LanguageToggle />
-        <ThemeToggle />
+    <div className="flex min-h-screen">
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 items-center justify-center p-12">
+        <div className="max-w-md space-y-6">
+          <Image
+            src="/images/Altarflow.svg"
+            alt="AltarFlow Logo"
+            width={200}
+            height={60}
+            className="mb-8"
+          />
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+            {t('dashboard:welcomeMessage', 'Welcome back')}
+          </h1>
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            {t('auth:signInSubtitle', 'Manage your church with ease. Access donations, members, and reports all in one place.')}
+          </p>
+        </div>
       </div>
-      <div className="mx-auto w-full max-w-md">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <Building2 className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">{t('appName')}</span>
-        </div>
 
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">{t('dashboard:welcomeMessage')}</h1>
-          <p className="text-muted-foreground mt-2">{t('auth:loginButton')}</p>
-        </div>
+      {/* Right Panel - Sign In Form */}
+      <div className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md space-y-8">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex justify-center">
+            <Image
+              src="/images/Altarflow.svg"
+              alt="AltarFlow Logo"
+              width={150}
+              height={45}
+            />
+          </div>
 
-        {/* <SignInForm /> */ }
-        <SignIn routing="path" path="/signin" afterSignInUrl="/dashboard" />
+          <SignIn 
+            routing="path" 
+            path="/signin"
+            appearance={{
+              elements: {
+                rootBox: "w-full",
+                card: "shadow-none",
+                formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white",
+                formFieldInput: "border-gray-300 dark:border-gray-600",
+                socialButtonsBlockButton: "border-gray-300 dark:border-gray-600",
+                footerActionLink: "text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+              },
+              layout: {
+                socialButtonsPlacement: "bottom",
+                socialButtonsVariant: "blockButton"
+              }
+            }}
+          />
+        </div>
       </div>
     </div>
   )
