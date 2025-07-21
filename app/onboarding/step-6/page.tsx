@@ -92,51 +92,31 @@ export default function OnboardingStep6() {
             {t('onboarding:step6.title', 'Congratulations!')} 🎉
           </h1>
           
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-lg mx-auto">
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-12 max-w-lg mx-auto">
             {t('onboarding:step6.subtitle', 'Your church is all set up and ready to use AltarFlow.')}
           </p>
-
-          {/* What's Next Section */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-8 text-left max-w-lg mx-auto">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-              {t('onboarding:step6.whatsNext', "What's next?")}
-            </h3>
-            <ul className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
-              <li className="flex items-start gap-2">
-                <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
-                <span>{t('onboarding:step6.next1', 'Add your first members to start building your database')}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
-                <span>{t('onboarding:step6.next2', 'Set up donation funds to track different giving categories')}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
-                <span>{t('onboarding:step6.next3', 'Connect your Stripe account to accept online donations')}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
-                <span>{t('onboarding:step6.next4', 'Customize your public donation page and QR codes')}</span>
-              </li>
-            </ul>
-          </div>
 
           {/* CTA Button */}
           <Button
             onClick={handleComplete}
             size="lg"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg mb-6"
           >
             {t('onboarding:step6.goToDashboard', 'Go to Dashboard')} →
           </Button>
 
           {/* Help Text */}
-          <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-            {t('onboarding:step6.helpText', 'Need help? Check out our')} {' '}
-            <a href="/help" className="text-blue-600 hover:text-blue-500 underline">
-              {t('onboarding:step6.gettingStarted', 'getting started guide')}
+          <div className="space-y-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t('onboarding:step6.helpText', 'Need help getting started?')}
+            </p>
+            <a 
+              href="/help" 
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline font-medium"
+            >
+              {t('onboarding:step6.viewGuide', 'View our getting started guide')} →
             </a>
-          </p>
+          </div>
         </div>
       </div>
     </div>
