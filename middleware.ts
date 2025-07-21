@@ -17,6 +17,11 @@ const isOnboardingRoute = createRouteMatcher([
   '/onboarding(.*)',
 ])
 
+// Define invitation acceptance route
+const isInvitationRoute = createRouteMatcher([
+  '/invitation-pending',
+])
+
 
 export default clerkMiddleware(async (auth, req) => {
   // Skip checks for public routes
@@ -31,9 +36,15 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next()
   }
 
-  // If user has no organization and not on onboarding, redirect to onboarding
+  // Allow invitation pending route
+  if (isInvitationRoute(req)) {
+    return NextResponse.next()
+  }
+
+  // If user has no organization and not on onboarding, check for invitations
   if (!orgId && !isOnboardingRoute(req)) {
-    return NextResponse.redirect(new URL('/onboarding/welcome', req.url))
+    // Redirect to invitation-pending page which will handle the logic
+    return NextResponse.redirect(new URL('/invitation-pending', req.url))
   }
 
   // Allow all onboarding routes to proceed
