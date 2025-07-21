@@ -18,15 +18,27 @@ export default function InvitationPendingPage() {
     },
   });
   const [checkCount, setCheckCount] = useState(0);
+  const [hasMinTimeElapsed, setHasMinTimeElapsed] = useState(false);
+
+  // Ensure the loading screen shows for at least 1.5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHasMinTimeElapsed(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    if (!isLoaded || !user || !hasMinTimeElapsed) return;
 
     // Check if user has any organization memberships
     if (userMemberships && userMemberships.data && userMemberships.data.length > 0) {
       // User is part of an organization - they accepted the invitation!
       console.log('User has organization membership, redirecting to dashboard');
-      router.push('/dashboard');
+      // Add a small delay for smooth transition
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 500);
       return;
     }
 
@@ -52,7 +64,7 @@ export default function InvitationPendingPage() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [isLoaded, user, userMemberships, userInvitations, checkCount, router]);
+  }, [isLoaded, user, userMemberships, userInvitations, checkCount, router, hasMinTimeElapsed]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
@@ -76,12 +88,14 @@ export default function InvitationPendingPage() {
 
           {/* Message */}
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Setting Up Your Account
+            Welcome to AltarFlow!
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
-            {userInvitations && userInvitations.data && userInvitations.data.length > 0
+            {userMemberships && userMemberships.data && userMemberships.data.length > 0
+              ? 'Setting up your access to the organization...'
+              : userInvitations && userInvitations.data && userInvitations.data.length > 0
               ? 'Please accept your organization invitation to continue...'
-              : 'Please wait while we check your access...'}
+              : 'Checking your organization access...'}
           </p>
         </div>
       </div>
