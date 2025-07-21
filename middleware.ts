@@ -17,32 +17,6 @@ const isOnboardingRoute = createRouteMatcher([
   '/onboarding(.*)',
 ])
 
-// Define routes that require completed onboarding
-const requiresOnboarding = createRouteMatcher([
-  '/dashboard(.*)',
-  '/members(.*)', 
-  '/donations(.*)',
-  '/funds(.*)',
-  '/reports(.*)',
-  '/expenses(.*)',
-  '/banking(.*)',
-  '/settings(.*)',
-])
-
-// Define protected API routes (that need onboarding)
-const isProtectedApiRoute = createRouteMatcher([
-  '/api/members(.*)',
-  '/api/donations(.*)',
-  '/api/funds(.*)',
-  '/api/reports(.*)',
-  '/api/expenses(.*)',
-  '/api/banking(.*)',
-  '/api/settings/church-details(.*)',
-  '/api/settings/preferences(.*)',
-  '/api/settings/complete-onboarding(.*)',
-  '/api/settings/general(.*)',
-  '/api/settings/landing(.*)',
-])
 
 export default clerkMiddleware(async (auth, req) => {
   // Skip checks for public routes
@@ -62,38 +36,13 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL('/onboarding/welcome', req.url))
   }
 
-  // If user has organization and tries to access protected routes
-  if (orgId && (requiresOnboarding(req) || isProtectedApiRoute(req))) {
-    try {
-      // Check onboarding status in database
-      const response = await fetch(new URL('/api/settings/onboarding-status', req.url), {
-        headers: {
-          'x-clerk-org-id': orgId,
-          'x-clerk-user-id': userId,
-        },
-      })
-
-      if (response.ok) {
-        const { onboardingCompleted, onboardingStep } = await response.json()
-        
-        // If onboarding not completed
-        if (!onboardingCompleted) {
-          // For API routes, return 403 Forbidden
-          if (isProtectedApiRoute(req)) {
-            return NextResponse.json(
-              { error: 'Onboarding not completed' },
-              { status: 403 }
-            )
-          }
-          // For regular routes, redirect to current step
-          return NextResponse.redirect(new URL(`/onboarding/step-${onboardingStep}`, req.url))
-        }
-      }
-    } catch (error) {
-      console.error('Error checking onboarding status:', error)
-    }
+  // Allow all onboarding routes to proceed
+  if (isOnboardingRoute(req)) {
+    return NextResponse.next()
   }
 
+  // For now, we'll handle onboarding checks in the individual pages
+  // This avoids the middleware trying to make fetch requests
   return NextResponse.next()
 })
 

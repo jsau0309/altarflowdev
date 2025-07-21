@@ -5,6 +5,8 @@ import { LanguageToggle } from "@/components/language-toggle"; // Added
 import { cookies } from 'next/headers'; // Added
 import Link from 'next/link';
 import Image from 'next/image';
+import { prisma } from '@/lib/prisma';
+import type { Metadata } from 'next';
 
 interface NfcLandingPageProps {
   params: {
@@ -24,10 +26,23 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
   }
   const { church } = churchData;
 
+  // Check if church has a Stripe account and if it's active
+  const stripeAccount = await prisma.stripeConnectAccount.findUnique({
+    where: { churchId: church.clerkOrgId || '' }
+  });
+
+  const hasActiveStripeAccount = stripeAccount && 
+    stripeAccount.chargesEnabled && 
+    stripeAccount.payoutsEnabled && 
+    stripeAccount.detailsSubmitted;
+
   // Get landing page settings
-  const settings = church.settingsJson as any || {};
+  const settings = (church.settingsJson as { landing?: { showDonateButton?: boolean; showConnectButton?: boolean } }) || {};
   const showDonateButton = settings.landing?.showDonateButton ?? true;
   const showConnectButton = settings.landing?.showConnectButton ?? true;
+
+  // Only show donate button if enabled AND Stripe account is active
+  const shouldShowDonateButton = showDonateButton && hasActiveStripeAccount;
 
   const activeFlows = await getActiveFlowsByChurchId(church.id);
   const firstActiveFlow = activeFlows && activeFlows.length > 0 ? activeFlows[0] : null;
@@ -50,7 +65,7 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
           {t('nfcWelcomeMessage', { churchName: church.name })}
         </h1>
         <div className="space-y-4">
-          {showDonateButton && (
+          {shouldShowDonateButton && (
             <Link 
               href={`/${churchSlug}`} 
               className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
@@ -66,7 +81,7 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
               {t('nfcConnectButton')}
             </Link>
           )}
-          {!showDonateButton && !showConnectButton && (
+          {!shouldShowDonateButton && !showConnectButton && (
             <p className="text-gray-600">
               {t('nfcNoActionsAvailable', 'No actions available at this time.')}
             </p>
@@ -82,12 +97,12 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
 }
 
 export default async function NfcLandingPage({ params }: NfcLandingPageProps) {
-  const { churchSlug } = await params;
+  const { churchSlug } = params;
   return <NfcLandingContent churchSlug={churchSlug} />;
 }
 
 // Metadata export for page title
-export async function generateMetadata({ params }: NfcLandingPageProps): Promise<any> {
+export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
   const langCookie = cookieStore.get('NEXT_LOCALE');
   const locale = langCookie?.value === 'es' ? 'es' : 'en'; // Default to 'en'

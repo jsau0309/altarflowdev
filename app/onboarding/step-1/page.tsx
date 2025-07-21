@@ -76,12 +76,12 @@ export default function OnboardingStep1() {
           {/* Create Organization Component */}
           <div className="w-full">
             <CreateOrganization
-              afterCreateOrganizationUrl="/onboarding/step-2"
+              afterCreateOrganizationUrl="/onboarding/step-3"
               skipInvitationScreen={true}
               appearance={{
                 elements: {
-                  rootBox: "w-full",
-                  card: "shadow-none border-0",
+                  rootBox: "w-full flex justify-center",
+                  card: "shadow-none border-0 max-w-sm w-full",
                   formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white",
                   formFieldInput: "border-gray-300 dark:border-gray-600",
                   formFieldLabel: "text-gray-700 dark:text-gray-300",

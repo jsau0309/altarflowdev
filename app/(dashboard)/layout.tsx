@@ -19,8 +19,17 @@ export default async function ServerDashboardLayout({ children }: { children: Re
       select: { 
         subscriptionStatus: true,
         trialEndsAt: true,
+        onboardingCompleted: true,
+        onboardingStep: true,
       }
     });
+
+    // Check onboarding status first
+    if (!church || !church.onboardingCompleted) {
+      const step = church?.onboardingStep || 1;
+      console.log(`[ServerDashboardLayout] Onboarding not completed, redirecting to step ${step}`);
+      redirect(`/onboarding/step-${step}`);
+    }
 
     // If church is in trial and trial has expired, update status
     if (church && church.subscriptionStatus === 'trial' && church.trialEndsAt) {
@@ -36,6 +45,10 @@ export default async function ServerDashboardLayout({ children }: { children: Re
         // Trial expired, status updated to pending_payment
       }
     }
+  } else {
+    // No organization, redirect to onboarding
+    console.log('[ServerDashboardLayout] No orgId found, redirecting to onboarding welcome');
+    redirect('/onboarding/welcome');
   }
 
   // Server-side layout rendering

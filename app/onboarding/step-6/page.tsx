@@ -80,9 +80,9 @@ export default function OnboardingStep6() {
           {/* Success Icon */}
           <div className="flex justify-center mb-6">
             <div className="relative">
-              <CheckCircle className="w-20 h-20 text-green-600" />
+              <CheckCircle className="w-20 h-20 text-blue-600" />
               <div className="absolute inset-0 animate-ping">
-                <CheckCircle className="w-20 h-20 text-green-600 opacity-50" />
+                <CheckCircle className="w-20 h-20 text-blue-600 opacity-50" />
               </div>
             </div>
           </div>

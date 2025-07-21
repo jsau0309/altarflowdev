@@ -14,7 +14,7 @@ export default function OnboardingStep5() {
   const { t } = useTranslation(['onboarding', 'common', 'settings']);
   const router = useRouter();
   const { organization } = useOrganization();
-  const { toast } = useToast();
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual' | null>(null);
 
@@ -44,11 +44,10 @@ export default function OnboardingStep5() {
       window.location.href = `${paymentUrl}?client_reference_id=${organization.id}`;
     } catch (error) {
       console.error('Error initiating upgrade:', error);
-      toast({
-        title: t('common:error', 'Error'),
-        description: t('onboarding:step5.upgradeError', 'Failed to start upgrade process. Please try again.'),
-        variant: 'destructive',
-      });
+      showToast(
+        t('onboarding:step5.upgradeError', 'Failed to start upgrade process. Please try again.'),
+        'error'
+      );
       setIsLoading(false);
     }
   };
@@ -73,11 +72,10 @@ export default function OnboardingStep5() {
       router.push('/onboarding/step-6');
     } catch (error) {
       console.error('Error completing onboarding:', error);
-      toast({
-        title: t('common:error', 'Error'),
-        description: t('onboarding:step5.skipError', 'Failed to complete setup. Please try again.'),
-        variant: 'destructive',
-      });
+      showToast(
+        t('onboarding:step5.skipError', 'Failed to complete setup. Please try again.'),
+        'error'
+      );
     } finally {
       setIsLoading(false);
     }

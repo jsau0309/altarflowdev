@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { language, theme, notifications } = body;
+    const { language, theme } = body;
 
     // Update church settings and increment onboarding step
     const church = await prisma.church.update({
@@ -20,7 +20,6 @@ export async function POST(req: Request) {
         settingsJson: {
           language,
           theme,
-          notifications,
         },
         onboardingStep: 5, // Move to next step
         updatedAt: new Date(),

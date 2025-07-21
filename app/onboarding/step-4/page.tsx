@@ -7,8 +7,9 @@ import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Globe, Moon, Sun } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from 'next-themes';
 
@@ -16,18 +17,13 @@ export default function OnboardingStep4() {
   const { t, i18n } = useTranslation(['onboarding', 'common']);
   const router = useRouter();
   const { organization } = useOrganization();
-  const { toast } = useToast();
+  const { showToast } = useToast();
   const { theme, setTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   
   // Form state
   const [language, setLanguage] = useState(i18n.language || 'en');
-  const [selectedTheme, setSelectedTheme] = useState(theme || 'light');
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
-    sms: false,
-  });
+  const [selectedTheme, setSelectedTheme] = useState(theme === 'system' ? 'light' : (theme || 'light'));
 
   useEffect(() => {
     // If no organization, redirect to step 1
@@ -49,7 +45,6 @@ export default function OnboardingStep4() {
         body: JSON.stringify({
           language,
           theme: selectedTheme,
-          notifications,
         }),
       });
 
@@ -61,20 +56,19 @@ export default function OnboardingStep4() {
       i18n.changeLanguage(language);
       setTheme(selectedTheme);
 
-      toast({
-        title: t('onboarding:step4.success', 'Preferences saved'),
-        description: t('onboarding:step4.successDescription', 'Your preferences have been updated.'),
-      });
+      showToast(
+        t('onboarding:step4.success', 'Preferences saved successfully'),
+        'success'
+      );
 
       // Move to next step
       router.push('/onboarding/step-5');
     } catch (error) {
       console.error('Error saving preferences:', error);
-      toast({
-        title: t('common:error', 'Error'),
-        description: t('onboarding:step4.error', 'Failed to save preferences. Please try again.'),
-        variant: 'destructive',
-      });
+      showToast(
+        t('onboarding:step4.error', 'Failed to save preferences. Please try again.'),
+        'error'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -138,116 +132,85 @@ export default function OnboardingStep4() {
             </p>
           </div>
 
-          <div className="space-y-8">
-            {/* Language Selection */}
-            <div>
-              <Label className="text-base font-semibold mb-3 block">
-                {t('onboarding:step4.language', 'Language')}
-              </Label>
-              <RadioGroup value={language} onValueChange={setLanguage}>
-                <div className="flex items-center space-x-2 mb-2">
-                  <RadioGroupItem value="en" id="en" />
-                  <Label htmlFor="en" className="cursor-pointer">
-                    English
+          <div className="space-y-6">
+            {/* Language Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  {t('onboarding:step4.language', 'Language')}
+                </CardTitle>
+                <CardDescription>
+                  {t('onboarding:step4.languageDescription', 'Choose your preferred language')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="language-select">
+                    {t('onboarding:step4.displayLanguage', 'Display Language')}
                   </Label>
+                  <Select value={language} onValueChange={setLanguage}>
+                    <SelectTrigger id="language-select" className="w-full md:w-[300px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">
+                        <span className="flex items-center gap-2">
+                          <span className="text-lg">🇺🇸</span>
+                          English
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="es">
+                        <span className="flex items-center gap-2">
+                          <span className="text-lg">🇪🇸</span>
+                          Español
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="es" id="es" />
-                  <Label htmlFor="es" className="cursor-pointer">
-                    Español
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Theme Selection */}
-            <div>
-              <Label className="text-base font-semibold mb-3 block">
-                {t('onboarding:step4.theme', 'Theme')}
-              </Label>
-              <RadioGroup value={selectedTheme} onValueChange={setSelectedTheme}>
-                <div className="flex items-center space-x-2 mb-2">
-                  <RadioGroupItem value="light" id="light" />
-                  <Label htmlFor="light" className="cursor-pointer">
-                    {t('onboarding:step4.lightTheme', 'Light')}
+            {/* Theme Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {selectedTheme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  {t('onboarding:step4.theme', 'Appearance')}
+                </CardTitle>
+                <CardDescription>
+                  {t('onboarding:step4.themeDescription', 'Choose how AltarFlow looks on your device')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="theme-select">
+                    {t('onboarding:step4.themeLabel', 'Theme')}
                   </Label>
+                  <Select value={selectedTheme} onValueChange={setSelectedTheme}>
+                    <SelectTrigger id="theme-select" className="w-full md:w-[300px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">
+                        <span className="flex items-center gap-2">
+                          <Sun className="h-4 w-4" />
+                          {t('onboarding:step4.lightTheme', 'Light')}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="dark">
+                        <span className="flex items-center gap-2">
+                          <Moon className="h-4 w-4" />
+                          {t('onboarding:step4.darkTheme', 'Dark')}
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <RadioGroupItem value="dark" id="dark" />
-                  <Label htmlFor="dark" className="cursor-pointer">
-                    {t('onboarding:step4.darkTheme', 'Dark')}
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="system" id="system" />
-                  <Label htmlFor="system" className="cursor-pointer">
-                    {t('onboarding:step4.systemTheme', 'System')}
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Notification Preferences */}
-            <div>
-              <Label className="text-base font-semibold mb-3 block">
-                {t('onboarding:step4.notifications', 'Notifications')}
-              </Label>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="email-notifications" className="text-sm font-normal">
-                      {t('onboarding:step4.emailNotifications', 'Email Notifications')}
-                    </Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t('onboarding:step4.emailNotificationsDesc', 'Receive updates and alerts via email')}
-                    </p>
-                  </div>
-                  <Switch
-                    id="email-notifications"
-                    checked={notifications.email}
-                    onCheckedChange={(checked) => 
-                      setNotifications(prev => ({ ...prev, email: checked }))
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="push-notifications" className="text-sm font-normal">
-                      {t('onboarding:step4.pushNotifications', 'Push Notifications')}
-                    </Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t('onboarding:step4.pushNotificationsDesc', 'Get instant updates in your browser')}
-                    </p>
-                  </div>
-                  <Switch
-                    id="push-notifications"
-                    checked={notifications.push}
-                    onCheckedChange={(checked) => 
-                      setNotifications(prev => ({ ...prev, push: checked }))
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="sms-notifications" className="text-sm font-normal">
-                      {t('onboarding:step4.smsNotifications', 'SMS Notifications')}
-                    </Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t('onboarding:step4.smsNotificationsDesc', 'Receive text messages for important updates')}
-                    </p>
-                  </div>
-                  <Switch
-                    id="sms-notifications"
-                    checked={notifications.sms}
-                    onCheckedChange={(checked) => 
-                      setNotifications(prev => ({ ...prev, sms: checked }))
-                    }
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Action Buttons */}
             <div className="flex justify-between pt-4">

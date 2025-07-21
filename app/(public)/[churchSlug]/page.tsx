@@ -5,6 +5,7 @@ import DonationForm from "@/components/donation/donation-form";
 import { LanguageToggle } from "@/components/language-toggle"; // Added import
 import { getChurchBySlug } from '@/lib/actions/church.actions'; 
 import { Lock } from 'lucide-react'; // Added for Secure Transaction icon
+import { prisma } from '@/lib/prisma';
 
 interface DonatePageProps {
   params: Promise<{ // params itself is a Promise
@@ -36,6 +37,50 @@ export default async function DonatePage(props: DonatePageProps) {
   }
 
   const { church, donationTypes } = churchData;
+
+  // Check if church has a Stripe account and if it's active
+  const stripeAccount = await prisma.stripeConnectAccount.findUnique({
+    where: { churchId: church.clerkOrgId || '' }
+  });
+
+  const hasActiveStripeAccount = stripeAccount && 
+    stripeAccount.chargesEnabled && 
+    stripeAccount.payoutsEnabled && 
+    stripeAccount.detailsSubmitted;
+
+  // Get landing page settings to check if donations are enabled
+  const settings = (church.settingsJson as { landing?: { showDonateButton?: boolean } }) || {};
+  const donationsEnabled = settings.landing?.showDonateButton ?? true;
+
+  // If donations are disabled or no active Stripe account, show error message
+  if (!donationsEnabled || !hasActiveStripeAccount) {
+    return (
+      <div className="relative flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>
+        <div className="absolute top-2 right-4 z-50">
+          <LanguageToggle />
+        </div>
+        <div className="w-full max-w-md space-y-8">
+          <div className="mt-8 flex flex-col items-center space-y-4 bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md">
+            <Image
+              src="/images/Altarflow.svg"
+              alt="Altarflow Logo"
+              width={240} 
+              height={80}  
+              priority 
+            />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+              {church.name}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-center">
+              {!hasActiveStripeAccount 
+                ? "Donations are not available at this time. Please contact the church for more information."
+                : "This donation page has been temporarily disabled."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}> {/* Added 'relative' */}

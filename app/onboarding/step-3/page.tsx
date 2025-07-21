@@ -27,14 +27,13 @@ export default function OnboardingStep3() {
   const { t } = useTranslation(['onboarding', 'common']);
   const router = useRouter();
   const { organization } = useOrganization();
-  const { toast } = useToast();
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
   } = useForm<ChurchDetailsForm>({
     resolver: zodResolver(churchDetailsSchema),
   });
@@ -43,7 +42,24 @@ export default function OnboardingStep3() {
     // If no organization, redirect to step 1
     if (!organization) {
       router.push('/onboarding/step-1');
+      return;
     }
+
+    // Check if church record exists in database (webhook might still be processing)
+    const checkChurchExists = async () => {
+      try {
+        const response = await fetch('/api/settings/onboarding-status');
+        if (!response.ok) {
+          // Church not found yet, webhook might still be processing
+          console.log('Church record not found, waiting for webhook...');
+          setTimeout(checkChurchExists, 1000); // Retry after 1 second
+        }
+      } catch (error) {
+        console.error('Error checking church status:', error);
+      }
+    };
+
+    checkChurchExists();
   }, [organization, router]);
 
   const onSubmit = async (data: ChurchDetailsForm) => {
@@ -68,20 +84,19 @@ export default function OnboardingStep3() {
         throw new Error('Failed to update church details');
       }
 
-      toast({
-        title: t('onboarding:step3.success', 'Church details saved'),
-        description: t('onboarding:step3.successDescription', 'Your church information has been updated.'),
-      });
+      showToast(
+        t('onboarding:step3.success', 'Church details saved successfully'),
+        'success'
+      );
 
       // Move to next step
       router.push('/onboarding/step-4');
     } catch (error) {
       console.error('Error saving church details:', error);
-      toast({
-        title: t('common:error', 'Error'),
-        description: t('onboarding:step3.error', 'Failed to save church details. Please try again.'),
-        variant: 'destructive',
-      });
+      showToast(
+        t('onboarding:step3.error', 'Failed to save church details. Please try again.'),
+        'error'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -223,7 +238,7 @@ export default function OnboardingStep3() {
 
             {/* Required Fields Note */}
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              * {t('onboarding:step3.requiredNote', 'Required for tax receipt compliance')}
+              * {t('onboarding:step3.requiredNote', 'Required for compliance')}
             </p>
 
             {/* Submit Button */}
