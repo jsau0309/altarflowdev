@@ -168,6 +168,20 @@ export async function POST(req: Request) {
           skipDuplicates: true, // Good practice, though should not happen for new church
         });
         console.log(`Successfully created default donation types for church ID: ${newChurch.id}`);
+
+        // Fix race condition: Update the creator's role to ADMIN immediately
+        if (createdByUserId) {
+          try {
+            await prisma.profile.update({
+              where: { id: createdByUserId },
+              data: { role: 'ADMIN' }
+            });
+            console.log(`Updated organization creator ${createdByUserId} to ADMIN role`);
+          } catch (profileError) {
+            // Log but don't fail the webhook - the organizationMembership.created event will fix this
+            console.warn(`Could not update creator's role immediately (profile might not exist yet):`, profileError);
+          }
+        }
       } catch (error) {
         console.error(`Error in organization.created processing for Org ID ${orgId} (church or default donation types):`, error);
         return new Response('Error occurred -- processing organization.created event', { status: 500 });
@@ -237,6 +251,43 @@ export async function POST(req: Request) {
     } // End inner type check
   }
 
+  // Handle organization membership updates (role changes)
+  if (eventType === 'organizationMembership.updated') {
+    // Explicitly check the type again for TypeScript narrowing
+    if (evt.type === 'organizationMembership.updated') {
+      const { organization, public_user_data, role } = evt.data;
+      const orgId = organization.id;
+      const userId = public_user_data?.user_id;
+
+      if (!userId) {
+        console.error('User ID missing in organizationMembership.updated event');
+        return new Response('Error occurred -- missing user ID', { status: 400 });
+      }
+
+      console.log(`Processing organizationMembership.updated for Org ID: ${orgId}, User ID: ${userId}, New Role: ${role}`);
+
+      try {
+        // Map Clerk's role to our application role
+        const prismaRole: Role = role === 'org:admin' ? Role.ADMIN : Role.STAFF;
+
+        // Update the user's role in the profile
+        await prisma.profile.update({
+          where: { id: userId },
+          data: { role: prismaRole }
+        });
+
+        console.log(`Successfully updated role for User ID: ${userId} to ${prismaRole}`);
+      } catch (error) {
+        console.error(`Error updating role for User ID ${userId}:`, error);
+        if ((error as any).code === 'P2025') {
+          console.warn(`Profile for User ID ${userId} not found. Might be a race condition.`);
+          return new Response('Error occurred -- profile not found', { status: 500 });
+        }
+        return new Response('Error occurred -- updating role', { status: 500 });
+      }
+    }
+  }
+
   // Handle organization membership deletion
   if (eventType === 'organizationMembership.deleted') {
     // Cast event to the specific type for safety, though data structure might be simpler
@@ -276,7 +327,7 @@ export async function POST(req: Request) {
   }
   
   // TODO: Handle user.deleted event if needed later
-  // TODO: Handle organization.updated/deleted and membership.updated/deleted
+  // TODO: Handle organization.updated/deleted events if needed
 
   // Return 200 OK to Clerk to acknowledge receipt
   return new Response('', { status: 200 })
