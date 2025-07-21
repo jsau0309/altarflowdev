@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    // Get org ID from headers (set by middleware)
-    const orgId = req.headers.get('x-clerk-org-id')
+    const { userId, orgId } = await auth()
     
-    if (!orgId) {
-      return NextResponse.json({ error: 'Organization ID not found' }, { status: 400 })
+    if (!userId || !orgId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get church onboarding status

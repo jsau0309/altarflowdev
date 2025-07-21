@@ -46,13 +46,25 @@ export default function OnboardingStep3() {
     }
 
     // Check if church record exists in database (webhook might still be processing)
+    let retryCount = 0;
+    const maxRetries = 10; // Stop after 10 seconds
+    
     const checkChurchExists = async () => {
       try {
         const response = await fetch('/api/settings/onboarding-status');
-        if (!response.ok) {
+        const data = await response.json();
+        
+        if (response.ok && data.onboardingStep >= 3) {
+          // Church exists and we're at step 3 or beyond, stop polling
+          return;
+        }
+        
+        if (retryCount < maxRetries) {
           // Church not found yet, webhook might still be processing
-          console.log('Church record not found, waiting for webhook...');
+          retryCount++;
           setTimeout(checkChurchExists, 1000); // Retry after 1 second
+        } else {
+          console.log('Stopped checking for church after maximum retries');
         }
       } catch (error) {
         console.error('Error checking church status:', error);
