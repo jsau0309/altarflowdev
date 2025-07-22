@@ -67,37 +67,73 @@ export default function InvitationPendingPage() {
   }, [isLoaded, user, userMemberships, userInvitations, checkCount, router, hasMinTimeElapsed]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
-      <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full opacity-10 blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400 rounded-full opacity-10 blur-3xl"></div>
+      </div>
+
+      <div className="relative max-w-md mx-auto px-4 py-12">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 md:p-12 border border-gray-100 dark:border-gray-700">
           {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <Image
-              src="/images/Altarflow.svg"
-              alt="AltarFlow Logo"
-              width={150}
-              height={45}
-              className="h-10 w-auto"
-            />
+          <div className="flex justify-center mb-8">
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-600 blur-xl opacity-20 rounded-full"></div>
+              <Image
+                src="/images/Altarflow.svg"
+                alt="AltarFlow Logo"
+                width={180}
+                height={54}
+                className="h-12 w-auto relative"
+              />
+            </div>
           </div>
 
-          {/* Loading Spinner */}
-          <div className="flex justify-center mb-6">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+          {/* Loading Animation */}
+          <div className="flex justify-center mb-8">
+            <div className="relative">
+              {/* Outer ring */}
+              <div className="absolute inset-0 rounded-full border-4 border-blue-200 dark:border-blue-900"></div>
+              {/* Spinning ring */}
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 animate-spin"></div>
+              {/* Inner icon */}
+              <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* Message */}
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Welcome to AltarFlow!
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            {userMemberships && userMemberships.data && userMemberships.data.length > 0
-              ? 'Setting up your access to the organization...'
-              : userInvitations && userInvitations.data && userInvitations.data.length > 0
-              ? 'Please accept your organization invitation to continue...'
-              : 'Checking your organization access...'}
-          </p>
+          <div className="text-center space-y-3">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+              {userMemberships && userMemberships.data && userMemberships.data.length > 0
+                ? 'Almost there!'
+                : 'Welcome to AltarFlow!'}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 max-w-sm mx-auto">
+              {userMemberships && userMemberships.data && userMemberships.data.length > 0
+                ? 'We\'re setting up your access to the organization. This will just take a moment...'
+                : userInvitations && userInvitations.data && userInvitations.data.length > 0
+                ? 'Please accept your organization invitation to continue to your dashboard.'
+                : 'We\'re checking your organization access. Please wait a moment...'}
+            </p>
+          </div>
+
+          {/* Progress indicator */}
+          <div className="mt-8 flex justify-center gap-1">
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+          </div>
         </div>
+
+        {/* Help text */}
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+          Having trouble? Contact your church administrator for help.
+        </p>
       </div>
     </div>
   );
