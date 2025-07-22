@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useOrganizationList, useUser } from '@clerk/nextjs';
-import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function InvitationPendingPage() {
