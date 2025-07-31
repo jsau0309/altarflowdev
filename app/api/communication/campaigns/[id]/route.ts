@@ -30,6 +30,16 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check if user is admin or staff
+    const profile = await prisma.profile.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (!profile || !["ADMIN", "STAFF"].includes(profile.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // Get church ID from org
     const church = await prisma.church.findUnique({
       where: { clerkOrgId: orgId },
@@ -94,6 +104,16 @@ export async function PATCH(
     
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is admin or staff
+    const profile = await prisma.profile.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (!profile || !["ADMIN", "STAFF"].includes(profile.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Get church ID from org

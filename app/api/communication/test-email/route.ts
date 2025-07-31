@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { ResendEmailService } from "@/lib/email/resend-service";
 import { z } from "zod";
+import { escapeHtml } from "@/lib/email/escape-html";
 
 const testEmailSchema = z.object({
   to: z.string().email("Invalid email address"),
@@ -17,6 +18,16 @@ export async function POST(request: NextRequest) {
     
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is admin or staff
+    const profile = await prisma.profile.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (!profile || !["ADMIN", "STAFF"].includes(profile.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Get church from org
@@ -46,7 +57,8 @@ export async function POST(request: NextRequest) {
     let finalHtml = html;
     if (previewText) {
       // Add hidden preview text at the beginning of the email
-      const hiddenPreviewText = `<div style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${previewText}</div>`;
+      const escapedPreviewText = escapeHtml(previewText);
+      const hiddenPreviewText = `<div style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapedPreviewText}</div>`;
       finalHtml = hiddenPreviewText + html;
     }
 
@@ -54,7 +66,7 @@ export async function POST(request: NextRequest) {
     const testUnsubscribeFooter = `
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; text-align: center; font-size: 12px; color: #666;">
         <p style="margin: 0;">
-          ${church.name} • 
+          ${escapeHtml(church.name)} • 
           <a href="#" style="color: #666; text-decoration: underline;">Unsubscribe</a>
           <br />
           <span style="font-size: 11px; color: #999;">(This is a test email - unsubscribe link is not active)</span>

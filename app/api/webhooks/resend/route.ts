@@ -54,13 +54,37 @@ export async function POST(request: NextRequest) {
     const headersList = await headers();
     const signature = headersList.get("resend-signature");
     
-    // Verify webhook signature if secret is configured
+    // Verify webhook signature
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
-    if (webhookSecret && signature) {
+    
+    // In production, webhook verification is mandatory
+    if (process.env.NODE_ENV === 'production') {
+      if (!webhookSecret) {
+        console.error("RESEND_WEBHOOK_SECRET not configured in production");
+        return NextResponse.json({ error: "Webhook configuration error" }, { status: 500 });
+      }
+      
+      if (!signature) {
+        console.error("Missing webhook signature in production");
+        return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+      }
+      
       const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
       if (!isValid) {
         console.error("Invalid webhook signature");
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      }
+    } else {
+      // In development, verify if both secret and signature are present
+      if (webhookSecret && signature) {
+        const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
+        if (!isValid) {
+          console.error("Invalid webhook signature");
+          return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+        }
+      } else if (webhookSecret || signature) {
+        // Warn if only one is present
+        console.warn("Webhook signature verification skipped: both RESEND_WEBHOOK_SECRET and signature header required");
       }
     }
     

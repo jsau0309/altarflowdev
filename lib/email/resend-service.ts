@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
 import { EmailStatus, RecipientStatus } from '@prisma/client';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
+import { sanitizeEmailHtml, sanitizeEmailSubject } from './sanitize-html';
+import { validateEmail } from './validate-email';
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -93,8 +95,12 @@ export class ResendEmailService {
       // This is for transactional emails like password resets, etc.
       // Only campaign sends count against the quota
 
-      // Generate plain text from HTML
-      const plainText = html
+      // Sanitize HTML content to prevent XSS attacks
+      const sanitizedHtml = sanitizeEmailHtml(html);
+      const sanitizedSubject = sanitizeEmailSubject(subject);
+
+      // Generate plain text from sanitized HTML
+      const plainText = sanitizedHtml
         .replace(/<[^>]+>/g, '') // Remove HTML tags
         .replace(/\s+/g, ' ') // Normalize whitespace
         .trim();
@@ -103,8 +109,8 @@ export class ResendEmailService {
       const response = await resend.emails.send({
         from: from || this.FROM_EMAIL,
         to: Array.isArray(to) ? to : [to],
-        subject,
-        html,
+        subject: sanitizedSubject,
+        html: sanitizedHtml,
         text: plainText,
         replyTo: replyTo,
         tags: [
@@ -135,6 +141,8 @@ export class ResendEmailService {
     console.log('Campaign ID:', params.campaignId);
     console.log('Email count:', params.emails.length);
     
+    let quotaReservation: { quota: any; quotaId: string } | null = null;
+    
     try {
       const { emails, from, churchId, campaignId } = params;
 
@@ -148,26 +156,68 @@ export class ResendEmailService {
         throw new Error('Church not found');
       }
 
-      // Check campaign quota
-      const quota = await this.getOrCreateQuota(churchId);
-      
-      // Count campaigns sent this month instead of individual emails
-      const campaignsSentThisMonth = await prisma.emailCampaign.count({
-        where: {
-          churchId,
-          status: { in: ['SENT', 'SENDING'] },
-          sentAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-            lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+      // Perform atomic quota check and reservation using a transaction
+      quotaReservation = await prisma.$transaction(async (tx) => {
+        // Get or create quota with a lock to prevent concurrent modifications
+        const monthYear = format(new Date(), 'yyyy-MM');
+        let quota = await tx.emailQuota.findFirst({
+          where: {
+            churchId,
+            monthYear,
           },
-        },
+        });
+
+        if (!quota) {
+          // Get church subscription status
+          const churchData = await tx.church.findUnique({
+            where: { id: churchId },
+            select: { 
+              subscriptionStatus: true,
+              subscriptionPlan: true,
+              subscriptionEndsAt: true,
+            },
+          });
+
+          // Determine quota limit based on subscription status
+          const quotaLimit = churchData ? getQuotaLimit(churchData) : 4;
+
+          quota = await tx.emailQuota.create({
+            data: {
+              churchId,
+              monthYear,
+              quotaLimit,
+              emailsSent: 0,
+            },
+          });
+        }
+
+        // Check if we have quota available
+        if (quota.emailsSent >= quota.quotaLimit) {
+          throw new Error(`Campaign quota exceeded. You have sent ${quota.emailsSent} of ${quota.quotaLimit} campaigns this month.`);
+        }
+
+        // Reserve the quota by incrementing immediately
+        const updatedQuota = await tx.emailQuota.update({
+          where: { id: quota.id },
+          data: {
+            emailsSent: {
+              increment: 1,
+            },
+          },
+        });
+
+        // Update campaign status to SENDING to prevent duplicate sends
+        await tx.emailCampaign.update({
+          where: { id: campaignId },
+          data: {
+            status: 'SENDING' as EmailStatus,
+          },
+        });
+
+        console.log(`Campaign quota reserved: ${updatedQuota.emailsSent} of ${updatedQuota.quotaLimit} campaigns used`);
+        
+        return { quota: updatedQuota, quotaId: quota.id };
       });
-
-      console.log(`Campaign quota check: ${campaignsSentThisMonth} of ${quota.quotaLimit} campaigns used`);
-
-      if (campaignsSentThisMonth >= quota.quotaLimit) {
-        throw new Error(`Campaign quota exceeded. You have sent ${campaignsSentThisMonth} of ${quota.quotaLimit} campaigns this month.`);
-      }
 
       // Send emails in batches via Resend
       const batchSize = 100; // Resend recommends batches of 100
@@ -178,10 +228,29 @@ export class ResendEmailService {
         const batch = emails.slice(i, i + batchSize);
         console.log(`Processing batch ${Math.floor(i / batchSize + 1)}, emails: ${batch.length}`);
         
+        // Validate emails in this batch
+        const validBatch = batch.filter(email => {
+          const validation = validateEmail(email.to);
+          if (!validation.isValid) {
+            console.error(`Skipping invalid email: ${email.to} - ${validation.reason}`);
+            return false;
+          }
+          return true;
+        });
+
+        if (validBatch.length === 0) {
+          console.log(`Batch ${Math.floor(i / batchSize + 1)} has no valid emails, skipping`);
+          continue;
+        }
+
         const batchResponse = await resend.batch.send(
-          batch.map(email => {
-            // Generate plain text from HTML
-            const plainText = email.html
+          validBatch.map(email => {
+            // Sanitize HTML content and subject to prevent XSS attacks
+            const sanitizedHtml = sanitizeEmailHtml(email.html);
+            const sanitizedSubject = sanitizeEmailSubject(email.subject);
+            
+            // Generate plain text from sanitized HTML
+            const plainText = sanitizedHtml
               .replace(/<[^>]+>/g, '') // Remove HTML tags
               .replace(/\s+/g, ' ') // Normalize whitespace
               .trim();
@@ -189,8 +258,8 @@ export class ResendEmailService {
             return {
               from: from || this.FROM_EMAIL,
               to: email.to,
-              subject: email.subject,
-              html: email.html,
+              subject: sanitizedSubject,
+              html: sanitizedHtml,
               text: plainText,
               tags: [
                 { name: 'church_id', value: churchId.replace(/[^a-zA-Z0-9_-]/g, '_') },
@@ -261,17 +330,7 @@ export class ResendEmailService {
         }
       }
 
-      // Update campaign quota (increment by 1 campaign, not email count)
-      await prisma.emailQuota.update({
-        where: { id: quota.id },
-        data: {
-          emailsSent: {
-            increment: 1, // Increment by 1 campaign
-          },
-        },
-      });
-
-      // Update campaign status
+      // Update campaign status to SENT
       await prisma.emailCampaign.update({
         where: { id: campaignId },
         data: {
@@ -290,14 +349,33 @@ export class ResendEmailService {
       console.error('=== sendBulkEmails ERROR ===');
       console.error('Error sending bulk emails:', error);
       
-      // Update campaign status to failed
-      if (params.campaignId) {
-        await prisma.emailCampaign.update({
-          where: { id: params.campaignId },
-          data: {
-            status: 'FAILED' as EmailStatus,
-          },
-        });
+      // If we reserved quota but failed to send, rollback the reservation
+      if (quotaReservation && params.campaignId) {
+        try {
+          await prisma.$transaction(async (tx) => {
+            // Rollback the quota increment
+            await tx.emailQuota.update({
+              where: { id: quotaReservation.quotaId },
+              data: {
+                emailsSent: {
+                  decrement: 1,
+                },
+              },
+            });
+            
+            // Update campaign status to failed
+            await tx.emailCampaign.update({
+              where: { id: params.campaignId },
+              data: {
+                status: 'FAILED' as EmailStatus,
+              },
+            });
+          });
+          
+          console.log('Quota reservation rolled back due to send failure');
+        } catch (rollbackError) {
+          console.error('Failed to rollback quota reservation:', rollbackError);
+        }
       }
 
       throw error;
