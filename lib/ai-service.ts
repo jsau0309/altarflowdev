@@ -1,8 +1,9 @@
 import OpenAI from 'openai';
+import { serverEnv } from '@/lib/env';
 
 // Initialize AI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: serverEnv.OPENAI_API_KEY,
 });
 
 export type ToneOption = 'friendly' | 'formal' | 'urgent' | 'celebratory' | 'informative';

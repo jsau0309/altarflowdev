@@ -2,17 +2,48 @@ import { NextRequest } from 'next/server';
 
 // Simple in-memory rate limiter
 // In production, you should use Redis or a similar distributed cache
+// Note: We use lazy cleanup instead of setInterval to avoid memory leaks
+// and issues in serverless environments
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
-// Clean up old entries every 5 minutes
-setInterval(() => {
+// Track last cleanup time
+let lastCleanup = Date.now();
+const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Clean up expired entries
+ * This runs lazily when rate limiting is checked, not on a timer
+ */
+function cleanupExpiredEntries() {
   const now = Date.now();
+  
+  // Only run cleanup if enough time has passed
+  if (now - lastCleanup < CLEANUP_INTERVAL) {
+    return;
+  }
+  
+  lastCleanup = now;
+  
+  // Delete expired entries
   for (const [key, value] of rateLimitMap.entries()) {
     if (value.resetTime < now) {
       rateLimitMap.delete(key);
     }
   }
-}, 5 * 60 * 1000);
+  
+  // Also limit total size to prevent unbounded growth
+  const MAX_ENTRIES = 10000;
+  if (rateLimitMap.size > MAX_ENTRIES) {
+    // Delete oldest entries
+    const entries = Array.from(rateLimitMap.entries())
+      .sort((a, b) => a[1].resetTime - b[1].resetTime);
+    
+    const toDelete = entries.slice(0, entries.length - MAX_ENTRIES);
+    for (const [key] of toDelete) {
+      rateLimitMap.delete(key);
+    }
+  }
+}
 
 export interface RateLimitConfig {
   windowMs: number;  // Time window in milliseconds
@@ -52,6 +83,9 @@ export function rateLimit(
   config: RateLimitConfig
 ): RateLimitResult {
   const { windowMs, maxRequests, keyPrefix = 'rl' } = config;
+  
+  // Run cleanup periodically
+  cleanupExpiredEntries();
   
   const clientId = getClientId(request);
   const key = `${keyPrefix}:${clientId}`;
@@ -131,5 +165,15 @@ export function getRateLimitHeaders(result: RateLimitResult): Record<string, str
     'X-RateLimit-Limit': String(result.allowed ? result.remaining + 1 : result.remaining),
     'X-RateLimit-Remaining': String(result.remaining),
     'X-RateLimit-Reset': new Date(result.resetTime).toISOString(),
+  };
+}
+
+/**
+ * Get current rate limiter statistics (for monitoring)
+ */
+export function getRateLimiterStats() {
+  return {
+    entries: rateLimitMap.size,
+    lastCleanup: new Date(lastCleanup).toISOString(),
   };
 }

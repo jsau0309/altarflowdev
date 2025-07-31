@@ -5,9 +5,10 @@ import { EmailStatus, RecipientStatus } from '@prisma/client';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
 import { sanitizeEmailHtml, sanitizeEmailSubject } from './sanitize-html';
 import { validateEmail } from './validate-email';
+import { serverEnv } from '@/lib/env';
 
 // Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(serverEnv.RESEND_API_KEY);
 
 export interface SendEmailParams {
   to: string | string[];
@@ -32,7 +33,7 @@ export interface SendBulkEmailParams {
 }
 
 export class ResendEmailService {
-  private static FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'AltarFlow <hello@altarflow.com>';
+  private static FROM_EMAIL = serverEnv.RESEND_FROM_EMAIL;
 
 
   /**
@@ -350,12 +351,13 @@ export class ResendEmailService {
       console.error('Error sending bulk emails:', error);
       
       // If we reserved quota but failed to send, rollback the reservation
-      if (quotaReservation && params.campaignId) {
+      if (quotaReservation?.quotaId && params.campaignId) {
+        const quotaId = quotaReservation.quotaId;
         try {
           await prisma.$transaction(async (tx) => {
             // Rollback the quota increment
             await tx.emailQuota.update({
-              where: { id: quotaReservation.quotaId },
+              where: { id: quotaId },
               data: {
                 emailsSent: {
                   decrement: 1,

@@ -4,14 +4,14 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 interface UpdateDonorParams {
-  params: {
+  params: Promise<{
     phoneNumber: string;
-  };
+  }>;
 }
 
 export async function PUT(request: NextRequest, { params }: UpdateDonorParams) {
   try {
-    const { phoneNumber: encodedPhoneNumber } = params;
+    const { phoneNumber: encodedPhoneNumber } = await params;
     // The phoneNumber from the route is URL-encoded (e.g., + becomes %2B)
     // We need to decode it to get the actual E.164 formatted number.
     const phoneNumber = decodeURIComponent(encodedPhoneNumber);
@@ -39,17 +39,17 @@ export async function PUT(request: NextRequest, { params }: UpdateDonorParams) {
     if (lastName !== undefined) updateData.lastName = lastName;
     if (email !== undefined) updateData.email = email; // Consider email format validation
     if (addressLine1 !== undefined) updateData.addressLine1 = addressLine1;
-    if (addressCity !== undefined) updateData.addressCity = addressCity;
-    if (addressState !== undefined) updateData.addressState = addressState;
-    if (addressPostalCode !== undefined) updateData.addressPostalCode = addressPostalCode;
-    if (addressCountry !== undefined) updateData.addressCountry = addressCountry;
+    if (addressCity !== undefined) updateData.city = addressCity;
+    if (addressState !== undefined) updateData.state = addressState;
+    if (addressPostalCode !== undefined) updateData.postalCode = addressPostalCode;
+    if (addressCountry !== undefined) updateData.country = addressCountry;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ success: false, error: 'No fields provided for update.' }, { status: 400 });
     }
 
     const updatedDonor = await prisma.donor.update({
-      where: { phoneNumber },
+      where: { phone: phoneNumber },
       data: updateData,
     });
 

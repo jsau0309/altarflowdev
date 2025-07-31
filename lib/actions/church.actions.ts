@@ -34,22 +34,7 @@ export async function getChurchBySlug(slug: string): Promise<ChurchData | null> 
 export async function getChurchById(id: string): Promise<Church | null> {
   try {
     const church = await prisma.church.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        clerkOrgId: true, // Explicitly select clerkOrgId
-        slug: true,
-        address: true,
-        phone: true,
-        email: true,
-        website: true,
-        createdAt: true,
-        updatedAt: true,
-        serviceTimesJson: true,
-        ministriesJson: true,
-        settingsJson: true,
-      }
+      where: { id }
     });
     return church;
   } catch (error) {
@@ -61,22 +46,7 @@ export async function getChurchById(id: string): Promise<Church | null> {
 export async function getChurchByClerkOrgId(clerkOrgId: string): Promise<Church | null> {
   try {
     const church = await prisma.church.findUnique({
-      where: { clerkOrgId }, // Query by clerkOrgId
-      select: {
-        id: true,
-        name: true,
-        clerkOrgId: true,
-        slug: true,
-        address: true,
-        phone: true,
-        email: true,
-        website: true,
-        createdAt: true,
-        updatedAt: true,
-        serviceTimesJson: true,
-        ministriesJson: true,
-        settingsJson: true,
-      }
+      where: { clerkOrgId } // Query by clerkOrgId
     });
     return church;
   } catch (error) {

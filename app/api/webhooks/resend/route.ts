@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { RecipientStatus } from "@prisma/client";
 import crypto from "crypto";
+import { serverEnv } from "@/lib/env";
 
 // Resend webhook event types
 interface ResendWebhookEvent {
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     const signature = headersList.get("resend-signature");
     
     // Verify webhook signature
-    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+    const webhookSecret = serverEnv.RESEND_WEBHOOK_SECRET;
     
     // In production, webhook verification is mandatory
     if (process.env.NODE_ENV === 'production') {

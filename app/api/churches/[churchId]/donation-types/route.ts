@@ -7,9 +7,9 @@ interface Params {
 
 export async function GET(
   request: Request,
-  { params }: { params: Params }
+  { params }: { params: Promise<Params> }
 ) {
-  const { churchId } = params; // This 'churchId' variable now holds the Clerk Organization ID
+  const { churchId } = await params; // This 'churchId' variable now holds the Clerk Organization ID
 
   if (!churchId) {
     return NextResponse.json({ error: 'Church ID (Clerk Organization ID) from path is required' }, { status: 400 });

@@ -5,6 +5,19 @@ import { ResendEmailService } from "@/lib/email/resend-service";
 import { validateEmail } from "@/lib/email/validate-email";
 import { escapeHtml, escapeUrl } from "@/lib/email/escape-html";
 
+// Type definitions
+interface InvalidEmailRecipient {
+  recipientId: string;
+  email: string;
+  reason: string | undefined;
+}
+
+interface EmailToSend {
+  to: string;
+  subject: string;
+  html: string;
+}
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -86,9 +99,9 @@ export async function POST(
     });
 
     // Filter recipients and prepare emails for bulk sending
-    const emailsToSend = [];
-    const unsubscribedRecipients = [];
-    const invalidEmailRecipients = [];
+    const emailsToSend: EmailToSend[] = [];
+    const unsubscribedRecipients: string[] = [];
+    const invalidEmailRecipients: InvalidEmailRecipient[] = [];
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
 
     for (const recipient of campaign.recipients) {

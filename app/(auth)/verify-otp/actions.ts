@@ -15,7 +15,7 @@ export async function verifyOtpAction(
   prevState: VerifyOtpState, // Accept previous state
   formData: FormData
 ): Promise<VerifyOtpState> { // Return the state shape
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -16,21 +16,20 @@ const donationUpdateSchema = z.object({
 // GET /api/donations/[donationId] - Fetch a single donation from the active organization
 export async function GET(
   request: NextRequest,
-  { params }: { params: { donationId: string } }
+  { params }: { params: Promise<{ donationId: string }> }
 ) {
   try {
+    const { donationId } = await params;
     // 1. Get user and organization context
     const { userId, orgId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted GET on donation ${params.donationId} without active org.`);
+      console.error(`User ${userId} attempted GET on donation ${donationId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Role check needed?
-
-    const donationId = params.donationId;
 
     // 2. Fetch donation only if it belongs to the active org
     const donation = await prisma.donation.findFirst({
@@ -49,7 +48,8 @@ export async function GET(
     return NextResponse.json(donation);
 
   } catch (error) {
-    console.error(`Error fetching donation ${params.donationId}:`, error);
+    const { donationId } = await params;
+    console.error(`Error fetching donation ${donationId}:`, error);
     return NextResponse.json({ error: 'Failed to fetch donation' }, { status: 500 });
   }
 }
@@ -57,10 +57,11 @@ export async function GET(
 // PATCH /api/donations/[donationId] - Update a donation in the active organization
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { donationId: string } }
+  { params }: { params: Promise<{ donationId: string }> }
 ) {
   let orgId: string | null | undefined = null; // Declare outside try
   try {
+    const { donationId } = await params;
     // 1. Get user and organization context
     const authResult = getAuth(request);
     const userId = authResult.userId;
@@ -70,12 +71,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted PATCH on donation ${params.donationId} without active org.`);
+      console.error(`User ${userId} attempted PATCH on donation ${donationId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Implement role-based access (e.g., only ADMIN using authResult.orgRole)
-
-    const donationId = params.donationId;
 
     // Remove initial existence check, updateMany handles this with the org check
     // const existingDonation = await prisma.donation.findUnique(...);
@@ -138,7 +137,8 @@ export async function PATCH(
     return NextResponse.json(updatedDonation);
 
   } catch (error) {
-    console.error(`Error updating donation ${params.donationId}:`, error);
+    const { donationId } = await params;
+    console.error(`Error updating donation ${donationId}:`, error);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2003' || error.code === 'P2025') {
           const field = (error.meta as any)?.field_name || 'related record';
@@ -154,10 +154,11 @@ export async function PATCH(
 // DELETE /api/donations/[donationId] - Delete a donation from the active organization
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { donationId: string } }
+  { params }: { params: Promise<{ donationId: string }> }
 ) {
   let orgId: string | null | undefined = null; // Declare outside try
   try {
+    const { donationId } = await params;
     // 1. Get user and organization context
     const authResult = getAuth(request);
     const userId = authResult.userId;
@@ -167,12 +168,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted DELETE on donation ${params.donationId} without active org.`);
+      console.error(`User ${userId} attempted DELETE on donation ${donationId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Add strict role check here later!
-
-    const donationId = params.donationId;
 
     // Remove initial existence check
 
@@ -198,7 +197,8 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
-     console.error(`Error deleting donation ${params.donationId}:`, error);
+     const { donationId } = await params;
+     console.error(`Error deleting donation ${donationId}:`, error);
      // P2003 (FK constraint) is unlikely on delete unless schema changes
     return NextResponse.json({ error: 'Failed to delete donation' }, { status: 500 });
   }

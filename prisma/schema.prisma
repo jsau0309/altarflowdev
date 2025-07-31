@@ -373,6 +373,7 @@ model EmailRecipient {
   bouncedAt       DateTime?
   bounceReason    String?
   unsubscribedAt  DateTime?
+  failureReason   String?          // Reason for send failure
   resendEmailId   String?          // Resend tracking ID
   
   campaign        EmailCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)

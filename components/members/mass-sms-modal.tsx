@@ -10,10 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import type { ExtendedMember } from "@/lib/mock-data-extensions"
+import type { Member } from "@prisma/client"
 
 interface MassSmsModalProps {
-  members: ExtendedMember[]
+  members: Member[]
   open: boolean
   onClose: () => void
 }
