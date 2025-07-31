@@ -10,6 +10,15 @@ interface CampaignSuccessAnimationProps {
   onComplete: () => void;
 }
 
+/**
+ * Displays a full-screen success animation and message after sending a campaign, including confetti, campaign details, and a countdown before invoking a completion callback.
+ *
+ * @param recipientCount - The number of recipients the campaign was sent to.
+ * @param subject - The subject line of the campaign.
+ * @param onComplete - Callback invoked after the countdown completes.
+ *
+ * @returns A React element rendering the success animation and campaign summary.
+ */
 export function CampaignSuccessAnimation({ 
   recipientCount, 
   subject,

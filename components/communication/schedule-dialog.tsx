@@ -30,6 +30,17 @@ interface ScheduleDialogProps {
   isLoading?: boolean;
 }
 
+/**
+ * Displays a modal dialog for scheduling an email campaign by selecting a future date and time.
+ *
+ * Allows users to pick a date from a calendar and specify the time using hour, minute, and AM/PM selectors. Validates that the scheduled time is in the future before invoking the provided callback with the scheduled Date. Shows error messages for invalid input and disables controls during loading.
+ *
+ * @param open - Whether the dialog is visible
+ * @param onOpenChange - Callback to change the dialog's open state
+ * @param onSchedule - Callback invoked with the scheduled Date when confirmed
+ * @param isLoading - Optional flag indicating if scheduling is in progress
+ * @returns The rendered schedule dialog component
+ */
 export function ScheduleDialog({
   open,
   onOpenChange,

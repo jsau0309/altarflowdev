@@ -3,6 +3,13 @@ import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@/utils/supabase/server";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Handles authenticated image file uploads via POST, validating file type and size, storing the image in Supabase Storage, and returning its public URL and filename.
+ *
+ * Accepts multipart form data containing an image file, enforces authentication, restricts uploads to JPEG, PNG, GIF, or WebP formats up to 5MB, and organizes files by organization ID. Responds with appropriate error messages and status codes for authentication, validation, or upload failures.
+ *
+ * @returns A JSON response containing the public URL and filename of the uploaded image, or an error message with the relevant HTTP status code.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();

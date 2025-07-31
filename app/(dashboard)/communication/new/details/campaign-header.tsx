@@ -6,6 +6,11 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "next/navigation";
 
+/**
+ * Renders the header section for the campaign creation or editing page, including navigation and localized titles.
+ *
+ * Displays a back button, a title that switches between "edit" and "create" modes based on the presence of a campaign ID in the URL, and a localized description for the current step.
+ */
 export function CampaignHeader() {
   const { t } = useTranslation(['communication']);
   const searchParams = useSearchParams();

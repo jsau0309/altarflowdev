@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   description: "Edit your email campaign",
 };
 
+/**
+ * Renders the page for editing an existing email campaign, displaying a form preloaded with the campaign's details.
+ *
+ * Awaits the route parameters to extract the campaign ID, then renders a layout with navigation, headings, and the edit form for the specified campaign.
+ *
+ * @param params - A promise resolving to an object containing the campaign ID to edit
+ */
 export default async function EditCampaignPage({
   params,
 }: {

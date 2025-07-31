@@ -8,6 +8,13 @@ interface CampaignProgressProps {
   currentStep: 1 | 2 | 3 | 4;
 }
 
+/**
+ * Displays a four-step progress indicator for a campaign workflow.
+ *
+ * Highlights the current step, marks completed steps with a check icon, and shows localized titles and descriptions for each step. The progress bar visually distinguishes completed, active, and pending steps.
+ *
+ * @param currentStep - The currently active step (1 to 4)
+ */
 export function CampaignProgress({ currentStep }: CampaignProgressProps) {
   const { t } = useTranslation(['communication']);
   

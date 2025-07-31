@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Handles GET requests to retrieve the authenticated user's profile.
+ *
+ * Returns the user's profile data as JSON if authenticated and found. Responds with appropriate error messages and status codes for unauthorized access, missing profiles, or unexpected errors.
+ */
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();

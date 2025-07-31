@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Handles POST requests to unsubscribe a user based on a provided token.
+ *
+ * Expects a JSON payload containing an unsubscribe token. If the token is valid, marks the user's email preference as unsubscribed and updates any pending email recipient records to reflect the unsubscription. Returns a JSON response indicating success or an appropriate error message.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { token } = await request.json();

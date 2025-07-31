@@ -43,6 +43,11 @@ interface Campaign {
   recipientIds: string[];
 }
 
+/**
+ * Displays a user interface for selecting recipients for a communication campaign.
+ *
+ * Fetches campaign and member data, allows filtering and searching members, and supports three recipient selection modes: all members, selected members, or filtered members. Handles saving recipient selections to the campaign and provides navigation and feedback for the user.
+ */
 export function RecipientsSelector() {
   const router = useRouter();
   const searchParams = useSearchParams();

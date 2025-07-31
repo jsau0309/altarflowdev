@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useOrganizationList, useUser } from '@clerk/nextjs';
 import Image from 'next/image';
 
+/**
+ * Displays a loading and status page for users pending organization invitation or membership.
+ *
+ * Shows a branded loading UI while checking the user's organization memberships and invitations. Redirects to the dashboard if the user is a member, allows invitation acceptance if pending, or redirects to onboarding if no invitations or memberships are found after several checks.
+ */
 export default function InvitationPendingPage() {
   const router = useRouter();
   const { user } = useUser();

@@ -31,6 +31,11 @@ interface Suggestion {
   previewText: string;
 }
 
+/**
+ * Displays a dialog that provides AI-generated email subject and preview suggestions with selectable tone options.
+ *
+ * Allows users to generate, view, and select from up to five AI-powered suggestions for email subject lines and preview texts, tailored to the provided email content and chosen tone. Suggestions are fetched from an API and localized based on the current language. Users can apply a suggestion, regenerate new ones, or close the dialog.
+ */
 export function AISuggestionsDialog({
   open,
   onOpenChange,

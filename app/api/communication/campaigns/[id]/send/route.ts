@@ -3,6 +3,13 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { ResendEmailService } from "@/lib/email/resend-service";
 
+/**
+ * Handles sending an email campaign to its recipients.
+ *
+ * Authenticates the user and organization, retrieves the specified campaign and its recipients, and ensures the campaign is eligible to be sent. Filters out unsubscribed recipients, prepares personalized email content with unsubscribe links, and sends emails in bulk. Updates campaign and recipient statuses accordingly and returns a JSON response indicating the result.
+ *
+ * @returns A JSON response with the outcome of the send operation, including sent and unsubscribed counts, or an error message with appropriate HTTP status.
+ */
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

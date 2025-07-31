@@ -1,7 +1,11 @@
 "use client";
 
 // TODO: This edit functionality needs to be updated to use Topol editor
-// Temporarily disabled to fix build errors
+/**
+ * Displays a placeholder message indicating that the campaign edit functionality is temporarily unavailable.
+ *
+ * @param campaignId - The ID of the campaign to be edited
+ */
 
 export function EditCampaignForm({ campaignId }: { campaignId: string }) {
   return (

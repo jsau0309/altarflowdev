@@ -25,6 +25,11 @@ const churchDetailsSchema = z.object({
 
 type ChurchDetailsForm = z.infer<typeof churchDetailsSchema>;
 
+/**
+ * Renders the third step of the onboarding process, allowing users to enter and submit church details.
+ *
+ * Redirects to the first onboarding step if no organization is present. Validates and submits church address, email, phone, and website information, updating the church profile and advancing to the next onboarding step upon success.
+ */
 export default function OnboardingStep3() {
   const { t } = useTranslation(['onboarding', 'common']);
   const router = useRouter();

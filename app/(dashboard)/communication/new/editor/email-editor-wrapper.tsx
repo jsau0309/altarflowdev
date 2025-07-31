@@ -37,6 +37,11 @@ interface Campaign {
   status: string;
 }
 
+/**
+ * Provides an email campaign editor interface using the Topol.io editor, enabling users to design, save, and test email campaigns with integrated authentication, localization, theming, and navigation.
+ *
+ * Loads campaign data based on the campaign ID from the URL, manages editor state and auto-saving, supports sending test emails, and handles navigation for saving drafts or continuing to the next step in the campaign workflow. Displays appropriate UI feedback for loading, saving, and error states.
+ */
 export function EmailEditorWrapper() {
   const router = useRouter();
   const searchParams = useSearchParams();

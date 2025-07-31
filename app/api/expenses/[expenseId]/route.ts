@@ -18,7 +18,11 @@ const expenseUpdateSchema = z.object({
   // status: z.nativeEnum(ExpenseStatus).optional(), 
 });
 
-// GET /api/expenses/[expenseId] - Fetch a single expense from the active organization
+/**
+ * Retrieves a single expense by ID for the authenticated user's active organization.
+ *
+ * Returns the expense data if it exists and belongs to the user's organization. Responds with appropriate error codes for unauthorized access, missing organization context, not found, or server errors.
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { expenseId: string } }
@@ -161,7 +165,11 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/expenses/[expenseId] - Delete an expense from the active organization
+/**
+ * Deletes an expense from the active organization if the requester is an administrator.
+ *
+ * Removes the associated receipt file from Supabase storage if present, deletes the expense record from the database, and invalidates the organization's dashboard cache. Returns 204 No Content on success or if the expense does not exist. Returns appropriate error responses for unauthorized access, insufficient permissions, or unexpected failures.
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { expenseId: string } }

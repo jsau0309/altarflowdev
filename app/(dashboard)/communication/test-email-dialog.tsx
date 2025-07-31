@@ -23,6 +23,16 @@ interface TestEmailDialogProps {
   isLoading?: boolean;
 }
 
+/**
+ * Displays a modal dialog for sending a test email to a specified address.
+ *
+ * The dialog allows users to enter an email address (defaulting to the current user's primary email), validates the input, and triggers a callback to send the test email. It provides feedback for invalid input and disables actions while a send operation is in progress. The dialog resets its state each time it is opened.
+ *
+ * @param open - Whether the dialog is visible
+ * @param onOpenChange - Callback invoked when the dialog's open state changes
+ * @param onSend - Callback invoked with the email address when sending the test email
+ * @param isLoading - Optional; whether the send operation is in progress
+ */
 export function TestEmailDialog({
   open,
   onOpenChange,

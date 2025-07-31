@@ -9,7 +9,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 // Import the new sidebar trigger 
 import { SidebarTrigger } from "@/components/layout/enhanced-sidebar" 
 // Remove import for old Sidebar if no longer needed for mobile Sheet
-// import { Sidebar } from "@/components/layout/sidebar"
+/**
+ * Renders the sticky header bar for the dashboard, including sidebar controls and user account actions.
+ *
+ * The header displays a sidebar trigger on the left (visible on medium and larger screens) and, on the right, an organization switcher with customized appearance and a user account button.
+ */
 export function DashboardHeader() {
   const { t } = useTranslation(['layout', 'common']); 
 

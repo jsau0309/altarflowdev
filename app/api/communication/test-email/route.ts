@@ -11,6 +11,13 @@ const testEmailSchema = z.object({
   previewText: z.string().optional(),
 });
 
+/**
+ * Handles POST requests to send a test email with optional preview text and a test unsubscribe footer.
+ *
+ * Authenticates the user and organization, validates the request body, modifies the email HTML as needed, and sends the email using the configured email service. Returns appropriate HTTP status codes and error messages for authentication failures, missing church records, invalid input, or internal errors.
+ *
+ * @returns A JSON response indicating success with the sent email ID, or an error message with the relevant HTTP status code.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();

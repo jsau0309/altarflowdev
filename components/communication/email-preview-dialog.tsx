@@ -30,6 +30,20 @@ interface EmailPreviewDialogProps {
   campaignId?: string;
 }
 
+/**
+ * Displays a modal dialog that previews an email's HTML content or provides a prompt to open the email editor if no preview is available.
+ *
+ * Renders an iframe with the email HTML when available, or a placeholder message if the design is incomplete. If the email design object lacks HTML and a campaign ID is provided, offers a button to open the email editor for that campaign.
+ *
+ * @param open - Whether the dialog is visible
+ * @param onOpenChange - Callback to update the dialog's open state
+ * @param emailDesign - The email content as a string, an object with an `html` property, or null
+ * @param subject - The email subject line
+ * @param previewText - The preview text for the email (not displayed)
+ * @param fromName - The sender's name
+ * @param recipientCount - The number of recipients
+ * @param campaignId - Optional campaign identifier for opening the editor
+ */
 export function EmailPreviewDialog({
   open,
   onOpenChange,

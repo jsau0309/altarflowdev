@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Handles GET requests to retrieve members of the authenticated user's organization who have email addresses, including their email subscription preferences.
+ *
+ * Returns a JSON response with an array of members, each containing ID, first and last name, email, membership status, and a boolean indicating email subscription status (defaulting to subscribed if unset). Responds with appropriate error codes if authentication fails, the organization is not found, or an unexpected error occurs.
+ */
 export async function GET(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();

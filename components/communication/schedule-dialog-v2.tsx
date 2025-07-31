@@ -42,7 +42,16 @@ const SUGGESTED_TIMES = [
   { label: "5:00 PM", hour: 17, minute: 0 },
 ];
 
-// Quick dates will be populated in the component with translations
+/**
+ * Displays a dialog for scheduling a date and time with timezone awareness and validation.
+ *
+ * Provides quick date selection, custom date and time input, and previews the scheduled time in the user's timezone. Validates that the scheduled time is in the future before invoking the scheduling callback.
+ *
+ * @param open - Whether the dialog is visible
+ * @param onOpenChange - Callback to update the dialog's open state
+ * @param onSchedule - Callback invoked with the scheduled Date object when scheduling is confirmed
+ * @param isLoading - Optional flag to indicate a loading state during scheduling
+ */
 
 export function ScheduleDialogV2({
   open,

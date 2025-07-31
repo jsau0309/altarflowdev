@@ -28,6 +28,11 @@ const setCookie = (name: string, value: string, days: number) => {
   }
 };
 
+/**
+ * Displays and manages general user interface settings, including church profile information, language, and theme preferences.
+ *
+ * Provides forms for updating church profile details, selecting the display language, and choosing a UI theme. Handles loading, saving, and validation states, and gives user feedback through notifications and UI indicators.
+ */
 export function GeneralSettings() {
   const { i18n, t } = useTranslation();
   const router = useRouter();

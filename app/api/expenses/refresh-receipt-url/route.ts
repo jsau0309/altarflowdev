@@ -8,7 +8,13 @@ import { getAuth } from '@clerk/nextjs/server'; // <-- Use getAuth for Route Han
 // Helper function to add delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// POST /api/expenses/refresh-receipt-url - Generate a fresh signed URL for a receipt
+/**
+ * Handles POST requests to generate a new signed URL for an expense receipt.
+ *
+ * Validates user authentication and organization membership, ensures the expense exists and belongs to the user's organization, generates a temporary signed URL for the receipt file in Supabase storage, updates the expense record with the new URL, and returns the signed URL with its expiration time.
+ *
+ * Returns a JSON response containing the signed URL and its expiration timestamp, or an error message with the appropriate HTTP status code if validation or processing fails.
+ */
 export async function POST(request: NextRequest) {
   // Initialize Supabase Admin Client FIRST to check env vars early
   const supabaseAdmin = createAdminClient(); 

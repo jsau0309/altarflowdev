@@ -8,6 +8,11 @@ import { CampaignListWithHeader } from "./campaign-list-with-header";
 import { EmailSettingsForm } from "./email-settings-form";
 import { useTranslation } from "react-i18next";
 
+/**
+ * Renders a tabbed interface for managing communication features, including email campaigns and settings.
+ *
+ * Displays two tabs—"Campaigns" and "Settings"—with localized labels and icons. The active tab is determined by state and can be set via the `tab` URL query parameter. The "Campaigns" tab shows a list of email campaigns, optionally filtered by the `returnFrom` query parameter, while the "Settings" tab displays email configuration options.
+ */
 export function CommunicationContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("campaigns");

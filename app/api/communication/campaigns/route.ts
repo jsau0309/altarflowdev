@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Handles GET requests to retrieve all email campaigns for the authenticated user's church.
+ *
+ * Authenticates the user and organization, verifies the existence of the associated church, and returns a list of email campaigns ordered by creation date. Responds with appropriate HTTP status codes for unauthorized access, missing church, or server errors.
+ *
+ * @returns A JSON response containing an array of email campaigns or an error message.
+ */
 export async function GET(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();
@@ -47,6 +54,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Handles POST requests to create a new email campaign for the authenticated church.
+ *
+ * Authenticates the user and organization, verifies the user's role as "ADMIN" or "STAFF", and ensures the church exists. Parses campaign details from the request body and creates a new email campaign associated with the church and sender.
+ *
+ * @returns A JSON response containing the created campaign, or an error message with the appropriate HTTP status code if authentication, authorization, or validation fails.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();

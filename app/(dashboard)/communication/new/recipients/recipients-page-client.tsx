@@ -9,6 +9,11 @@ import Link from "next/link";
 import { CampaignProgress } from "@/components/communication/campaign-progress";
 import { useTranslation } from "react-i18next";
 
+/**
+ * Renders the recipients selection page for a communication campaign, including navigation, progress, and recipient selection UI.
+ *
+ * Displays a back button to the campaign editor, a localized title and description, a progress indicator for step 3, and a recipients selector with a loading fallback.
+ */
 export function RecipientsPageClient() {
   const searchParams = useSearchParams();
   const campaignId = searchParams.get("campaignId");

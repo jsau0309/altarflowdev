@@ -9,6 +9,11 @@ import Link from "next/link";
 import { CampaignProgress } from "@/components/communication/campaign-progress";
 import { useTranslation } from "react-i18next";
 
+/**
+ * Renders the client-side campaign editor page with localized content and navigation.
+ *
+ * Displays a header with a back button, campaign design title, and description, followed by a progress indicator and a lazily loaded email editor. The editor section shows a loading spinner and message while the editor is being loaded.
+ */
 export function EditorPageClient() {
   const searchParams = useSearchParams();
   const campaignId = searchParams.get("campaignId");

@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description: "Choose who will receive your email",
 };
 
+/**
+ * Renders the recipients selection page for creating a new email campaign.
+ *
+ * Displays the client-side UI for choosing email recipients.
+ */
 export default function RecipientsPage() {
   return <RecipientsPageClient />;
 }

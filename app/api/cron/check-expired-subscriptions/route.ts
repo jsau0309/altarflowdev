@@ -5,7 +5,13 @@ import { format } from "date-fns";
 import { getQuotaLimit } from "@/lib/subscription-helpers";
 
 // This cron job runs daily to check for expired subscriptions and update quotas
-// It handles grace period expiration and subscription end dates
+/**
+ * Handles a daily cron job to process expired or grace period church subscriptions and update their email quotas.
+ *
+ * In production, verifies the request's authorization header against a secret token. For each church with a "canceled" or "grace_period" subscription status and a non-null end date, checks if the subscription or grace period has ended. If so, updates the church's subscription status to "free" and adjusts the current month's email quota to the free tier limit. Returns a JSON response summarizing the number of churches checked and updates made.
+ *
+ * @returns A JSON response indicating success, the number of churches checked, and counts of status and quota updates, or an error message on failure.
+ */
 export async function GET(request: NextRequest) {
   try {
     // Verify the request is from Vercel Cron (in production)

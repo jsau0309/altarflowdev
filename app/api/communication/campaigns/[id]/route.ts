@@ -18,6 +18,11 @@ const updateCampaignSchema = z.object({
   scheduledAt: z.string().datetime().optional(),
 });
 
+/**
+ * Retrieves an email campaign by ID for the authenticated user's organization.
+ *
+ * Returns campaign details including recipient IDs and design data. Full recipient details are included only if the campaign is not in draft status. Responds with appropriate error messages for unauthorized access, missing church, or campaign not found.
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -84,6 +89,13 @@ export async function GET(
   }
 }
 
+/**
+ * Updates an existing email campaign by ID, allowing changes to campaign details, status, scheduling, and recipients.
+ *
+ * Only draft campaigns can be edited, except when scheduling. Recipient updates support all members, filtered members, or selected recipients. The total recipient count is updated accordingly. Returns the updated campaign data with recipient IDs.
+ *
+ * Responds with appropriate error messages and status codes for unauthorized access, invalid data, missing resources, or invalid campaign state.
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -293,6 +305,11 @@ export async function PATCH(
   }
 }
 
+/**
+ * Deletes an email campaign by ID if the authenticated user is an admin and the campaign is not currently sending.
+ *
+ * Returns a JSON response indicating success or an appropriate error message and status code if deletion is not permitted or fails.
+ */
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { AIService, ToneOption } from "@/lib/ai-service";
 
+/**
+ * Handles POST requests to generate preview text suggestions for emails using AI.
+ *
+ * Authenticates the user and organization, validates the request body for required fields and tone, and returns AI-generated preview text suggestions based on the provided subject line, email content, tone, and optional current preview. Responds with appropriate error messages and status codes for authentication, validation, or processing failures.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();

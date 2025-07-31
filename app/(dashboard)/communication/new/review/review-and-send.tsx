@@ -50,6 +50,11 @@ interface EmailSettings {
   footerAddress?: string;
 }
 
+/**
+ * Displays the review and send interface for an email campaign, allowing users to review campaign details, check readiness, and perform actions such as sending, scheduling, or saving as draft.
+ *
+ * Loads campaign data and email settings, presents a summary and pre-send checklist, and provides UI controls for editing, sending, scheduling, or saving the campaign. Handles loading states, errors, and user feedback, and manages navigation after actions are completed.
+ */
 export function ReviewAndSend() {
   const router = useRouter();
   const searchParams = useSearchParams();

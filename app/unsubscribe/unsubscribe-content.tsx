@@ -8,6 +8,11 @@ import { CheckCircle2, XCircle, Mail, Loader2, MailX, ChevronRight } from "lucid
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
+/**
+ * React component for managing email unsubscribe and resubscribe flows based on a token from the URL.
+ *
+ * Renders different UI states depending on the presence of a valid token and the current operation status, allowing users to unsubscribe from or resubscribe to church-related emails. Handles API communication, error states, and user feedback for the unsubscribe process.
+ */
 export function UnsubscribeContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");

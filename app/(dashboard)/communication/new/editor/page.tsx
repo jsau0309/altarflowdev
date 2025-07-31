@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description: "Design your email campaign",
 };
 
+/**
+ * Renders the email editor page for creating a new email campaign.
+ *
+ * Displays the client-side email editor interface.
+ */
 export default function EmailEditorPage() {
   return <EditorPageClient />;
 }

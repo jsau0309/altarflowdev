@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Handles GET requests to retrieve the authenticated organization's church profile.
+ *
+ * Authenticates the request and returns the church profile associated with the current organization as JSON.
+ * Responds with appropriate HTTP status codes for unauthorized access, missing records, or server errors.
+ */
 export async function GET(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();

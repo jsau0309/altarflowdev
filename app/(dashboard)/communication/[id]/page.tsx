@@ -82,6 +82,11 @@ const getRecipientStatusConfig = (t: any) => ({
   FAILED: { variant: "destructive" as const, label: t('communication:viewDetails.recipientStatus.failed', 'Failed') },
 });
 
+/**
+ * Displays detailed information about a specific email campaign, including metadata, metrics, email content preview, and recipient statuses.
+ *
+ * Fetches campaign data by ID, manages loading and error states, and renders localized UI components for campaign details and recipient information. Redirects to the campaign list page if the campaign cannot be loaded.
+ */
 export default function CampaignDetailsPage() {
   const router = useRouter();
   const { id } = useParams();

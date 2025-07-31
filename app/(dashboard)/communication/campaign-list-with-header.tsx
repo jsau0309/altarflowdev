@@ -76,6 +76,13 @@ interface CampaignListWithHeaderProps {
   returnFrom?: string | null;
 }
 
+/**
+ * Displays and manages a list of email campaigns with quota usage, role-based permissions, and campaign actions.
+ *
+ * Renders a dashboard interface for viewing, creating, editing, sending, and deleting email campaigns. Includes quota enforcement, user role checks for deletion, and localized UI elements. Shows campaign details in a table, handles loading and empty states, and provides feedback via dialogs and toast notifications.
+ *
+ * @param returnFrom - Optional navigation context to influence post-action routing.
+ */
 export function CampaignListWithHeader({ returnFrom }: CampaignListWithHeaderProps) {
   const { getToken } = useAuth();
   const { t } = useTranslation(['communication', 'common']);

@@ -49,6 +49,11 @@ const getFormSchema = (t: any) => z.object({
 
 type FormData = z.infer<ReturnType<typeof getFormSchema>>;
 
+/**
+ * Renders a form for configuring email sender settings, including sender name, timezone, and mailing address, with validation and support for loading and saving settings.
+ *
+ * Fetches existing email settings and church profile data to prefill form fields, provides user feedback for loading and errors, and allows syncing the mailing address from the church profile. Supports conditional UI for setup flows and displays status indicators for configuration state.
+ */
 export function EmailSettingsForm() {
   const { getToken } = useAuth();
   const { t } = useTranslation(['communication', 'common']);

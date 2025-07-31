@@ -13,6 +13,18 @@ import { Role } from '@prisma/client'; // Import the Role enum
 import { format } from 'date-fns';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
 
+/**
+ * Handles Clerk webhook POST requests, verifying the event signature and processing user and organization lifecycle events.
+ *
+ * Verifies incoming webhook requests from Clerk using Svix headers and processes supported event types:
+ * - `user.created`: Creates a new user profile with default role and onboarding state.
+ * - `user.updated`: Updates an existing user profile's name fields.
+ * - `organization.created`: Creates a new church record if the creator does not already own one, initializes onboarding, email quota, and default donation types, and updates the creator's role to admin.
+ * - `organizationMembership.created` and `organizationMembership.updated`: Updates a user's profile role based on organization membership changes.
+ * - `organizationMembership.deleted`: Deletes the user's profile when their organization membership is removed.
+ *
+ * Returns appropriate HTTP status codes for success, validation errors, or processing failures to control webhook retries.
+ */
 export async function POST(req: Request) {
 
   // You can find this in the Clerk Dashboard -> Webhooks -> choose the webhook

@@ -3,7 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { ResendEmailService } from "@/lib/email/resend-service";
 
 // This endpoint should be called by a cron job service (e.g., Vercel Cron, Railway, or external service)
-// Recommended: Run every 5 minutes
+/**
+ * Handles scheduled email campaign delivery for a cron-triggered API route.
+ *
+ * Authenticates requests using an optional bearer token. Finds all scheduled email campaigns whose scheduled time has passed, prepares and sends emails to subscribed recipients, updates campaign and recipient statuses, and returns a summary of processing results. Marks campaigns as "SENT" if all recipients are unsubscribed, or "FAILED" if errors occur during processing.
+ *
+ * @returns A JSON response summarizing the processing status, number of campaigns handled, and per-campaign results.
+ */
 
 export async function GET(request: NextRequest) {
   try {

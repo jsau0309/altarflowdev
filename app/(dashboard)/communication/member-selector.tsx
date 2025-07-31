@@ -27,6 +27,14 @@ interface MemberSelectorProps {
   onSelectionChange: (members: string[]) => void;
 }
 
+/**
+ * Displays a selectable list of members with email addresses and subscription statuses for email recipient selection.
+ *
+ * Allows searching, filtering by subscription status, selecting all or none, and toggling visibility of unsubscribed members. Only subscribed members can be selected; attempts to select unsubscribed members are prevented with an error message.
+ *
+ * @param selectedMembers - Array of selected member IDs
+ * @param onSelectionChange - Callback invoked with the updated array of selected member IDs
+ */
 export function MemberSelector({ selectedMembers, onSelectionChange }: MemberSelectorProps) {
   const { getToken } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);

@@ -5,7 +5,13 @@ import { format } from "date-fns";
 import { getQuotaLimit } from "@/lib/subscription-helpers";
 
 // This endpoint creates email quotas for churches that don't have one yet
-// Useful for migration or fixing churches created before the quota system
+/**
+ * Handles a POST request to create missing monthly email quotas for all churches.
+ *
+ * Authenticates the user and verifies admin privileges. For each church, checks if an email quota exists for the current month; if not, creates one based on the church's subscription status. Returns a summary of quotas created and the status for each church. Responds with appropriate error codes for unauthorized or forbidden access, and a 500 error for unexpected failures.
+ *
+ * @returns A JSON response summarizing the number of quotas created, total churches processed, and the status for each church.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();

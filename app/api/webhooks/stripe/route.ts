@@ -15,6 +15,11 @@ export const runtime = 'nodejs';
 // Initialize Resend client (ensure RESEND_API_KEY is in .env)
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
+/**
+ * Handles incoming Stripe webhook POST requests, verifying signatures and processing supported event types.
+ *
+ * Processes payment, subscription, and account events to update donation transactions, donor and church records, Stripe connected accounts, and email campaign quotas. Sends donation receipt emails on successful payments and synchronizes email quotas with subscription status changes. Returns appropriate HTTP responses for Stripe webhook acknowledgment or error handling.
+ */
 export async function POST(req: Request) {
   let body: string;
   let signature: string | null;

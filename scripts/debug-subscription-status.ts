@@ -3,6 +3,11 @@ import { hasPaidSubscription, getQuotaLimit } from "../lib/subscription-helpers"
 
 const prisma = new PrismaClient();
 
+/**
+ * Generates a comprehensive diagnostic report on church subscription statuses, comparing helper function logic with route logic and highlighting discrepancies.
+ *
+ * Fetches all churches from the database, groups them by subscription status, and outputs detailed information for each church, including subscription details, campaign counts, and computed values from helper functions. Identifies and logs inconsistencies between the subscription helper logic and the simplified route logic, with special handling for statuses such as 'past_due', 'canceled', and 'grace_period'. Summarizes findings and lists churches with mismatched paid status determinations.
+ */
 async function debugSubscriptionStatus() {
   console.log("=== Debug Subscription Status Report ===");
   console.log("Generated at:", new Date().toISOString());

@@ -3,6 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { AIService, ToneOption } from "@/lib/ai-service";
 
+/**
+ * Handles POST requests to generate AI-powered email subject line suggestions based on provided email content, tone, event type, and current subject.
+ *
+ * Authenticates the user and organization, validates input, and returns a JSON response with suggested subject lines or an appropriate error message.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();

@@ -68,6 +68,18 @@ interface CombinedSuggestion {
   previewCharCount: number;
 }
 
+/**
+ * Displays a dialog that generates and presents AI-powered suggestions for email subject lines and preview text based on user input and selected tone.
+ *
+ * Users can choose a tone, request AI-generated suggestions, and select a suggestion to update their email details. The dialog manages loading states, error feedback, and supports regenerating suggestions or changing tone.
+ *
+ * @param open - Whether the dialog is visible
+ * @param onOpenChange - Callback to control dialog visibility
+ * @param currentSubject - The current email subject line
+ * @param currentPreview - The current email preview text
+ * @param emailContent - Optional full email content to inform suggestions
+ * @param onSelect - Callback invoked with the selected subject and preview text
+ */
 export function AISuggestionsDialog({
   open,
   onOpenChange,

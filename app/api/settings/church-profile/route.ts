@@ -3,6 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { getAuth } from '@clerk/nextjs/server';
 import { Prisma } from '@prisma/client';
 
+/**
+ * Retrieves the church profile associated with the authenticated user's active organization.
+ *
+ * Returns the church's profile details if found, or an appropriate error response if authentication fails, the organization is not selected, the profile does not exist, or an unexpected error occurs.
+ */
 export async function GET(request: NextRequest) {
   // Get user and organization context
   const { userId, orgId } = getAuth(request);
@@ -44,6 +49,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Updates the church profile for the authenticated organization.
+ *
+ * Requires the user to have the 'org:admin' role. Validates the request body and updates the church's name, email, phone, address, and website fields. Returns the updated church profile on success, or an appropriate error response if authorization fails, input is invalid, or the church record does not exist.
+ */
 export async function PUT(request: NextRequest) {
   let orgId: string | null | undefined = null;
   try {

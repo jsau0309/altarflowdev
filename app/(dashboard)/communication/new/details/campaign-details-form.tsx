@@ -19,6 +19,11 @@ import { toast } from "sonner";
 import { AISuggestionsDialog } from "@/components/communication/ai-suggestions-dialog";
 import LoaderOne from "@/components/ui/loader-one";
 
+/**
+ * Renders a form for creating or editing the details of an email campaign, including subject and preview text, with support for loading existing campaign data, AI suggestions, and saving as draft or continuing to the next step.
+ *
+ * The form validates required fields, manages loading and saving states, and navigates appropriately based on user actions and campaign status.
+ */
 export function CampaignDetailsForm() {
   const router = useRouter();
   const searchParams = useSearchParams();

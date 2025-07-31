@@ -25,7 +25,11 @@ const memberCreateSchema = z.object({
   smsConsentMethod: z.string().nullable().optional(),
 });
 
-// GET /api/members - Fetch all members
+/**
+ * Retrieves all members associated with the authenticated user's organization, including each member's email subscription preferences.
+ *
+ * Returns a 401 status if the user is not authenticated. If the organization context is missing, returns an empty array with status 200. On success, returns a JSON array of members ordered by last name, each including their email subscription status and unsubscribe date. Returns a 500 status with an error message if retrieval fails.
+ */
 export async function GET(request: NextRequest) {
   try {
     // 1. Get authenticated user and organization context using getAuth

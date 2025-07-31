@@ -31,6 +31,18 @@ interface ScheduleSelectorProps {
   onScheduledDateChange: (date: Date | null) => void;
 }
 
+/**
+ * Renders a UI component for selecting when to send an email campaign, allowing users to choose between sending immediately or scheduling for a specific date and time.
+ *
+ * Provides timezone-aware scheduling, date and time pickers, and suggested optimal send times. Fetches and displays the organization's timezone, and updates the scheduled date and time based on user input.
+ *
+ * @param sendOption - The current send option, either "now" or "schedule".
+ * @param onSendOptionChange - Callback to update the send option.
+ * @param scheduledDate - The currently selected scheduled date and time, or null.
+ * @param onScheduledDateChange - Callback to update the scheduled date and time.
+ *
+ * @returns A React element for scheduling email campaign sends.
+ */
 export function ScheduleSelector({
   sendOption,
   onSendOptionChange,

@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description: "Review and send your email campaign",
 };
 
+/**
+ * Renders the review page for creating a new email campaign.
+ *
+ * Displays the client-side component for reviewing and sending an email campaign.
+ */
 export default function ReviewPage() {
   return <ReviewPageClient />;
 }

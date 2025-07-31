@@ -61,6 +61,21 @@ const formatCurrency = (amount: number | Decimal | string | null | undefined, cu
   }).format(numericAmount)
 }
 
+/**
+ * Displays a drawer with detailed information about a specific expense, including formatted amount, category, date, vendor, notes, receipt viewing, and audit information.
+ *
+ * Provides options to edit or delete the expense, with deletion restricted to administrators and requiring confirmation. Handles fetching and refreshing of signed receipt URLs, and manages loading and error states for receipt access.
+ *
+ * @param expense - The expense object to display details for, or null to hide the drawer.
+ * @param open - Whether the drawer is visible.
+ * @param onClose - Callback to close the drawer.
+ * @param onEdit - Callback invoked with the expense when the edit button is clicked.
+ * @param onDelete - Callback invoked with the expense ID when deletion is confirmed.
+ * @param userRole - Optional user role string ("ADMIN", "STAFF", or null) used for permission checks.
+ * @param isDeleting - Optional flag indicating if a deletion operation is in progress.
+ *
+ * @returns The rendered drawer component, or null if no expense is provided.
+ */
 export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete, userRole, isDeleting }: ExpenseDetailsDrawerProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [isLoadingReceipt, setIsLoadingReceipt] = useState(false)

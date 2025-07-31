@@ -34,6 +34,13 @@ const EmailEditor = dynamic(() => import("react-email-editor"), {
   ),
 });
 
+/**
+ * React component providing a multi-step form for composing, testing, saving, scheduling, and sending email campaigns.
+ *
+ * Integrates a rich email editor, recipient selection, scheduling options, AI-assisted subject and preview generation, and test email functionality. Handles validation, asynchronous API interactions, and user feedback through dialogs and toast notifications.
+ *
+ * @returns The rendered campaign creation form UI.
+ */
 export function NewCampaignForm() {
   const router = useRouter();
   const { getToken } = useAuth();

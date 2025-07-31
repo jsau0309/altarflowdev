@@ -3,6 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { AIService, ToneOption } from "@/lib/ai-service";
 
+/**
+ * Handles POST requests to generate AI-powered email subject and preview suggestions based on provided email content, tone, and church context.
+ *
+ * Authenticates the user and organization, validates input parameters, and returns generated suggestions or appropriate error responses.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();

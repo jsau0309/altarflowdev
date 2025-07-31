@@ -1,13 +1,8 @@
 /**
- * @deprecated This webhook endpoint has been replaced by /api/webhooks/stripe
- * 
- * The old implementation used Supabase admin functions that no longer exist.
- * The new consolidated webhook at /api/webhooks/stripe handles both:
- * - Platform subscriptions (with email quota updates)
- * - Church donation payments (via Stripe Connect)
- * 
- * Please update your Stripe webhook configuration to use:
- * https://yourdomain.com/api/webhooks/stripe
+ * Handles deprecated webhook POST requests by returning a 410 Gone response with instructions to use the new consolidated webhook endpoint.
+ *
+ * This endpoint no longer processes any webhook events and exists only to inform clients of its deprecation.
+ * @returns An HTTP response with status 410 and a JSON payload indicating deprecation and the new endpoint location.
  */
 
 export async function POST() {

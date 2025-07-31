@@ -29,6 +29,13 @@ interface DateRange {
   to: Date | null
 }
 
+/**
+ * Displays and manages a paginated, searchable, and filterable list of expenses with CRUD operations and role-based access control.
+ *
+ * Integrates authentication, internationalization, and UI components to provide expense management features, including viewing, creating, editing, and deleting expenses. Supports filtering by date range and search term, and restricts deletion to users with the "ADMIN" role.
+ *
+ * @returns The rendered expenses management interface as a React component.
+ */
 export function ExpensesContent() {
   const { getToken } = useAuth()
   const [expenses, setExpenses] = useState<Expense[]>([])

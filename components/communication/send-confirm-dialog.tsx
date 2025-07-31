@@ -21,6 +21,14 @@ interface SendConfirmDialogProps {
   isLoading?: boolean;
 }
 
+/**
+ * Displays a confirmation dialog for sending a message to multiple recipients.
+ *
+ * Renders a modal dialog with a dynamic recipient count, localized text, and options to cancel or confirm the send action. The confirm button shows a loading state when sending is in progress.
+ *
+ * @param recipientCount - The number of recipients to display in the dialog message.
+ * @returns The rendered confirmation dialog component.
+ */
 export function SendConfirmDialog({
   open,
   onOpenChange,

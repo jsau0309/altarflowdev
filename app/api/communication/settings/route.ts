@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Handles GET requests to retrieve email settings for the authenticated church organization.
+ *
+ * Authenticates the user and organization, fetches the church by organization ID, and returns the associated email settings as JSON. Responds with appropriate HTTP status codes for unauthorized access, missing church records, or server errors.
+ */
 export async function GET(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();
@@ -35,6 +40,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Handles updating or creating email settings for a church organization.
+ *
+ * Authenticates the user and organization, verifies the user has an "ADMIN" role, and upserts email settings (sender name, reply-to email, timezone, and footer address) for the associated church. Returns the updated or created settings as JSON, or an appropriate error response if authentication, authorization, or data retrieval fails.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();

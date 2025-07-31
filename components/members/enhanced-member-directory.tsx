@@ -26,7 +26,19 @@ interface EnhancedMemberDirectoryProps {
   onActionComplete: () => void;
 }
 
-// Destructure new props
+/**
+ * Displays a searchable, filterable, and paginated directory of members with detailed information and status indicators.
+ *
+ * Renders a table of members with columns for name, contact information, membership status, email subscription status, and join date. Supports searching by name, email, or phone, filtering by membership status, and paginating results. Provides a drawer for viewing and managing individual member details. Handles loading and error states, and updates the UI in response to member list changes and user actions.
+ *
+ * @param members - The list of member objects to display
+ * @param isLoading - Whether the member data is currently loading
+ * @param error - An error message to display if loading fails
+ * @param filterStatus - The membership status to filter by, or undefined for all
+ * @param onFilterChange - Callback invoked when the filter status changes
+ * @param onActionComplete - Callback invoked after a member-related action completes
+ * @returns The rendered member directory component
+ */
 export function EnhancedMemberDirectory({ 
   members, 
   isLoading, 

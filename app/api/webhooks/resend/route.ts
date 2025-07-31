@@ -23,7 +23,14 @@ interface ResendWebhookEvent {
   };
 }
 
-// Verify webhook signature
+/**
+ * Verifies the authenticity of a webhook payload using HMAC SHA-256 and a shared secret.
+ *
+ * @param payload - The raw webhook payload as a string
+ * @param signature - The signature provided with the webhook request
+ * @param secret - The shared secret used to compute the HMAC
+ * @returns True if the computed signature matches the provided signature; otherwise, false
+ */
 function verifyWebhookSignature(
   payload: string,
   signature: string,
@@ -45,6 +52,11 @@ function verifyWebhookSignature(
   }
 }
 
+/**
+ * Handles POST requests for Resend webhook events, updating email recipient and campaign records based on event type.
+ *
+ * Verifies the webhook signature if a secret is configured, parses the event payload, and processes events such as sent, delivered, bounced, complained, opened, and clicked. Updates recipient status, campaign counters, and member subscription or email validity as appropriate. Returns a JSON response indicating receipt or an error status if processing fails.
+ */
 export async function POST(request: NextRequest) {
   try {
     // Get the raw body

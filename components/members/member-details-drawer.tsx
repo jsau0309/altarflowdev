@@ -60,6 +60,16 @@ const formatDateForInput = (dateInput: Date | string | undefined | null): string
   }
 };
 
+/**
+ * Displays a drawer with detailed member information, allowing viewing, editing, and deletion of a member.
+ *
+ * The drawer presents member profile details, supports inline editing with validation, and provides a confirmation dialog for deletion. All user-facing text is localized. On successful update or deletion, the provided callback is triggered.
+ *
+ * @param member - The member whose details are displayed and managed.
+ * @param open - Controls whether the drawer is visible.
+ * @param onClose - Callback invoked when the drawer is closed.
+ * @param onActionComplete - Callback invoked after a successful update or deletion.
+ */
 export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }: MemberDetailsDrawerProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);

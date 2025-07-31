@@ -9,6 +9,11 @@ import Link from "next/link";
 import { CampaignProgress } from "@/components/communication/campaign-progress";
 import { useTranslation } from "react-i18next";
 
+/**
+ * Renders the client-side review page for a communication campaign, including navigation, progress, and the review and send step.
+ *
+ * Displays a back button, localized title and description, campaign progress indicator, and asynchronously loads the review and send component with a loading fallback.
+ */
 export function ReviewPageClient() {
   const searchParams = useSearchParams();
   const campaignId = searchParams.get("campaignId");

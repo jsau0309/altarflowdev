@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { hasPaidSubscription } from "@/lib/subscription-helpers";
 
+/**
+ * Handles a GET request to retrieve the current email campaign quota usage and limits for the authenticated church organization.
+ *
+ * Returns a JSON response with the number of campaigns sent this month, the quota limit, the next reset date, and whether the church has a paid subscription. Responds with appropriate error messages and status codes if authentication fails, the church is not found, or an internal error occurs.
+ */
 export async function GET() {
   try {
     const { userId, orgId } = await auth();
