@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Search, Filter, Phone, Mail } from "lucide-react"
+import { Search, Filter, Phone, Mail, MailX } from "lucide-react"
 import LoaderOne from "@/components/ui/loader-one";
 import { format } from "date-fns"
 
@@ -231,6 +231,7 @@ export function EnhancedMemberDirectory({
                 <TableHead>{t('members:name', 'Name')}</TableHead>
                 <TableHead>{t('members:contact', 'Contact')}</TableHead>
                 <TableHead className="text-center">{t('members:status')}</TableHead>
+                <TableHead className="text-center">{t('members:emailStatus', 'Email Status')}</TableHead>
                 <TableHead>{t('members:joinDate')}</TableHead>
               </TableRow>
             </TableHeader>
@@ -254,7 +255,9 @@ export function EnhancedMemberDirectory({
                       </div>
                       <div className="flex items-center gap-1 text-sm">
                         <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span>{member.email || t('common:noEmailAddress', "No email")}</span>
+                        <span className={member.email && member.emailPreference?.isSubscribed === false ? "line-through text-muted-foreground" : ""}>
+                          {member.email || t('common:noEmailAddress', "No email")}
+                        </span>
                       </div>
                     </div>
                   </TableCell>
@@ -277,6 +280,23 @@ export function EnhancedMemberDirectory({
                     >
                       {getStatusText(member.membershipStatus)}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {member.email ? (
+                      member.emailPreference?.isSubscribed === false ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <MailX className="h-4 w-4 text-red-500" />
+                          <span className="text-xs text-red-500 font-medium">{t('members:unsubscribed', 'Unsubscribed')}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1">
+                          <Mail className="h-4 w-4 text-green-600" />
+                          <span className="text-xs text-green-600 font-medium">{t('members:subscribed', 'Subscribed')}</span>
+                        </div>
+                      )
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {(() => {

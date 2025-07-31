@@ -9,6 +9,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/clerk-webhook(.*)',
   '/api/public(.*)',
   '/(.*)/nfc-landing(.*)',
+  '/unsubscribe(.*)',
+  '/api/communication/unsubscribe(.*)',
+  '/api/communication/resubscribe(.*)',
   '/',
 ])
 
@@ -29,7 +32,7 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next()
   }
 
-  const { userId, orgId } = await auth()
+  const { userId, orgId, sessionClaims } = await auth()
 
   // Not authenticated - Clerk will handle redirect
   if (!userId) {
@@ -41,19 +44,26 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next()
   }
 
-  // If user has no organization and not on onboarding, check for invitations
+  // Check if this is a fresh sign-in (coming from Clerk's sign-in flow)
+  const isFromSignIn = req.headers.get('referer')?.includes('/signin') || 
+                      req.headers.get('referer')?.includes('clerk.') ||
+                      req.nextUrl.searchParams.has('__clerk_status')
+
+  // If user has no organization and not on onboarding
   if (!orgId && !isOnboardingRoute(req)) {
-    // Redirect to invitation-pending page which will handle the logic
-    return NextResponse.redirect(new URL('/invitation-pending', req.url))
+    // If this is a fresh sign-in, give Clerk time to sync org data
+    if (isFromSignIn) {
+      // Let the page handle the check - it will redirect appropriately
+      return NextResponse.next()
+    }
+    
+    // For dashboard route without org, redirect to invitation-pending
+    if (req.nextUrl.pathname.startsWith('/dashboard')) {
+      return NextResponse.redirect(new URL('/invitation-pending', req.url))
+    }
   }
 
-  // Allow all onboarding routes to proceed
-  if (isOnboardingRoute(req)) {
-    return NextResponse.next()
-  }
-
-  // For now, we'll handle onboarding checks in the individual pages
-  // This avoids the middleware trying to make fetch requests
+  // Allow all other routes to proceed
   return NextResponse.next()
 })
 

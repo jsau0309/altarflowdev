@@ -18,6 +18,7 @@ export default function InvitationPendingPage() {
   });
   const [checkCount, setCheckCount] = useState(0);
   const [hasMinTimeElapsed, setHasMinTimeElapsed] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Ensure the loading screen shows for at least 1.5 seconds
   useEffect(() => {
@@ -28,16 +29,15 @@ export default function InvitationPendingPage() {
   }, []);
 
   useEffect(() => {
-    if (!isLoaded || !user || !hasMinTimeElapsed) return;
+    if (!isLoaded || !user || !hasMinTimeElapsed || isRedirecting) return;
 
     // Check if user has any organization memberships
     if (userMemberships && userMemberships.data && userMemberships.data.length > 0) {
       // User is part of an organization - they accepted the invitation!
       console.log('User has organization membership, redirecting to dashboard');
-      // Add a small delay for smooth transition
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 500);
+      setIsRedirecting(true);
+      // Use replace instead of push to prevent back button issues
+      router.replace('/dashboard');
       return;
     }
 
@@ -53,7 +53,8 @@ export default function InvitationPendingPage() {
     if (checkCount > 2) {
       // After a few checks, assume no invitation exists
       console.log('No invitations found after multiple checks, redirecting to onboarding');
-      router.push('/onboarding/welcome');
+      setIsRedirecting(true);
+      router.replace('/onboarding/welcome');
       return;
     }
 
@@ -63,7 +64,7 @@ export default function InvitationPendingPage() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [isLoaded, user, userMemberships, userInvitations, checkCount, router, hasMinTimeElapsed]);
+  }, [isLoaded, user, userMemberships, userInvitations, checkCount, router, hasMinTimeElapsed, isRedirecting]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">

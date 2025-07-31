@@ -34,7 +34,19 @@ export function DashboardHeader() {
 
        {/* Right side: Controls */}
        <div className="flex items-center gap-4"> 
-         <OrganizationSwitcher hidePersonal={true} />
+         <OrganizationSwitcher 
+           hidePersonal={true}
+           afterCreateOrganizationUrl="/dashboard"
+           appearance={{
+             elements: {
+               organizationSwitcherTrigger: "px-3",
+               organizationPreviewAvatarBox: "size-6",
+               // Hide the create organization button for MVP
+               organizationSwitcherPopoverActionButton__createOrganization: "hidden",
+               organizationSwitcherPopoverActions__createOrganization: "hidden",
+             },
+           }}
+         />
          <UserButton />
        </div>
     </header>

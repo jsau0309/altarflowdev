@@ -166,7 +166,19 @@
     "themeChangeFailed": "Failed to update theme",
     "saving": "Saving...",
     "saveChanges": "Save Changes",
-    "unsavedChanges": "You have unsaved changes"
+    "unsavedChanges": "You have unsaved changes",
+    "churchProfile": "Church Profile",
+    "churchProfileDescription": "Manage your church information",
+    "churchName": "Church Name",
+    "churchEmail": "Email",
+    "churchPhone": "Phone",
+    "churchWebsite": "Website",
+    "churchAddress": "Address",
+    "phoneNote": "Enter 10 digits only (no spaces or special characters)",
+    "addressNote": "This address appears on tax receipts and email communications",
+    "profileLoadFailed": "Failed to load church profile",
+    "profileSaved": "Church profile updated successfully",
+    "profileSaveFailed": "Failed to update church profile"
   },
 
   "landing": {

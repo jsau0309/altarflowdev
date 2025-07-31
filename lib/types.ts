@@ -74,6 +74,11 @@ export type Member = {
   // churchId: string; // Removed as client-side likely doesn't need internal DB ID
   // Add audit timestamps
   createdAt: string; // Assume ISO string from API
+  // Email preference data
+  emailPreference?: {
+    isSubscribed: boolean;
+    unsubscribedAt: string | null;
+  } | null;
   updatedAt: string; // Assume ISO string from API
 };
 

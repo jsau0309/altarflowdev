@@ -121,6 +121,10 @@
     "filterByStatus": "Filtrar por Estado",
     "name": "Nombre",
     "contact": "Contacto",
+    "emailStatus": "Estado de Email",
+    "subscribed": "Suscrito",
+    "unsubscribed": "Dado de baja",
+    "unsubscribedOn": "Dado de baja el {{date}}",
     "empty": {
       "title": "No se encontraron miembros",
       "adjustSearch": "Intenta ajustar tus términos de búsqueda.",

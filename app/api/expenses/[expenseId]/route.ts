@@ -51,12 +51,9 @@ export async function GET(
       return NextResponse.json({ error: 'Expense not found or access denied' }, { status: 404 });
     }
 
-    // 3. Authorization check: Ensure the user is the submitter (or has other permissions)
-    // TODO: Implement more complex logic later for admins/approvers (using orgRole?)
-    if (expense.submitterId !== userId) {
-      // Check against userId from getAuth()
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // 3. Authorization check: Allow viewing for any member of the organization
+    // Since we already verified the expense belongs to the user's org, they can view it
+    // Only delete operations are restricted to admins
 
     return NextResponse.json(expense);
 
@@ -200,12 +197,16 @@ export async function DELETE(
       return new NextResponse(null, { status: 204 }); // Idempotent: No Content
     }
 
-    // 3. Authorization: Only allow submitter to delete (adjust as needed)
-    // TODO: Refine roles later
-    if (existingExpense.submitterId !== userId) {
-        return NextResponse.json({ error: 'Forbidden: Not submitter' }, { status: 403 });
+    // 3. Authorization: Check if user is admin
+    // First, get the user's profile to check their role
+    const userProfile = await prisma.profile.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!userProfile || userProfile.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden: Only administrators can delete expenses' }, { status: 403 });
     }
-    // Add status checks if needed
 
     // 4. Attempt to delete file from Supabase Storage if path exists
     if (existingExpense.receiptPath) {

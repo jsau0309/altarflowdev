@@ -6,6 +6,8 @@ import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
 import { captureWebhookEvent, capturePaymentError } from '@/lib/sentry';
+import { format } from 'date-fns';
+import { getQuotaLimit } from '@/lib/subscription-helpers';
 
 // Disable body parsing, we need the raw body for webhook signature verification
 export const runtime = 'nodejs';
@@ -407,6 +409,28 @@ export async function POST(req: Request) {
           });
           
           console.log(`[Stripe Webhook] Updated church ${orgId} to active subscription`);
+          
+          // Update email quota for the current month
+          const currentMonthYear = format(new Date(), 'yyyy-MM');
+          const quotaLimit = 10000; // Paid subscription gets 10,000 campaigns
+          
+          await prisma.emailQuota.upsert({
+            where: {
+              churchId_monthYear: {
+                churchId: existingChurch.id,
+                monthYear: currentMonthYear,
+              }
+            },
+            update: { quotaLimit },
+            create: {
+              churchId: existingChurch.id,
+              monthYear: currentMonthYear,
+              quotaLimit,
+              emailsSent: 0,
+            }
+          });
+          
+          console.log(`[Stripe Webhook] Updated email quota to ${quotaLimit} campaigns for church ${orgId}`);
         } catch (error) {
           console.error('[Stripe Webhook] Error updating church subscription:', error);
           return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 });
@@ -482,12 +506,83 @@ export async function POST(req: Request) {
           console.log(`[Stripe Webhook] - Status: ${church.subscriptionStatus} -> ${updatedChurch.subscriptionStatus}`);
           console.log(`[Stripe Webhook] - Plan: ${church.subscriptionPlan} -> ${updatedChurch.subscriptionPlan}`);
           console.log(`[Stripe Webhook] - SubscriptionEndsAt: ${updatedChurch.subscriptionEndsAt ? updatedChurch.subscriptionEndsAt.toISOString() : 'null'}`);
+          
+          // Update email quota if subscription status changed
+          if (church.subscriptionStatus !== updatedChurch.subscriptionStatus) {
+            const currentMonthYear = format(new Date(), 'yyyy-MM');
+            const newQuotaLimit = getQuotaLimit(updatedChurch);
+            
+            // Find existing quota for current month
+            const existingQuota = await prisma.emailQuota.findFirst({
+              where: {
+                churchId: church.id,
+                monthYear: currentMonthYear,
+              },
+            });
+            
+            if (existingQuota) {
+              // Update existing quota
+              await prisma.emailQuota.update({
+                where: { id: existingQuota.id },
+                data: { quotaLimit: newQuotaLimit },
+              });
+              console.log(`[Stripe Webhook] Updated email quota for church ${church.id}: ${existingQuota.quotaLimit} -> ${newQuotaLimit} campaigns/month`);
+            } else {
+              // Create new quota
+              await prisma.emailQuota.create({
+                data: {
+                  churchId: church.id,
+                  monthYear: currentMonthYear,
+                  quotaLimit: newQuotaLimit,
+                  emailsSent: 0,
+                },
+              });
+              console.log(`[Stripe Webhook] Created email quota for church ${church.id}: ${newQuotaLimit} campaigns/month`);
+            }
+          }
+          
+          // Check if subscription has truly ended (for immediate handling of deleted subscriptions)
+          if (event.type === 'customer.subscription.deleted' && subscription.status === 'canceled') {
+            // This is an immediate cancellation (not waiting for period end)
+            const now = new Date();
+            const subscriptionEnd = new Date(subscription.current_period_end * 1000);
+            
+            if (now >= subscriptionEnd) {
+              // Subscription has ended immediately, update to free
+              console.log(`[Stripe Webhook] Subscription ended immediately, updating church to free status`);
+              
+              await prisma.church.update({
+                where: { id: church.id },
+                data: {
+                  subscriptionStatus: 'free',
+                  subscriptionPlan: null,
+                  subscriptionId: null,
+                },
+              });
+              
+              // Update quota to free tier
+              const currentMonthYear = format(now, 'yyyy-MM');
+              const existingQuota = await prisma.emailQuota.findFirst({
+                where: {
+                  churchId: church.id,
+                  monthYear: currentMonthYear,
+                },
+              });
+              
+              if (existingQuota) {
+                await prisma.emailQuota.update({
+                  where: { id: existingQuota.id },
+                  data: { quotaLimit: 4 },
+                });
+                console.log(`[Stripe Webhook] Updated quota to free tier (4 campaigns)`);
+              }
+            }
+          }
         } catch (error) {
           console.error('[Stripe Webhook] Error updating subscription:', error);
           console.error('[Stripe Webhook] Full error details:', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
-            churchId: church?.id,
             subscriptionId: subscription.id
           });
           // Re-throw to ensure webhook fails and Stripe retries
