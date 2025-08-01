@@ -16,20 +16,21 @@ const campaignUpdateSchema = z.object({
 // GET /api/campaigns/[campaignId] - Fetch a single campaign from the active organization
 export async function GET(
   request: NextRequest,
-  { params }: { params: { campaignId: string } }
+  { params }: { params: Promise<{ campaignId: string }> }
 ) {
   try {
+    const { campaignId } = await params;
     // 1. Get user and organization context
     const { userId, orgId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted GET on campaign ${params.campaignId} without active org.`);
+      console.error(`User ${userId} attempted GET on campaign ${campaignId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
-    const campaignId = params.campaignId;
+    // campaignId already extracted from await params
 
     // 2. Fetch campaign only if it belongs to the active org
     const campaign = await prisma.campaign.findFirst({
@@ -48,7 +49,8 @@ export async function GET(
     return NextResponse.json(campaign);
 
   } catch (error) {
-    console.error(`Error fetching campaign ${params.campaignId}:`, error);
+    const { campaignId } = await params;
+    console.error(`Error fetching campaign ${campaignId}:`, error);
     return NextResponse.json({ error: 'Failed to fetch campaign' }, { status: 500 });
   }
 }
@@ -56,10 +58,11 @@ export async function GET(
 // PATCH /api/campaigns/[campaignId] - Update an existing campaign in the active organization
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { campaignId: string } }
+  { params }: { params: Promise<{ campaignId: string }> }
 ) {
   let orgId: string | null | undefined = null; // Declare outside try
   try {
+    const { campaignId } = await params;
     // 1. Get user and organization context
     const authResult = getAuth(request);
     const userId = authResult.userId;
@@ -69,12 +72,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted PATCH on campaign ${params.campaignId} without active org.`);
+      console.error(`User ${userId} attempted PATCH on campaign ${campaignId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Implement role-based access (e.g., only ADMIN using authResult.orgRole)
 
-    const campaignId = params.campaignId;
+    // campaignId already extracted from await params
 
     // Remove initial existence check - updateMany handles this implicitly with the org check
     // const existingCampaign = await prisma.campaign.findUnique(...);
@@ -134,7 +137,8 @@ export async function PATCH(
     return NextResponse.json(updatedCampaign);
 
   } catch (error) {
-    console.error(`Error updating campaign ${params.campaignId}:`, error);
+    const { campaignId } = await params;
+    console.error(`Error updating campaign ${campaignId}:`, error);
     return NextResponse.json({ error: 'Failed to update campaign' }, { status: 500 });
   }
 }
@@ -142,10 +146,11 @@ export async function PATCH(
 // DELETE /api/campaigns/[campaignId] - Delete a campaign from the active organization
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { campaignId: string } }
+  { params }: { params: Promise<{ campaignId: string }> }
 ) {
   let orgId: string | null | undefined = null; // Declare outside try
   try {
+    const { campaignId } = await params;
     // 1. Get user and organization context
     const authResult = getAuth(request);
     const userId = authResult.userId;
@@ -155,12 +160,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted DELETE on campaign ${params.campaignId} without active org.`);
+      console.error(`User ${userId} attempted DELETE on campaign ${campaignId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Implement role-based access (e.g., only ADMIN using authResult.orgRole)
 
-    const campaignId = params.campaignId;
+    // campaignId already extracted from await params
 
     // Remove initial existence check
 
@@ -182,7 +187,8 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
-     console.error(`Error deleting campaign ${params.campaignId}:`, error);
+     const { campaignId } = await params;
+     console.error(`Error deleting campaign ${campaignId}:`, error);
      // Handle potential Prisma errors (e.g., foreign key constraint if campaign has related donations)
      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') { 
          return NextResponse.json({ error: 'Cannot delete campaign due to existing related records (e.g., donations).' }, { status: 409 }); // Conflict

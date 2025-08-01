@@ -131,7 +131,7 @@ export async function checkoutWithStripe(
 
 export async function createStripePortal(currentPath: string) {
     try {
-        const { userId } = auth();
+        const { userId } = await auth();
 
         if (!userId) {
             throw new Error('Could not get user session.');

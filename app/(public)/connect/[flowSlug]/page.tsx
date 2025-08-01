@@ -6,9 +6,9 @@ import ConnectForm from '@/components/connect/connect-form'; // Adjust path if c
 export const dynamic = "force-dynamic"; 
 
 interface ConnectPageProps {
-  params: {
+  params: Promise<{
     flowSlug: string;
-  };
+  }>;
 }
 
 export default async function ConnectFlowPage({ params }: ConnectPageProps) {

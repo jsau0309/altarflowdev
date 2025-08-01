@@ -21,8 +21,10 @@ NODE_ENV=production
 NEXT_PUBLIC_APP_URL=https://your-production-domain.com  # CRITICAL: Set to your actual domain for QR codes and public URLs
 
 # Database (Supabase)
-DATABASE_URL=postgresql://[user]:[password]@[host]:[port]/[database]?schema=public
-DIRECT_URL=postgresql://[user]:[password]@[host]:[port]/[database]?schema=public
+# IMPORTANT: Use connection pooling URL with proper pool settings
+# For Supabase Pro: Use pooler endpoint (port 6543) with PgBouncer
+DATABASE_URL=postgresql://[user]:[password]@[host].pooler.supabase.com:6543/[database]?pgbouncer=true&connection_limit=30&pool_timeout=30
+DIRECT_URL=postgresql://[user]:[password]@[host].supabase.com:5432/[database]
 
 # Authentication (Clerk)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx
@@ -61,6 +63,7 @@ NEXT_PUBLIC_STRIPE_ANNUAL_LINK=https://buy.stripe.com/xxxxx   # $830/year plan (
 RESEND_API_KEY=re_xxxxx
 RESEND_FROM_EMAIL='Altarflow <no-reply@your-domain.com>'
 YOUR_VERIFIED_RESEND_DOMAIN=your-domain.com
+RESEND_WEBHOOK_SECRET=whsec_xxxxx  # Get from Resend Dashboard > Webhooks
 ```
 
 ### AI Features (OpenAI)
@@ -82,8 +85,17 @@ TWILIO_VERIFY_SERVICE_SID=VAxxxxx
 # Mindee API (Receipt Scanning)
 MINDEE_API_KEY=xxxxx
 
+# Anthropic Claude (Optional - for email preview text generation)
+ANTHROPIC_API_KEY=sk-ant-xxxxx
+
+# Topol Email Editor
+NEXT_PUBLIC_TOPOL_API_KEY=xxxxx
+
 # Sentry (Error Tracking) - Optional but recommended
 SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
+
+# Cron Job Authentication (Optional but recommended)
+CRON_SECRET=xxxxx  # Random string for authenticating cron job requests
 ```
 
 ---
@@ -91,11 +103,17 @@ SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
 ## 🛠️ Third-Party Services
 
 ### 1. **Supabase (Database)**
-- [ ] Production database instance created
-- [ ] Connection pooling enabled
+- [ ] Production database instance created (Pro plan recommended)
+- [ ] Connection pooling enabled via PgBouncer (port 6543)
+- [ ] DATABASE_URL configured with proper connection pool settings:
+  - [ ] Using pooler endpoint: `aws-0-[region].pooler.supabase.com:6543`
+  - [ ] Connection limit set: `connection_limit=30` (adjust based on plan)
+  - [ ] Pool timeout configured: `pool_timeout=30`
+  - [ ] PgBouncer enabled: `pgbouncer=true`
 - [ ] Backup schedule configured
 - [ ] Row Level Security (RLS) policies verified
 - [ ] Database indexes optimized
+- [ ] Connection pool monitoring enabled in Supabase dashboard
 
 ### 2. **Clerk (Authentication)**
 - [ ] Production instance created
@@ -169,6 +187,22 @@ SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
 - [ ] SPF, DKIM, and DMARC records configured
 - [ ] Email templates tested
 - [ ] From addresses configured
+- [ ] Email unsubscribe functionality:
+  - [ ] Unsubscribe page accessible without authentication
+  - [ ] Unique tokens generated for each member
+  - [ ] Test unsubscribe/resubscribe flow
+- [ ] Webhook configuration:
+  - [ ] Webhook endpoint added: `https://your-domain.com/api/webhooks/resend`
+  - [ ] Webhook events selected:
+    - [ ] `email.sent` - Updates recipient status to SENT
+    - [ ] `email.delivered` - Updates recipient status to DELIVERED
+    - [ ] `email.bounced` - Handles bounce tracking and auto-unsubscribe
+    - [ ] `email.complained` - Auto-unsubscribes spam complainers
+    - [ ] `email.opened` (optional) - For open tracking
+    - [ ] `email.clicked` (optional) - For click tracking
+  - [ ] Webhook signing secret copied to `RESEND_WEBHOOK_SECRET` env var
+  - [ ] Test webhook delivery in Resend dashboard
+  - [ ] Verify EmailRecipient status updates are working
 
 ### 5. **OpenAI (AI Features)**
 - [ ] API key with sufficient credits
@@ -186,20 +220,63 @@ SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
 - [ ] Test SMS delivery
 - [ ] International SMS enabled (if needed)
 
+### 8. **Topol.io (Email Editor)**
+- [ ] API key obtained
+- [ ] Production key configured in environment
+- [ ] Test email design and preview functionality
+- [ ] Verify template saving works correctly
+
 ---
 
 ## 🗄️ Database Setup
 
+### Database Connection Pool Configuration
+
+#### Supabase Plan Limits & Recommendations:
+- **Free Plan**: 60 connections total, 10 direct connections
+  - Recommended: `connection_limit=10`
+- **Pro Plan**: 200 connections total, 50 direct connections  
+  - Recommended: `connection_limit=30` (leaves room for migrations, admin access)
+- **Team Plan**: 500 connections total
+  - Recommended: `connection_limit=50`
+- **Enterprise**: Custom limits
+  - Consult with Supabase support
+
+#### Scaling Capacity (Supabase Pro):
+With proper configuration, your app can handle:
+- **Concurrent Users**: 1,000-5,000 active users
+- **Requests/Second**: 200-500 API requests
+- **Daily Active Churches**: 500-1,000 churches
+- **Total Members**: 50,000-100,000 members across all churches
+- **Email Campaigns**: 100+ concurrent campaigns
+
+#### Performance Optimization:
+```bash
+# Update your DATABASE_URL before deployment:
+# Development (current):
+DATABASE_URL="...?connection_limit=10&pool_timeout=30"
+
+# Production (Supabase Pro):
+DATABASE_URL="...?connection_limit=30&pool_timeout=30&statement_cache_size=200"
+
+# High-traffic production:
+DATABASE_URL="...?connection_limit=50&pool_timeout=30&statement_cache_size=500"
+```
+
 ### Migration Steps
 ```bash
-# 1. Set production DATABASE_URL
-export DATABASE_URL="your-production-url"
+# 1. Set production DATABASE_URL with connection pool settings
+export DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=30"
 
-# 2. Run migrations
+# 2. Run migrations (use DIRECT_URL for migrations)
+export DIRECT_URL="postgresql://postgres.[project-ref]:[password]@db.[project-ref].supabase.co:5432/postgres"
 npx prisma migrate deploy
 
 # 3. Verify schema
 npx prisma db pull --print
+
+# 4. Test connection pool
+node -e "console.log('Testing connection pool...'); require('@prisma/client').PrismaClient().$connect().then(() => console.log('✅ Connected!'))"
 ```
 
 ### Required Tables & Indexes (Already in Schema)
@@ -246,10 +323,11 @@ CNAME resend._domainkey    [Resend CNAME Value]
 ### Public URLs Configuration
 - [ ] **Landing Pages**: The NFC landing pages will use the format: `https://your-domain.com/[church-slug]/nfc-landing`
 - [ ] **QR Codes**: Generated QR codes will automatically use the `NEXT_PUBLIC_APP_URL` environment variable
+- [ ] **Email Unsubscribe Links**: Will use the format: `https://your-domain.com/unsubscribe?token=xxxxx`
 - [ ] **Development vs Production**: 
   - Development: Can use ngrok URLs temporarily (e.g., `https://testaltarflow.ngrok.app`)
-  - Production: MUST use your actual domain for QR codes to work permanently
-- [ ] **Important**: Once QR codes are printed, the domain cannot change without reprinting
+  - Production: MUST use your actual domain for QR codes and unsubscribe links to work permanently
+- [ ] **Important**: Once QR codes are printed or emails are sent, the domain cannot change without breaking links
 
 ---
 
@@ -333,8 +411,16 @@ CNAME resend._domainkey    [Resend CNAME Value]
 ### Performance
 - [ ] Image optimization enabled
 - [ ] Database queries optimized
+- [ ] Connection pool properly configured:
+  - [ ] Monitor connection usage in Supabase dashboard
+  - [ ] Set up alerts for > 80% connection usage
+  - [ ] Review slow query logs weekly
 - [ ] Caching strategy implemented
 - [ ] CDN configured for assets
+- [ ] Database performance monitoring:
+  - [ ] Enable pg_stat_statements in Supabase
+  - [ ] Monitor query performance
+  - [ ] Set up slow query alerts (> 1 second)
 
 ### Monitoring
 - [ ] Error tracking (Sentry) configured:
@@ -356,6 +442,7 @@ CNAME resend._domainkey    [Resend CNAME Value]
   - [ ] Add/edit members
   - [ ] Import from CSV
   - [ ] SMS consent tracking
+  - [ ] Email subscription preferences
 - [ ] Donation processing:
   - [ ] Manual entry
   - [ ] Public form submission
@@ -369,6 +456,12 @@ CNAME resend._domainkey    [Resend CNAME Value]
   - [ ] Email notifications
   - [ ] SMS verification
   - [ ] Multi-language support (English/Spanish)
+  - [ ] Email campaigns:
+    - [ ] Campaign creation with Topol editor
+    - [ ] Recipient selection and filtering
+    - [ ] Email sending with quota tracking
+    - [ ] Unsubscribe link in all emails
+    - [ ] Campaign metrics tracking
 - [ ] Settings:
   - [ ] General settings
   - [ ] Landing page manager
@@ -437,6 +530,11 @@ Document key contacts for production issues:
 - **File Uploads**: Limited to 10MB for receipts
 - **AI Summaries**: Rate limited to prevent abuse
 - **Public Forms**: Protected by honeypot spam prevention
+- **Email Campaigns**: 
+  - Free churches: 4 campaigns per month
+  - Paid churches: Unlimited campaigns
+  - Automatic unsubscribe handling
+  - Email preference tracking per member
 
 #### Subscription States & Access Control
 - **Free**: New churches, no access to premium features
@@ -464,4 +562,75 @@ Document key contacts for production issues:
   - Development: Use full ngrok URLs in environment variables
   - Production: Use relative paths or full production URLs
 
-Last Updated: 2025-01-20
+#### Email Communication System
+- **Email Editor**: Topol.io integration for drag-and-drop email design
+- **Campaign Management**: 
+  - Multi-step campaign creation flow
+  - Draft auto-saving
+  - Recipient filtering by membership status
+  - Automatic exclusion of unsubscribed members
+- **Quota System**:
+  - Campaign-based (not recipient-based) counting
+  - Monthly reset on the 1st
+  - Free tier: 4 campaigns/month
+  - Paid tier: Unlimited campaigns
+- **Unsubscribe System**:
+  - Unique token per member (stored in EmailPreference table)
+  - Public unsubscribe page (no auth required)
+  - One-click unsubscribe with resubscribe option
+  - Automatic filtering in future campaigns
+- **Email Footer**: 
+  - Church name and address
+  - Unsubscribe link with member token
+  - CAN-SPAM compliant
+- **Email Delivery Tracking (Resend Webhooks)**:
+  - Development: Use ngrok URL (e.g., `https://testaltarflow.ngrok.app/api/webhooks/resend`)
+  - Production: Use actual domain (e.g., `https://altarflow.com/api/webhooks/resend`)
+  - Tracks delivery status: PENDING → SENT → DELIVERED
+  - Handles bounces with automatic email validation
+  - Auto-unsubscribes on spam complaints
+  - Updates EmailRecipient and EmailPreference tables
+  - Webhook signature verification for security
+- **Scheduled Campaign Sending**:
+  - Cron job endpoint: `/api/cron/send-scheduled-campaigns`
+  - Recommended frequency: Every 5 minutes
+  - Processes all campaigns where scheduledFor <= now
+  - **Option 1: Supabase Cron (Recommended)**:
+    - Run migration: `20250730000001_add_scheduled_campaign_cron.sql`
+    - Set database session settings in Supabase Dashboard:
+      ```
+      app.settings.app_url = 'https://your-domain.com'
+      app.settings.cron_secret = 'your-cron-secret'
+      ```
+    - View jobs: `SELECT * FROM cron.job;`
+    - Disable if needed: `SELECT cron.unschedule('send-scheduled-campaigns');`
+  - **Option 2: Supabase Edge Functions**:
+    - Deploy function: `supabase functions deploy send-scheduled-campaigns`
+    - Set secrets:
+      ```bash
+      supabase secrets set APP_URL=https://your-domain.com
+      supabase secrets set CRON_SECRET=your-cron-secret
+      ```
+    - Schedule with Supabase Dashboard or external service
+  - **Option 3: Vercel Cron (Recommended for Vercel deployments)**:
+    - Create `vercel.json` in project root:
+      ```json
+      {
+        "crons": [{
+          "path": "/api/cron/send-scheduled-campaigns",
+          "schedule": "*/5 * * * *"
+        }]
+      }
+      ```
+    - **Before deployment**:
+      - [ ] Ensure `vercel.json` is in your repository
+      - [ ] Set `CRON_SECRET` env var in Vercel dashboard
+    - **After deployment**:
+      - [ ] Verify in Vercel Dashboard > Functions > Cron Jobs
+      - [ ] Check execution logs in Functions tab
+      - [ ] No additional configuration needed - Vercel automatically sets up the cron
+    - **Important**: Vercel automatically adds authentication header to cron requests
+  - **Option 4: External cron service** with Bearer token auth
+  - Always set CRON_SECRET env var for authentication
+
+Last Updated: 2025-01-29

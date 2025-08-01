@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { Edit, Phone, Mail, MapPin, Check, X, MoreVertical, Trash, Trash2, Loader2 } from "lucide-react"
+import { Edit, Phone, Mail, MapPin, Check, X, MoreVertical, Trash, Trash2, Loader2, MailX, Calendar } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
@@ -111,7 +111,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
         state: member.state || "",
         zipCode: member.zipCode || "",
         membershipStatus: mappedStatus, // Use the mapped status
-        language: member.language || "spanish",
+        language: member.preferredLanguage || "spanish",
         joinDate: formatDateForInput(member.joinDate), // Use helper
       });
       // Reset errors when opening edit mode
@@ -373,7 +373,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
                 <div>
                    <p className="text-sm text-muted-foreground">{t('members:preferredLanguage', 'Preferred Language')}</p>
                    <p className="font-medium capitalize">
-                      {getLanguageText(member.language)}
+                      {getLanguageText(member.preferredLanguage)}
                    </p>
                 </div>
               </div>
@@ -386,7 +386,15 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span>{member.email || t('common:noEmailAddress', "No email address")}</span>
+                  <span className={member.email && member.emailPreference?.isSubscribed === false ? "line-through text-muted-foreground" : ""}>
+                    {member.email || t('common:noEmailAddress', "No email address")}
+                  </span>
+                  {member.email && member.emailPreference?.isSubscribed === false && (
+                    <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                      <MailX className="h-3 w-3 mr-1" />
+                      {t('members:unsubscribed', 'Unsubscribed')}
+                    </Badge>
+                  )}
                 </div>
               </div>
 

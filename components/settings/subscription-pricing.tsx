@@ -44,7 +44,7 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
         t("settings:billing.features.nfcQrPages", "NFC & QR code pages"),
         t("settings:billing.features.prioritySupport", "Priority support")
       ],
-      paymentLink: process.env.NEXT_PUBLIC_STRIPE_MONTHLY_LINK
+      paymentLink: process.env.NEXT_PUBLIC_STRIPE_MONTHLY_LINK || '#'
     },
     {
       id: "annual",
@@ -63,7 +63,7 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
         t("settings:billing.features.savePerYear", "Save $358 per year")
       ],
       popular: true,
-      paymentLink: process.env.NEXT_PUBLIC_STRIPE_ANNUAL_LINK
+      paymentLink: process.env.NEXT_PUBLIC_STRIPE_ANNUAL_LINK || '#'
     }
   ];
 
@@ -73,9 +73,11 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
   const handleSubscribe = async (plan: PricingPlan) => {
     // Only use payment links for users with 'free' status (new or expired subscriptions)
     if (currentStatus === "free") {
-      if (plan.paymentLink) {
+      if (plan.paymentLink && plan.paymentLink !== '#') {
         const url = `${plan.paymentLink}?client_reference_id=${organizationId}`;
         window.location.href = url;
+      } else {
+        setError(t("settings:billing.errors.noPaymentLink", "Payment link not configured. Please contact support."));
       }
     } else {
       // For ALL other statuses (active, canceled, past_due, grace_period), use customer portal

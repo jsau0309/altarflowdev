@@ -8,17 +8,20 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import type { Expense } from "@prisma/client"
 import { Decimal } from '@prisma/client/runtime/library';
 import { useTranslation } from "react-i18next"
+import { toast as sonnerToast } from "sonner"
 
 interface ExpenseDetailsDrawerProps {
   expense: Expense | null
@@ -26,6 +29,8 @@ interface ExpenseDetailsDrawerProps {
   onClose: () => void
   onEdit: (expense: Expense) => void
   onDelete: (id: string) => void
+  userRole?: "ADMIN" | "STAFF" | null
+  isDeleting?: boolean
 }
 
 const formatCurrency = (amount: number | Decimal | string | null | undefined, currencyCode: string = 'USD') => { 
@@ -37,7 +42,7 @@ const formatCurrency = (amount: number | Decimal | string | null | undefined, cu
     numericAmount = amount;
   } else if (typeof amount === 'string') {
     numericAmount = parseFloat(amount);
-  } else if (typeof amount === 'object' && amount !== null && typeof (amount as any).toNumber === 'function') {
+  } else if (typeof amount === 'object' && amount !== null && 'toNumber' in amount && typeof amount.toNumber === 'function') {
     // Handle Decimal object case (less likely after JSON serialization)
     numericAmount = (amount as Decimal).toNumber();
   } else {
@@ -56,12 +61,12 @@ const formatCurrency = (amount: number | Decimal | string | null | undefined, cu
   }).format(numericAmount)
 }
 
-export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete }: ExpenseDetailsDrawerProps) {
+export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete, userRole, isDeleting }: ExpenseDetailsDrawerProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [isLoadingReceipt, setIsLoadingReceipt] = useState(false)
   const [currentReceiptUrl, setCurrentReceiptUrl] = useState<string | null>(null);
   const [receiptUrlExpiry, setReceiptUrlExpiry] = useState<number>(0);
-  const [isDownloading, setIsDownloading] = useState(false)
+  // const [isDownloading, setIsDownloading] = useState(false)
   const { t } = useTranslation(['expenses', 'common'])
 
   // New function to refresh the signed URL when needed
@@ -142,7 +147,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
 
   useEffect(() => {
     // Debug logging removed: expense details drawer effect triggered
-    const isMounted = true; // To prevent state updates on unmounted component
+    // const isMounted = true; // To prevent state updates on unmounted component
 
     if (open && expense?.id) { // Only act if drawer is open and there's an expense
       if (expense.receiptPath) { // Check for receiptPath
@@ -177,52 +182,64 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
     onEdit(expense)
   }
 
+  const handleDeleteClick = () => {
+    // Check permission first
+    if (userRole !== "ADMIN") {
+      sonnerToast.error("Permission denied", {
+        description: "Only administrators can delete expenses.",
+      });
+      return;
+    }
+    // Show confirmation dialog
+    setConfirmDelete(true);
+  }
+
   const handleDelete = () => {
     onDelete(expense.id)
     setConfirmDelete(false)
   }
 
-  const handleDownload = async () => {
-    if (!currentReceiptUrl || !expenseWithPath.receiptPath) return;
+  // const handleDownload = async () => {
+  //   if (!currentReceiptUrl || !expenseWithPath.receiptPath) return;
 
-    setIsDownloading(true);
-    let objectUrl: string | null = null; // To store the temporary URL
+  //   setIsDownloading(true);
+  //   let objectUrl: string | null = null; // To store the temporary URL
 
-    try {
-      // Extract filename from the stored path
-      const pathParts = expenseWithPath.receiptPath.split('/');
-      const filename = pathParts[pathParts.length - 1] || `receipt-${expense.id}`;
+  //   try {
+  //     // Extract filename from the stored path
+  //     const pathParts = expenseWithPath.receiptPath.split('/');
+  //     const filename = pathParts[pathParts.length - 1] || `receipt-${expense.id}`;
       
-      // Fetch the image/file data from the signed URL
-      const response = await fetch(currentReceiptUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch receipt: ${response.statusText}`);
-      }
-      const blob = await response.blob();
+  //     // Fetch the image/file data from the signed URL
+  //     const response = await fetch(currentReceiptUrl);
+  //     if (!response.ok) {
+  //       throw new Error(`Failed to fetch receipt: ${response.statusText}`);
+  //     }
+  //     const blob = await response.blob();
 
-      // Create a temporary URL for the blob
-      objectUrl = URL.createObjectURL(blob);
+  //     // Create a temporary URL for the blob
+  //     objectUrl = URL.createObjectURL(blob);
 
-      // Create a link and trigger download
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = filename; // Use the extracted filename
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+  //     // Create a link and trigger download
+  //     const a = document.createElement("a");
+  //     a.href = objectUrl;
+  //     a.download = filename; // Use the extracted filename
+  //     document.body.appendChild(a);
+  //     a.click();
+  //     document.body.removeChild(a);
 
-    } catch (error) {
-      console.error("Download failed:", error);
-      // Optionally show a toast or error message to the user
-      alert(t('expenses:detailsDrawer.downloadError', 'Failed to download receipt.')); 
-    } finally {
-      // Clean up the temporary object URL
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-      setIsDownloading(false);
-    }
-  };
+  //   } catch (error) {
+  //     console.error("Download failed:", error);
+  //     // Optionally show a toast or error message to the user
+  //     alert(t('expenses:detailsDrawer.downloadError', 'Failed to download receipt.')); 
+  //   } finally {
+  //     // Clean up the temporary object URL
+  //     if (objectUrl) {
+  //       URL.revokeObjectURL(objectUrl);
+  //     }
+  //     setIsDownloading(false);
+  //   }
+  // };
 
 
 
@@ -333,30 +350,24 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
 
           <div className="p-6 border-t">
             <div className="flex gap-2 justify-between">
-              <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="text-destructive border-destructive/30">
+              <Button 
+                variant="outline" 
+                className={userRole !== "ADMIN" ? "text-muted-foreground border-muted-foreground/30" : "text-destructive border-destructive/30"}
+                disabled={isDeleting}
+                onClick={handleDeleteClick}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {t('common:deleting', 'Deleting...')}
+                  </>
+                ) : (
+                  <>
                     <Trash2 className="h-4 w-4 mr-2" />
-                    {t('common:delete')}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent aria-describedby="delete-confirm-description">
-                  <DialogHeader>
-                    <DialogTitle>{t('expenses:detailsDrawer.deleteConfirmTitle')}</DialogTitle>
-                    <DialogDescription id="delete-confirm-description">
-                      {t('expenses:detailsDrawer.deleteConfirmDescription')}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter className="mt-4">
-                    <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-                      {t('common:cancel')}
-                    </Button>
-                    <Button variant="destructive" onClick={handleDelete}>
-                      {t('common:delete')}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    {t('common:delete')} {userRole !== "ADMIN" && "(Admin only)"}
+                  </>
+                )}
+              </Button>
 
               <Button onClick={handleEdit}>
                 <Edit className="h-4 w-4 mr-2" />
@@ -367,6 +378,28 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete 
         </SheetContent>
       </Sheet>
 
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('expenses:detailsDrawer.deleteConfirmTitle', 'Confirm Deletion')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('expenses:detailsDrawer.deleteConfirmDescription', 'Are you sure you want to delete this expense? This action cannot be undone.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t('common:cancel', 'Cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('common:delete', 'Delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

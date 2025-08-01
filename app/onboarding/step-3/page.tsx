@@ -17,7 +17,9 @@ import { useToast } from '@/hooks/use-toast';
 const churchDetailsSchema = z.object({
   address: z.string().min(1, 'Address is required for tax receipts'),
   email: z.string().email('Invalid email address').min(1, 'Email is required for receipts'),
-  phone: z.string().optional(),
+  phone: z.string()
+    .regex(/^\d{0,10}$/, 'Phone must be digits only, maximum 10 digits')
+    .optional(),
   website: z.string().url('Invalid URL').optional().or(z.literal('')),
 });
 
@@ -79,12 +81,13 @@ export default function OnboardingStep3() {
       setIsLoading(true);
 
       // Update church details in database
-      const response = await fetch('/api/settings/church-details', {
-        method: 'POST',
+      const response = await fetch('/api/settings/church-profile', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          name: organization?.name || '', // Include name as it's required
           address: data.address,
           email: data.email,
           phone: data.phone || null,
@@ -226,9 +229,23 @@ export default function OnboardingStep3() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder={t('onboarding:step3.phonePlaceholder', '(555) 123-4567')}
-                {...register('phone')}
+                placeholder={t('onboarding:step3.phonePlaceholder', '5551234567')}
+                {...register('phone', {
+                  onChange: (e) => {
+                    // Only allow digits and limit to 10 characters
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    e.target.value = value;
+                  }
+                })}
+                maxLength={10}
+                className={errors.phone ? 'border-red-500' : ''}
               />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {t('onboarding:step3.phoneNote', 'Enter 10 digits only (no spaces or special characters)')}
+              </p>
             </div>
 
             {/* Website */}

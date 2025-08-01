@@ -4,11 +4,12 @@ import { prisma } from "@/lib/db";
 // GET /api/public/landing-settings/[slug] - Get public landing page settings
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await params;
     const church = await prisma.church.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       select: { 
         id: true,
         name: true,
@@ -38,7 +39,8 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error(`[GET /api/public/landing-settings/${params.slug}] Error:`, error);
+    const { slug } = await params;
+    console.error(`[GET /api/public/landing-settings/${slug}] Error:`, error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

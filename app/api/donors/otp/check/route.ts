@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
-
-if (!accountSid || !authToken || !verifyServiceSid) {
-  console.error('Twilio environment variables are not fully configured.');
-}
-
-const client = twilio(accountSid, authToken);
+import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
+  // Check Twilio configuration
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+  if (!accountSid || !authToken || !verifyServiceSid) {
+    console.error('Twilio environment variables are not fully configured.');
+    return NextResponse.json(
+      { error: 'SMS service is not configured. Please contact support.' },
+      { status: 503 }
+    );
+  }
+
+  // Initialize Twilio client only after validation
+  const client = twilio(accountSid, authToken);
   try {
     const body = await request.json();
     const { phoneNumber, code } = body;

@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
+import { useAuth } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Globe, Moon, Sun } from "lucide-react";
+import { Globe, Moon, Sun, Building, Loader2 } from "lucide-react";
+import LoaderOne from "@/components/ui/loader-one";
 
 // Helper to set a cookie
 const setCookie = (name: string, value: string, days: number) => {
@@ -28,10 +32,54 @@ export function GeneralSettings() {
   const { i18n, t } = useTranslation();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { getToken } = useAuth();
   const [isChangingLanguage, setIsChangingLanguage] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState(i18n.language);
   const [selectedTheme, setSelectedTheme] = useState(theme || "light");
   const [isSavingTheme, setIsSavingTheme] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [churchProfile, setChurchProfile] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    website: "",
+  });
+  const [hasProfileChanges, setHasProfileChanges] = useState(false);
+
+  useEffect(() => {
+    const fetchChurchProfile = async () => {
+      try {
+        const token = await getToken();
+        const response = await fetch("/api/settings/church-profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setChurchProfile({
+            name: data.name || "",
+            email: data.email || "",
+            phone: data.phone || "",
+            address: data.address || "",
+            website: data.website || "",
+          });
+        } else {
+          toast.error(t('settings:general.profileLoadFailed', 'Failed to load church profile'));
+        }
+      } catch (error) {
+        console.error('Failed to fetch church profile:', error);
+        toast.error(t('settings:general.profileLoadFailed', 'Failed to load church profile'));
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchChurchProfile();
+  }, [getToken, t]);
 
   const handleLanguageChange = async (newLanguage: string) => {
     if (newLanguage === i18n.language) return;
@@ -65,8 +113,162 @@ export function GeneralSettings() {
     }
   };
 
+  const handleProfileChange = (field: string, value: string) => {
+    setChurchProfile(prev => ({ ...prev, [field]: value }));
+    setHasProfileChanges(true);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsSavingProfile(true);
+      const token = await getToken();
+      
+      const response = await fetch("/api/settings/church-profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(churchProfile),
+      });
+
+      if (response.ok) {
+        toast.success(t('settings:general.profileSaved', 'Church profile updated successfully'));
+        setHasProfileChanges(false);
+      } else {
+        throw new Error('Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Failed to save church profile:', error);
+      toast.error(t('settings:general.profileSaveFailed', 'Failed to update church profile'));
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Church Profile */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5" />
+            {t('settings:general.churchProfile', 'Church Profile')}
+          </CardTitle>
+          <CardDescription>
+            {t('settings:general.churchProfileDescription', 'Manage your church information')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoadingProfile ? (
+            <div className="flex items-center justify-center py-8">
+              <LoaderOne />
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="church-name">
+                    {t('settings:general.churchName', 'Church Name')}
+                  </Label>
+                  <Input
+                    id="church-name"
+                    value={churchProfile.name}
+                    onChange={(e) => handleProfileChange('name', e.target.value)}
+                    placeholder="First Baptist Church"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="church-email">
+                    {t('settings:general.churchEmail', 'Email')}
+                  </Label>
+                  <Input
+                    id="church-email"
+                    type="email"
+                    value={churchProfile.email}
+                    onChange={(e) => handleProfileChange('email', e.target.value)}
+                    placeholder="contact@church.org"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="church-phone">
+                    {t('settings:general.churchPhone', 'Phone')}
+                  </Label>
+                  <Input
+                    id="church-phone"
+                    type="tel"
+                    value={churchProfile.phone}
+                    onChange={(e) => {
+                      // Only allow digits and limit to 10 characters
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      handleProfileChange('phone', value);
+                    }}
+                    placeholder="5551234567"
+                    maxLength={10}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings:general.phoneNote', 'Enter 10 digits only (no spaces or special characters)')}
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="church-website">
+                    {t('settings:general.churchWebsite', 'Website')}
+                  </Label>
+                  <Input
+                    id="church-website"
+                    type="url"
+                    value={churchProfile.website}
+                    onChange={(e) => handleProfileChange('website', e.target.value)}
+                    placeholder="https://yourchurch.org"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="church-address">
+                  {t('settings:general.churchAddress', 'Address')}
+                </Label>
+                <Textarea
+                  id="church-address"
+                  value={churchProfile.address}
+                  onChange={(e) => handleProfileChange('address', e.target.value)}
+                  placeholder="123 Church Street\nCity, State 12345"
+                  rows={3}
+                  className="resize-none"
+                />
+                <p className="text-sm text-muted-foreground">
+                  {t('settings:general.addressNote', 'This address appears on tax receipts and email communications')}
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={isSavingProfile || !hasProfileChanges}
+                >
+                  {isSavingProfile ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('settings:general.saving', 'Saving...')}
+                    </>
+                  ) : (
+                    t('settings:general.saveChanges', 'Save Changes')
+                  )}
+                </Button>
+                {hasProfileChanges && (
+                  <p className="text-sm text-muted-foreground">
+                    {t('settings:general.unsavedChanges', 'You have unsaved changes')}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Language Settings */}
       <Card>
         <CardHeader>

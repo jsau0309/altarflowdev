@@ -40,12 +40,20 @@ export async function GET(request: NextRequest) {
       // Alternative: return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 }); 
     }
 
-    // 2. Fetch members ONLY for the active organization
+    // 2. Fetch members ONLY for the active organization with email preferences
     const members = await prisma.member.findMany({
       where: { 
         church: { // Filter via the related Church model
           clerkOrgId: orgId // Use the Clerk Organization ID
         } 
+      },
+      include: {
+        emailPreference: {
+          select: {
+            isSubscribed: true,
+            unsubscribedAt: true,
+          },
+        },
       },
       orderBy: {
         lastName: 'asc',

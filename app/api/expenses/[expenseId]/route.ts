@@ -21,20 +21,19 @@ const expenseUpdateSchema = z.object({
 // GET /api/expenses/[expenseId] - Fetch a single expense from the active organization
 export async function GET(
   request: NextRequest,
-  { params }: { params: { expenseId: string } }
+  { params }: { params: Promise<{ expenseId: string }> }
 ) {
   try {
+    const { expenseId } = await params;
     // 1. Get user and organization context
     const { userId, orgId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted GET on expense ${params.expenseId} without active org.`);
+      console.error(`User ${userId} attempted GET on expense ${expenseId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
-
-    const expenseId = params.expenseId;
 
     // 2. Fetch the expense only if it belongs to the active org
     const expense = await prisma.expense.findFirst({
@@ -51,17 +50,15 @@ export async function GET(
       return NextResponse.json({ error: 'Expense not found or access denied' }, { status: 404 });
     }
 
-    // 3. Authorization check: Ensure the user is the submitter (or has other permissions)
-    // TODO: Implement more complex logic later for admins/approvers (using orgRole?)
-    if (expense.submitterId !== userId) {
-      // Check against userId from getAuth()
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // 3. Authorization check: Allow viewing for any member of the organization
+    // Since we already verified the expense belongs to the user's org, they can view it
+    // Only delete operations are restricted to admins
 
     return NextResponse.json(expense);
 
   } catch (error) {
-    console.error(`Error fetching expense ${params.expenseId}:`, error);
+    const { expenseId } = await params;
+    console.error(`Error fetching expense ${expenseId}:`, error);
     return NextResponse.json({ error: 'Failed to fetch expense' }, { status: 500 });
   }
 }
@@ -69,10 +66,11 @@ export async function GET(
 // PATCH /api/expenses/[expenseId] - Update an existing expense in the active organization
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { expenseId: string } }
+  { params }: { params: Promise<{ expenseId: string }> }
 ) {
   let orgId: string | null | undefined = null; // Declare outside try
   try {
+    const { expenseId } = await params;
     // 1. Get user and organization context
     const authResult = getAuth(request);
     const userId = authResult.userId;
@@ -82,11 +80,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted PATCH on expense ${params.expenseId} without active org.`);
+      console.error(`User ${userId} attempted PATCH on expense ${expenseId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
-
-    const expenseId = params.expenseId;
 
     // 2. Fetch expense minimal data for auth check before update
     const existingExpense = await prisma.expense.findFirst({
@@ -159,7 +155,8 @@ export async function PATCH(
     return NextResponse.json(updatedExpense);
 
   } catch (error) {
-    console.error(`Error updating expense ${params.expenseId}:`, error);
+    const { expenseId } = await params;
+    console.error(`Error updating expense ${expenseId}:`, error);
     return NextResponse.json({ error: 'Failed to update expense' }, { status: 500 });
   }
 }
@@ -167,10 +164,11 @@ export async function PATCH(
 // DELETE /api/expenses/[expenseId] - Delete an expense from the active organization
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { expenseId: string } }
+  { params }: { params: Promise<{ expenseId: string }> }
 ) {
   let orgId: string | null | undefined = null; // Declare outside try
   try {
+    const { expenseId } = await params;
     // 1. Get user and organization context
     const authResult = getAuth(request);
     const userId = authResult.userId;
@@ -180,11 +178,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted DELETE on expense ${params.expenseId} without active org.`);
+      console.error(`User ${userId} attempted DELETE on expense ${expenseId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
-
-    const expenseId = params.expenseId;
 
     // 2. Fetch the expense to get details (like receiptPath) AND verify ownership/org
     const existingExpense = await prisma.expense.findFirst({
@@ -200,12 +196,16 @@ export async function DELETE(
       return new NextResponse(null, { status: 204 }); // Idempotent: No Content
     }
 
-    // 3. Authorization: Only allow submitter to delete (adjust as needed)
-    // TODO: Refine roles later
-    if (existingExpense.submitterId !== userId) {
-        return NextResponse.json({ error: 'Forbidden: Not submitter' }, { status: 403 });
+    // 3. Authorization: Check if user is admin
+    // First, get the user's profile to check their role
+    const userProfile = await prisma.profile.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!userProfile || userProfile.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden: Only administrators can delete expenses' }, { status: 403 });
     }
-    // Add status checks if needed
 
     // 4. Attempt to delete file from Supabase Storage if path exists
     if (existingExpense.receiptPath) {
@@ -262,7 +262,8 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
-    console.error(`Error deleting expense ${params.expenseId}:`, error);
+    const { expenseId } = await params;
+    console.error(`Error deleting expense ${expenseId}:`, error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to delete expense';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }

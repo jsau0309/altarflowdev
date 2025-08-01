@@ -54,11 +54,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Expense not found or access denied' }, { status: 404 });
     }
 
-    // Security check: only allow access to the user's own expenses (using Clerk userId)
-    if (expense.submitterId !== userId) { 
-      console.warn(`User ${userId} attempted to refresh URL for expense ${expenseId} owned by ${expense.submitterId}.`);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Security check: Allow access to receipts for:
+    // 1. The user who submitted the expense
+    // 2. Any member or admin in the same organization
+    // Since we already verified the expense belongs to the user's org, no additional check needed
+    console.log(`User ${userId} from org ${orgId} accessing receipt for expense ${expenseId}.`);
 
     // Make sure the receipt path exists
     if (!expense.receiptPath) {

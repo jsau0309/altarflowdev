@@ -118,3 +118,10 @@
 .pac-container {
   @apply z-[9999] !important; /* Ensure dropdown appears above modals (shadcn dialog is z-50) */
 }
+
+/* Hide Clerk's create organization button for MVP */
+[data-localization-key="organizationSwitcher.action__createOrganization"],
+.cl-organizationSwitcherPopoverActionButton__createOrganization,
+.cl-organizationSwitcherPopoverActions__createOrganization {
+  display: none !important;
+}

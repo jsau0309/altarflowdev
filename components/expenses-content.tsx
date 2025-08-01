@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Search, Plus, CreditCard, Calendar as CalendarIcon, Filter, Loader2 } from "lucide-react"
+import { useAuth } from "@clerk/nextjs"
+import { Search, Plus, CreditCard, Calendar as CalendarIcon, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
@@ -29,6 +30,7 @@ interface DateRange {
 }
 
 export function ExpensesContent() {
+  const { getToken } = useAuth()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -38,6 +40,8 @@ export function ExpensesContent() {
   const [showExpenseDetails, setShowExpenseDetails] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
+  const [userRole, setUserRole] = useState<"ADMIN" | "STAFF" | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const { t, i18n } = useTranslation(['expenses', 'donations', 'common', 'reports'])
   const { toast } = useToast()
   
@@ -69,9 +73,28 @@ export function ExpensesContent() {
     }
   }, []);
 
+  const fetchUserRole = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch("/api/users/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserRole(data.role);
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  }, [getToken]);
+
   useEffect(() => {
     fetchExpenses();
-  }, [fetchExpenses]);
+    fetchUserRole();
+  }, [fetchExpenses, fetchUserRole]);
 
   useEffect(() => {
     if (error) {
@@ -100,39 +123,69 @@ export function ExpensesContent() {
   }
 
   const handleDeleteExpense = async (expenseId: string) => {
-    // Add a confirmation step maybe?
-    // if (!confirm("Are you sure you want to delete this expense?")) return;
-    
-    // Optimistic UI update (optional): Remove immediately
-    // setExpenses(prev => prev.filter(exp => exp.id !== expenseId));
-    // setError(null); // Clear previous errors
+    // Check if user is admin first
+    if (userRole !== "ADMIN") {
+      sonnerToast.error("Permission denied", {
+        description: "Only administrators can delete expenses.",
+      });
+      return;
+    }
+
+    // Prevent multiple delete attempts
+    if (deletingId) return;
+
+    setDeletingId(expenseId);
+    const loadingToast = sonnerToast.loading("Deleting expense...");
 
     try {
+      const token = await getToken();
       const response = await fetch(`/api/expenses/${expenseId}`, { 
-        method: 'DELETE' 
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      if (!response.ok) {
-        // Revert optimistic update if failed
-        // fetchExpenses(); // Or revert manually if needed
-        const errorData = await response.json().catch(() => ({})); // Catch potential JSON parsing errors on empty bodies
-        throw new Error(errorData.error || 'Failed to delete expense');
+      if (response.ok || response.status === 204) {
+        // Update expenses list immediately for better UX
+        setExpenses(prev => prev.filter(exp => exp.id !== expenseId));
+        
+        sonnerToast.dismiss(loadingToast);
+        sonnerToast.success("Expense deleted successfully!"); 
+        
+        // Refresh expenses in background
+        fetchExpenses();
+      } else {
+        sonnerToast.dismiss(loadingToast);
+        
+        // Handle specific error cases
+        if (response.status === 403) {
+          sonnerToast.error("Permission denied", {
+            description: "Only administrators can delete expenses. Please contact your admin.",
+          });
+        } else if (response.status === 404) {
+          sonnerToast.error("Expense not found", {
+            description: "This expense may have already been deleted.",
+          });
+          // Refresh the list since it might be out of sync
+          fetchExpenses();
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to delete expense");
+        }
+        return;
       }
-      
-      // Success: If not using optimistic update, refetch here
-      fetchExpenses(); 
-      sonnerToast.success(t('expenses:deleteSuccess', 'Expense deleted successfully!')); 
-
     } catch (err) {
       console.error("Delete expense error:", err);
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during deletion.';
-      sonnerToast.error(`${t('expenses:deleteError', 'Failed to delete expense')}: ${errorMessage}`);
-      // Revert optimistic update if it failed
-      // fetchExpenses(); 
+      sonnerToast.dismiss(loadingToast);
+      sonnerToast.error("Failed to delete expense", {
+        description: "Please try again later.",
+      });
     } finally {
-        // Close drawer and clear selection regardless of success/fail?
-        setShowExpenseDetails(false);
-        setSelectedExpense(null);
+      setDeletingId(null);
+      // Close drawer and clear selection
+      setShowExpenseDetails(false);
+      setSelectedExpense(null);
     }
   };
 
@@ -154,10 +207,15 @@ export function ExpensesContent() {
     // Date filter
     if (dateRange.from && dateRange.to) {
       const expenseDate = new Date(expense.expenseDate)
-      // Adjust for timezone
-      const adjustedDate = new Date(expenseDate.valueOf() + expenseDate.getTimezoneOffset() * 60 * 1000)
+      // Create dates at start and end of day for proper comparison
+      const startOfDay = new Date(dateRange.from)
+      startOfDay.setHours(0, 0, 0, 0)
       
-      if (!isWithinInterval(adjustedDate, { start: dateRange.from, end: dateRange.to })) {
+      const endOfDay = new Date(dateRange.to)
+      endOfDay.setHours(23, 59, 59, 999)
+      
+      // Compare dates without timezone adjustment
+      if (expenseDate < startOfDay || expenseDate > endOfDay) {
         return false
       }
     }
@@ -187,7 +245,7 @@ export function ExpensesContent() {
       numericAmount = amount;
     } else if (typeof amount === 'string') {
       numericAmount = parseFloat(amount);
-    } else if (typeof amount === 'object' && amount !== null && typeof (amount as any).toNumber === 'function') {
+    } else if (typeof amount === 'object' && amount !== null && 'toNumber' in amount && typeof amount.toNumber === 'function') {
       // Handle Decimal object case (less likely after JSON serialization, but good practice)
       numericAmount = (amount as Decimal).toNumber();
     } else {
@@ -426,14 +484,12 @@ export function ExpensesContent() {
                 </TableHeader>
                 <TableBody>
                   {currentItems.map((expense) => {
-                    // Adjust date for display based on timezone offset
-                    const dateUtc = new Date(expense.expenseDate); // Parse the UTC date string
-                    // getTimezoneOffset returns diff in minutes (e.g., 300 for UTC-5). We need to *add* this offset back to UTC time.
-                    const adjustedDate = new Date(dateUtc.valueOf() + dateUtc.getTimezoneOffset() * 60 * 1000);
+                    // Display date without timezone adjustment to match filtering
+                    const expenseDate = new Date(expense.expenseDate);
                     
                     return (
                       <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewExpenseDetails(expense)}>
-                        <TableCell>{format(adjustedDate, "PP")}</TableCell>
+                        <TableCell>{format(expenseDate, "PP")}</TableCell>
                         <TableCell>{expense.vendor || '-'}</TableCell>
                         <TableCell>{formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
@@ -480,6 +536,8 @@ export function ExpensesContent() {
         onClose={() => setShowExpenseDetails(false)}
         onEdit={() => selectedExpense && handleEditExpense(selectedExpense)}
         onDelete={() => selectedExpense && handleDeleteExpense(selectedExpense.id)}
+        userRole={userRole}
+        isDeleting={deletingId === selectedExpense?.id}
       />
     </div>
   )

@@ -77,6 +77,9 @@ model Church {
   flows                Flow[]
   members              Member[]
   stripeConnectAccount StripeConnectAccount?
+  emailCampaigns       EmailCampaign[]
+  emailQuota           EmailQuota[]
+  emailSettings        EmailSettings?
 }
 
 model DonationType {
@@ -154,7 +157,7 @@ model Member {
   id                         String            @id @default(uuid()) @db.Uuid
   firstName                  String
   lastName                   String
-  email                      String?           @unique
+  email                      String?
   phone                      String?
   address                    String?
   city                       String?
@@ -178,7 +181,10 @@ model Member {
   linkedDonors               Donor[]           @relation("DonorToMember")
   church                     Church            @relation(fields: [churchId], references: [id])
   submissions                Submission[]
+  emailRecipients            EmailRecipient[]
+  emailPreference            EmailPreference?
 
+  @@unique([churchId, email])
   @@index([churchId])
   @@index([churchId, joinDate])
   @@index([churchId, membershipStatus])
@@ -323,4 +329,123 @@ enum FlowType {
   NEW_MEMBER
   EVENT_SIGNUP
   SURVEY
+}
+
+// Email Communication Models
+
+model EmailCampaign {
+  id                String              @id @default(cuid())
+  churchId          String              @db.Uuid
+  subject           String
+  previewText       String?
+  contentJson       Json                // Unlayer design JSON
+  htmlContent       String?             // Generated HTML
+  status            EmailStatus         @default(DRAFT)
+  scheduledFor      DateTime?
+  sentAt            DateTime?
+  sentBy            String              // Clerk user ID
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Analytics
+  totalRecipients   Int                 @default(0)
+  sentCount         Int                 @default(0)
+  deliveredCount    Int                 @default(0)
+  bouncedCount      Int                 @default(0)
+  unsubscribedCount Int                 @default(0)
+  
+  church            Church              @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  recipients        EmailRecipient[]
+  
+  @@index([churchId])
+  @@index([churchId, createdAt])
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+model EmailRecipient {
+  id              String           @id @default(cuid())
+  campaignId      String
+  memberId        String           @db.Uuid
+  email           String
+  status          RecipientStatus  @default(PENDING)
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  bouncedAt       DateTime?
+  bounceReason    String?
+  unsubscribedAt  DateTime?
+  failureReason   String?          // Reason for send failure
+  resendEmailId   String?          // Resend tracking ID
+  
+  campaign        EmailCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  member          Member           @relation(fields: [memberId], references: [id])
+  
+  @@unique([campaignId, memberId])
+  @@index([campaignId])
+  @@index([memberId])
+  @@index([email])
+}
+
+model EmailPreference {
+  id                String    @id @default(cuid())
+  memberId          String    @db.Uuid @unique
+  email             String
+  isSubscribed      Boolean   @default(true)
+  unsubscribedAt    DateTime?
+  unsubscribeToken  String    @unique @default(cuid())
+  bounceCount       Int       @default(0)
+  lastBouncedAt     DateTime?
+  isEmailValid      Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  member            Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  
+  @@index([email])
+  @@index([unsubscribeToken])
+}
+
+model EmailQuota {
+  id              String    @id @default(cuid())
+  churchId        String    @db.Uuid
+  monthYear       String    // Format: "2025-01"
+  emailsSent      Int       @default(0) // Actually tracks campaigns sent, not individual emails
+  quotaLimit      Int       @default(4) // 4 campaigns for free, 10000 for paid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  church          Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  
+  @@unique([churchId, monthYear])
+  @@index([churchId])
+}
+
+model EmailSettings {
+  id              String    @id @default(cuid())
+  churchId        String    @db.Uuid @unique
+  senderName      String?   // e.g., "First Baptist Church"
+  replyToEmail    String?   // Where replies should go
+  timezone        String    @default("America/New_York")
+  footerAddress   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  church          Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+}
+
+enum EmailStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum RecipientStatus {
+  PENDING
+  SENT
+  DELIVERED
+  BOUNCED
+  UNSUBSCRIBED
+  FAILED
 }

@@ -26,20 +26,19 @@ const memberUpdateSchema = z.object({
 // GET /api/members/[memberId] - Fetch a single member from the active organization
 export async function GET(
   request: NextRequest,
-  { params }: { params: { memberId: string } }
+  { params }: { params: Promise<{ memberId: string }> }
 ) {
   try {
+    const { memberId } = await params;
     // 1. Get user and organization context
     const { userId, orgId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted GET on member ${params.memberId} without active org.`);
+      console.error(`User ${userId} attempted GET on member ${memberId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
-
-    const memberId = params.memberId;
 
     // 2. Fetch the member *only if* it exists AND belongs to the active organization
     const member = await prisma.member.findFirst({
@@ -61,7 +60,8 @@ export async function GET(
     return NextResponse.json(member);
 
   } catch (error) {
-    console.error(`Error fetching member ${params.memberId}:`, error);
+    const { memberId } = await params;
+    console.error(`Error fetching member ${memberId}:`, error);
     return NextResponse.json({ error: 'Failed to fetch member' }, { status: 500 });
   }
 }
@@ -69,10 +69,11 @@ export async function GET(
 // PATCH /api/members/[memberId] - Update an existing member in the active organization
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { memberId: string } }
+  { params }: { params: Promise<{ memberId: string }> }
 ) {
   let orgId: string | null | undefined = null; // Declare orgId outside try
   try {
+    const { memberId } = await params;
     // 1. Get user and organization context
     const authResult = getAuth(request);
     const userId = authResult.userId;
@@ -82,12 +83,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted PATCH on member ${params.memberId} without active org.`);
+      console.error(`User ${userId} attempted PATCH on member ${memberId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Add role-based check? (e.g., authResult.orgRole === 'admin')
-
-    const memberId = params.memberId;
 
     // Remove profile fetch and initial existence check based on old churchId
 
@@ -147,7 +146,8 @@ export async function PATCH(
     return NextResponse.json(updatedMember);
 
   } catch (error) {
-    console.error(`Error updating member ${params.memberId}:`, error);
+    const { memberId } = await params;
+    console.error(`Error updating member ${memberId}:`, error);
     // Handle potential Prisma errors (e.g., unique constraint on email)
     if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code === 'P2002') { 
         let conflictingField = 'unique field';
@@ -163,10 +163,11 @@ export async function PATCH(
 // DELETE /api/members/[memberId] - Delete a member from the active organization
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { memberId: string } }
+  { params }: { params: Promise<{ memberId: string }> }
 ) {
   let orgId: string | null | undefined = null; // Declare orgId outside try
   try {
+    const { memberId } = await params;
     // 1. Get user and organization context
     const authResult = getAuth(request);
     const userId = authResult.userId;
@@ -176,14 +177,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted DELETE on member ${params.memberId} without active org.`);
+      console.error(`User ${userId} attempted DELETE on member ${memberId} without active org.`);
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Add role-based check?
 
     // Remove profile fetch
-
-    const memberId = params.memberId;
 
     // 2. Use deleteMany with compound where clause to ensure ownership
     const deleteResult = await prisma.member.deleteMany({
@@ -208,7 +207,8 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
-    console.error(`Error deleting member ${params.memberId}:`, error);
+    const { memberId } = await params;
+    console.error(`Error deleting member ${memberId}:`, error);
     // Handle potential Prisma errors (e.g., foreign key constraint if member has related donations)
     if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code === 'P2003') { 
         return NextResponse.json({ error: 'Cannot delete member due to existing related records (e.g., donations).' }, { status: 409 }); // Conflict

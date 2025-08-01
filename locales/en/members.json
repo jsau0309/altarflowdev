@@ -121,6 +121,10 @@
   "filterByStatus": "Filter by Status",
   "name": "Name",
   "contact": "Contact",
+  "emailStatus": "Email Status",
+  "subscribed": "Subscribed",
+  "unsubscribed": "Unsubscribed",
+  "unsubscribedOn": "Unsubscribed on {{date}}",
   "empty": {
     "title": "No members found",
     "adjustSearch": "Try adjusting your search terms.",

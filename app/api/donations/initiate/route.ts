@@ -80,7 +80,19 @@ export async function POST(request: Request) {
     // Update Donor record if donorId is provided and details are available
     if (donorId && !isAnonymous) {
       // Debug logging removed: attempting to update donor with validation data
-      const donorUpdateData: any = {};
+      const donorUpdateData: Partial<{
+        firstName: string;
+        lastName: string;
+        email: string;
+        addressLine1: string;
+        addressLine2: string;
+        city: string;
+        state: string;
+        postalCode: string;
+        country: string;
+        phone: string;
+        isPhoneVerified: boolean;
+      }> = {};
       if (validation.data.firstName) donorUpdateData.firstName = validation.data.firstName;
       if (validation.data.lastName) donorUpdateData.lastName = validation.data.lastName;
       if (validation.data.donorEmail) donorUpdateData.email = validation.data.donorEmail; 

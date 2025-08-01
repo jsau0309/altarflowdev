@@ -10,6 +10,8 @@ import { NextResponse } from 'next/server'
 // Import Prisma client
 import { prisma } from '@/lib/prisma'; // Use named import
 import { Role } from '@prisma/client'; // Import the Role enum
+import { format } from 'date-fns';
+import { getQuotaLimit } from '@/lib/subscription-helpers';
 
 export async function POST(req: Request) {
 
@@ -114,6 +116,32 @@ export async function POST(req: Request) {
 
       console.log(`Processing organization.created for Org ID: ${orgId}`);
       try {
+        // Check if the creator already has a church/organization
+        if (createdByUserId) {
+          // First, check if this user is already an admin of any organization
+          const existingProfile = await prisma.profile.findUnique({
+            where: { id: createdByUserId },
+            select: { role: true }
+          });
+
+          // Check if user already has an admin role (meaning they already have a church)
+          if (existingProfile?.role === 'ADMIN') {
+            console.error(`User ${createdByUserId} already has a church (is ADMIN). Preventing duplicate organization creation.`);
+            // We can't really prevent Clerk from creating the org, but we won't create a Church record
+            // This will effectively make the Clerk org unusable in our system
+            return new Response('User already has a church', { status: 200 }); // Return 200 to not retry
+          }
+        }
+
+        // Also check if a church with this Clerk org ID already exists (defensive programming)
+        const existingChurch = await prisma.church.findUnique({
+          where: { clerkOrgId: orgId }
+        });
+
+        if (existingChurch) {
+          console.error(`Church already exists for Org ID: ${orgId}. Skipping duplicate creation.`);
+          return new Response('Church already exists', { status: 200 });
+        }
         // Generate slug from organization name
         let slug = name
           .toString()        // Ensure name is a string
@@ -146,6 +174,20 @@ export async function POST(req: Request) {
           }
         });
         console.log(`Successfully created church for Org ID: ${orgId} with internal ID: ${newChurch.id} - Free plan activated`);
+
+        // Create initial email quota for the new church
+        const currentMonthYear = format(new Date(), 'yyyy-MM');
+        const quotaLimit = getQuotaLimit(newChurch); // Will return 4 for free churches
+        
+        await prisma.emailQuota.create({
+          data: {
+            churchId: newChurch.id,
+            monthYear: currentMonthYear,
+            quotaLimit,
+            emailsSent: 0, // Tracks campaigns sent, not individual emails
+          },
+        });
+        console.log(`Successfully created email quota for church ID: ${newChurch.id} with limit: ${quotaLimit} campaigns/month`);
 
         // Now, create default donation types for the new church
         const defaultDonationTypesData = [

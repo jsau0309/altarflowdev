@@ -9,9 +9,9 @@ import { prisma } from '@/lib/prisma';
 import type { Metadata } from 'next';
 
 interface NfcLandingPageProps {
-  params: {
+  params: Promise<{
     churchSlug: string;
-  };
+  }>;
 }
 
 async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
@@ -97,7 +97,7 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
 }
 
 export default async function NfcLandingPage({ params }: NfcLandingPageProps) {
-  const { churchSlug } = params;
+  const { churchSlug } = await params;
   return <NfcLandingContent churchSlug={churchSlug} />;
 }
 

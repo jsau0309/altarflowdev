@@ -1,0 +1,478 @@
+{
+  "title": "Comunicación",
+  "subtitle": "Administra campañas de correo y configuración de comunicación",
+  
+  "tabs": {
+    "campaigns": "Campañas de Email",
+    "settings": "Configuración de Email"
+  },
+  
+  "emailSettings": {
+    "title": "Configuración de Email",
+    "deliverySettings": {
+      "title": "Configuración de Envío",
+      "description": "Configura cómo se envían tus correos",
+      "senderName": "Nombre del Remitente",
+      "senderNameDescription": "Aparece como el nombre \"De\"",
+      "senderNamePlaceholder": "{{churchName}}",
+      "replyToEmail": "Email de Respuesta (Opcional)",
+      "replyToEmailDescription": "Donde se enviarán las respuestas (opcional)",
+      "replyToEmailPlaceholder": "oficina@iglesia.com",
+      "timezone": "Zona Horaria",
+      "timezoneDescription": "Para programar correos",
+      "timezonePlaceholder": "Selecciona una zona horaria"
+    },
+    "compliance": {
+      "title": "Cumplimiento",
+      "description": "Requerido por la ley CAN-SPAM para todos los pies de página de correo",
+      "mailingAddress": "Dirección Postal",
+      "addressPlaceholder": "123 Calle de la Iglesia\nCiudad, Estado 12345",
+      "syncFromProfile": "Sincronizar del Perfil",
+      "addressDiffers": "La dirección difiere del perfil de la iglesia",
+      "addressSynced": "✓ Sincronizado con el perfil de la iglesia",
+      "noAddressInProfile": "No hay dirección en el perfil de la iglesia"
+    },
+    "saveSettings": "Guardar Configuración",
+    "savingSettings": "Guardando configuración...",
+    "settingsSaved": "Configuración guardada",
+    "settingsSavedDescription": "Tu configuración de email ha sido actualizada exitosamente.",
+    "failedToLoadSettings": "Error al cargar configuración",
+    "failedToLoadSettingsDescription": "Por favor recarga la página e intenta de nuevo.",
+    "failedToSaveSettings": "Error al guardar configuración",
+    "failedToSaveSettingsDescription": "No se pudo guardar la configuración. Por favor intenta de nuevo.",
+    "addressSyncedSuccess": "Dirección sincronizada del perfil de la iglesia"
+  },
+  
+  "timezones": {
+    "eastern": "Hora del Este (ET)",
+    "central": "Hora Central (CT)",
+    "mountain": "Hora de la Montaña (MT)",
+    "pacific": "Hora del Pacífico (PT)",
+    "arizona": "Hora de Arizona",
+    "alaska": "Hora de Alaska",
+    "hawaii": "Hora de Hawaii"
+  },
+  
+  "campaigns": {
+    "title": "Campañas de Email",
+    "subtitle": "Envía boletines a los miembros de tu iglesia",
+    "manageSubtitle": "Administra y rastrea tus comunicaciones por email",
+    "newEmail": "Nuevo Email",
+    "createCampaign": "Crear Campaña",
+    "noCampaigns": "No hay campañas aún",
+    "noCampaignsDescription": "Crea tu primera campaña de email para comenzar a comunicarte con tus miembros.",
+    "unlimitedCampaigns": "Campañas ilimitadas",
+    "campaignsThisMonth": "{{used}}/{{limit}} campañas este mes",
+    "campaignsSent": "{{used}}/{{limit}} campañas enviadas",
+    "limitReached": "Límite alcanzado",
+    "monthlyLimitReached": "Límite mensual alcanzado. Se reinicia el {{resetDate}}.",
+    "resetsOn": "Se reinicia {{resetDate}}",
+    
+    "table": {
+      "subject": "Asunto",
+      "status": "Estado",
+      "recipients": "Destinatarios",
+      "scheduledSent": "Programado/Enviado",
+      "created": "Creado",
+      "actions": "Acciones",
+      "recipientCountTooltip": "El conteo de destinatarios se mostrará cuando se envíe la campaña"
+    },
+    
+    "actions": {
+      "openMenu": "Abrir menú",
+      "actionsLabel": "Acciones",
+      "viewDetails": "Ver Detalles",
+      "editDesign": "Editar Diseño",
+      "send": "Enviar",
+      "delete": "Eliminar",
+      "deleteAdminOnly": "Eliminar (Solo Admin)",
+      "deleting": "Eliminando..."
+    },
+    
+    "status": {
+      "draft": "BORRADOR",
+      "scheduled": "PROGRAMADO",
+      "sending": "ENVIANDO",
+      "sent": "ENVIADO",
+      "failed": "FALLIDO"
+    },
+    
+    "deleteDialog": {
+      "title": "Confirmar Eliminación",
+      "description": "¿Estás seguro de que deseas eliminar esta campaña? Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "delete": "Eliminar"
+    },
+    
+    "toast": {
+      "loadingCampaigns": "Cargando campañas...",
+      "failedToLoadCampaigns": "Error al cargar campañas",
+      "deletingCampaign": "Eliminando campaña...",
+      "campaignDeleted": "Campaña eliminada exitosamente",
+      "campaignDeletedDescription": "La campaña de email ha sido eliminada.",
+      "permissionDenied": "Permiso denegado",
+      "permissionDeniedDescription": "Solo los administradores pueden eliminar campañas.",
+      "adminOnlyDelete": "Solo los administradores pueden eliminar campañas. Contacta al administrador de tu iglesia.",
+      "campaignNotFound": "Campaña no encontrada",
+      "campaignNotFoundDescription": "Esta campaña puede haber sido eliminada.",
+      "failedToDelete": "Error al eliminar campaña",
+      "failedToDeleteDescription": "Por favor intenta de nuevo más tarde.",
+      "scheduledInYourTimezone": "Hora mostrada en tu zona horaria local"
+    }
+  },
+  
+  "viewDetails": {
+    "backButton": "Volver a campañas",
+    "failedToLoad": "Error al cargar los detalles de la campaña",
+    
+    "status": {
+      "draft": "Borrador",
+      "scheduled": "Programado",
+      "sending": "Enviando",
+      "sent": "Enviado",
+      "failed": "Fallido"
+    },
+    
+    "metrics": {
+      "status": "Estado",
+      "sentOn": "Enviado {{date}}",
+      "scheduledFor": "Programado para {{date}}",
+      "recipients": "Destinatarios",
+      "totalRecipients": "Total de destinatarios",
+      "sent": "Enviados",
+      "emailsDelivered": "Correos entregados",
+      "created": "Creado"
+    },
+    
+    "emailContent": {
+      "title": "Contenido del Email"
+    },
+    
+    "recipientsList": {
+      "title": "Destinatarios",
+      "description": "Miembros que recibieron esta campaña",
+      "name": "Nombre",
+      "email": "Correo",
+      "status": "Estado",
+      "statusSent": "Enviado"
+    }
+  },
+  
+  "stepper": {
+    "step1": {
+      "title": "Detalles de Campaña",
+      "description": "Asunto y vista previa"
+    },
+    "step2": {
+      "title": "Diseñar Email",
+      "description": "Crea tu contenido"
+    },
+    "step3": {
+      "title": "Seleccionar Destinatarios",
+      "description": "Elige a quién enviar"
+    },
+    "step4": {
+      "title": "Revisar y Enviar",
+      "description": "Revisión final"
+    }
+  },
+  
+  "campaignDetails": {
+    "title": "Detalles de Campaña",
+    "loadingDescription": "Cargando información de la campaña...",
+    "updateDescription": "Actualiza la información de tu campaña de email",
+    "createDescription": "Configura la información de tu campaña de email",
+    
+    "subject": {
+      "label": "Línea de Asunto",
+      "placeholder": "Ingresa el asunto de tu email",
+      "characterCount": "{{count}}/50",
+      "error": "Por favor ingresa una línea de asunto",
+      "helpTitle": "Mejores Prácticas para el Asunto",
+      "helpTips": [
+        "Manténlo bajo 50 caracteres para móvil",
+        "Sé claro y específico sobre el contenido",
+        "Evita MAYÚSCULAS y puntuación excesiva!!!",
+        "Personaliza cuando sea posible"
+      ]
+    },
+    
+    "preview": {
+      "label": "Texto de Vista Previa",
+      "placeholder": "Texto que aparece en la vista previa del buzón",
+      "characterCount": "{{count}}/90 caracteres",
+      "helpTitle": "Consejos para el Texto de Vista Previa",
+      "helpDescription": "Este texto aparece después de la línea de asunto en la mayoría de los clientes de correo. Úsalo para proporcionar contexto adicional o un llamado a la acción."
+    },
+    
+    "ai": {
+      "buttonText": "Asistente IA - Generar Asunto y Vista Previa"
+    },
+    
+    "actions": {
+      "saveAsDraft": "Guardar como Borrador",
+      "nextDesignEmail": "Siguiente: Diseñar Email",
+      "saveAndReturn": "Guardar y Volver a Revisar"
+    },
+    
+    "toast": {
+      "failedToLoad": "Error al cargar los detalles de la campaña",
+      "campaignUpdated": "Campaña actualizada exitosamente",
+      "failedToSave": "Error al guardar los detalles de la campaña",
+      "failedToCreate": "Error al crear la campaña",
+      "savedAsDraft": "Campaña guardada como borrador",
+      "failedToSaveDraft": "Error al guardar el borrador"
+    }
+  },
+  
+  "newCampaign": {
+    "backToCampaigns": "Volver a Campañas",
+    "backToDetails": "Volver a Detalles",
+    "backToEditor": "Volver al Editor",
+    "backToRecipients": "Volver a Destinatarios",
+    "createTitle": "Crear Campaña de Email",
+    "editTitle": "Editar Campaña de Email",
+    "designTitle": "Diseña Tu Email",
+    "recipientsTitle": "Seleccionar Destinatarios",
+    "reviewTitle": "Revisar y Enviar",
+    "step1Description": "Comienza configurando los detalles de tu campaña",
+    "step2Description": "Crea el contenido de tu email usando el editor visual",
+    "step3Description": "Elige quién recibirá tu campaña de email",
+    "step4Description": "Revisa tu campaña antes de enviar",
+    "loadingEditor": "Cargando editor...",
+    "loadingRecipients": "Cargando destinatarios...",
+    "loadingCampaign": "Cargando campaña..."
+  },
+  
+  "aiAssistant": {
+    "title": "Asistente de Email IA",
+    "description": "Genera líneas de asunto y texto de vista previa atractivos para tu campaña",
+    "selectTone": "Selecciona el tono de tu email",
+    "generateButton": "Generar Sugerencias",
+    "generating": "Generando sugerencias de IA...",
+    "generatedSuggestions": "Sugerencias Generadas",
+    "generateNew": "Generar Nuevas Sugerencias",
+    "useThisSuggestion": "Usar Esta Sugerencia",
+    "close": "Cerrar",
+    "suggestionApplied": "Sugerencia aplicada",
+    "failedToGenerate": "Error al generar sugerencias",
+    
+    "labels": {
+      "subjectLine": "Línea de Asunto",
+      "previewText": "Texto de Vista Previa"
+    },
+    
+    "tones": {
+      "friendly": {
+        "label": "🤝 Amigable",
+        "description": "Cálido y acogedor"
+      },
+      "formal": {
+        "label": "📋 Formal",
+        "description": "Profesional y respetuoso"
+      },
+      "urgent": {
+        "label": "⚡ Urgente",
+        "description": "Sensible al tiempo y directo"
+      },
+      "celebratory": {
+        "label": "🎉 Celebratorio",
+        "description": "Alegre y emocionante"
+      },
+      "informative": {
+        "label": "📰 Informativo",
+        "description": "Claro y educativo"
+      }
+    },
+    
+    "fallbackSuggestions": {
+      "subject1": "Únete a nosotros este domingo para adoración y comunión",
+      "preview1": "Experimenta adoración significativa y conéctate con nuestra familia de la iglesia",
+      "subject2": "Actualizaciones importantes de la iglesia y próximos eventos",
+      "preview2": "Manténte informado sobre lo que está sucediendo en nuestra comunidad eclesial",
+      "subject3": "Estás invitado: Evento especial de la iglesia este mes",
+      "preview3": "No te pierdas esta oportunidad de crecer en fe y comunión",
+      "subject4": "Peticiones de oración semanales e informes de alabanza",
+      "preview4": "Comparte las alegrías de nuestra comunidad y apóyense mutuamente en oración",
+      "subject5": "Oportunidades de voluntariado para servir a nuestra comunidad",
+      "preview5": "Marca la diferencia usando tus dones para bendecir a otros"
+    }
+  },
+  
+  "emailEditor": {
+    "title": "Editor de Email",
+    "previewTitle": "Vista Previa del Email",
+    "description": "Diseña tu email usando bloques de arrastrar y soltar",
+    "previewDescription": "Ver tu diseño de email",
+    "saveDraftAndExit": "Guardar Borrador y Salir",
+    "nextSelectRecipients": "Siguiente: Seleccionar Destinatarios",
+    "saveAndReturn": "Guardar y Volver a Revisar",
+    "backToDetails": "Volver a Detalles",
+    "autoSaved": "Guardado automático",
+    "unsavedChanges": "Cambios sin guardar",
+    "saving": "Guardando...",
+    "savingAndClosing": "Guardando y cerrando...",
+    "emailSavedSuccess": "Email guardado exitosamente",
+    "failedToSave": "Error al guardar el email",
+    "sendingTestEmail": "Enviando email de prueba...",
+    "testEmailSent": "Email de prueba enviado a",
+    "failedToSendTest": "Error al enviar email de prueba",
+    "savingDraft": "Guardando borrador...",
+    "draftSavedSuccess": "Borrador guardado exitosamente",
+    "failedToSaveDraft": "Error al guardar el borrador",
+    "savingAndContinuing": "Guardando y continuando...",
+    "designSaved": "Diseño guardado",
+    "failedToSaveDesign": "Error al guardar el diseño",
+    "loadingCampaign": "Cargando campaña...",
+    "loadingEmailEditor": "Cargando editor de email...",
+    "noCampaignId": "No se proporcionó ID de campaña",
+    "failedToLoadCampaign": "Error al cargar la campaña",
+    "failedToAutoSave": "Error al guardar automáticamente. Por favor guarda manualmente.",
+    "testEmail": "Email de Prueba"
+  },
+  
+  "recipientsSelection": {
+    "title": "Selección de Destinatarios",
+    "description": "Elige quién recibirá esta campaña de email",
+    
+    "recipientTypes": {
+      "all": "Enviar a todos los miembros",
+      "selected": "Enviar a miembros seleccionados",
+      "filtered": "Enviar a miembros filtrados"
+    },
+    
+    "search": {
+      "placeholder": "Buscar miembros por nombre o correo...",
+      "selectAllVisible": "Seleccionar Todos Visibles",
+      "deselectAll": "Deseleccionar Todos"
+    },
+    
+    "filters": {
+      "all": "Todos",
+      "member": "Miembro",
+      "visitor": "Visitante"
+    },
+    
+    "noMembersFound": "No se encontraron miembros que coincidan con tus criterios",
+    "unsubscribed": "Dado de baja",
+    
+    "recipientSummary": "{{count}} destinatarios recibirán este email. Los miembros que se han dado de baja serán excluidos automáticamente.",
+    
+    "actions": {
+      "saveDraftAndExit": "Guardar Borrador y Salir",
+      "nextReviewSend": "Siguiente: Revisar y Enviar",
+      "saveAndReturn": "Guardar y Volver a Revisar"
+    },
+    
+    "toast": {
+      "noCampaignId": "No se proporcionó ID de campaña",
+      "failedToLoadCampaign": "Error al cargar la campaña",
+      "failedToLoadMembers": "Error al cargar los miembros",
+      "failedToLoadData": "Error al cargar los datos",
+      "savingRecipients": "Guardando destinatarios...",
+      "recipientsSaved": "Destinatarios guardados",
+      "failedToSaveRecipients": "Error al guardar destinatarios"
+    }
+  },
+  
+  "reviewAndSend": {
+    "campaignSummary": {
+      "title": "Resumen de Campaña",
+      "description": "Revisa los detalles de tu campaña de email",
+      "subjectLine": "Línea de Asunto",
+      "previewText": "Texto de Vista Previa",
+      "noPreviewText": "Sin texto de vista previa",
+      "from": "De",
+      "replyTo": "Responder a",
+      "notConfigured": "No configurado",
+      "recipients": "Destinatarios",
+      "edit": "Editar",
+      "previewAndEditDesign": "Editar Diseño",
+      "editDetails": "Editar Detalles"
+    },
+    
+    "recipientTypes": {
+      "allMembers": "Todos los miembros con direcciones de correo válidas",
+      "selectedMembers": "{{count}} miembro seleccionado",
+      "selectedMembersPlural": "{{count}} miembros seleccionados",
+      "filteredMembers": "Miembros filtrados ({{count}} en total)",
+      "noRecipients": "No hay destinatarios seleccionados"
+    },
+    
+    "preflightChecklist": {
+      "title": "Lista de Verificación Previa al Envío",
+      "description": "Asegúrate de que todo esté listo antes de enviar",
+      "subjectLineAdded": "Línea de asunto agregada",
+      "emailDesignCompleted": "Diseño de email completado",
+      "recipientsSelected": "Destinatarios seleccionados ({{count}})",
+      "emailSettingsConfigured": "Configuración de email configurada"
+    },
+    
+    "emailSettingsAlert": {
+      "title": "Configuración de Email Requerida",
+      "description": "Por favor configura tu configuración de email antes de enviar campañas.",
+      "configureSettings": "Configurar Ajustes"
+    },
+    
+    "actions": {
+      "saveAsDraft": "Guardar como Borrador",
+      "saving": "Guardando...",
+      "schedule": "Programar",
+      "sendNow": "Enviar Ahora"
+    },
+    
+    "errors": {
+      "loadError": "Error",
+      "failedToLoadCampaign": "Error al cargar los datos de la campaña"
+    },
+    
+    "toast": {
+      "noCampaignId": "No se proporcionó ID de campaña",
+      "failedToLoadCampaign": "Error al cargar la campaña",
+      "failedToLoadCampaignData": "Error al cargar los datos de la campaña",
+      "sendingCampaign": "Enviando campaña a los destinatarios...",
+      "failedToSendCampaign": "Error al enviar la campaña",
+      "campaignScheduled": "Campaña programada para {{date}}",
+      "failedToSchedule": "Error al programar la campaña",
+      "savingDraft": "Guardando borrador...",
+      "draftSaved": "Campaña guardada como borrador",
+      "failedToSaveDraft": "Error al guardar el borrador"
+    }
+  },
+  
+  "sendConfirmDialog": {
+    "title": "¿Enviar Campaña de Email?",
+    "description": "Estás a punto de enviar esta campaña de email a",
+    "recipients": "destinatarios",
+    "cannotUndo": "Esta acción no se puede deshacer.",
+    "cancel": "Cancelar",
+    "sending": "Enviando...",
+    "sendNow": "Enviar Ahora"
+  },
+  
+  "scheduleDialog": {
+    "title": "Programar Campaña de Email",
+    "description": "Selecciona fecha y hora para enviar tu campaña",
+    "timezone": {
+      "timesShownIn": "Horas mostradas en:",
+      "configuredInSettings": "(configurado en Ajustes de Email)"
+    },
+    "dateSelection": {
+      "selectDate": "Seleccionar Fecha",
+      "tomorrow": "Mañana",
+      "inThreeDays": "En 3 días",
+      "nextWeek": "Próxima semana",
+      "customDate": "Fecha Personalizada",
+      "select": "Seleccionar"
+    },
+    "timeSelection": {
+      "selectTime": "Seleccionar Hora",
+      "custom": "Personalizada:"
+    },
+    "actions": {
+      "schedule": "Programar",
+      "cancel": "Cancelar",
+      "scheduling": "Programando..."
+    }
+  }
+}

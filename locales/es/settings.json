@@ -165,7 +165,19 @@
       "themeChangeFailed": "Error al actualizar el tema",
       "saving": "Guardando...",
       "saveChanges": "Guardar Cambios",
-      "unsavedChanges": "Tienes cambios sin guardar"
+      "unsavedChanges": "Tienes cambios sin guardar",
+      "churchProfile": "Perfil de la Iglesia",
+      "churchProfileDescription": "Administra la información de tu iglesia",
+      "churchName": "Nombre de la Iglesia",
+      "churchEmail": "Correo Electrónico",
+      "churchPhone": "Teléfono",
+      "churchWebsite": "Sitio Web",
+      "churchAddress": "Dirección",
+      "phoneNote": "Ingresa solo 10 dígitos (sin espacios ni caracteres especiales)",
+      "addressNote": "Esta dirección aparece en los recibos de impuestos y comunicaciones por correo",
+      "profileLoadFailed": "Error al cargar el perfil de la iglesia",
+      "profileSaved": "Perfil de la iglesia actualizado con éxito",
+      "profileSaveFailed": "Error al actualizar el perfil de la iglesia"
     },
 
     "landing": {

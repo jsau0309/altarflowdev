@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         id: true,
         clerkOrgId: true,
         name: true,
+        email: true,
         phone: true,
         address: true,
         website: true,
@@ -62,7 +63,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 2. Authorization Check (e.g., only admins can update)
-    if (orgRole !== 'admin') { 
+    if (orgRole !== 'org:admin') { 
        console.warn(`User ${userId} with role ${orgRole} attempted to update church profile.`);
        return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
@@ -82,6 +83,7 @@ export async function PUT(request: NextRequest) {
     // 4. Prepare data for update
     const dataToUpdate = {
       name: churchData.name,
+      email: churchData.email || null,
       phone: churchData.phone || null, 
       address: churchData.address || null,
       website: churchData.website || null,
@@ -95,6 +97,7 @@ export async function PUT(request: NextRequest) {
         id: true,
         clerkOrgId: true,
         name: true,
+        email: true,
         phone: true,
         address: true,
         website: true,
