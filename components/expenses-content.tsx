@@ -207,10 +207,15 @@ export function ExpensesContent() {
     // Date filter
     if (dateRange.from && dateRange.to) {
       const expenseDate = new Date(expense.expenseDate)
-      // Adjust for timezone
-      const adjustedDate = new Date(expenseDate.valueOf() + expenseDate.getTimezoneOffset() * 60 * 1000)
+      // Create dates at start and end of day for proper comparison
+      const startOfDay = new Date(dateRange.from)
+      startOfDay.setHours(0, 0, 0, 0)
       
-      if (!isWithinInterval(adjustedDate, { start: dateRange.from, end: dateRange.to })) {
+      const endOfDay = new Date(dateRange.to)
+      endOfDay.setHours(23, 59, 59, 999)
+      
+      // Compare dates without timezone adjustment
+      if (expenseDate < startOfDay || expenseDate > endOfDay) {
         return false
       }
     }
@@ -479,14 +484,12 @@ export function ExpensesContent() {
                 </TableHeader>
                 <TableBody>
                   {currentItems.map((expense) => {
-                    // Adjust date for display based on timezone offset
-                    const dateUtc = new Date(expense.expenseDate); // Parse the UTC date string
-                    // getTimezoneOffset returns diff in minutes (e.g., 300 for UTC-5). We need to *add* this offset back to UTC time.
-                    const adjustedDate = new Date(dateUtc.valueOf() + dateUtc.getTimezoneOffset() * 60 * 1000);
+                    // Display date without timezone adjustment to match filtering
+                    const expenseDate = new Date(expense.expenseDate);
                     
                     return (
                       <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewExpenseDetails(expense)}>
-                        <TableCell>{format(adjustedDate, "PP")}</TableCell>
+                        <TableCell>{format(expenseDate, "PP")}</TableCell>
                         <TableCell>{expense.vendor || '-'}</TableCell>
                         <TableCell>{formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>

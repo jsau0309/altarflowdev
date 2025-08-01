@@ -6,7 +6,7 @@ import { getQuotaLimit } from "@/lib/subscription-helpers";
 
 // This cron job runs on the 1st of each month to reset email quotas
 // It can be called by Vercel Cron or manually
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Verify the request is from Vercel Cron (in production)
     const headersList = await headers();

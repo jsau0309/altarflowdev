@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth, useUser, useOrganization } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { useTranslation } from "react-i18next";
 import dynamic from "next/dynamic";
@@ -42,6 +42,7 @@ export function EmailEditorWrapper() {
   const searchParams = useSearchParams();
   const { getToken } = useAuth();
   const { user } = useUser();
+  const { organization } = useOrganization();
   const { resolvedTheme } = useTheme();
   const { t, i18n } = useTranslation(['communication']);
   const [templateData, setTemplateData] = useState<any>(null);
@@ -55,6 +56,14 @@ export function EmailEditorWrapper() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [isProcessingSave, setIsProcessingSave] = useState(false);
+
+  // Call hook before any conditionals
+  const topolConfig = useTopolConfig(
+    organization?.id || user?.id || 'anonymous',
+    user?.primaryEmailAddress?.emailAddress,
+    i18n.language,
+    resolvedTheme
+  );
 
   // Load campaign and auth token
   useEffect(() => {
@@ -342,15 +351,10 @@ export function EmailEditorWrapper() {
             </div>
           </div>
         </div>
-        <div className="relative overflow-hidden" style={{ height: '800px' }}>
+        <div className="relative overflow-auto" style={{ height: 'calc(100vh - 200px)' }}>
           <TopolEditor
             key={editorKey}
-            options={useTopolConfig(
-              user?.id || 'anonymous', 
-              user?.primaryEmailAddress?.emailAddress,
-              i18n.language,
-              resolvedTheme
-            ).options}
+            options={topolConfig.options}
             onInit={() => {
               console.log('TopolEditor onInit fired');
               if (campaign?.design && Object.keys(campaign.design).length > 0) {

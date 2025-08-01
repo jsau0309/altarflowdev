@@ -6,7 +6,7 @@ import { z } from 'zod';
  */
 const serverEnvSchema = z.object({
   // Database
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  // DATABASE_URL is handled by Prisma from prisma/.env
   
   // Authentication (Clerk)
   CLERK_SECRET_KEY: z.string().min(1, "CLERK_SECRET_KEY is required"),

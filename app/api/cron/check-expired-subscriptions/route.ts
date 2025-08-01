@@ -6,7 +6,7 @@ import { getQuotaLimit } from "@/lib/subscription-helpers";
 
 // This cron job runs daily to check for expired subscriptions and update quotas
 // It handles grace period expiration and subscription end dates
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Verify the request is from Vercel Cron (in production)
     const headersList = await headers();

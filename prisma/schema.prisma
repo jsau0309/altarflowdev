@@ -78,7 +78,7 @@ model Church {
   members              Member[]
   stripeConnectAccount StripeConnectAccount?
   emailCampaigns       EmailCampaign[]
-  emailQuota           EmailQuota?
+  emailQuota           EmailQuota[]
   emailSettings        EmailSettings?
 }
 
@@ -157,7 +157,7 @@ model Member {
   id                         String            @id @default(uuid()) @db.Uuid
   firstName                  String
   lastName                   String
-  email                      String?           @unique
+  email                      String?
   phone                      String?
   address                    String?
   city                       String?
@@ -184,6 +184,7 @@ model Member {
   emailRecipients            EmailRecipient[]
   emailPreference            EmailPreference?
 
+  @@unique([churchId, email])
   @@index([churchId])
   @@index([churchId, joinDate])
   @@index([churchId, membershipStatus])
@@ -406,7 +407,7 @@ model EmailPreference {
 
 model EmailQuota {
   id              String    @id @default(cuid())
-  churchId        String    @db.Uuid @unique
+  churchId        String    @db.Uuid
   monthYear       String    // Format: "2025-01"
   emailsSent      Int       @default(0) // Actually tracks campaigns sent, not individual emails
   quotaLimit      Int       @default(4) // 4 campaigns for free, 10000 for paid

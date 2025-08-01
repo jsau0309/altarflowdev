@@ -85,18 +85,8 @@ export async function POST(req: Request) {
       error: errorMessage
     });
     
-    // In development/testing, you might want to process anyway with a warning
-    if (process.env.NODE_ENV === 'development' && process.env.SKIP_WEBHOOK_VERIFICATION === 'true') {
-      console.warn('[Stripe Webhook] DEVELOPMENT MODE: Skipping signature verification');
-      try {
-        event = JSON.parse(body) as Stripe.Event;
-      } catch (parseErr) {
-        console.error('[Stripe Webhook] Failed to parse body as JSON:', parseErr);
-        return NextResponse.json({ error: `Webhook Error: Invalid JSON body` }, { status: 400 });
-      }
-    } else {
-      return NextResponse.json({ error: `Webhook Error: Signature verification failed - ${errorMessage}` }, { status: 400 });
-    }
+    // Always fail on signature verification errors - no bypass allowed
+    return NextResponse.json({ error: `Webhook Error: Signature verification failed - ${errorMessage}` }, { status: 400 });
   }
 
   try {

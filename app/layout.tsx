@@ -12,6 +12,7 @@ import {
   SignedOut,
   UserButton
 } from '@clerk/nextjs'
+import { ErrorBoundary } from '@/components/error-boundary'
 
 // Removed client-side Supabase imports
 
@@ -55,7 +56,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <I18nClientProvider>
-              {children}
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
               <Toaster richColors position="bottom-right" />
             </I18nClientProvider>
           </ThemeProvider>

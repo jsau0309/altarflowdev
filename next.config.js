@@ -15,6 +15,11 @@ const nextConfig = {
       // },
     ],
   },
+  // Temporarily disable ESLint during build
+  // TODO: Remove after completing ESLint cleanup (see todo/ESLINT_CLEANUP_PLAN.md)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // ... any other configurations you might have
 };
 

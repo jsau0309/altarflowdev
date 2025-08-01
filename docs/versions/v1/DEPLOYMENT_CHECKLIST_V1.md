@@ -21,8 +21,10 @@ NODE_ENV=production
 NEXT_PUBLIC_APP_URL=https://your-production-domain.com  # CRITICAL: Set to your actual domain for QR codes and public URLs
 
 # Database (Supabase)
-DATABASE_URL=postgresql://[user]:[password]@[host]:[port]/[database]?schema=public
-DIRECT_URL=postgresql://[user]:[password]@[host]:[port]/[database]?schema=public
+# IMPORTANT: Use connection pooling URL with proper pool settings
+# For Supabase Pro: Use pooler endpoint (port 6543) with PgBouncer
+DATABASE_URL=postgresql://[user]:[password]@[host].pooler.supabase.com:6543/[database]?pgbouncer=true&connection_limit=30&pool_timeout=30
+DIRECT_URL=postgresql://[user]:[password]@[host].supabase.com:5432/[database]
 
 # Authentication (Clerk)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx
@@ -101,11 +103,17 @@ CRON_SECRET=xxxxx  # Random string for authenticating cron job requests
 ## 🛠️ Third-Party Services
 
 ### 1. **Supabase (Database)**
-- [ ] Production database instance created
-- [ ] Connection pooling enabled
+- [ ] Production database instance created (Pro plan recommended)
+- [ ] Connection pooling enabled via PgBouncer (port 6543)
+- [ ] DATABASE_URL configured with proper connection pool settings:
+  - [ ] Using pooler endpoint: `aws-0-[region].pooler.supabase.com:6543`
+  - [ ] Connection limit set: `connection_limit=30` (adjust based on plan)
+  - [ ] Pool timeout configured: `pool_timeout=30`
+  - [ ] PgBouncer enabled: `pgbouncer=true`
 - [ ] Backup schedule configured
 - [ ] Row Level Security (RLS) policies verified
 - [ ] Database indexes optimized
+- [ ] Connection pool monitoring enabled in Supabase dashboard
 
 ### 2. **Clerk (Authentication)**
 - [ ] Production instance created
@@ -222,16 +230,53 @@ CRON_SECRET=xxxxx  # Random string for authenticating cron job requests
 
 ## 🗄️ Database Setup
 
+### Database Connection Pool Configuration
+
+#### Supabase Plan Limits & Recommendations:
+- **Free Plan**: 60 connections total, 10 direct connections
+  - Recommended: `connection_limit=10`
+- **Pro Plan**: 200 connections total, 50 direct connections  
+  - Recommended: `connection_limit=30` (leaves room for migrations, admin access)
+- **Team Plan**: 500 connections total
+  - Recommended: `connection_limit=50`
+- **Enterprise**: Custom limits
+  - Consult with Supabase support
+
+#### Scaling Capacity (Supabase Pro):
+With proper configuration, your app can handle:
+- **Concurrent Users**: 1,000-5,000 active users
+- **Requests/Second**: 200-500 API requests
+- **Daily Active Churches**: 500-1,000 churches
+- **Total Members**: 50,000-100,000 members across all churches
+- **Email Campaigns**: 100+ concurrent campaigns
+
+#### Performance Optimization:
+```bash
+# Update your DATABASE_URL before deployment:
+# Development (current):
+DATABASE_URL="...?connection_limit=10&pool_timeout=30"
+
+# Production (Supabase Pro):
+DATABASE_URL="...?connection_limit=30&pool_timeout=30&statement_cache_size=200"
+
+# High-traffic production:
+DATABASE_URL="...?connection_limit=50&pool_timeout=30&statement_cache_size=500"
+```
+
 ### Migration Steps
 ```bash
-# 1. Set production DATABASE_URL
-export DATABASE_URL="your-production-url"
+# 1. Set production DATABASE_URL with connection pool settings
+export DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=30"
 
-# 2. Run migrations
+# 2. Run migrations (use DIRECT_URL for migrations)
+export DIRECT_URL="postgresql://postgres.[project-ref]:[password]@db.[project-ref].supabase.co:5432/postgres"
 npx prisma migrate deploy
 
 # 3. Verify schema
 npx prisma db pull --print
+
+# 4. Test connection pool
+node -e "console.log('Testing connection pool...'); require('@prisma/client').PrismaClient().$connect().then(() => console.log('✅ Connected!'))"
 ```
 
 ### Required Tables & Indexes (Already in Schema)
@@ -366,8 +411,16 @@ CNAME resend._domainkey    [Resend CNAME Value]
 ### Performance
 - [ ] Image optimization enabled
 - [ ] Database queries optimized
+- [ ] Connection pool properly configured:
+  - [ ] Monitor connection usage in Supabase dashboard
+  - [ ] Set up alerts for > 80% connection usage
+  - [ ] Review slow query logs weekly
 - [ ] Caching strategy implemented
 - [ ] CDN configured for assets
+- [ ] Database performance monitoring:
+  - [ ] Enable pg_stat_statements in Supabase
+  - [ ] Monitor query performance
+  - [ ] Set up slow query alerts (> 1 second)
 
 ### Monitoring
 - [ ] Error tracking (Sentry) configured:

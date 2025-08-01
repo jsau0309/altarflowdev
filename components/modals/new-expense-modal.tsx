@@ -128,12 +128,14 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
     setIsLoading(true);
     let apiError: string | null = null;
 
-    // Ensure date is treated as UTC
-    const utcExpenseDate = formData.expenseDate ? `${formData.expenseDate}T00:00:00Z` : new Date().toISOString();
+    // Create date at noon local time to avoid timezone issues
+    const expenseDate = formData.expenseDate 
+      ? new Date(`${formData.expenseDate}T12:00:00`) // Noon in local timezone
+      : new Date();
 
     const payload = {
       amount: parseFloat(formData.amount) || 0,
-      expenseDate: new Date(utcExpenseDate).toISOString(), // Use the UTC-adjusted date string
+      expenseDate: expenseDate.toISOString(),
       category: formData.category,
       vendor: formData.vendor || null,
       description: formData.description || null,
@@ -172,7 +174,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
         onClose(); // Close modal after successful edit
       } else {
         // For new expense creation
-        toast.success(t('expenses:newExpenseModal.createSuccess'));
+        toast.success(t('newExpenseModal.createSuccess'));
         if (onSuccess) {
           onSuccess();
         } else {
