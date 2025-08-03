@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import { getAiSummaryData } from "@/lib/actions/reports.actions";
+import { getChurchByClerkOrgId } from "@/lib/actions/church.actions";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -19,6 +20,10 @@ export async function POST(req: Request) {
       return new NextResponse("Missing OPENAI_API_KEY", { status: 500 });
     }
 
+    // Fetch church details for context
+    const church = await getChurchByClerkOrgId(orgId);
+    const churchName = church?.name || "Your Church";
+
     // 1. Fetch aggregated data using the server action
     const summaryData = await getAiSummaryData(orgId);
 
@@ -32,73 +37,94 @@ export async function POST(req: Request) {
       }
     }
 
-    let targetLanguageDescription = 'English';
-    if (language === 'es') {
-      targetLanguageDescription = 'Spanish';
-    }
+    const targetLanguage = language === 'es' ? 'Spanish' : 'English';
+    
+    // Get current month and year for context
+    const currentDate = new Date();
+    const monthYear = currentDate.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { 
+      month: 'long', 
+      year: 'numeric' 
+    });
 
-    const systemPrompt = `You are an AI assistant for church admin reporting. Your primary task is to generate the content for the fields of the 'generate_church_summary' function.
-When generating this content, adhere strictly to the following guidelines for each field:
+    // Enhanced system prompt with better structure and examples
+    const systemPrompt = `You are an AI assistant for AltarFlow, specializing in church financial and membership reporting. 
+Generate insightful, encouraging summaries for ${churchName} in ${targetLanguage}.
 
-Overall Guidelines for all text fields:
-- Generate all text content in ${targetLanguageDescription}.
-- Maintain a clear, encouraging, professional, and pastoral tone.
-- For any financial numbers, always prefix with a '$' sign (e.g., $5,300).
-- Use commas as thousands separators for numbers (e.g., $5,300, not $5300).
-- When mentioning changes from last month, use the exact 'differenceFromLastMonth' value provided in the data.
-- Format differences as absolute values with proper currency formatting (e.g., "a decrease of $2,481" or "an increase of $150").
-- Do NOT calculate differences yourself - use the provided 'differenceFromLastMonth' values.
-- Critically, ensure that the very first word of the text generated for each field is a complete, correctly spelled word, and that all sentences start cleanly without typos or artifacts.
+FORMATTING RULES:
+- All currency: Use $ symbol with comma separators (e.g., $5,300)
+- Differences: Use provided 'differenceFromLastMonth' values exactly
+- Language: All content must be in ${targetLanguage}
+- Tone: Pastoral, encouraging, and actionable
 
-Specific instructions for each field of the 'generate_church_summary' function:
+CONTENT GUIDELINES:
+1. overall_metrics: 
+   - 1-2 sentences highlighting the month's key achievement or trend
+   - Reference the church name and current month (${monthYear})
+   - Focus on the most impactful metric
 
-1.  'overall_metrics':
-    - Provide a 1-2 sentence general overview of the month's performance and key highlights.
+2. donation_summary:
+   - Total amount with change from last month
+   - Highlight recurring donation percentage if >30%
+   - For increases: celebrate generosity
+   - For decreases: encourage faithfulness
+   - Include one actionable insight
 
-2.  'donation_summary':
-    - State the total donation amount.
-    - Mention the change from last month using the 'differenceFromLastMonth' value (this is the dollar amount difference, not percentage).
-    - Include recurring donation percentage if available.
-    - Maintain an encouraging tone.
+3. expense_summary:
+   - Total amount with change from last month
+   - Main expense categories if available
+   - Relate expenses to ministry impact
+   - For $0 expenses: note as "careful stewardship period"
 
-3.  'expense_summary':
-    - State the total expense amount.
-    - Mention the change from last month using the 'differenceFromLastMonth' value (this is the dollar amount difference, not percentage).
-    - Briefly describe the primary use of funds (e.g., operations, outreach, specific projects).
-    - If there are no expenses, state this positively.
+4. member_activity:
+   - New members welcomed this month
+   - Total active membership
+   - Growth percentage if positive
+   - Celebration tone for any new members
 
-4.  'member_activity':
-    - Report the number of new members this month and the total current members.
-    - Use welcoming and inclusive language.
+EDGE CASES:
+- Zero donations: Focus on building momentum
+- Zero expenses: Highlight as preparation period
+- No new members: Emphasize nurturing existing community
+- Missing data: Use encouraging forward-looking language`;
 
-Remember, you are populating a structured JSON object via the 'generate_church_summary' function. The content you generate for each field in that function must follow these rules.`;
+    const userPrompt = `Generate a summary for ${churchName} for ${monthYear} based on this data:
 
-    const userPrompt = `Please generate a summary based on the following data:\n${JSON.stringify(summaryData, null, 2)}`;
+Church Context:
+- Name: ${churchName}
+- Report Period: ${monthYear}
+
+Data:
+${JSON.stringify(summaryData, null, 2)}
+
+Remember to:
+1. Use the exact differenceFromLastMonth values provided
+2. Make the summary specific to ${churchName}
+3. Include at least one actionable insight per section`;
 
     const tools = [
       {
         type: "function" as const,
         function: {
           name: "generate_church_summary",
-          description: "Generate a structured summary of church metrics, including financial values and insights about member activity. All textual content should be in the requested language.",
+          description: "Generate a structured summary of church metrics with personalized insights",
           parameters: {
             type: "object" as const,
             properties: {
               overall_metrics: {
                 type: "string" as const,
-                description: "A concise, one or two-sentence high-level overview of the month's performance and key highlights. Maintain an encouraging and pastoral tone."
+                description: "High-level overview mentioning the church name and most significant metric for the month"
               },
               donation_summary: {
                 type: "string" as const,
-                description: "Detailed insights about donations. Include total amounts with currency symbols (e.g., $). Mention trends compared to the previous month if applicable. Maintain an encouraging tone."
+                description: "Donation insights with total, trend, recurring percentage, and one actionable suggestion"
               },
               expense_summary: {
                 type: "string" as const,
-                description: "Detailed insights about expenses. Include total amounts with currency symbols (e.g., $). Mention key spending areas. If there are no expenses, state that positively."
+                description: "Expense insights with total, main categories, and ministry impact connection"
               },
               member_activity: {
                 type: "string" as const,
-                description: "Summary of member activity, such as new members welcomed and total membership numbers. Highlight growth or positive trends."
+                description: "Member growth summary with new members, total count, and welcoming message"
               }
             },
             required: ["overall_metrics", "donation_summary", "expense_summary", "member_activity"]
@@ -115,14 +141,26 @@ Remember, you are populating a structured JSON object via the 'generate_church_s
       ],
       tools: tools,
       tool_choice: { type: "function", function: { name: "generate_church_summary" } },
-      temperature: 0.5,
-      max_tokens: 1000, 
+      temperature: 0.7, // Increased for more natural, varied responses
+      max_tokens: 1000,
     });
 
     const message = response.choices[0].message;
     if (message.tool_calls && message.tool_calls[0].function) {
       const functionArguments = JSON.parse(message.tool_calls[0].function.arguments);
-      return NextResponse.json({ summary: functionArguments });
+      
+      // Add metadata to response
+      const enrichedResponse = {
+        summary: functionArguments,
+        metadata: {
+          churchName,
+          reportPeriod: monthYear,
+          language,
+          generatedAt: new Date().toISOString()
+        }
+      };
+      
+      return NextResponse.json(enrichedResponse);
     } else {
       console.error("[AI_SUMMARY_ERROR] OpenAI response did not include expected function call:", response);
       return new NextResponse("Failed to generate structured summary from AI.", { status: 500 });

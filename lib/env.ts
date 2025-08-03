@@ -35,6 +35,7 @@ const serverEnvSchema = z.object({
   
   // AI Service
   OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
   
   // Receipt Scanning
   MINDEE_API_KEY: z.string().optional(),

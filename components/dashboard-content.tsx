@@ -451,7 +451,12 @@ export function DashboardContent() {
                       <Wand2 className="h-5 w-5" />
                     </div>
                     <div>
-                      <div>{t('dashboard:quickActions.aiSummary', 'Generate AI Summary')}</div>
+                      <div className="flex items-center gap-2">
+                        <span>{t('dashboard:quickActions.aiSummary', 'Generate AI Summary')}</span>
+                        <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400">
+                          Beta
+                        </span>
+                      </div>
                       {(subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period') && (
                         <div className="text-xs text-muted-foreground">{t('dashboard:quickActions.upgradeRequired', 'Upgrade required')}</div>
                       )}

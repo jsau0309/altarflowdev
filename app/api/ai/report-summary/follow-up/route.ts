@@ -1,8 +1,7 @@
 // app/api/ai/report-summary/follow-up/route.ts
-import { NextRequest, NextResponse } from 'next/server'; // Added NextRequest
+import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
-import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import Anthropic from '@anthropic-ai/sdk';
 import {
     getTopDonorsThisMonth,
     getMostUsedPaymentMethodThisMonth,
@@ -16,11 +15,11 @@ import { getUserSubscriptionPlan } from "@/lib/stripe/subscription";
 import type { User } from "@clerk/backend"; // Changed User import
 import { getChurchByClerkOrgId } from '@/lib/actions/church.actions';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function POST(req: NextRequest) { // Changed req type
+export async function POST(req: NextRequest) {
     try {
         const { userId, orgId } = getAuth(req);
         const body = await req.json();
@@ -114,7 +113,31 @@ export async function POST(req: NextRequest) { // Changed req type
                 return new NextResponse('Invalid question key', { status: 400 });
         }
 
-        const systemPrompt = `You are a helpful AI assistant for a church management application called AltarFlow. Your role is to provide concise, natural, and pastorally-toned answers to specific questions about church reports. The user is asking a follow-up question to an initial summary. Respond in ${language === 'es' ? 'Spanish' : 'English'}. Be empathetic and clear. Focus on a conversational answer. When mentioning monetary amounts, please use the dollar sign (e.g., $100). When discussing trends (like donation or expense trends): briefly interpret what the trend might signify (e.g., positive growth, areas for attention, the impact of recent events if evident from data patterns). If data is sparse or a trend is just emerging, you can mention that more data over time will provide a clearer picture. For example, if donations are increasing, you might say, 'It's encouraging to see this positive trend in generosity, perhaps reflecting recent efforts or a growing spirit of giving!' Avoid simply restating the data; aim to provide a brief, insightful comment that offers a pastoral perspective or a point for reflection.`;
+        // Enhanced prompt for Claude with better context and instructions
+        const churchName = church?.name || "the church";
+        const systemPrompt = `You are a warm, insightful AI assistant for AltarFlow, helping ${churchName} understand their ministry data.
+
+KEY INSTRUCTIONS:
+- Language: Respond entirely in ${language === 'es' ? 'Spanish' : 'English'}
+- Tone: Pastoral, encouraging, and conversational
+- Length: 2-3 paragraphs maximum
+- Numbers: Always use $ for currency (e.g., $1,500)
+- Focus: Provide insights, not just data repetition
+
+WHEN ANALYZING DATA:
+1. Look for patterns and their meaning
+2. Connect numbers to ministry impact
+3. Offer gentle, actionable suggestions
+4. Celebrate positives, encourage through challenges
+5. If data is limited, acknowledge it gracefully
+
+FOR TRENDS:
+- Interpret what changes might signify
+- Consider seasonal patterns
+- Suggest practical next steps
+- Frame challenges as opportunities
+
+REMEMBER: You're speaking to church leaders who care deeply about their community. Be their thoughtful partner in understanding how data reflects their ministry's health and opportunities.`;
 
         const userPrompt = `Based on the following data, please answer the question: "${questionTextForLLM}"
 
@@ -123,25 +146,62 @@ ${JSON.stringify(fetchedData, null, 2)}
 
 Answer directly and conversationally.`;
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
+        const stream = await anthropic.messages.create({
+            model: 'claude-3-haiku-20240307', // Fast, cost-effective for conversational responses
             stream: true,
+            system: systemPrompt,
             messages: [
-                { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
             ],
-            temperature: 0.4, // Adjusted for a balance of natural and factual
-            max_tokens: 350, 
+            temperature: 0.7, // More natural, conversational tone
+            max_tokens: 500, // Slightly more room for thoughtful responses
         });
 
-        const stream = OpenAIStream(response as any); // Reverted: 'as any' still needed for base response type
-        return new StreamingTextResponse(stream);
+        // Create a custom streaming response for Claude
+        const encoder = new TextEncoder();
+        const readableStream = new ReadableStream({
+            async start(controller) {
+                try {
+                    for await (const chunk of stream) {
+                        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+                            const text = chunk.delta.text;
+                            // Format as Vercel AI SDK expects
+                            const formattedChunk = `0:${JSON.stringify(text)}\n`;
+                            controller.enqueue(encoder.encode(formattedChunk));
+                        }
+                    }
+                    // Send completion signal
+                    controller.enqueue(encoder.encode('2:"[DONE]"\n'));
+                    controller.close();
+                } catch (error) {
+                    controller.error(error);
+                }
+            },
+        });
+
+        return new Response(readableStream, {
+            headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Cache-Control': 'no-cache',
+            },
+        });
 
     } catch (error) {
         console.error('[AI_REPORT_FOLLOW_UP_ERROR]', error);
-        if (error instanceof OpenAI.APIError) {
-            return new NextResponse(error.message || 'OpenAI API Error', { status: error.status || 500 });
+        if (error instanceof Anthropic.APIError) {
+            return new NextResponse(error.message || 'Anthropic API Error', { status: error.status || 500 });
         }
         return new NextResponse('Internal Server Error', { status: 500 });
     }
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS(req: NextRequest) {
+    return new NextResponse(null, { 
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Accept-Language',
+        }
+    });
 }

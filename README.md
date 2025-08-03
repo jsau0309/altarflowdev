@@ -1,12 +1,9 @@
-<div align="center">
-  <img src="public/altarflow-logo.svg" alt="AltarFlow Logo" width="200" />
-  
-  # AltarFlow - Bilingual Church Management Platform
+# AltarFlow - Church Management Platform
   
   <p>
     A sophisticated, bilingual church management platform tailored for Hispanic churches in the United States. It modernizes traditional church administration by integrating digital tools with conventional methods, enabling efficient donation tracking, expense management, and member relationship nurturing—ideal for users with varied technological proficiency.
   </p>
-</div>
+
 
 ## 🚀 Features
 

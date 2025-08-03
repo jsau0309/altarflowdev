@@ -53,8 +53,9 @@
   },
   "aiSummaryModal": {
     "title": "Resumen del Informe con IA",
-    "description": "Explore las métricas clave de su iglesia con información impulsada por IA y chat interactivo.",
-    "loading": "Generando tu resumen...",
+    "description": "Explore las métricas clave de su iglesia con información impulsada por IA",
+    "loading": "Analizando los datos de su iglesia...",
+    "welcomeTitle": "¿Listo para explorar sus datos?",
     "generatePrompt": "Descubra información sobre el desempeño de su iglesia este mes. Haga clic en 'Generar Resumen' para comenzar.",
     "generateButton": "Generar Resumen",
     "regenerateButton": "Volver a generar",

@@ -28,7 +28,6 @@ import DashboardHeader from "@/components/layout/dashboard-header"
 
 // Keep cn if still needed, otherwise remove
 import { cn } from "@/lib/utils"
-import CrispChat from '@/components/crisp-chat';
 
 export default function ClientDashboardLayout({ children }: { children: React.ReactNode }) {
   const { orgId } = useAuth(); // <-- Get orgId from Clerk
@@ -81,7 +80,6 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
           <DashboardHeader /> {/* Place the new header here */} 
           {children} {/* Render page content without wrapper - will add to individual pages */}
         </SidebarInset>
-        <CrispChat />
       </SidebarProvider>
   );
 } 

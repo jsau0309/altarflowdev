@@ -53,8 +53,9 @@
   },
   "aiSummaryModal": {
     "title": "AI Report Summary",
-    "description": "Explore your church's key metrics with AI-powered insights and interactive chat.",
-    "loading": "Generating your summary...",
+    "description": "Explore your church's key metrics with AI-powered insights",
+    "loading": "Analyzing your church data...",
+    "welcomeTitle": "Ready to explore your data?",
     "generatePrompt": "Unlock insights into your church's performance this month. Click 'Generate Summary' to begin.",
     "generateButton": "Generate Summary",
     "regenerateButton": "Regenerate",
