@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react"
 import { AnimatedTitle } from "@/components/landing/animated-title"
 import { MovingBorderButton } from "@/components/landing/moving-border"
 import { useTranslation } from "react-i18next"
+import { useRouter } from "next/navigation"
 
 export const HeroContent = () => {
   return (
@@ -72,6 +73,7 @@ export const HeroContent = () => {
 
 export const HeroTitle = () => {
   const { t } = useTranslation('landing')
+  const router = useRouter()
   
   return (
     <div className="space-y-8 pb-16">
@@ -93,7 +95,7 @@ export const HeroTitle = () => {
         <Button 
           size="lg" 
           className="text-lg px-8 py-6 bg-[#3B82F6] hover:bg-[#2563EB]"
-          onClick={() => window.open('https://calendly.com/altarflow/demo', '_blank')}
+          onClick={() => router.push('/book-demo')}
         >
           {t('hero.bookDemo')}
           <ArrowRight className="ml-2 h-5 w-5" />

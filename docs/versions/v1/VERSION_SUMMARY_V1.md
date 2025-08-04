@@ -38,6 +38,8 @@
 ## Key Files
 - **Deployment Guide**: [DEPLOYMENT_CHECKLIST_V1.md](./DEPLOYMENT_CHECKLIST_V1.md)
 - **Release Notes**: [RELEASE_NOTES_V1.md](./RELEASE_NOTES_V1.md)
+- **UI/UX Improvements**: [UI_UX_IMPROVEMENTS_2025-08-04.md](./UI_UX_IMPROVEMENTS_2025-08-04.md)
+- **Landing Page Update**: [LANDING_PAGE_IMPROVEMENTS_2025-08-04.md](./LANDING_PAGE_IMPROVEMENTS_2025-08-04.md)
 - **Test Results**: [docs/test-results/](../../test-results/)
 
 ## Configuration Required

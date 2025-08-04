@@ -35,7 +35,7 @@ export function MobileMenu() {
   const handleGetStarted = () => {
     setIsOpen(false)
     setTimeout(() => {
-      router.push('/signup')
+      router.push('/waitlist-full')
     }, 300)
   }
 

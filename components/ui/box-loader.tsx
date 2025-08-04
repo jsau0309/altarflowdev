@@ -2,8 +2,10 @@
 
 import type React from "react"
 import { motion } from "framer-motion"
+import { useTranslation } from 'react-i18next'
 
 export const BoxLoader: React.FC = () => {
+  const { t } = useTranslation('common');
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 overflow-hidden">
       {/* Animated background pattern */}
@@ -174,7 +176,7 @@ export const BoxLoader: React.FC = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            Preparing your church management tools
+            {t('loading.preparingTools', 'Preparing your church management tools')}
           </motion.p>
           
           {/* Progress dots */}

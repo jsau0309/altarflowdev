@@ -431,7 +431,7 @@ export default function LandingPage() {
               </Button>
               <Button 
                 className="hidden md:inline-flex bg-[#3B82F6] hover:bg-[#2563EB] text-white px-4 py-2"
-                onClick={() => router.push('/signup')}
+                onClick={() => router.push('/waitlist-full')}
               >
                 {t('header.getStarted')}
               </Button>
@@ -500,7 +500,7 @@ export default function LandingPage() {
             <Button 
               size="lg" 
               className="text-xl px-10 py-7 bg-[#3B82F6] hover:bg-[#2563EB]"
-              onClick={() => router.push('/signup')}
+              onClick={() => router.push('/waitlist-full')}
             >
               {t('demo.requestAccess')}
               <ArrowRight className="ml-2 h-6 w-6" />
@@ -549,7 +549,7 @@ export default function LandingPage() {
                 size="lg" 
                 variant="secondary" 
                 className="text-lg px-8 py-6"
-                onClick={() => window.open('https://calendly.com/altarflow/demo', '_blank')}
+                onClick={() => router.push('/book-demo')}
               >
                 {t('cta.bookDemo')}
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -558,7 +558,7 @@ export default function LandingPage() {
                 size="lg"
                 variant="outline"
                 className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-[#3B82F6] bg-transparent"
-                onClick={() => router.push('/signup')}
+                onClick={() => router.push('/waitlist-full')}
               >
                 {t('cta.joinWaitlist')}
               </Button>
