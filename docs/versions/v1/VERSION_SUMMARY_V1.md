@@ -5,6 +5,7 @@
 - **Release Date**: August 2025
 - **Status**: Production Ready
 - **Code Name**: "Foundation"
+- **Last Updated**: August 4, 2025
 
 ## What's Included
 
@@ -15,8 +16,10 @@
 - [x] Expense management with OCR
 - [x] Email campaigns with editor
 - [x] AI-powered reporting
-- [x] Multi-language (EN/ES)
+- [x] Multi-language (EN/ES) with globe switcher
 - [x] SaaS billing model
+- [x] Modern landing page with animations
+- [x] Data-aware loading system
 
 ### Security & Performance ✅
 - [x] All critical vulnerabilities fixed

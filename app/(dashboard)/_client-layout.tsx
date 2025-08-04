@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@clerk/nextjs"; // <-- Add this import
+import { useAuthLoading } from "@/hooks/use-auth-loading"
 // Remove imports related to old header/sidebar structure
 // import { useTheme } from "next-themes"
 // import { Menu, Moon, Sun } from "lucide-react"
@@ -31,6 +32,7 @@ import { cn } from "@/lib/utils"
 
 export default function ClientDashboardLayout({ children }: { children: React.ReactNode }) {
   const { orgId } = useAuth(); // <-- Get orgId from Clerk
+  useAuthLoading(); // This will handle showing the loader on sign-in
   // Remove state logic previously lifted here
   // const { setTheme, theme } = useTheme() // Moved to DashboardHeader
   // const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Now managed by SidebarProvider

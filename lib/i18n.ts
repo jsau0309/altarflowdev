@@ -22,6 +22,7 @@ import enNfc from '../locales/en/nfc.json';
 import enFlows from '../locales/en/flows.json';
 import enConnectForm from '../locales/en/connect-form.json';
 import enCommunication from '../locales/en/communication.json';
+import enLanding from '../locales/en/landing.json';
 
 // Import all Spanish locale files
 import esCommon from '../locales/es/common.json';
@@ -42,6 +43,7 @@ import esNfc from '../locales/es/nfc.json';
 import esFlows from '../locales/es/flows.json';
 import esConnectForm from '../locales/es/connect-form.json';
 import esCommunication from '../locales/es/communication.json';
+import esLanding from '../locales/es/landing.json';
 
 // Define resources structured by language and namespace
 const resources: Resource = {
@@ -63,7 +65,8 @@ const resources: Resource = {
     nfc: enNfc,
     flows: enFlows,
     'connect-form': enConnectForm,
-    communication: enCommunication
+    communication: enCommunication,
+    landing: enLanding
   },
   es: { 
     common: esCommon,
@@ -83,7 +86,8 @@ const resources: Resource = {
     nfc: esNfc,
     flows: esFlows,
     'connect-form': esConnectForm,
-    communication: esCommunication
+    communication: esCommunication,
+    landing: esLanding
   }
 };
 
@@ -116,7 +120,8 @@ i18n
       'nfc',
       'flows',
       'connect-form',
-      'communication'
+      'communication',
+      'landing'
     ],
     defaultNS: 'common',
     interpolation: {

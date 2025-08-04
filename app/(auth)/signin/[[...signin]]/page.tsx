@@ -3,9 +3,17 @@
 import { SignIn } from '@clerk/nextjs';
 import Image from "next/image";
 import { useTranslation } from 'react-i18next';
+import { useEffect } from 'react';
 
 export default function SignInPage() {
   const { t } = useTranslation(['common', 'auth', 'dashboard']);
+
+  useEffect(() => {
+    // Set a flag when on sign-in page
+    sessionStorage.setItem('justSignedIn', 'true');
+    // Clear dashboard loaded flag
+    sessionStorage.removeItem('dashboardLoaded');
+  }, []);
 
   return (
     <div className="flex min-h-screen">
@@ -44,6 +52,8 @@ export default function SignInPage() {
           <SignIn 
             routing="path" 
             path="/signin"
+            forceRedirectUrl="/dashboard?from=signin"
+            signUpUrl="/signup"
             appearance={{
               elements: {
                 rootBox: "w-full",

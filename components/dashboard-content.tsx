@@ -17,6 +17,7 @@ import { getDashboardSummaryOptimized } from "@/lib/actions/dashboard-optimized.
 import { useOrganization } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { useLoading } from "@/contexts/loading-context";
 
 // Define a basic structure for the dashboard data
 interface DashboardData {
@@ -48,6 +49,7 @@ export function DashboardContent() {
   const { t } = useTranslation(['dashboard', 'donations']);
   const { organization } = useOrganization();
   const router = useRouter();
+  const { setDataLoading, isAuthTransition } = useLoading();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,9 +65,19 @@ export function DashboardContent() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
+      // Notify loading context that data is loading
+      if (isAuthTransition) {
+        setDataLoading(true);
+      }
       setError(null);
       try {
-        const churchIdFromStorage = localStorage.getItem("churchId");
+        let churchIdFromStorage = null;
+        try {
+          churchIdFromStorage = localStorage.getItem("churchId");
+        } catch (e) {
+          // Handle localStorage access errors (e.g., in restricted environments)
+          console.error("Unable to access localStorage:", e);
+        }
         const [summaryData, donorsData, subscriptionData] = await Promise.all([
           getDashboardSummaryOptimized(),
           churchIdFromStorage ? getDistinctDonorsForFilter() : Promise.resolve([] as DonorFilterItem[]),
@@ -93,11 +105,15 @@ export function DashboardContent() {
         setError("An error occurred while loading the dashboard.");
       } finally {
         setIsLoading(false);
+        // Notify loading context that data has finished loading
+        if (isAuthTransition) {
+          setDataLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, []);
+  }, [isAuthTransition, setDataLoading]);
 
   const openModal = (modalName: string) => {
     setActiveModal(modalName);
@@ -127,6 +143,11 @@ export function DashboardContent() {
       currency: 'USD',
     }).format(amount ?? 0);
   };
+
+  // Don't render anything during auth transition - let the BoxLoader handle the entire screen
+  if (isAuthTransition && isLoading) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">

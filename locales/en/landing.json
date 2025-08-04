@@ -1,0 +1,154 @@
+{
+  "header": {
+    "features": "Features",
+    "demo": "Demo",
+    "signIn": "Sign In",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "badge": "🚀 Coming Soon: All-in-One Church Management",
+    "title": "The Complete Church Management Suite",
+    "rotatingWords": {
+      "forms": "Forms",
+      "newsletters": "Newsletters",
+      "donations": "Donations",
+      "expenses": "Expenses",
+      "reports": "Reports"
+    },
+    "description": "Run your ministry smarter, engage your congregation deeper, and grow your impact — all from one place.",
+    "bookDemo": "Book a Demo"
+  },
+  "features": {
+    "title": "The Smarter Way to Run Your Church",
+    "subtitle": "Altarflow centralizes your ministry's operations, making it easier to manage, measure, and grow — all in one place.",
+    "financialManagement": {
+      "title": "Financial Management",
+      "description": "Complete financial oversight for your ministry, from donations to expenses, in one simple, transparent system.",
+      "donationTracking": {
+        "title": "Donation Tracking",
+        "description": "Monitor online and offline giving, link donors to members, and keep a full history of every contribution."
+      },
+      "expenseManagement": {
+        "title": "Expense Management",
+        "description": "Log all church expenses, attach receipts, and let OCR scan details automatically for faster entry."
+      },
+      "reportsInsights": {
+        "title": "Reports & Insights",
+        "description": "Generate in-depth financial reports, filter by date, and export as PDF or CSV for meetings or compliance."
+      },
+      "bankingPayouts": {
+        "title": "Banking & Payouts",
+        "description": "Easily access Stripe-powered payout details, update account information, and manage payout preferences."
+      }
+    },
+    "communicationEngagement": {
+      "title": "Communication & Engagement",
+      "description": "Strengthen connections with your congregation through powerful communication tools built for ministry needs.",
+      "newsletterBuilder": {
+        "title": "Newsletter Builder",
+        "description": "Create and send beautiful, targeted newsletters to keep your community informed and inspired."
+      },
+      "scheduledMessaging": {
+        "title": "Scheduled Messaging",
+        "description": "Plan communications in advance and ensure timely updates for events, services, and announcements."
+      },
+      "audienceSegmentation": {
+        "title": "Audience Segmentation",
+        "description": "Select specific groups or members to receive personalized messages and content."
+      },
+      "mediaDesignTools": {
+        "title": "Media & Design Tools",
+        "description": "Edit photos, format content, and craft engaging messages without leaving the platform."
+      }
+    },
+    "memberCommunityManagement": {
+      "title": "Member & Community Management",
+      "description": "Keep track of every person who walks through your doors, from first-time visitors to long-time members.",
+      "memberDirectory": {
+        "title": "Member Directory",
+        "description": "View, edit, and manage complete profiles for members, including contact info and involvement history."
+      },
+      "visitorTracking": {
+        "title": "Visitor Tracking",
+        "description": "Record visitor details and easily convert them into members when they join your community."
+      },
+      "donorLinking": {
+        "title": "Donor Linking",
+        "description": "Connect donors to their member profiles for a unified giving and engagement record."
+      },
+      "flowsForms": {
+        "title": "Flows & Forms",
+        "description": "Use custom forms (like new member sign-ups) to capture data, prayer requests, and service interests."
+      }
+    },
+    "smartAdministration": {
+      "title": "Smart Administration",
+      "description": "Tools that simplify church operations, improve decision-making, and save you time every week.",
+      "aiMonthlySummary": {
+        "title": "AI Monthly Summary",
+        "description": "Generate AI-powered reports summarizing activities, trends, and key highlights for the month."
+      },
+      "aiQAInsights": {
+        "title": "AI Q&A Insights",
+        "description": "Ask follow-up questions about your ministry data and get instant, AI-driven answers."
+      },
+      "customizableLandingPage": {
+        "title": "Customizable Landing Page",
+        "description": "Create a shareable hub for donations, new member forms, and key church information."
+      },
+      "accountSettingsControl": {
+        "title": "Account & Settings Control",
+        "description": "Manage church details, language preferences, themes, and subscription plans in one place."
+      }
+    }
+  },
+  "demo": {
+    "title": "Experience the Future of Church Management",
+    "subtitle": "See how Altarflow transforms ministry operations faster, smarter, and simpler.",
+    "videoPlaceholder": {
+      "title": "Demo Video Coming Soon",
+      "description": "Get an exclusive preview of Altarflow's powerful features"
+    },
+    "requestAccess": "Request Early Access"
+  },
+  "cta": {
+    "title": "Ready to transform your church operations?",
+    "description": "Be one of the first churches to unlock faster, smarter, and simpler ministry operations with Altarflow's complete back-office platform.",
+    "bookDemo": "Book a Demo",
+    "joinWaitlist": "Join Waitlist",
+    "circularText": "• COMING SOON • BE THE FIRST TO KNOW WHEN WE LAUNCH "
+  },
+  "footer": {
+    "tagline": "Built with ❤️ for churches worldwide",
+    "product": {
+      "title": "Product",
+      "features": "Features",
+      "demo": "Demo",
+      "pricing": "Pricing",
+      "api": "API"
+    },
+    "company": {
+      "title": "Company",
+      "about": "About",
+      "blog": "Blog",
+      "careers": "Careers",
+      "contact": "Contact"
+    },
+    "resources": {
+      "title": "Resources",
+      "changelogs": "Changelogs",
+      "documentation": "Documentation",
+      "community": "Community",
+      "status": "Status"
+    },
+    "legal": {
+      "title": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookies": "Cookie Policy"
+    },
+    "copyright": "©{{year}} Altarflow. All rights reserved.",
+    "subsidiary": "A product of AU Sigma LLC",
+    "soon": "soon"
+  }
+}
