@@ -2,6 +2,7 @@
   "appName": "Altarflow",
   "tagline": "Church Management Made Simple",
   "loading": "Loading...",
+  "loading.preparingTools": "Preparing your church management tools",
   "error": "An error occurred",
   "save": "Save",
   "cancel": "Cancel",
@@ -215,5 +216,9 @@
     "trialFeatures": "During your trial, you have access to Flows, Members, and Settings.",
     "limitedFeatures": "With your current plan, you have access to Flows, Members, and Settings.",
     "upgradeNow": "Upgrade Now"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service"
   }
 }

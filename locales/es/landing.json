@@ -1,0 +1,154 @@
+{
+  "header": {
+    "features": "Características",
+    "demo": "Demostración",
+    "signIn": "Iniciar Sesión",
+    "getStarted": "Comenzar"
+  },
+  "hero": {
+    "badge": "🚀 Próximamente: Gestión Integral para Iglesias",
+    "title": "La Suite Completa de Gestión para Iglesias",
+    "rotatingWords": {
+      "forms": "Formularios",
+      "newsletters": "Boletines",
+      "donations": "Donaciones",
+      "expenses": "Gastos",
+      "reports": "Reportes"
+    },
+    "description": "Administra tu ministerio de forma más inteligente, conecta con tu congregación más profundamente y aumenta tu impacto — todo desde un solo lugar.",
+    "bookDemo": "Reservar Demo"
+  },
+  "features": {
+    "title": "La Forma Más Inteligente de Administrar Tu Iglesia",
+    "subtitle": "Altarflow centraliza las operaciones de tu ministerio, haciéndolo más fácil de administrar, medir y crecer — todo en un solo lugar.",
+    "financialManagement": {
+      "title": "Gestión Financiera",
+      "description": "Supervisión financiera completa para tu ministerio, desde donaciones hasta gastos, en un sistema simple y transparente.",
+      "donationTracking": {
+        "title": "Seguimiento de Donaciones",
+        "description": "Monitorea donaciones en línea y fuera de línea, vincula donantes con miembros y mantén un historial completo de cada contribución."
+      },
+      "expenseManagement": {
+        "title": "Gestión de Gastos",
+        "description": "Registra todos los gastos de la iglesia, adjunta recibos y deja que el OCR escanee los detalles automáticamente para una entrada más rápida."
+      },
+      "reportsInsights": {
+        "title": "Reportes e Información",
+        "description": "Genera reportes financieros detallados, filtra por fecha y exporta como PDF o CSV para reuniones o cumplimiento."
+      },
+      "bankingPayouts": {
+        "title": "Banca y Pagos",
+        "description": "Accede fácilmente a los detalles de pagos con Stripe, actualiza información de cuenta y gestiona preferencias de pago."
+      }
+    },
+    "communicationEngagement": {
+      "title": "Comunicación y Participación",
+      "description": "Fortalece las conexiones con tu congregación a través de poderosas herramientas de comunicación diseñadas para las necesidades del ministerio.",
+      "newsletterBuilder": {
+        "title": "Constructor de Boletines",
+        "description": "Crea y envía hermosos boletines dirigidos para mantener a tu comunidad informada e inspirada."
+      },
+      "scheduledMessaging": {
+        "title": "Mensajería Programada",
+        "description": "Planifica comunicaciones con anticipación y asegura actualizaciones oportunas para eventos, servicios y anuncios."
+      },
+      "audienceSegmentation": {
+        "title": "Segmentación de Audiencia",
+        "description": "Selecciona grupos específicos o miembros para recibir mensajes y contenido personalizado."
+      },
+      "mediaDesignTools": {
+        "title": "Herramientas de Medios y Diseño",
+        "description": "Edita fotos, formatea contenido y crea mensajes atractivos sin salir de la plataforma."
+      }
+    },
+    "memberCommunityManagement": {
+      "title": "Gestión de Miembros y Comunidad",
+      "description": "Mantén un registro de cada persona que cruza tus puertas, desde visitantes por primera vez hasta miembros de largo tiempo.",
+      "memberDirectory": {
+        "title": "Directorio de Miembros",
+        "description": "Ve, edita y gestiona perfiles completos de miembros, incluyendo información de contacto e historial de participación."
+      },
+      "visitorTracking": {
+        "title": "Seguimiento de Visitantes",
+        "description": "Registra detalles de visitantes y conviértelos fácilmente en miembros cuando se unan a tu comunidad."
+      },
+      "donorLinking": {
+        "title": "Vinculación de Donantes",
+        "description": "Conecta donantes con sus perfiles de miembros para un registro unificado de donaciones y participación."
+      },
+      "flowsForms": {
+        "title": "Flujos y Formularios",
+        "description": "Usa formularios personalizados (como registros de nuevos miembros) para capturar datos, peticiones de oración e intereses de servicio."
+      }
+    },
+    "smartAdministration": {
+      "title": "Administración Inteligente",
+      "description": "Herramientas que simplifican las operaciones de la iglesia, mejoran la toma de decisiones y te ahorran tiempo cada semana.",
+      "aiMonthlySummary": {
+        "title": "Resumen Mensual con IA",
+        "description": "Genera reportes impulsados por IA que resumen actividades, tendencias y aspectos destacados del mes."
+      },
+      "aiQAInsights": {
+        "title": "Perspectivas de IA con Q&A",
+        "description": "Haz preguntas de seguimiento sobre los datos de tu ministerio y obtén respuestas instantáneas impulsadas por IA."
+      },
+      "customizableLandingPage": {
+        "title": "Página de Destino Personalizable",
+        "description": "Crea un centro compartible para donaciones, formularios de nuevos miembros e información clave de la iglesia."
+      },
+      "accountSettingsControl": {
+        "title": "Control de Cuenta y Configuración",
+        "description": "Gestiona detalles de la iglesia, preferencias de idioma, temas y planes de suscripción en un solo lugar."
+      }
+    }
+  },
+  "demo": {
+    "title": "Experimenta el Futuro de la Gestión de Iglesias",
+    "subtitle": "Descubre cómo Altarflow transforma las operaciones del ministerio de forma más rápida, inteligente y simple.",
+    "videoPlaceholder": {
+      "title": "Video Demo Próximamente",
+      "description": "Obtén una vista previa exclusiva de las poderosas características de Altarflow"
+    },
+    "requestAccess": "Solicitar Acceso Anticipado"
+  },
+  "cta": {
+    "title": "¿Listo para transformar las operaciones de tu iglesia?",
+    "description": "Sé una de las primeras iglesias en desbloquear operaciones ministeriales más rápidas, inteligentes y simples con la plataforma completa de Altarflow.",
+    "bookDemo": "Reservar Demo",
+    "joinWaitlist": "Unirse a la Lista de Espera",
+    "circularText": "• PRÓXIMAMENTE • SÉ EL PRIMERO EN SABER CUANDO LANCEMOS "
+  },
+  "footer": {
+    "tagline": "Hecho con ❤️ para iglesias alrededor del mundo",
+    "product": {
+      "title": "Producto",
+      "features": "Características",
+      "demo": "Demostración",
+      "pricing": "Precios",
+      "api": "API"
+    },
+    "company": {
+      "title": "Empresa",
+      "about": "Acerca de",
+      "blog": "Blog",
+      "careers": "Carreras",
+      "contact": "Contacto"
+    },
+    "resources": {
+      "title": "Recursos",
+      "changelogs": "Cambios",
+      "documentation": "Documentación",
+      "community": "Comunidad",
+      "status": "Estado"
+    },
+    "legal": {
+      "title": "Legal",
+      "privacy": "Política de Privacidad",
+      "terms": "Términos de Servicio",
+      "cookies": "Política de Cookies"
+    },
+    "copyright": "©{{year}} Altarflow. Todos los derechos reservados.",
+    "subsidiary": "Un producto de AU Sigma LLC",
+    "soon": "pronto"
+  }
+}

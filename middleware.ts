@@ -13,6 +13,10 @@ const isPublicRoute = createRouteMatcher([
   '/api/communication/unsubscribe(.*)',
   '/api/communication/resubscribe(.*)',
   '/',
+  '/waitlist-full',
+  '/book-demo',
+  '/privacy-policy',
+  '/terms-of-service',
 ])
 
 // Define onboarding routes
@@ -27,6 +31,16 @@ const isInvitationRoute = createRouteMatcher([
 
 
 export default clerkMiddleware(async (auth, req) => {
+  // Check for signup page access without invitation
+  if (req.nextUrl.pathname === '/signup') {
+    const hasInvitation = req.nextUrl.searchParams.has('__clerk_ticket');
+    
+    // If no invitation ticket, redirect to waitlist
+    if (!hasInvitation) {
+      return NextResponse.redirect(new URL('/waitlist-full', req.url));
+    }
+  }
+  
   // Skip checks for public routes
   if (isPublicRoute(req)) {
     return NextResponse.next()

@@ -2,6 +2,7 @@
   "appName": "Altarflow",
   "tagline": "Manejo de Iglesia Simplificado",
   "loading": "Cargando...",
+  "loading.preparingTools": "Preparando tus herramientas de gestión de iglesia",
   "error": "Ocurrió un error",
   "save": "Guardar",
   "cancel": "Cancelar",
@@ -216,5 +217,9 @@
     "trialFeatures": "Durante tu período de prueba, tienes acceso a Flujos, Miembros y Configuración.",
     "limitedFeatures": "Con tu plan actual, tienes acceso a Flujos, Miembros y Configuración.",
     "upgradeNow": "Actualizar Ahora"
+  },
+  "footer": {
+    "privacy": "Política de Privacidad",
+    "terms": "Términos de Servicio"
   }
 }
