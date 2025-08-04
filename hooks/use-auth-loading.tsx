@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useLoading } from '@/contexts/loading-context'
 import { usePathname } from 'next/navigation'
+import { safeStorage } from '@/lib/safe-storage'
 
 export function useAuthLoading() {
   const { isSignedIn, isLoaded } = useUser()
@@ -34,16 +35,16 @@ export function useAuthLoading() {
                          referrer.includes('/signin') ||
                          referrer.includes('clerk.') ||
                          // Check sessionStorage for sign-in flag
-                         sessionStorage.getItem('justSignedIn') === 'true'
+                         safeStorage.getItem('justSignedIn', 'sessionStorage') === 'true'
       
-      if (isNewSignIn || !sessionStorage.getItem('dashboardLoaded')) {
+      if (isNewSignIn || !safeStorage.getItem('dashboardLoaded', 'sessionStorage')) {
         console.log('Showing loader for new sign-in')
         hasShownLoader.current = true
         showLoader()
         
         // Clear the sign-in flag
-        sessionStorage.removeItem('justSignedIn')
-        sessionStorage.setItem('dashboardLoaded', 'true')
+        safeStorage.removeItem('justSignedIn', 'sessionStorage')
+        safeStorage.setItem('dashboardLoaded', 'true', 'sessionStorage')
         
         // Hide loader after dashboard content loads
         setTimeout(() => {

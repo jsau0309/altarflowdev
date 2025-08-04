@@ -5,15 +5,16 @@ import { useEffect } from 'react';
 import { DotPattern } from '@/components/ui/dot-pattern';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
+import { safeStorage } from '@/lib/safe-storage';
 
 export default function SignInPage() {
   const { t } = useTranslation('auth');
 
   useEffect(() => {
     // Set a flag when on sign-in page
-    sessionStorage.setItem('justSignedIn', 'true');
+    safeStorage.setItem('justSignedIn', 'true', 'sessionStorage');
     // Clear dashboard loaded flag
-    sessionStorage.removeItem('dashboardLoaded');
+    safeStorage.removeItem('dashboardLoaded', 'sessionStorage');
   }, []);
 
   return (

@@ -18,6 +18,7 @@ import { CalendarIcon, ChevronsUpDown, Check, Loader2 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { safeStorage } from "@/lib/safe-storage";
 
 interface ManualDonationDialogProps {
   isOpen: boolean;
@@ -55,7 +56,7 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess, donors }: Man
 
   const handleSave = async () => {
     setIsSaving(true);
-    const churchId = localStorage.getItem("churchId"); // Consider passing as prop for better testability/flexibility
+    const churchId = safeStorage.getItem("churchId"); // Consider passing as prop for better testability/flexibility
 
     if (!churchId) {
       toast.error(t('common:errors.churchId_not_found'));

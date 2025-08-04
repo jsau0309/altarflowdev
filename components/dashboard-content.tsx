@@ -18,6 +18,7 @@ import { useOrganization } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useLoading } from "@/contexts/loading-context";
+import { safeStorage } from "@/lib/safe-storage";
 
 // Define a basic structure for the dashboard data
 interface DashboardData {
@@ -72,11 +73,9 @@ export function DashboardContent() {
       setError(null);
       try {
         let churchIdFromStorage = null;
-        try {
-          churchIdFromStorage = localStorage.getItem("churchId");
-        } catch (e) {
-          // Handle localStorage access errors (e.g., in restricted environments)
-          console.error("Unable to access localStorage:", e);
+        churchIdFromStorage = safeStorage.getItem("churchId");
+        if (!churchIdFromStorage) {
+          console.warn("ChurchId not available in localStorage");
         }
         const [summaryData, donorsData, subscriptionData] = await Promise.all([
           getDashboardSummaryOptimized(),

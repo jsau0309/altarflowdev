@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTranslation } from "react-i18next"
 import { useState, useEffect } from "react"
+import { safeStorage } from "@/lib/safe-storage"
 
 export function LanguageSwitcher() {
   const { i18n } = useTranslation()
@@ -25,7 +26,13 @@ export function LanguageSwitcher() {
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang)
-    localStorage.setItem('i18nextLng', lang)
+    
+    // Use safe storage with error handling
+    const result = safeStorage.setItem('i18nextLng', lang)
+    if (!result.success) {
+      // Language changed for this session, but preference won't persist
+      console.info('Language preference will not persist across sessions')
+    }
   }
 
   return (

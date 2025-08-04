@@ -28,6 +28,7 @@ import { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { DonorDetailsDrawer } from "@/components/donations/donor-details-drawer";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { safeStorage } from "@/lib/safe-storage";
 import { DonorFE, DonationTransactionFE, DonorDetailsData } from "@/lib/types";
 import { DonorFilterItem } from "@/lib/actions/donations.actions";
 import { useTranslation } from 'react-i18next';
@@ -104,7 +105,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
 
   const fetchDonations = async () => {
     setIsLoading(true)
-    const churchIdFromStorage = typeof window !== 'undefined' ? localStorage.getItem("churchId") : null;
+    const churchIdFromStorage = typeof window !== 'undefined' ? safeStorage.getItem("churchId") : null;
 
     if (!churchIdFromStorage) {
       console.error("fetchDonations: churchId is not available from localStorage. Cannot fetch donations.");
