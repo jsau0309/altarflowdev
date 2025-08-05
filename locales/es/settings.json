@@ -177,7 +177,9 @@
       "addressNote": "Esta dirección aparece en los recibos de impuestos y comunicaciones por correo",
       "profileLoadFailed": "Error al cargar el perfil de la iglesia",
       "profileSaved": "Perfil de la iglesia actualizado con éxito",
-      "profileSaveFailed": "Error al actualizar el perfil de la iglesia"
+      "profileSaveFailed": "Error al actualizar el perfil de la iglesia",
+      "profilePermissionDenied": "No tienes permisos para actualizar la configuración de la iglesia. Solo los administradores pueden realizar estos cambios.",
+      "profileReadOnly": "Tienes acceso de solo lectura a la configuración de la iglesia. Contacta a un administrador para realizar cambios."
     },
 
     "landing": {

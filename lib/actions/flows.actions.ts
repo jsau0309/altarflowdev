@@ -6,6 +6,8 @@ import { FormConfiguration, defaultServiceTimes, defaultMinistries, defaultSetti
 import { FlowType, Prisma } from '@prisma/client'; // Import Prisma namespace for Prisma.JsonObject and FlowType
 import type { ServiceTime, Ministry, LifeStage, RelationshipStatus, MemberFormData } from '../../components/member-form/types'; // Ensure MemberFormData is imported if used
 import { Resend } from 'resend'; // Import Resend
+import { generateNewMemberWelcomeHtml, NewMemberWelcomeData } from '@/lib/email/templates/new-member-welcome';
+import { generatePrayerRequestNotificationHtml, PrayerRequestNotificationData } from '@/lib/email/templates/prayer-request-notification';
 
 // Define the specific input type expected by the submitFlow action
 // Based on the Zod schema in ConnectForm.tsx
@@ -47,7 +49,10 @@ async function sendWelcomeEmail(
     language: string, // Added language parameter
     churchLogoUrl?: string, 
     serviceTimes?: EmailServiceTime[],
-    ministries?: EmailMinistry[]
+    ministries?: EmailMinistry[],
+    churchEmail?: string,
+    churchPhone?: string,
+    churchAddress?: string
 ): Promise<void> {
     if (!process.env.RESEND_API_KEY) {
         console.error("[Resend Email] RESEND_API_KEY missing in environment. Cannot send email.");
@@ -60,63 +65,32 @@ async function sendWelcomeEmail(
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // Translations
-    const isSpanish = language.toLowerCase().startsWith('es');
+    // Prepare email data
+    const emailData: NewMemberWelcomeData = {
+        firstName,
+        churchName,
+        churchLogoUrl,
+        churchEmail: churchEmail || '',
+        churchPhone: churchPhone || '',
+        churchAddress: churchAddress || '',
+        serviceTimes,
+        ministries,
+        language: language as 'en' | 'es'
+    };
 
-    const subjectText = isSpanish ? `¡Bienvenido(a) a ${churchName}!` : `Welcome to ${churchName}!`;
-    const greetingText = isSpanish ? `Hola ${firstName},` : `Hi ${firstName},`;
-    const thankYouText = isSpanish ? `Gracias por conectarte con ${churchName}. ¡Estamos emocionados de que te unas a nuestra comunidad!` : `Thank you for connecting with ${churchName}. We're thrilled to have you join our community!`;
-    const getInvolvedTitle = isSpanish ? `Aquí te Mostramos Cómo Puedes Participar:` : `Here's How You Can Get Involved:`;
-    const serviceTimesTitle = isSpanish ? `🗓️ Nuestros Horarios de Servicio:` : `🗓️ Our Service Times:`;
-    const ministriesTitle = isSpanish ? `🤝 Ministerios y Grupos:` : `🤝 Ministries & Groups:`;
-    const moreInfoText = isSpanish ? `Pronto nos pondremos en contacto contigo con más información. Si tienes alguna pregunta inmediata, no dudes en contactarnos.` : `We'll be in touch soon with more information. If you have any immediate questions, please don't hesitate to contact us.`;
-    const blessingsText = isSpanish ? `Bendiciones,` : `Blessings,`;
-    const teamText = isSpanish ? `El Equipo de ${churchName}` : `The Team at ${churchName}`; 
-    const automatedMessageText = isSpanish ? `Este es un mensaje automático. Por favor, no respondas directamente a este correo.` : `This is an automated message. Please do not reply directly to this email.`;
+    // Generate email HTML using the template
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
+    const emailHtmlBody = generateNewMemberWelcomeHtml(emailData, appUrl);
 
-    // Enhanced HTML email body
-    const emailHtmlBody = `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9f9f9; padding: 20px;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-          ${churchLogoUrl ? `<div style="text-align: center; margin-bottom: 25px;"><img src="${churchLogoUrl}" alt="${churchName} Logo" style="max-width: 200px; max-height: 70px; height: auto;"></div>` : ''}
-          <h2 style="color: #0056b3; text-align: center; margin-bottom: 20px;">${subjectText}</h2>
-          <p>${greetingText}</p>
-          <p>${thankYouText}</p>
-          
-          ${(serviceTimes && serviceTimes.length > 0) || (ministries && ministries.length > 0) ? `
-          <div style="margin-top: 25px; margin-bottom: 25px; padding: 15px; background-color: #f0f8ff; border-radius: 5px;">
-            <h3 style="color: #004a8c; margin-top: 0; margin-bottom: 15px;">${getInvolvedTitle}</h3>
-            ${serviceTimes && serviceTimes.length > 0 ? `
-              <p style="margin-bottom: 5px;"><strong>${serviceTimesTitle}</strong></p>
-              <ul style="list-style-type: none; padding-left: 0; margin-top: 0;">
-                ${serviceTimes.map(st => `<li style="margin-bottom: 3px;"><strong>${isSpanish ? st.day : st.day}:</strong> ${st.time}</li>`).join('')} 
-              </ul>` : ''}
-            ${ministries && ministries.length > 0 ? `
-              <p style="margin-top: ${serviceTimes && serviceTimes.length > 0 ? '15px' : '0'}; margin-bottom: 5px;"><strong>${ministriesTitle}</strong></p>
-              <ul style="list-style-type: none; padding-left: 0; margin-top: 0;">
-                ${ministries.map(m => `<li style="margin-bottom: 3px;">${m.name}</li>`).join('')}
-              </ul>` : ''}
-          </div>
-          ` : ''}
-
-          <p>${moreInfoText}</p>
-          <p>${blessingsText}</p>
-          <p><strong>${teamText}</strong></p>
-          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="font-size: 0.9em; color: #777; text-align: center;">
-            ${automatedMessageText}<br>
-            ${churchName} <!-- You can add address or contact info here if desired -->
-          </p>
-        </div>
-      </div>
-    `;
+    // Subject based on language
+    const subjectText = language === 'es' ? `¡Bienvenido(a) a ${churchName}!` : `Welcome to ${churchName}!`;
 
     try {
         console.log(`[Resend Email] Attempting to send welcome email to ${recipientEmail} for ${churchName} in ${language}.`);
         const { data, error } = await resend.emails.send({
-            from: `${churchName} <connect@${process.env.YOUR_VERIFIED_RESEND_DOMAIN}>`, // Using a more specific 'from' name
+            from: `${churchName} <notifications@${process.env.YOUR_VERIFIED_RESEND_DOMAIN}>`,
             to: recipientEmail,
-            subject: subjectText, // Use translated subject
+            subject: subjectText,
             html: emailHtmlBody,
         });
 
@@ -388,7 +362,8 @@ async function sendPrayerRequestEmail(
   submitterPhone: string | undefined,
   prayerRequestText: string,
   churchName: string,
-  language: 'en' | 'es' = 'en' // Default to English
+  language: 'en' | 'es' = 'en', // Default to English
+  churchLogoUrl?: string
 ): Promise<void> {
   const resendApiKey = process.env.RESEND_API_KEY;
   const resendDomain = process.env.YOUR_VERIFIED_RESEND_DOMAIN;
@@ -404,57 +379,29 @@ async function sendPrayerRequestEmail(
 
   const resend = new Resend(resendApiKey);
 
+  // Prepare email data
+  const emailData: PrayerRequestNotificationData = {
+    submitterName,
+    submitterEmail,
+    submitterPhone,
+    prayerRequest: prayerRequestText,
+    churchName,
+    churchLogoUrl,
+    language,
+    submittedAt: new Date().toISOString()
+  };
+
+  // Generate email HTML using the template
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
+  const htmlContent = generatePrayerRequestNotificationHtml(emailData, appUrl);
+
   const subject = language === 'es' 
-    ? `Nueva Petición de Oración de ${submitterName} para ${churchName}` 
-    : `New Prayer Request from ${submitterName} for ${churchName}`;
-
-  // Construct the logo URL dynamically
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const altarflowLogoUrl = `${siteUrl}/images/Altarflow.png`; // Assuming this is the correct path to your logo
-
-  // Titles and text based on language
-  const emailTitleText = language === 'es' ? 'Nueva Petición de Oración' : 'New Prayer Request';
-  const receivedForText = language === 'es' ? `Has recibido una nueva petición de oración para ${churchName}:` : `You have received a new prayer request for ${churchName}:`;
-  const memberNameLabel = language === 'es' ? 'Nombre del Miembro:' : 'Member\'s Name:';
-  const memberEmailLabel = language === 'es' ? 'Email del Miembro:' : 'Member\'s Email:';
-  const memberPhoneLabel = language === 'es' ? 'Teléfono del Miembro:' : 'Member\'s Phone:';
-  const requestTitle = language === 'es' ? 'Petición:' : 'Request:';
-  const automatedMessageFooter = language === 'es' ? 'Este es un correo electrónico automatizado enviado desde Altarflow.' : 'This is an automated email sent from Altarflow.';
-
-  const htmlContent = `
-  <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9f9f9; padding: 20px;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-      <div style="text-align: center; margin-bottom: 25px;">
-        <img src="${altarflowLogoUrl}" alt="Altarflow Logo" style="max-width: 200px; max-height: 70px; height: auto;">
-      </div>
-      <h2 style="color: #0056b3; text-align: center; margin-bottom: 20px;">${emailTitleText}</h2>
-      <p>${receivedForText}</p>
-      
-      <div style="margin-top: 20px; margin-bottom: 20px; padding: 15px; background-color: #f0f8ff; border-radius: 5px;">
-        <ul style="list-style-type: none; padding-left: 0; margin-top: 0;">
-          <li style="margin-bottom: 8px;"><strong>${memberNameLabel}</strong> ${submitterName}</li>
-          <li style="margin-bottom: 8px;"><strong>${memberEmailLabel}</strong> ${submitterEmail}</li>
-          ${submitterPhone ? `<li style="margin-bottom: 8px;"><strong>${memberPhoneLabel}</strong> ${submitterPhone}</li>` : ''}
-        </ul>
-      </div>
-      
-      <h3 style="color: #004a8c; margin-top: 20px;">${requestTitle}</h3>
-      <div style="padding: 10px; border-left: 3px solid #0056b3; background-color: #f8f9fa; margin-bottom: 20px;">
-        <p style="margin: 0;">${prayerRequestText.replace(/\n/g, '<br>')}</p>
-      </div>
-
-      <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-      <p style="font-size: 0.9em; color: #777; text-align: center;">
-        ${automatedMessageFooter}<br>
-        ${churchName}
-      </p>
-    </div>
-  </div>
-`;
+    ? `Nueva Petición de Oración - ${submitterName}` 
+    : `New Prayer Request - ${submitterName}`;
 
   try {
     const { data, error } = await resend.emails.send({
-      from: `Altarflow Notificaciones <notifications@${resendDomain}>`,
+      from: `${churchName} <notifications@${resendDomain}>`,
       to: [toEmail],
       subject: subject,
       html: htmlContent,
@@ -473,6 +420,52 @@ async function sendPrayerRequestEmail(
 
 // Simple in-memory rate limiting (replace with Redis in production)
 const submissionCache = new Map<string, number[]>();
+
+// Cleanup old entries every hour to prevent memory leak
+const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+const MAX_CACHE_SIZE = 10000; // Maximum number of email entries
+
+// Cleanup function
+function cleanupSubmissionCache() {
+  const hourAgo = Date.now() - (60 * 60 * 1000);
+  const entriesToDelete: string[] = [];
+  
+  // Find entries to delete
+  for (const [email, timestamps] of submissionCache.entries()) {
+    const recentTimestamps = timestamps.filter(time => time > hourAgo);
+    
+    if (recentTimestamps.length === 0) {
+      entriesToDelete.push(email);
+    } else if (recentTimestamps.length < timestamps.length) {
+      // Update with only recent timestamps
+      submissionCache.set(email, recentTimestamps);
+    }
+  }
+  
+  // Delete old entries
+  for (const email of entriesToDelete) {
+    submissionCache.delete(email);
+  }
+  
+  // If cache is still too large, remove oldest entries
+  if (submissionCache.size > MAX_CACHE_SIZE) {
+    const sortedEntries = Array.from(submissionCache.entries())
+      .sort((a, b) => Math.max(...a[1]) - Math.max(...b[1]));
+    
+    // Remove oldest 20% of entries
+    const entriesToRemove = Math.floor(submissionCache.size * 0.2);
+    for (let i = 0; i < entriesToRemove; i++) {
+      submissionCache.delete(sortedEntries[i][0]);
+    }
+  }
+  
+  console.log(`[RateLimit] Cache cleanup completed. Current size: ${submissionCache.size}`);
+}
+
+// Schedule periodic cleanup
+if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'development') {
+  setInterval(cleanupSubmissionCache, CLEANUP_INTERVAL);
+}
 
 export async function submitFlow(
     flowId: string, 
@@ -505,7 +498,18 @@ export async function submitFlow(
     try {
         const flow = await prisma.flow.findUniqueOrThrow({
             where: { id: flowId },
-            select: { churchId: true, configJson: true, church: { select: { name: true } } }
+            select: { 
+                churchId: true, 
+                configJson: true, 
+                church: { 
+                    select: { 
+                        name: true,
+                        email: true,
+                        phone: true,
+                        address: true
+                    } 
+                } 
+            }
         });
         churchId = flow.churchId;
 
@@ -552,6 +556,10 @@ export async function submitFlow(
             memberId = createdMember.id;
         }
 
+        // Use default Altarflow logo (church logo feature not yet implemented)
+        const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const churchLogoUrl = `${siteUrl}/images/Altarflow.png`;
+
         // --- Send Welcome Email --- 
         if (memberId) {
             const configData = flow.configJson as Prisma.JsonObject;
@@ -559,13 +567,6 @@ export async function submitFlow(
 
             const activeServiceTimes = formConfig.serviceTimes?.filter(st => st.isActive).map(st => ({ day: st.day, time: st.time })) || [];
             const activeMinistries = formConfig.ministries?.filter(m => m.isActive).map(m => ({ name: m.name })) || [];
-            
-            // Construct the logo URL dynamically.
-            // Ensure NEXT_PUBLIC_APP_URL is set in your environment variables.
-            // For local development, it might be 'http://localhost:3000' or an ngrok URL.
-            // For production, it will be your actual site URL.
-            const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'; // Use NEXT_PUBLIC_APP_URL
-            const churchLogoUrl = `${siteUrl}/images/Altarflow.png`;
 
             // Call the helper function - this is non-blocking for the main flow
             sendWelcomeEmail(
@@ -575,7 +576,10 @@ export async function submitFlow(
                 validatedFormData.language, // Pass language
                 churchLogoUrl,
                 activeServiceTimes,
-                activeMinistries
+                activeMinistries,
+                flow.church.email || undefined,
+                flow.church.phone || undefined,
+                flow.church.address || undefined
             ).catch(emailError => {
                 // Catch any unhandled promise rejection from sendWelcomeEmail itself, though it already logs.
                 console.error("[SubmitFlow] Error from sendWelcomeEmail promise:", emailError);
@@ -606,7 +610,8 @@ export async function submitFlow(
               validatedFormData.phone,
               validatedFormData.prayerRequest,
               flow.church.name,
-              validatedFormData.language as 'en' | 'es'
+              validatedFormData.language as 'en' | 'es',
+              churchLogoUrl
             ).catch(emailError => {
               console.error("[SubmitFlow] Error from sendPrayerRequestEmail promise:", emailError);
             });

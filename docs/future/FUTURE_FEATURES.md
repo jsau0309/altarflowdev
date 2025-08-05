@@ -61,6 +61,13 @@
 - **Media Library**: Sermon recordings, photos
 - **Version Control**: Track document changes
 
+### 11. Church Branding & Personalization
+- **Church Logo Upload**: Custom logos for emails and public pages
+- **Language Preferences**: Church-level language settings for internal communications
+- **Brand Colors**: Customizable color schemes
+- **Custom Email Templates**: Church-specific email designs
+- **See detailed plan**: [CHURCH_LANGUAGE_AND_BRANDING.md](./CHURCH_LANGUAGE_AND_BRANDING.md)
+
 ## Implementation Priority
 
 ### Phase 1 (Next 3 months)

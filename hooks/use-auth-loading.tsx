@@ -8,49 +8,44 @@ import { safeStorage } from '@/lib/safe-storage'
 
 export function useAuthLoading() {
   const { isSignedIn, isLoaded } = useUser()
-  const { showLoader, hideLoader } = useLoading()
+  const { showLoader } = useLoading()
   const pathname = usePathname()
   const hasShownLoader = useRef(false)
+  const isFirstLoad = useRef(true)
 
   useEffect(() => {
-    console.log('Auth Loading Hook:', { isLoaded, isSignedIn, pathname })
-    
-    // Show loader when navigating to dashboard after sign in
-    if (isLoaded && isSignedIn && pathname.startsWith('/dashboard') && !hasShownLoader.current) {
+    // Only run on dashboard route
+    if (!pathname.startsWith('/dashboard')) {
+      return
+    }
+
+    // Skip if already shown loader in this session
+    if (hasShownLoader.current) {
+      return
+    }
+
+    // Only check for sign-in transition on first load
+    if (isLoaded && isSignedIn && isFirstLoad.current) {
+      isFirstLoad.current = false
+      
       // Check for various signs of a new sign-in
       const urlParams = new URLSearchParams(window.location.search)
       const referrer = document.referrer
       
-      console.log('Checking for new sign-in:', {
-        urlParams: urlParams.toString(),
-        referrer,
-        hasClerkStatus: urlParams.has('__clerk_status'),
-        hasClerkSession: urlParams.has('__clerk_created_session'),
-        referrerIncludesSignin: referrer.includes('/signin')
-      })
-      
-      const isNewSignIn = urlParams.has('from') && urlParams.get('from') === 'signin' ||
-                         urlParams.has('__clerk_status') || 
+      const isNewSignIn = urlParams.has('__clerk_status') || 
                          urlParams.has('__clerk_created_session') ||
                          referrer.includes('/signin') ||
                          referrer.includes('clerk.') ||
-                         // Check sessionStorage for sign-in flag
                          safeStorage.getItem('justSignedIn', 'sessionStorage') === 'true'
       
-      if (isNewSignIn || !safeStorage.getItem('dashboardLoaded', 'sessionStorage')) {
-        console.log('Showing loader for new sign-in')
+      // Only show loader for actual sign-in transitions, not page refreshes
+      if (isNewSignIn) {
         hasShownLoader.current = true
         showLoader()
         
         // Clear the sign-in flag
         safeStorage.removeItem('justSignedIn', 'sessionStorage')
-        safeStorage.setItem('dashboardLoaded', 'true', 'sessionStorage')
-        
-        // Hide loader after dashboard content loads
-        setTimeout(() => {
-          hideLoader()
-        }, 3500)
       }
     }
-  }, [isLoaded, isSignedIn, pathname, showLoader, hideLoader])
+  }, [isLoaded, isSignedIn, pathname, showLoader])
 }

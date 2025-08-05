@@ -178,7 +178,9 @@
     "addressNote": "This address appears on tax receipts and email communications",
     "profileLoadFailed": "Failed to load church profile",
     "profileSaved": "Church profile updated successfully",
-    "profileSaveFailed": "Failed to update church profile"
+    "profileSaveFailed": "Failed to update church profile",
+    "profilePermissionDenied": "You do not have permission to update church settings. Only administrators can make these changes.",
+    "profileReadOnly": "You have view-only access to church settings. Contact an administrator to make changes."
   },
 
   "landing": {

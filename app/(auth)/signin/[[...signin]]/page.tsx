@@ -19,8 +19,8 @@ export default function SignInPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gray-50">
-      {/* Dot Pattern Background */}
-      <DotPattern
+        {/* Dot Pattern Background */}
+        <DotPattern
         width={20}
         height={20}
         cx={1}
@@ -55,7 +55,7 @@ export default function SignInPage() {
         <SignIn 
           routing="path" 
           path="/signin"
-          forceRedirectUrl="/dashboard?from=signin"
+          forceRedirectUrl="/dashboard"
           signUpUrl="/signup"
           appearance={{
             elements: {

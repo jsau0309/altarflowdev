@@ -11,8 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Globe, Moon, Sun, Building, Loader2 } from "lucide-react";
+import { Globe, Moon, Sun, Building, Loader2, Lock } from "lucide-react";
 import LoaderOne from "@/components/ui/loader-one";
 
 // Helper to set a cookie
@@ -32,7 +33,7 @@ export function GeneralSettings() {
   const { i18n, t } = useTranslation();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const { getToken } = useAuth();
+  const { getToken, orgRole } = useAuth();
   const [isChangingLanguage, setIsChangingLanguage] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState(i18n.language);
   const [selectedTheme, setSelectedTheme] = useState(theme || "light");
@@ -47,6 +48,10 @@ export function GeneralSettings() {
     website: "",
   });
   const [hasProfileChanges, setHasProfileChanges] = useState(false);
+  
+  // Check if user has admin permissions
+  const isAdmin = orgRole === 'org:admin';
+  const canEditProfile = isAdmin;
 
   useEffect(() => {
     const fetchChurchProfile = async () => {
@@ -136,11 +141,20 @@ export function GeneralSettings() {
         toast.success(t('settings:general.profileSaved', 'Church profile updated successfully'));
         setHasProfileChanges(false);
       } else {
-        throw new Error('Failed to update profile');
+        const errorData = await response.json();
+        if (response.status === 403) {
+          toast.error(t('settings:general.profilePermissionDenied', 'You do not have permission to update church settings. Only administrators can make these changes.'));
+        } else {
+          throw new Error(errorData.error || 'Failed to update profile');
+        }
       }
     } catch (error) {
       console.error('Failed to save church profile:', error);
-      toast.error(t('settings:general.profileSaveFailed', 'Failed to update church profile'));
+      if (error instanceof Error && error.message.includes('permissions')) {
+        toast.error(error.message);
+      } else {
+        toast.error(t('settings:general.profileSaveFailed', 'Failed to update church profile'));
+      }
     } finally {
       setIsSavingProfile(false);
     }
@@ -166,6 +180,14 @@ export function GeneralSettings() {
             </div>
           ) : (
             <>
+              {!canEditProfile && (
+                <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription>
+                    {t('settings:general.profileReadOnly', 'You have view-only access to church settings. Contact an administrator to make changes.')}
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="church-name">
@@ -176,6 +198,7 @@ export function GeneralSettings() {
                     value={churchProfile.name}
                     onChange={(e) => handleProfileChange('name', e.target.value)}
                     placeholder="First Baptist Church"
+                    disabled={!canEditProfile}
                   />
                 </div>
                 
@@ -189,6 +212,7 @@ export function GeneralSettings() {
                     value={churchProfile.email}
                     onChange={(e) => handleProfileChange('email', e.target.value)}
                     placeholder="contact@church.org"
+                    disabled={!canEditProfile}
                   />
                 </div>
                 
@@ -207,6 +231,7 @@ export function GeneralSettings() {
                     }}
                     placeholder="5551234567"
                     maxLength={10}
+                    disabled={!canEditProfile}
                   />
                   <p className="text-xs text-muted-foreground">
                     {t('settings:general.phoneNote', 'Enter 10 digits only (no spaces or special characters)')}
@@ -223,6 +248,7 @@ export function GeneralSettings() {
                     value={churchProfile.website}
                     onChange={(e) => handleProfileChange('website', e.target.value)}
                     placeholder="https://yourchurch.org"
+                    disabled={!canEditProfile}
                   />
                 </div>
               </div>
@@ -238,32 +264,35 @@ export function GeneralSettings() {
                   placeholder="123 Church Street\nCity, State 12345"
                   rows={3}
                   className="resize-none"
+                  disabled={!canEditProfile}
                 />
                 <p className="text-sm text-muted-foreground">
                   {t('settings:general.addressNote', 'This address appears on tax receipts and email communications')}
                 </p>
               </div>
               
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={handleSaveProfile}
-                  disabled={isSavingProfile || !hasProfileChanges}
-                >
-                  {isSavingProfile ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('settings:general.saving', 'Saving...')}
-                    </>
-                  ) : (
-                    t('settings:general.saveChanges', 'Save Changes')
+              {canEditProfile && (
+                <div className="flex items-center gap-4">
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={isSavingProfile || !hasProfileChanges}
+                  >
+                    {isSavingProfile ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('settings:general.saving', 'Saving...')}
+                      </>
+                    ) : (
+                      t('settings:general.saveChanges', 'Save Changes')
+                    )}
+                  </Button>
+                  {hasProfileChanges && (
+                    <p className="text-sm text-muted-foreground">
+                      {t('settings:general.unsavedChanges', 'You have unsaved changes')}
+                    </p>
                   )}
-                </Button>
-                {hasProfileChanges && (
-                  <p className="text-sm text-muted-foreground">
-                    {t('settings:general.unsavedChanges', 'You have unsaved changes')}
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
         </CardContent>

@@ -59,9 +59,14 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Check if this is a fresh sign-in (coming from Clerk's sign-in flow)
-  const isFromSignIn = req.headers.get('referer')?.includes('/signin') || 
-                      req.headers.get('referer')?.includes('clerk.') ||
+  // Exclude Stripe billing portal from being treated as sign-in
+  const referer = req.headers.get('referer') || '';
+  const isFromStripe = referer.includes('billing.stripe.com') || referer.includes('checkout.stripe.com');
+  const isFromSignIn = !isFromStripe && (
+                      referer.includes('/signin') || 
+                      referer.includes('clerk.') ||
                       req.nextUrl.searchParams.has('__clerk_status')
+                      )
 
   // If user has no organization and not on onboarding
   if (!orgId && !isOnboardingRoute(req)) {

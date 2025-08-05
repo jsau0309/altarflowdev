@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
@@ -8,6 +8,7 @@ import { headers } from 'next/headers';
 import { captureWebhookEvent, capturePaymentError } from '@/lib/sentry';
 import { format } from 'date-fns';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
+import { generateDonationReceiptHtml, DonationReceiptData } from '@/lib/email/templates/donation-receipt';
 
 // Disable body parsing, we need the raw body for webhook signature verification
 export const runtime = 'nodejs';
@@ -240,14 +241,33 @@ export async function POST(req: Request) {
 
         try {
           console.log(`[Stripe Webhook] Attempting to send receipt for PI: ${paymentIntentSucceeded.id}`);
+          
+          // Execute email sending asynchronously but don't block the webhook response
           handleSuccessfulPaymentIntent(paymentIntentSucceeded)
+            .then(() => {
+              console.log(`[Stripe Webhook] Successfully completed receipt handling for PI: ${paymentIntentSucceeded.id}`);
+            })
             .catch(error => {
-              // Log errors from the background task if not caught internally by handleSuccessfulPaymentIntent
-              console.error(`[Stripe Webhook] Error in background receipt handling for PI: ${paymentIntentSucceeded.id}:`, error);
+              console.error(`[Stripe Webhook] Error in receipt handling for PI: ${paymentIntentSucceeded.id}:`, error);
+              
+              // Capture the error for monitoring
+              captureWebhookEvent(error, {
+                context: 'stripe_webhook_receipt_handling',
+                paymentIntentId: paymentIntentSucceeded.id,
+                errorMessage: error?.message || 'Unknown receipt handling error',
+              });
             });
-          console.log(`[Stripe Webhook] Offloaded receipt handling for PI: ${paymentIntentSucceeded.id}. Proceeding to respond to Stripe.`);
+          
+          console.log(`[Stripe Webhook] Receipt handling initiated for PI: ${paymentIntentSucceeded.id}. Responding to Stripe.`);
         } catch (receiptError: any) {
-          console.error(`[Stripe Webhook] Error in receipt handling logic for PI: ${paymentIntentSucceeded.id}:`, receiptError);
+          console.error(`[Stripe Webhook] Critical error in receipt handling setup for PI: ${paymentIntentSucceeded.id}:`, receiptError);
+          
+          // This catches synchronous errors in the setup
+          captureWebhookEvent(receiptError, {
+            context: 'stripe_webhook_receipt_setup',
+            paymentIntentId: paymentIntentSucceeded.id,
+            errorMessage: receiptError?.message || 'Unknown setup error',
+          });
         }
         break;
 
@@ -787,32 +807,53 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     churchRegisteredAddressObj.country
   ].filter(Boolean).join('\n');
 
-  const receiptData = {
+  // Extract payment method details for enhanced display
+  let cardLastFour: string | undefined;
+  let cardBrand: string | undefined;
+  
+  if (paymentIntent.payment_method && typeof paymentIntent.payment_method === 'object') {
+    const pm = paymentIntent.payment_method as Stripe.PaymentMethod;
+    if (pm.card) {
+      cardLastFour = pm.card.last4;
+      cardBrand = pm.card.brand.charAt(0).toUpperCase() + pm.card.brand.slice(1);
+    }
+  }
+
+  // Generate a shorter confirmation number from transaction ID
+  const confirmationNumber = donationTransaction.id.replace(/-/g, '').substring(0, 16).toUpperCase();
+
+  const receiptData: DonationReceiptData = {
     transactionId: donationTransaction.id,
+    confirmationNumber: confirmationNumber,
     datePaid: new Date(paymentIntent.created * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
     amountPaid: (paymentIntent.amount_received / 100).toFixed(2),
     currency: paymentIntent.currency.toUpperCase(),
     paymentMethod: paymentIntent.payment_method_types[0] ? paymentIntent.payment_method_types[0].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A',
+    cardLastFour: cardLastFour,
+    cardBrand: cardBrand,
     churchName: churchRegisteredName,
     churchEin: ein,
     churchAddress: churchAddressString,
     churchEmail: churchRegisteredEmail,
     churchPhone: churchRegisteredPhone,
-    churchLogoUrl: `${process.env.NEXT_PUBLIC_APP_URL}/images/Altarflow.png`, // Default Altarflow logo
+    churchLogoUrl: `${process.env.NEXT_PUBLIC_APP_URL}/images/Altarflow.png`,
     donorName: donorName,
     donorEmail: donorEmail,
     donorAddress: donorAddress,
-    donationCampaign: donationTransaction.donationType?.name || 'General Donation',
-    disclaimer: "No goods or services were provided in exchange for this contribution. This receipt confirms your donation to a 501(c)(3) non-profit organization."
+    donorPhone: donationTransaction.donor?.phone || undefined,
+    donationCampaign: donationTransaction.donationType?.name || 'Tithes & Offerings',
+    donationFrequency: 'one-time', // TODO: Update when recurring donations are implemented
+    disclaimer: `No goods or services were provided in exchange for this contribution. ${churchRegisteredName} is a 501(c)(3) non-profit organization. EIN: ${ein}`
   };
 
-  const emailHtml = generateReceiptHtml(receiptData);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
+  const emailHtml = generateDonationReceiptHtml(receiptData, appUrl);
 
   try {
     await resend.emails.send({
-      from: `Altarflow <receipts@${process.env.YOUR_VERIFIED_RESEND_DOMAIN}>`,
+      from: `Altarflow <support@${process.env.YOUR_VERIFIED_RESEND_DOMAIN}>`,
       to: [donorEmail],
-      subject: `Your Donation Receipt from ${receiptData.churchName}`,
+      subject: `Thank you for your contribution to ${receiptData.churchName}`,
       html: emailHtml,
     });
     console.log(`[Receipt] Receipt email sent to ${donorEmail} for transaction ${donationTransaction.id}`);
@@ -822,132 +863,31 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
       data: { processedAt: new Date() },
     });
     console.log(`[Receipt] Marked DonationTransaction ${donationTransaction.id} as processed for receipt.`);
-  } catch (emailError) {
+  } catch (emailError: any) {
     console.error(`[Receipt] Error sending receipt email for transaction ${donationTransaction.id}:`, emailError);
+    
+    // Capture error details for monitoring
+    capturePaymentError(emailError, {
+      paymentIntentId: paymentIntent.id,
+      churchId: donationTransaction.churchId,
+    });
+    
+    // Log additional context for debugging
+    console.error(`[Receipt] Email error details:`, {
+      transactionId: donationTransaction.id,
+      donorEmail,
+      errorMessage: emailError?.message || 'Unknown email error',
+      errorCode: emailError?.code,
+    });
+    
+    // Log the failure for manual follow-up
+    // In production, you might want to:
+    // 1. Send to a dead letter queue
+    // 2. Create a task in a job queue for retry
+    // 3. Alert the support team
+    console.warn(`[Receipt] MANUAL FOLLOW-UP NEEDED: Receipt email failed for transaction ${donationTransaction.id} to ${donorEmail}`);
+    
+    // Don't throw - let the webhook succeed even if email fails
+    // This prevents Stripe from retrying the webhook unnecessarily
   }
-}
-
-function generateReceiptHtml(data: {
-  transactionId: string;
-  datePaid: string;
-  amountPaid: string;
-  currency: string;
-  paymentMethod: string;
-  churchName: string;
-  churchEin: string;
-  churchAddress: string;
-  churchEmail: string;
-  churchPhone: string;
-  donorName: string;
-  donorEmail: string;
-  donorAddress: string;
-  donationCampaign: string;
-  disclaimer: string;
-  churchLogoUrl?: string; 
-}): string {
-  const formatAddress = (address: string) => address.replace(/\n/g, '<br>');
-
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Donation Receipt - ${data.churchName}</title>
-  <style>
-    body { margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif; }
-    .container { width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee; }
-    .header img { max-width: 150px; margin-bottom: 10px; }
-    .header h1 { color: #333333; margin: 0; font-size: 24px; }
-    .content { padding: 20px 0; }
-    .content p { color: #555555; font-size: 16px; line-height: 1.6; margin: 10px 0; }
-    .content strong { color: #333333; }
-    .details-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
-    .details-table th, .details-table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; }
-    .details-table th { color: #333333; background-color: #f9f9f9; width: 40%; }
-    .details-table td { color: #555555; }
-    .section-title { color: #333333; font-size: 18px; margin-top: 25px; margin-bottom: 15px; border-bottom: 2px solid #0056b3; padding-bottom: 8px;}
-    .footer { text-align: center; padding-top: 20px; border-top: 1px solid #eeeeee; font-size: 12px; color: #777777; }
-    .disclaimer { font-size: 14px; color: #555555; font-style: italic; margin-top: 25px; padding-top:15px; border-top: 1px solid #eeeeee;}
-  </style>
-</head>
-<body>
-  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
-    <tr>
-      <td align="center">
-        <table role="presentation" class="container" width="600" border="0" cellpadding="20" cellspacing="0" style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-          <!-- Header -->
-          <tr>
-            <td class="header" style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee;">
-              ${data.churchLogoUrl ? `<img src="${data.churchLogoUrl}" alt="${data.churchName} Logo" style="max-width: 150px; margin-bottom: 10px;"><br>` : ''}
-              <h1 style="color: #333333; margin: 0; font-size: 24px;">Donation Receipt</h1>
-            </td>
-          </tr>
-
-          <!-- Content -->
-          <tr>
-            <td class="content" style="padding: 20px 0;">
-              <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 10px 0;">Dear ${data.donorName},</p>
-              <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 10px 0;">Thank you for your generous donation to <strong style="color: #333333;">${data.churchName}</strong>. We are grateful for your support.</p>
-
-              <h2 class="section-title" style="color: #333333; font-size: 18px; margin-top: 25px; margin-bottom: 15px; border-bottom: 2px solid #0056b3; padding-bottom: 8px;">Receipt Details</h2>
-              <table role="presentation" class="details-table" width="100%" style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
-                <tr>
-                  <th style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #333333; background-color: #f9f9f9; width: 40%;">Transaction ID:</th>
-                  <td style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #555555;">${data.transactionId}</td>
-                </tr>
-                <tr>
-                  <th style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #333333; background-color: #f9f9f9; width: 40%;">Date Paid:</th>
-                  <td style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #555555;">${data.datePaid}</td>
-                </tr>
-                <tr>
-                  <th style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #333333; background-color: #f9f9f9; width: 40%;">Amount Donated:</th>
-                  <td style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #555555;">${data.amountPaid} ${data.currency}</td>
-                </tr>
-                <tr>
-                  <th style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #333333; background-color: #f9f9f9; width: 40%;">Payment Method:</th>
-                  <td style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #555555;">${data.paymentMethod}</td>
-                </tr>
-                <tr>
-                  <th style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #333333; background-color: #f9f9f9; width: 40%;">Donated To:</th>
-                  <td style="text-align: left; padding: 10px 8px; border-bottom: 1px solid #eeeeee; font-size: 15px; color: #555555;">${data.donationCampaign}</td>
-                </tr>
-              </table>
-
-              <h2 class="section-title" style="color: #333333; font-size: 18px; margin-top: 25px; margin-bottom: 15px; border-bottom: 2px solid #0056b3; padding-bottom: 8px;">Donor Information</h2>
-              <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 10px 0;">
-                <strong style="color: #333333;">Name:</strong> ${data.donorName}<br>
-                <strong style="color: #333333;">Email:</strong> ${data.donorEmail}<br>
-                ${data.donorAddress && data.donorAddress !== 'N/A' ? `<strong style="color: #333333;">Address:</strong><br>${formatAddress(data.donorAddress)}` : ''}
-              </p>
-
-              <h2 class="section-title" style="color: #333333; font-size: 18px; margin-top: 25px; margin-bottom: 15px; border-bottom: 2px solid #0056b3; padding-bottom: 8px;">Organization Information</h2>
-              <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 10px 0;">
-                <strong style="color: #333333;">${data.churchName}</strong><br>
-                <strong style="color: #333333;">EIN:</strong> ${data.churchEin}<br>
-                ${data.churchAddress && data.churchAddress.trim() !== 'N/A' && data.churchAddress.trim() !== '' ? `<strong style="color: #333333;">Address:</strong><br>${formatAddress(data.churchAddress)}<br>` : ''}
-                <strong style="color: #333333;">Contact:</strong> Email: ${data.churchEmail} | Phone: ${data.churchPhone}
-              </p>
-              
-              <p class="disclaimer" style="font-size: 14px; color: #555555; font-style: italic; margin-top: 25px; padding-top:15px; border-top: 1px solid #eeeeee;">
-                <em>${data.disclaimer}</em>
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td class="footer" style="text-align: center; padding-top: 20px; border-top: 1px solid #eeeeee; font-size: 12px; color: #777777;">
-              <p>If you have any questions, please contact ${data.churchName}.</p>
-              <p>Powered by Altarflow &copy; ${new Date().getFullYear()} Altarflow. All rights reserved.</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-  `;
 }

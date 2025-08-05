@@ -2,14 +2,20 @@ import type React from 'react';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import ClientDashboardLayout from './_client-layout'; 
+import ClientDashboardLayout from './_client-layout';
+import AuthWrapper from './auth-wrapper'; 
 
 export default async function ServerDashboardLayout({ children }: { children: React.ReactNode }) {
   const { userId, orgId } = await auth();
   
+  // Don't redirect immediately - let client-side handle it
   if (!userId) {
-    console.log('[ServerDashboardLayout] No userId found, redirecting to /signin');
-    redirect('/signin');
+    console.log('[ServerDashboardLayout] No userId found, will let client handle redirect');
+    return (
+      <AuthWrapper>
+        <ClientDashboardLayout>{children}</ClientDashboardLayout>
+      </AuthWrapper>
+    );
   }
 
   // Check if church exists and handle access control
