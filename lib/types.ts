@@ -196,6 +196,13 @@ export type DonationTransactionFE = Omit<Donation, 'amount'> & {
   donationTypeName: string;
   churchId: string; // Added: ID of the church
   source: string; // Added: 'manual' or 'stripe'
-  status: string; // Added: e.g., 'succeeded', 'pending', 'failed'
+  status: string; // Added: e.g., 'succeeded', 'pending', 'failed', 'refunded', 'disputed'
   notes?: string | null; // Added: Optional notes
+  // Refund tracking fields
+  refundedAmount?: number | null;
+  refundedAt?: string | null; // ISO string
+  // Dispute tracking fields
+  disputeStatus?: string | null;
+  disputeReason?: string | null;
+  disputedAt?: string | null; // ISO string
 };

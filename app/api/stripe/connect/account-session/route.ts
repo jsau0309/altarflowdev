@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
-import { prisma } from '@/lib/prisma'; // Assuming prisma is at this path
+import { prisma } from '@/lib/db';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia', // Use your project's Stripe API version
@@ -17,12 +17,12 @@ export async function POST(req: Request) {
     }
 
     // Fetch the church/organization details including the Stripe Connect Account ID
-    // Assuming your Church model has a field like 'clerkOrgId' and 'stripeConnectAccountId'
     const church = await prisma.church.findUnique({
       where: {
-        clerkOrgId: orgId, // Or whatever field links your Church model to Clerk's orgId
+        clerkOrgId: orgId,
       },
       select: {
+        id: true,
         stripeConnectAccount: {
           select: {
             stripeAccountId: true,
@@ -31,11 +31,44 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!church || !church.stripeConnectAccount || typeof church.stripeConnectAccount.stripeAccountId !== 'string' || !church.stripeConnectAccount.stripeAccountId) {
-      return NextResponse.json({ error: 'Stripe Connect account not found or not configured for this organization.' }, { status: 404 });
+    if (!church) {
+      return NextResponse.json({ error: 'Church not found for this organization.' }, { status: 404 });
     }
 
-    const stripeConnectAccountId = church.stripeConnectAccount.stripeAccountId;
+    // Handle case where no Stripe account exists yet - create one for onboarding
+    let stripeConnectAccountId: string;
+    
+    if (!church.stripeConnectAccount || !church.stripeConnectAccount.stripeAccountId) {
+      // Create a new Connect account for onboarding
+      const account = await stripe.accounts.create({
+        type: 'express',
+        country: 'US',
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        metadata: {
+          churchId: orgId,
+        },
+      });
+      
+      // Save the account to database
+      // Note: churchId references clerkOrgId in the schema, not the church.id
+      await prisma.stripeConnectAccount.create({
+        data: {
+          churchId: orgId, // Use orgId which is the clerkOrgId
+          stripeAccountId: account.id,
+          detailsSubmitted: false,
+          chargesEnabled: false,
+          payoutsEnabled: false,
+          verificationStatus: 'unverified',
+        },
+      });
+      
+      stripeConnectAccountId = account.id;
+    } else {
+      stripeConnectAccountId = church.stripeConnectAccount.stripeAccountId;
+    }
 
     // Create an Account Session
     const accountSession = await stripe.accountSessions.create({
@@ -43,7 +76,6 @@ export async function POST(req: Request) {
       components: {
         account_management: {
           enabled: true,
-          // features: {} // Optional: fine-tune features if needed later
         },
         account_onboarding: {
           enabled: true,
@@ -55,18 +87,22 @@ export async function POST(req: Request) {
             edit_payout_schedule: true,
           },
         },
-        payments: { // For the list of transactions/payments
+        payments: {
           enabled: true,
         },
-        payouts: { // For managing payout settings and initiating payouts
+        payouts: {
           enabled: true,
           features: {
             instant_payouts: true,
             edit_payout_schedule: true,
           },
         },
-        // payouts_list is removed as it's not used on the frontend
-        // You can add other components like 'documents' or 'notification_banner' later if needed
+        notification_banner: {
+          enabled: true,
+        },
+        documents: {
+          enabled: true,
+        },
       },
     });
 

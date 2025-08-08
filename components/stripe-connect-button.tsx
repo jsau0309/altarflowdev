@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { AlertCircle, AlertTriangle, BanknoteIcon, ExternalLink, Loader2 } from "lucide-react";
+import { AlertCircle, AlertTriangle, BanknoteIcon, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -132,11 +132,11 @@ export function StripeConnectButton({
 
     if (verificationStatus === 'verified' && charges_enabled && payouts_enabled) {
       return {
-        text: t('banking:viewDashboard'),
-        variant: 'default' as const,
-        icon: <ExternalLink className="h-4 w-4" />,
-        tooltip: t('banking:viewDashboardTooltip'),
-        actionType: 'createLoginLink' as const, 
+        text: t('banking:connected'),
+        variant: 'secondary' as const,
+        icon: <CheckCircle2 className="h-4 w-4 text-green-600" />,
+        tooltip: t('banking:fullyConnected'),
+        actionType: 'none' as const, // No action needed, fully connected
       };
     }
 
@@ -227,7 +227,11 @@ export function StripeConnectButton({
   }, [shouldPoll, churchId, onConnectSuccess]);
 
   const handleMainAction = async () => {
-    // Debug logging removed: handleMainAction execution details
+    // If action is 'none', don't do anything (fully connected state)
+    if (buttonConfig.actionType === 'none') {
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const account = currentAccount || accountData;
@@ -235,9 +239,10 @@ export function StripeConnectButton({
       if (!buttonConfig || !buttonConfig.actionType) {
         console.error('[StripeConnectButton] CRITICAL: buttonConfig or buttonConfig.actionType is undefined!');
         toast.error('Internal error: Button configuration is missing.');
-        setIsLoading(false); // Ensure loading is stopped
+        setIsLoading(false);
         return;
       }
+      
       let apiAction: 'createAccountLink' | 'createLoginLink';
       let payload: any;
 
@@ -249,8 +254,7 @@ export function StripeConnectButton({
           returnUrl: window.location.href, 
           refreshUrl: window.location.href,
         };
-        // Debug logging removed: creating account link
-      } else { // 'createLoginLink'
+      } else if (buttonConfig.actionType === 'createLoginLink') {
         apiAction = 'createLoginLink';
         if (!account?.stripeAccountId) {
           toast.error('Stripe Account ID is missing. Cannot create login link.');
@@ -261,7 +265,10 @@ export function StripeConnectButton({
           action: apiAction,
           accountId: account.stripeAccountId,
         };
-        // Debug logging removed: creating login link
+      } else {
+        // Unknown action type
+        setIsLoading(false);
+        return;
       }
 
       const response = await fetch('/api/stripe', {
@@ -279,11 +286,9 @@ export function StripeConnectButton({
       }
 
       const responseData = await response.json();
-      // Debug logging removed: Stripe API response
-
-      const url = responseData.url; // Expect 'url' key directly
+      const url = responseData.url;
+      
       if (url) {
-        // Debug logging removed: opening URL in new tab
         window.open(url, '_blank');
       } else {
         console.error('[StripeConnectButton] URL missing or invalid in response!', responseData);
@@ -305,8 +310,8 @@ export function StripeConnectButton({
             className={cn("flex items-center gap-2", className)}
             variant={buttonConfig.variant as any}
             size={size}
-            onClick={handleMainAction} // Correctly assign handleMainAction here
-            disabled={isLoading}
+            onClick={handleMainAction}
+            disabled={isLoading || buttonConfig.actionType === 'none'}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

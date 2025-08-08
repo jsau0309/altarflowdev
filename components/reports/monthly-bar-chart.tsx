@@ -16,6 +16,7 @@ import { Bar } from 'react-chartjs-2'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { MonthlyReportData } from '@/lib/actions/reports.actions'
 import { formatCurrency } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 ChartJS.register(
   CategoryScale,
@@ -93,8 +94,17 @@ export function MonthlyBarChart({ data, title, loading }: MonthlyBarChartProps) 
           <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            Loading chart...
+          <div className="h-[300px] space-y-4">
+            <div className="flex justify-between items-end h-[250px]">
+              {[...Array(12)].map((_, i) => (
+                <Skeleton 
+                  key={i} 
+                  className="w-[calc(100%/12-8px)]" 
+                  style={{ height: `${Math.random() * 60 + 20}%` }}
+                />
+              ))}
+            </div>
+            <Skeleton className="h-4 w-full" />
           </div>
         </CardContent>
       </Card>

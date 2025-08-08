@@ -8,7 +8,7 @@ import {
 import { NextResponse } from 'next/server'
 
 // Import Prisma client
-import { prisma } from '@/lib/prisma'; // Use named import
+import { prisma } from '@/lib/db'; // Use named import
 import { Role } from '@prisma/client'; // Import the Role enum
 import { format } from 'date-fns';
 import { getQuotaLimit } from '@/lib/subscription-helpers';

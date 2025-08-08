@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { hasPaidSubscription } from "@/lib/subscription-helpers";
 

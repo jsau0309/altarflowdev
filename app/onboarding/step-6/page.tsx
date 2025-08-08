@@ -54,8 +54,15 @@ export default function OnboardingStep6() {
     return () => clearInterval(interval);
   }, [organization, router]);
 
-  const handleComplete = () => {
-    router.push('/dashboard');
+  const handleComplete = async () => {
+    // Ensure we're in the right organization context before going to dashboard
+    if (organization) {
+      // The organization is already set, safe to go to dashboard
+      router.push('/dashboard');
+    } else {
+      // No organization context, redirect to root which will handle the correct routing
+      router.push('/');
+    }
   };
 
   if (!organization) {

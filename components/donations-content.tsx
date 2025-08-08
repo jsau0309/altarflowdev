@@ -531,7 +531,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                               <TableHead>{t('donations:method', 'Method')}</TableHead>
                               <TableHead>{t('donations:type', 'Type')}</TableHead>
                               <TableHead className="text-right">{t('donations:amount', 'Amount')}</TableHead>
-                              <TableHead className="text-center w-[50px]">Status</TableHead>
+                              <TableHead className="text-center min-w-[150px]">Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -553,17 +553,59 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                                   <TableCell>{donation.donationTypeName}</TableCell>
                                   <TableCell className="text-right">${parseFloat(donation.amount).toFixed(2)}</TableCell>
                                   <TableCell className="text-center">
-                                    {isManual ? (
-                                      isEditable ? (
-                                        <div title="Editable">
-                                          <Edit3 className="h-4 w-4 text-blue-600 inline" />
-                                        </div>
-                                      ) : (
-                                        <div title="Locked">
-                                          <Lock className="h-4 w-4 text-gray-400 inline" />
-                                        </div>
-                                      )
-                                    ) : null}
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Badge 
+                                        variant={
+                                          donation.status === 'succeeded' ? 'default' :
+                                          donation.status === 'pending' ? 'secondary' :
+                                          donation.status === 'processing' ? 'secondary' :
+                                          donation.status === 'failed' ? 'destructive' :
+                                          donation.status === 'refunded' ? 'destructive' :
+                                          donation.status === 'partially_refunded' ? 'destructive' :
+                                          donation.status === 'disputed' ? 'destructive' : 'secondary'
+                                        }
+                                        className="text-xs"
+                                      >
+                                        {donation.source === 'manual' && donation.status === 'succeeded' ? 'Completed' :
+                                         donation.status === 'partially_refunded' ? 'Partial Refund' : 
+                                         donation.status === 'refunded' ? 'Refunded' :
+                                         donation.status === 'disputed' ? 'Disputed' :
+                                         donation.status === 'succeeded' ? 'Succeeded' :
+                                         donation.status === 'processing' ? 'Processing' :
+                                         donation.status === 'pending' ? 'Pending' :
+                                         donation.status === 'failed' ? 'Failed' :
+                                         donation.status}
+                                      </Badge>
+                                      {/* Show dispute status badge if there's an active dispute */}
+                                      {donation.disputeStatus && (
+                                        <Badge 
+                                          variant={
+                                            donation.disputeStatus === 'won' ? 'default' :
+                                            donation.disputeStatus === 'lost' ? 'destructive' :
+                                            donation.disputeStatus === 'needs_response' ? 'destructive' :
+                                            'outline'
+                                          }
+                                          className="text-xs"
+                                        >
+                                          {donation.disputeStatus === 'needs_response' ? '⚠️ Response Needed' :
+                                           donation.disputeStatus === 'under_review' ? '🔍 Under Review' :
+                                           donation.disputeStatus === 'won' ? '✅ Won' :
+                                           donation.disputeStatus === 'lost' ? '❌ Lost' :
+                                           donation.disputeStatus}
+                                        </Badge>
+                                      )}
+                                      {isManual && (
+                                        isEditable ? (
+                                          <div title="Editable">
+                                            <Edit3 className="h-3 w-3 text-blue-600" />
+                                          </div>
+                                        ) : (
+                                          <div title="Locked">
+                                            <Lock className="h-3 w-3 text-gray-400" />
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               );

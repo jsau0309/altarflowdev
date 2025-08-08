@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 // import { createServerClient, type CookieOptions } from '@supabase/ssr'; // <-- Remove Supabase
 // import { cookies } from 'next/headers'; // <-- Remove if not used
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { getAuth } from '@clerk/nextjs/server'; // <-- Use getAuth
 import { revalidateTag } from 'next/cache';
 

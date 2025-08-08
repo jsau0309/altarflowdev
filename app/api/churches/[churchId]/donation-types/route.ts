@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; 
+import { prisma } from '@/lib/db'; 
 
 interface Params {
   churchId: string; // This is the Clerk Organization ID from the path

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -10,14 +11,16 @@ import {
   ArrowDownToLine,
   BanknoteIcon as BankIcon,
   CheckCircle2,
+  CreditCard,
   FileText,
   HelpCircle,
   Info,
   Landmark,
   Loader2,
-  
   RefreshCw,
+  Settings,
   Shield,
+  User,
 } from "lucide-react"
 import {
   Tooltip,
@@ -31,8 +34,11 @@ import { useAuth } from '@clerk/nextjs'
 import { StripeConnectButton, type StripeAccount } from './stripe-connect-button'
 import StripeConnectEmbeddedWrapper from './stripe/StripeConnectEmbeddedWrapper';
 import LoaderOne from '@/components/ui/loader-one';
+import { PayoutReconciliationDashboard } from './payouts/payout-reconciliation-dashboard';
 
 export function BankingContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("account")
   const [stripeAccount, setStripeAccount] = useState<StripeAccount | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -41,6 +47,52 @@ export function BankingContent() {
   const { t } = useTranslation(['banking', 'common'])
 
   const { orgId, isLoaded: isClerkLoaded } = useAuth() // Renamed for clarity
+
+  // Determine if account is fully connected
+  const isFullyConnected = useMemo(() => {
+    return stripeAccount?.stripeAccountId && 
+           stripeAccount?.charges_enabled && 
+           stripeAccount?.payouts_enabled &&
+           stripeAccount?.verificationStatus === 'verified'
+  }, [stripeAccount])
+
+  // Smart tab visibility based on account status
+  const visibleTabs = useMemo(() => {
+    // Only show tabs if fully connected
+    if (!isFullyConnected) {
+      return []
+    }
+    
+    // Show management tabs for connected accounts
+    return [
+      { id: 'account', label: t('banking:bankingContent.tabs.account'), icon: User },
+      { id: 'payments', label: t('banking:bankingContent.tabs.payments'), icon: CreditCard },
+      { id: 'payouts', label: t('banking:bankingContent.tabs.payouts'), icon: BankIcon },
+      { id: 'reconciliation', label: t('banking:bankingContent.tabs.reconciliation'), icon: FileText }
+    ]
+  }, [isFullyConnected, t])
+
+  // Initialize active tab from URL on mount
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab')
+    const validTabIds = visibleTabs.map(tab => tab.id)
+    
+    if (tabFromUrl && validTabIds.includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl)
+    } else if (visibleTabs.length > 0) {
+      // Default to account tab for connected accounts
+      setActiveTab('account')
+    }
+  }, [searchParams, visibleTabs])
+
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+    // Update URL without causing a page refresh
+    const url = new URL(window.location.href)
+    url.searchParams.set('tab', value)
+    router.push(url.pathname + url.search, { scroll: false })
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -195,95 +247,101 @@ export function BankingContent() {
                 <AlertTitle>{t('common:error')}</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
-            ) : churchId ? (
-              <StripeConnectButton 
-                size="sm" 
-                className="w-full sm:w-auto"
-                onConnectSuccess={(account) => setStripeAccount(account)}
-                churchId={churchId}
-                accountStatus={
-                  stripeAccount?.charges_enabled && stripeAccount?.payouts_enabled 
-                    ? 'connected' 
-                    : stripeAccount?.id 
-                      ? 'pending_verification' 
-                      : 'not_connected'
-                }
-                accountData={stripeAccount}
-              />
-            ) : (
-              <Button variant="outline" size="sm" disabled>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('common:loading')}...
-              </Button>
-            )}
-            {/* Stripe Connected Icon with Tooltip */}
-            {stripeAccount && stripeAccount.charges_enabled && stripeAccount.payouts_enabled && stripeAccount.details_submitted && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="p-2 rounded-full hover:bg-gray-100 cursor-pointer">
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="font-semibold">{t('banking:bankingContent.connectedTitle')}</p>
-                    <p>{t('banking:bankingContent.connectedDescription')}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+            ) : isFullyConnected ? (
+              // Only show the connected badge after onboarding is complete
+              <Badge variant="secondary" className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                {t('banking:connected')}
+              </Badge>
+            ) : null /* Don't show any button during onboarding */}
           </div>
         </div>
       </div>
 
-      <Tabs defaultValue="account" className="w-full space-y-6" onValueChange={setActiveTab}>
-        <div className="w-full overflow-x-auto pb-2">
-          <TabsList className="inline-flex w-full min-w-max mb-2">
-            <TabsTrigger value="account" className="flex-1 whitespace-nowrap">
-              {t('banking:bankingContent.tabs.account')}</TabsTrigger>
-            <TabsTrigger value="payouts" className="flex-1 whitespace-nowrap">
-              {t('banking:bankingContent.tabs.payouts')}</TabsTrigger>
-            <TabsTrigger value="balance" className="flex-1 whitespace-nowrap">
-              {t('banking:bankingContent.tabs.balance')}</TabsTrigger>
-          </TabsList>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-[500px] pt-4">
+          <LoaderOne />
         </div>
-
-        {isLoading ? (
-          <div className="flex justify-center items-center h-[500px] pt-4">
-            <LoaderOne />
+      ) : !isFullyConnected ? (
+        // Onboarding State - No tabs, just the onboarding interface
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>{t('banking:onboarding.title')}</CardTitle>
+            <CardDescription>
+              {t('banking:onboarding.description')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 px-6 py-5">
+            {churchId ? (
+              <StripeConnectEmbeddedWrapper componentKey="accountOnboarding" />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                {t('common:loading')}...
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        // Management State - Show tabs for connected accounts
+        <Tabs value={activeTab} className="w-full space-y-6" onValueChange={handleTabChange}>
+          <div className="w-full overflow-x-auto pb-2">
+            <TabsList className="inline-flex w-full min-w-max mb-2">
+              {visibleTabs.map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <TabsTrigger 
+                    key={tab.id} 
+                    value={tab.id} 
+                    className="flex-1 whitespace-nowrap flex items-center gap-2"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </TabsTrigger>
+                )
+              })}
+            </TabsList>
           </div>
-        ) : (
-          <>
-            {/* Account Tab */}
-            <TabsContent value="account" className="space-y-4">
-              <Card>
-                <CardContent className="space-y-6 px-6 py-5">
-                  <StripeConnectEmbeddedWrapper componentKey="accountManagement" />
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            {/* Payouts Tab */}
-            <TabsContent value="payouts" className="space-y-4">
-              <Card>
-                <CardContent className="space-y-6 px-6 py-5">
-                  <StripeConnectEmbeddedWrapper componentKey="payouts" />
-                </CardContent>
-              </Card>
-            </TabsContent>
+          {/* Account Tab */}
+          <TabsContent value="account" className="space-y-4">
+            <Card>
+              <CardContent className="space-y-6 px-6 py-5">
+                {/* Account Management component handles everything internally */}
+                <StripeConnectEmbeddedWrapper componentKey="accountManagement" />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            {/* Tax Information Tab */}
-            <TabsContent value="balance" className="space-y-4">
-              <Card className="w-full">
-                <CardContent className="space-y-4 pt-6 md:pt-6">
-                  <StripeConnectEmbeddedWrapper componentKey="balances" />
-                  <StripeConnectEmbeddedWrapper componentKey="payments" />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </>
-        )}
-      </Tabs>
+          {/* Payments Tab */}
+          <TabsContent value="payments" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('banking:payments.title')}</CardTitle>
+                <CardDescription>
+                  {t('banking:payments.description')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 px-6 py-5">
+                <StripeConnectEmbeddedWrapper componentKey="payments" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Payouts Tab */}
+          <TabsContent value="payouts" className="space-y-4">
+            <Card>
+              <CardContent className="space-y-6 px-6 py-5">
+                <StripeConnectEmbeddedWrapper componentKey="payouts" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Reconciliation Tab */}
+          <TabsContent value="reconciliation" className="space-y-4">
+            <PayoutReconciliationDashboard />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { auth } from '@clerk/nextjs/server';
 import { FormConfiguration, defaultServiceTimes, defaultMinistries, defaultSettings } from "@/components/member-form/types"; // Adjust path if necessary
 import { FlowType, Prisma } from '@prisma/client'; // Import Prisma namespace for Prisma.JsonObject and FlowType
@@ -462,9 +462,26 @@ function cleanupSubmissionCache() {
   console.log(`[RateLimit] Cache cleanup completed. Current size: ${submissionCache.size}`);
 }
 
-// Schedule periodic cleanup
+// Schedule periodic cleanup with proper cleanup on module unload
+let cleanupInterval: NodeJS.Timeout | null = null;
+
 if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'development') {
-  setInterval(cleanupSubmissionCache, CLEANUP_INTERVAL);
+  cleanupInterval = setInterval(cleanupSubmissionCache, CLEANUP_INTERVAL);
+  
+  // Clean up on process termination
+  process.on('SIGTERM', () => {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
+    }
+  });
+  
+  process.on('SIGINT', () => {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
+    }
+  });
 }
 
 export async function submitFlow(

@@ -1,7 +1,7 @@
 "use server"; // Add the 'use server' directive
 
 // import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server';
 import { FormConfiguration, defaultServiceTimes, defaultMinistries, defaultSettings } from "@/components/member-form/types"; // Import types and defaults
 import { Prisma } from '@prisma/client'; // Import Prisma namespace

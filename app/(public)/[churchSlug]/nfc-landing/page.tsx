@@ -1,11 +1,10 @@
 import { getChurchBySlug } from '@/lib/actions/church.actions';
 import { getActiveFlowsByChurchId } from '@/lib/actions/flows.actions';
 import { getTranslationsForServer } from '@/lib/i18n.server';
-import { LanguageToggle } from "@/components/language-toggle"; // Added
-import { cookies } from 'next/headers'; // Added
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import Image from 'next/image';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import type { Metadata } from 'next';
 
 interface NfcLandingPageProps {
@@ -52,11 +51,7 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
   const altarflowLogoUrl = `${siteUrl}/images/Altarflow.svg`;
 
   return (
-    <>
-      <div className="fixed top-4 right-4 z-50"> {/* Added wrapper for positioning */}
-        <LanguageToggle />
-      </div>
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-gray-400 flex flex-col items-center justify-center p-4 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-gray-400 flex flex-col items-center justify-center p-4 text-white">
       <div className="bg-white text-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
         <div className="mb-8">
           <Image src={altarflowLogoUrl} alt="Altarflow Logo" width={225} height={75} className="mx-auto" />
@@ -91,8 +86,7 @@ async function NfcLandingContent({ churchSlug }: { churchSlug: string }) {
       <footer className="text-center text-xs py-4 text-white text-opacity-80">
         {new Date().getFullYear()} Altarflow. All rights reserved.
       </footer>
-      </div>
-    </>
+    </div>
   );
 }
 

@@ -177,29 +177,31 @@ export function DashboardContent() {
           {/* Subscription Banner */}
           {subscriptionInfo && (
             <>
-              {/* Free Plan Banner */}
+              {/* Free Plan Banner - Compact Design */}
               {subscriptionInfo.status === 'free' && (
-                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 mb-6">
-                  <CardContent className="flex items-center justify-between p-6">
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="h-6 w-6 text-blue-600" />
-                      <div>
-                        <h3 className="font-semibold text-blue-900 dark:text-blue-200">
-                          {t('dashboard:freeActive', 'You\'re on AltarFlow Free')}
-                        </h3>
-                        <p className="text-sm text-blue-800 dark:text-blue-300">
-                          {t('dashboard:freeDescription', 'Upgrade to unlock donations, expenses, and financial reports.')}
-                        </p>
-                      </div>
+                <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-full">
+                      <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <Button 
-                      onClick={() => router.push('/settings?tab=account')}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {t('dashboard:upgradeNow', 'Upgrade Now')}
-                    </Button>
-                  </CardContent>
-                </Card>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+                      <span className="font-semibold text-sm text-blue-900 dark:text-blue-200">
+                        {t('dashboard:freeActive', 'You\'re on AltarFlow Free')}
+                      </span>
+                      <span className="hidden sm:inline text-blue-400 dark:text-blue-500 text-xs">•</span>
+                      <span className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-300/80 mt-0.5 sm:mt-0">
+                        {t('dashboard:freeDescription', 'Upgrade to unlock donations, expenses, and financial reports.')}
+                      </span>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => router.push('/settings?tab=account')}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 h-8 ml-3 flex-shrink-0"
+                  >
+                    {t('dashboard:upgradeNow', 'Upgrade Now')}
+                  </Button>
+                </div>
               )}
 
               {/* Grace Period Banner */}

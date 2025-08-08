@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod'; // Using Zod for validation
 import { createClient } from '@supabase/supabase-js'; // Import standard Supabase client

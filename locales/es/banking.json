@@ -1,8 +1,22 @@
 {
     "connectWithStripe": "Conectar con Stripe",
+    "connectWithStripeTooltip": "Conecta tu cuenta bancaria para recibir donaciones",
     "viewInStripeExpress": "Ver en Stripe Express",
     "verificationInProgress": "Verificación en Progreso",
     "verificationTooltip": "Tu cuenta está siendo verificada. Este proceso suele tardar 1-2 días hábiles.",
+    "connected": "Conectado",
+    "fullyConnected": "Tu cuenta de Stripe está completamente conectada y operativa",
+    "actionRequired": "Acción Requerida",
+    "actionRequiredTooltip": "Información adicional necesaria: {{requirements}}",
+    "additionalInfoNeeded": "Información adicional necesaria",
+    "accountRestricted": "Cuenta Restringida",
+    "accountRestrictedTooltip": "Cuenta restringida: {{reason}}",
+    "unknownReason": "Razón desconocida",
+    "completeVerification": "Completar Verificación",
+    "completeVerificationTooltip": "Completa la verificación de tu cuenta para habilitar todas las funciones",
+    "requirementsNeeded": "Requisitos necesarios",
+    "viewDashboard": "Ver Panel",
+    "viewDashboardTooltip": "Abrir Panel Express de Stripe",
     "bankingContent": {
       "title": "Banca",
       "subtitle": "Administra tus cuentas financieras, pagos y información fiscal",
@@ -14,9 +28,12 @@
         "description": "Por favor, completa tu verificación de cuenta para habilitar todas las funciones bancarias y recibir pagos."
       },
       "tabs": {
+        "onboarding": "Configuración",
         "account": "Cuenta",
-        "payouts": "Pagos",
+        "payments": "Pagos",
+        "payouts": "Desembolsos",
         "balance": "Balance",
+        "reconciliation": "Reconciliación",
         "settings": "Configuración"
       },
       "account": {
@@ -85,5 +102,66 @@
         "helpDescription": "Contacta a nuestro equipo de soporte para obtener ayuda con las operaciones bancarias",
         "contactSupportButton": "Contactar Soporte"
       }
+    },
+    "onboarding": {
+      "title": "Completa la Configuración de tu Cuenta",
+      "description": "Configura tu cuenta de Stripe para comenzar a aceptar donaciones y administrar pagos"
+    },
+    "payments": {
+      "title": "Transacciones de Pago",
+      "description": "Ver todas las transacciones, procesar reembolsos y gestionar disputas"
+    },
+    "reconciliation": {
+    "stats": {
+      "totalPayouts": "Total de Pagos",
+      "reconciled": "Reconciliados",
+      "pending": "Pendientes",
+      "failed": "Fallidos"
+    },
+    "recentPayouts": {
+      "title": "Pagos Recientes",
+      "description": "Ver y reconciliar tus pagos de Stripe"
+    },
+    "importing": "Importando...",
+    "importFromStripe": "Importar desde Stripe",
+    "reconciling": "Reconciliando...",
+    "reconcileAllPending": "Reconciliar Todos los Pendientes",
+    "reconcile": "Reconciliar",
+    "noPayoutsFound": "No se encontraron pagos",
+    "table": {
+      "payoutDate": "Fecha de Pago",
+      "arrivalDate": "Fecha de Llegada",
+      "amount": "Monto",
+      "transactions": "Transacciones",
+      "grossVolume": "Volumen Bruto",
+      "fees": "Comisiones",
+      "netAmount": "Monto Neto",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "status": {
+      "reconciled": "Reconciliado",
+      "pendingReconciliation": "Pendiente de Reconciliación",
+      "inTransit": "En Tránsito",
+      "pending": "Pendiente",
+      "failed": "Fallido",
+      "canceled": "Cancelado"
+    },
+    "toast": {
+      "reconciling": "Reconciliando pago...",
+      "reconcileSuccess": "Pago reconciliado exitosamente",
+      "reconcileError": "Error al reconciliar el pago",
+      "reconcilingAll": "Reconciliando todos los pagos pendientes...",
+      "reconcileAllSuccess": "Todos los pagos pendientes reconciliados",
+      "reconcileAllError": "Error al reconciliar los pagos",
+      "checkingStripe": "Verificando pagos en Stripe...",
+      "importing": "Importando pagos desde Stripe...",
+      "importSuccess": "Se importaron {{count}} pagos desde Stripe",
+      "importError": "Error al importar pagos",
+      "noStripeAccount": "Por favor complete la configuración de Stripe primero",
+      "noPayoutsFound": "No se encontraron pagos en su cuenta de Stripe",
+      "alreadyImported": "{{count}} pagos ya están en la base de datos",
+      "noNewPayouts": "No hay nuevos pagos para importar"
     }
-  } 
+  }
+}

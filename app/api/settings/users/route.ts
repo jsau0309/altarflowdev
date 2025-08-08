@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 // import { createServerClient } from '@supabase/ssr'; // <-- Remove Supabase
 // import { createClient } from '@supabase/supabase-js'; // <-- Remove Supabase Admin
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 // import { cookies } from 'next/headers'; // <-- Remove if not used
 import { getAuth, clerkClient } from '@clerk/nextjs/server'; // Import clerkClient
 import { OrganizationMembership } from '@clerk/backend'; // Import type for mapping

@@ -1,6 +1,6 @@
 "use server"
 
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/db'
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths } from 'date-fns'
 
 export interface MonthlyReportData {
@@ -43,18 +43,21 @@ export async function getMonthlyDonationSummary(
       },
       select: {
         transactionDate: true,
-        amount: true
+        amount: true,
+        processingFeeCoveredByDonor: true
       }
     })
 
 
-    // Group by month
+    // Group by month (using GROSS amounts)
     const monthlyData = donations.reduce((acc, donation) => {
       const monthKey = format(new Date(donation.transactionDate), 'yyyy-MM')
       if (!acc[monthKey]) {
         acc[monthKey] = { total: 0, count: 0 }
       }
-      acc[monthKey].total += parseFloat(donation.amount.toString()) / 100
+      const netAmount = parseFloat(donation.amount.toString()) / 100
+      const feesCovered = donation.processingFeeCoveredByDonor ? parseFloat(donation.processingFeeCoveredByDonor.toString()) / 100 : 0
+      acc[monthKey].total += netAmount + feesCovered
       acc[monthKey].count += 1
       return acc
     }, {} as Record<string, { total: number; count: number }>)
@@ -105,6 +108,7 @@ export async function getDonationCategoryBreakdown(
       },
       select: {
         amount: true,
+        processingFeeCoveredByDonor: true,
         donationType: {
           select: {
             name: true
@@ -114,13 +118,15 @@ export async function getDonationCategoryBreakdown(
     })
 
 
-    // Group by category
+    // Group by category (using GROSS amounts)
     const categoryTotals = donations.reduce((acc, donation) => {
       const category = donation.donationType.name
       if (!acc[category]) {
         acc[category] = 0
       }
-      acc[category] += parseFloat(donation.amount.toString()) / 100
+      const netAmount = parseFloat(donation.amount.toString()) / 100
+      const feesCovered = donation.processingFeeCoveredByDonor ? parseFloat(donation.processingFeeCoveredByDonor.toString()) / 100 : 0
+      acc[category] += netAmount + feesCovered
       return acc
     }, {} as Record<string, number>)
 
@@ -160,11 +166,18 @@ export async function getDonationSummary(
       },
       select: {
         amount: true,
+        processingFeeCoveredByDonor: true,
         donorId: true
       }
     })
 
-    const total = donations.reduce((sum, d) => sum + parseFloat(d.amount.toString()) / 100, 0)
+    // Calculate GROSS total (what donors actually paid)
+    const total = donations.reduce((sum, d) => {
+      const netAmount = parseFloat(d.amount.toString()) / 100
+      const feesCovered = d.processingFeeCoveredByDonor ? parseFloat(d.processingFeeCoveredByDonor.toString()) / 100 : 0
+      return sum + netAmount + feesCovered
+    }, 0)
+    
     const uniqueDonors = new Set(donations.map(d => d.donorId).filter(Boolean)).size
     const average = donations.length > 0 ? total / donations.length : 0
 
@@ -373,13 +386,19 @@ export async function getTransactionsForExport(
         }
       })
 
-      return donations.map(d => ({
-        date: d.transactionDate,
-        description: d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : d.donorName || 'Anonymous',
-        category: d.donationType.name,
-        amount: parseFloat(d.amount.toString()) / 100,
-        paymentMethod: d.paymentMethodType
-      }))
+      return donations.map(d => {
+        const netAmount = parseFloat(d.amount.toString()) / 100
+        const feesCovered = d.processingFeeCoveredByDonor ? parseFloat(d.processingFeeCoveredByDonor.toString()) / 100 : 0
+        const grossAmount = netAmount + feesCovered
+        
+        return {
+          date: d.transactionDate,
+          description: d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : d.donorName || 'Anonymous',
+          category: d.donationType.name,
+          amount: grossAmount, // Use GROSS amount for exports
+          paymentMethod: d.paymentMethodType
+        }
+      })
     } else {
       const expenses = await prisma.expense.findMany({
         where: {

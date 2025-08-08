@@ -27,6 +27,7 @@ const isOnboardingRoute = createRouteMatcher([
 // Define invitation acceptance route
 const isInvitationRoute = createRouteMatcher([
   '/invitation-pending',
+  '/after-signup',
 ])
 
 
@@ -70,16 +71,18 @@ export default clerkMiddleware(async (auth, req) => {
 
   // If user has no organization and not on onboarding
   if (!orgId && !isOnboardingRoute(req)) {
-    // If this is a fresh sign-in, give Clerk time to sync org data
-    if (isFromSignIn) {
-      // Let the page handle the check - it will redirect appropriately
+    // Check if this is coming from a signup with organization invitation
+    const isFromSignUp = referer.includes('/signup') || req.nextUrl.searchParams.has('__clerk_status')
+    
+    // If coming from signup, check the path they're trying to access
+    if (req.nextUrl.pathname === '/invitation-pending') {
+      // They're trying to go to invitation-pending, let them
       return NextResponse.next()
     }
     
-    // For dashboard route without org, redirect to invitation-pending
-    if (req.nextUrl.pathname.startsWith('/dashboard')) {
-      return NextResponse.redirect(new URL('/invitation-pending', req.url))
-    }
+    // Default: redirect to onboarding for church creation
+    // The invitation-pending page will handle checking for pending invitations
+    return NextResponse.redirect(new URL('/onboarding/step-1', req.url))
   }
 
   // Allow all other routes to proceed

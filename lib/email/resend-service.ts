@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { format } from 'date-fns';
 import { EmailStatus, RecipientStatus } from '@prisma/client';
 import { getQuotaLimit } from '@/lib/subscription-helpers';

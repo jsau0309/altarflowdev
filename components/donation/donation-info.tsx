@@ -68,8 +68,14 @@ export default function DonationInfo({
   const baseAmount = formData.amount || 0;
   let displayAmount = baseAmount;
   if (formData.coverFees && baseAmount > 0) {
-    const fee = (baseAmount * 0.029) + 0.30;
-    displayAmount = baseAmount + fee;
+    // Use the same gross-up calculation as donation-details.tsx
+    const STRIPE_PERCENTAGE_FEE_RATE = 0.029;
+    const STRIPE_FIXED_FEE_CENTS = 30; // Fixed fee in cents
+    const baseAmountInCents = Math.round(baseAmount * 100); // Convert to cents
+    
+    // Calculate the grossed-up amount that includes fees
+    const finalAmountForStripeInCents = Math.ceil((baseAmountInCents + STRIPE_FIXED_FEE_CENTS) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
+    displayAmount = finalAmountForStripeInCents / 100; // Convert back to dollars
   }
 
   // Render different views based on phoneVerificationStage

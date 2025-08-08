@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 import Stripe from 'stripe';
 import { z } from 'zod'; // For input validation
-
-const prisma = new PrismaClient();
 
 // Initialize Stripe with the secret key from environment variables
 
@@ -142,12 +140,32 @@ export async function POST(request: Request) {
       }
       if (existingTransaction.status === 'pending' && existingTransaction.stripePaymentIntentId) {
         try {
-          const paymentIntent = await stripe.paymentIntents.retrieve(existingTransaction.stripePaymentIntentId);
-          return NextResponse.json({
-            clientSecret: paymentIntent.client_secret,
-            transactionId: existingTransaction.id,
-            message: 'Existing pending transaction found. Use this clientSecret to complete payment.'
-          }, { status: 200 });
+          // Need to retrieve the church's Stripe account ID first
+          const churchForExisting = await prisma.church.findUnique({
+            where: { id: churchUUIDFromInput },
+            select: { clerkOrgId: true }
+          });
+          
+          if (churchForExisting?.clerkOrgId) {
+            const stripeConnectAccountForExisting = await prisma.stripeConnectAccount.findUnique({
+              where: { churchId: churchForExisting.clerkOrgId },
+              select: { stripeAccountId: true }
+            });
+            
+            if (stripeConnectAccountForExisting?.stripeAccountId) {
+              // Retrieve from the Connect account
+              const paymentIntent = await stripe.paymentIntents.retrieve(
+                existingTransaction.stripePaymentIntentId,
+                { stripeAccount: stripeConnectAccountForExisting.stripeAccountId }
+              );
+              return NextResponse.json({
+                clientSecret: paymentIntent.client_secret,
+                transactionId: existingTransaction.id,
+                stripeAccount: stripeConnectAccountForExisting.stripeAccountId,
+                message: 'Existing pending transaction found. Use this clientSecret to complete payment.'
+              }, { status: 200 });
+            }
+          }
         } catch (stripeError) {
           console.error('Error retrieving existing PaymentIntent from Stripe:', stripeError);
         }
@@ -161,7 +179,6 @@ export async function POST(request: Request) {
     // Debug logging removed: church lookup result
 
     if (!church) {
-      const allChurches = await prisma.church.findMany({ select: { id: true, name: true, clerkOrgId: true } });
       // Debug logging removed: all church IDs in database
       return NextResponse.json({ error: 'Church not found for the provided churchId (UUID).' }, { status: 404 });
     }
@@ -205,11 +222,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Stripe Connect account not found for this church or not fully set up.' }, { status: 404 });
     }
     const churchStripeAccountId = stripeConnectAccount.stripeAccountId;
+    
+    // Validate that the Connect account is ready to receive funds
+    try {
+      const stripeAccount = await stripe.accounts.retrieve(churchStripeAccountId);
+      if (!stripeAccount.charges_enabled) {
+        console.error(`Church Connect account ${churchStripeAccountId} cannot accept charges yet`);
+        return NextResponse.json({ 
+          error: 'This church is not yet set up to accept donations. Please contact the church administrator.' 
+        }, { status: 400 });
+      }
+    } catch (verifyError) {
+      console.error(`Error verifying Connect account ${churchStripeAccountId}:`, verifyError);
+      return NextResponse.json({ 
+        error: 'Unable to verify church payment account. Please try again later.' 
+      }, { status: 500 });
+    }
 
     let stripeCustomerId: string | undefined = undefined;
 
     if (!isAnonymous && donorEmail) {
-      const existingCustomers = await stripe.customers.list({ email: donorEmail, limit: 1 });
+      // Search for existing customers on the church's Connect account
+      const existingCustomers = await stripe.customers.list(
+        { email: donorEmail, limit: 1 },
+        { stripeAccount: churchStripeAccountId } // Use church's Connect account
+      );
 
       if (existingCustomers.data.length > 0) {
         stripeCustomerId = existingCustomers.data[0].id;
@@ -243,7 +280,11 @@ export async function POST(request: Request) {
 
         if (Object.keys(updatePayload).length > 0) {
           try {
-            await stripe.customers.update(stripeCustomerId, updatePayload);
+            await stripe.customers.update(
+              stripeCustomerId, 
+              updatePayload,
+              { stripeAccount: churchStripeAccountId } // Use church's Connect account
+            );
             // Debug logging removed: Stripe customer updated
           } catch (stripeError) {
             console.error(`[API /donations/initiate] Error updating Stripe customer ${stripeCustomerId}:`, stripeError);
@@ -280,7 +321,10 @@ export async function POST(request: Request) {
           customerParams.metadata = { ...customerParams.metadata, dbDonorClerkId: donorClerkId };
         }
 
-        const newStripeCustomer = await stripe.customers.create(customerParams);
+        const newStripeCustomer = await stripe.customers.create(
+          customerParams,
+          { stripeAccount: churchStripeAccountId } // Create customer on church's Connect account
+        );
         stripeCustomerId = newStripeCustomer.id;
       }
     } else if (isAnonymous) {
@@ -313,14 +357,15 @@ export async function POST(request: Request) {
       }
     }
 
+    // Create payment intent directly on the Connect account
+    // This way the customer ID reference will work correctly
     const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
       amount: finalAmountForStripe,
       currency: currency,
       customer: stripeCustomerId,
       automatic_payment_methods: { enabled: true }, // Enable various payment methods via Payment Element
-      transfer_data: {
-        destination: churchStripeAccountId,
-      },
+      // Remove transfer_data since we're creating directly on Connect account
+      // The church will receive funds directly
       metadata: {
         dbChurchId: church.id,
         dbDonationTypeId: donationTypeId,
@@ -333,10 +378,14 @@ export async function POST(request: Request) {
       paymentIntentParams.receipt_email = validation.data.donorEmail;
     }
     
-    // Debug logging removed: creating Stripe PaymentIntent with params
+    // Create the payment intent on the church's Connect account
+    // This ensures the customer reference works and the church receives funds directly
     const paymentIntent = await stripe.paymentIntents.create(
       paymentIntentParams,
-      { idempotencyKey: idempotencyKey }
+      { 
+        idempotencyKey: idempotencyKey,
+        stripeAccount: churchStripeAccountId // Create on Connect account
+      }
     );
 
     let donorDisplayNameForDb: string | null = null;
@@ -391,6 +440,7 @@ export async function POST(request: Request) {
             return NextResponse.json({
               clientSecret: paymentIntent.client_secret,
               transactionId: existingTx.id,
+              stripeAccount: churchStripeAccountId,
               message: 'Transaction already recorded due to concurrent request.'
             }, { status: 200 });
           }
@@ -403,6 +453,7 @@ export async function POST(request: Request) {
             return NextResponse.json({
               clientSecret: paymentIntent.client_secret,
               transactionId: existingTx.id,
+              stripeAccount: churchStripeAccountId,
               message: 'Transaction already recorded due to concurrent request.'
             }, { status: 200 });
           }
@@ -420,6 +471,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
       transactionId: donationTransaction.id,
+      stripeAccount: churchStripeAccountId, // Pass the Connect account ID for frontend
     }, { status: 201 });
 
   } catch (error) {

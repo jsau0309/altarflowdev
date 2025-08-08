@@ -13,6 +13,7 @@ import { Pie } from 'react-chartjs-2'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CategoryReportData } from '@/lib/actions/reports.actions'
 import { formatCurrency } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -119,8 +120,11 @@ export function CategoryPieChart({ data, title, loading }: CategoryPieChartProps
           <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            Loading chart...
+          <div className="h-[300px] flex items-center justify-center">
+            <div className="relative w-[200px] h-[200px]">
+              <Skeleton className="absolute inset-0 rounded-full" />
+              <div className="absolute inset-8 bg-background rounded-full" />
+            </div>
           </div>
         </CardContent>
       </Card>

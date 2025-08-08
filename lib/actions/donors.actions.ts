@@ -1,6 +1,6 @@
 "use server"
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { unstable_noStore as noStore, revalidatePath } from 'next/cache';
 import type { Prisma, Donation as PrismaDonation, Campaign as PrismaCampaign, Member as PrismaMember } from '@prisma/client';
 import { DonorDetailsData, DonorFE } from '@/lib/types'; // Removed Member type as createDonor will now return Donor

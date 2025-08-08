@@ -20,10 +20,15 @@ export async function POST(request: NextRequest) {
   const client = twilio(accountSid, authToken);
   try {
     const body = await request.json();
-    const { phoneNumber, code } = body;
+    const { phoneNumber, code, churchId } = body;
 
     if (!phoneNumber || !code) {
       return NextResponse.json({ success: false, error: 'Phone number and OTP code are required.' }, { status: 400 });
+    }
+
+    // Validate churchId for new donor creation
+    if (!churchId) {
+      return NextResponse.json({ success: false, error: 'Church ID is required.' }, { status: 400 });
     }
 
     if (!verifyServiceSid) {
@@ -36,9 +41,12 @@ export async function POST(request: NextRequest) {
       .verificationChecks.create({ to: phoneNumber, code: code });
 
     if (verificationCheck.status === 'approved') {
-      // OTP is valid, check if donor exists
-      const existingDonor = await prisma.donor.findUnique({
-        where: { phone: phoneNumber },
+      // OTP is valid, check if donor exists for this church
+      const existingDonor = await prisma.donor.findFirst({
+        where: { 
+          phone: phoneNumber,
+          churchId: churchId 
+        },
       });
 
       if (existingDonor) {
@@ -48,10 +56,12 @@ export async function POST(request: NextRequest) {
           donorData: existingDonor, // Changed key to donorData for consistency with frontend
         });
       } else {
-        // New donor: Create a donor record with the phone number
+        // New donor: Create a donor record with the phone number and churchId
         const newDonor = await prisma.donor.create({
           data: {
             phone: phoneNumber,
+            churchId: churchId,
+            isPhoneVerified: true, // Phone is verified through OTP
             // Other fields can be populated later or have defaults
           },
         });

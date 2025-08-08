@@ -36,7 +36,9 @@ export default function InvitationPendingPage() {
       // User is part of an organization - they accepted the invitation!
       console.log('User has organization membership, redirecting to dashboard');
       setIsRedirecting(true);
-      // Use replace instead of push to prevent back button issues
+      // The dashboard layout will check if onboarding is complete for the church
+      // If not complete, it will redirect to the appropriate onboarding step
+      // If complete, user goes straight to dashboard
       router.replace('/dashboard');
       return;
     }
@@ -44,8 +46,16 @@ export default function InvitationPendingPage() {
     // Check if there are pending invitations
     if (userInvitations && userInvitations.data && userInvitations.data.length > 0) {
       console.log('User has pending invitations:', userInvitations.data.length);
-      // Don't redirect yet - let them see the invitation in Clerk's UI
-      // Clerk should show the invitation acceptance UI automatically
+      // They have pending invitations to join an existing church
+      // Stay on this page to show them the pending status
+      return;
+    }
+    
+    // No invitations and no memberships - they should create a church
+    if (!userInvitations || userInvitations.data.length === 0) {
+      console.log('No pending invitations, redirecting to onboarding');
+      setIsRedirecting(true);
+      router.replace('/onboarding/step-1');
       return;
     }
 

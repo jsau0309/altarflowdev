@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { ResendEmailService } from "@/lib/email/resend-service";
 import { z } from "zod";
 import { escapeHtml } from "@/lib/email/escape-html";

@@ -1,5 +1,10 @@
 {
   "title": "Donations",
+  "stepper": {
+    "details": "Details",
+    "info": "Info",
+    "donate": "Donate"
+  },
   "newDonation": "New Donation",
   "donationHistory": "Donation History",
   "recurringDonations": "Recurring Donations",
@@ -253,7 +258,7 @@
     "noDataAvailable": "No donor data available."
   },
   "noMembersFound": "No members found for this church",
-  "donationDetails": {
+  "donationDetailsDrawer": {
     "title": "Donation Details",
     "editableFor": "Editable for",
     "locked": "This donation is locked (editing period expired)",

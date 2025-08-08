@@ -14,7 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from 'lucide-react';
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { ServiceTime, Ministry, LifeStage, RelationshipStatus } from '../member-form/types'; // Adjust path if needed
 import { useTranslation } from 'react-i18next'; // Import useTranslation
 
@@ -69,9 +68,8 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
     const [isSubmitting, startSubmitTransition] = useTransition();
     const [submitResult, setSubmitResult] = useState<{ success: boolean; message?: string } | null>(null);
     const [showPrayerInput, setShowPrayerInput] = useState(false);
-    const currentLanguage = i18n.language.split('-')[0]; // Get base language (e.g., 'en' from 'en-US')
 
-    const { register, handleSubmit, formState: { errors }, setValue, watch, control } = useForm<FormData>({
+    const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             firstName: "",
@@ -103,7 +101,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                  // Type inference from 'data: FormData' is sufficient.
                  const submissionData = {
                      ...data,
-                     language: currentLanguage, // Add current language to submission data
+                     language: i18n.language.split('-')[0], // Add current language to submission data
                      // smsConsent is removed as it's no longer part of the form/schema
                  };
                  // Debug logging removed: submitting form data
@@ -164,13 +162,6 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
         });
     };
 
-    const handleLanguageChange = (lang: string) => {
-        if (lang && lang !== currentLanguage) {
-            i18n.changeLanguage(lang);
-            // Optional: Force re-render if needed, though i18next usually handles it
-        }
-    };
-
     // --- Phone Input Filtering Logic ---
     const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = event.target.value;
@@ -202,22 +193,6 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
     return (
         <Card className="w-full max-w-md mx-auto">
             <CardHeader>
-                {/* Language Toggle */} 
-                <ToggleGroup 
-                    type="single" 
-                    defaultValue={currentLanguage} 
-                    onValueChange={handleLanguageChange}
-                    className="justify-end mb-2"
-                    aria-label="Language selection"
-                >
-                    <ToggleGroupItem value="en" aria-label="Select English">
-                        EN
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="es" aria-label="Select Spanish">
-                        ES
-                    </ToggleGroupItem>
-                </ToggleGroup>
-                
                 <CardTitle>{t('connect-form:title', { churchName: churchName })}</CardTitle>
                 <CardDescription>{t('connect-form:description')}</CardDescription>
             </CardHeader>
