@@ -11,7 +11,7 @@ import {
 } from '@/utils/helpers';
 import { Tables } from '@/types/database.types';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 type Price = Tables<'prices'>;
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTranslation } from "react-i18next"
 import { useOrganization } from "@clerk/nextjs"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ReportFilters } from "./report-filters"
 import { ReportSummary } from "./report-summary"
 import { MonthlyBarChart } from "./monthly-bar-chart"
@@ -13,6 +14,7 @@ import { exportToCSV } from "./export/csv-exporter"
 import LoaderOne from "@/components/ui/loader-one"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
+import { FinancialAnalysisContent } from "./financial/financial-analysis-content"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +34,7 @@ import {
   type ReportSummary as ReportSummaryType
 } from "@/lib/actions/reports.actions"
 import { startOfYear } from "date-fns"
+import { toast } from "sonner"
 
 // Types
 export interface DateRange {
@@ -42,15 +45,35 @@ export interface DateRange {
 export function ReportsPage() {
   const { t } = useTranslation(['reports', 'common'])
   const { organization } = useOrganization()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  // Get initial tab from URL or default to 'donations'
+  const getInitialTab = () => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'expenses' || tabParam === 'financial') {
+      return tabParam
+    }
+    return 'donations'
+  }
   
   // State
-  const [activeTab, setActiveTab] = useState<'donations' | 'expenses'>('donations')
+  const [activeTab, setActiveTab] = useState<'donations' | 'expenses' | 'financial'>(getInitialTab())
   const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // First day of current month
     to: new Date() // Today
   })
-  const [isLoading, setIsLoading] = useState(false)
+  
+  // Sync tab state with URL when using browser navigation
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab')
+    if (tabFromUrl === 'donations' || tabFromUrl === 'expenses' || tabFromUrl === 'financial') {
+      setActiveTab(tabFromUrl)
+    }
+  }, [searchParams])
+  const [isLoading, setIsLoading] = useState(true) // Start with loading to show skeletons on mount
   const [isFilterLoading, setIsFilterLoading] = useState(false)
+  const [isFinancialLoading, setIsFinancialLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
   // Data state
@@ -70,6 +93,12 @@ export function ReportsPage() {
   // Fetch data when tab or date range changes
   useEffect(() => {
     if (organization && dateRange.from && dateRange.to) {
+      // Skip fetching for financial tab - it manages its own data
+      if (activeTab === 'financial') {
+        setLastActiveTab(activeTab)
+        return
+      }
+      
       // Create a unique key for the current fetch parameters
       const fetchKey = `${organization.id}-${activeTab}-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`
       
@@ -86,13 +115,8 @@ export function ReportsPage() {
   }, [activeTab, dateRange, organization, lastFetchParams, lastActiveTab])
   
   const fetchReportData = async (isTabChange: boolean = false) => {
-    // Always show loading when switching tabs, otherwise only if no data
-    if (isTabChange) {
-      setIsLoading(true)
-    } else {
-      const hasData = monthlyData.length > 0 || categoryData.length > 0
-      setIsLoading(!hasData)
-    }
+    // Always show loading when fetching new data
+    setIsLoading(true)
     setError(null)
     
     try {
@@ -104,6 +128,11 @@ export function ReportsPage() {
       
       // For YTD bar chart, always fetch from January of current year
       const yearStart = startOfYear(new Date())
+      
+      // Skip data fetching for financial tab - it has its own data fetching
+      if (activeTab === 'financial') {
+        return
+      }
       
       if (activeTab === 'donations') {
         // Fetch all donation data in parallel
@@ -144,17 +173,72 @@ export function ReportsPage() {
   }
   
   const handleDateRangeChange = (newRange: DateRange) => {
-    setIsFilterLoading(true)
+    // Set loading for all tabs to keep date picker open
+    if (activeTab === 'financial') {
+      setIsFinancialLoading(true)
+    } else {
+      setIsFilterLoading(true)
+    }
     setDateRange(newRange)
   }
   
-  const handleExport = (format: 'pdf' | 'csv') => {
+  const handleExport = async (format: 'pdf' | 'csv') => {
     if (!organization?.name || !dateRange.from || !dateRange.to) return
     
+    // Handle Financial tab export
+    if (activeTab === 'financial') {
+      // Import the financial exporters dynamically
+      const { exportFinancialToPDF } = await import('./export/financial-pdf-exporter')
+      const { exportFinancialToCSV } = await import('./export/financial-csv-exporter')
+      
+      // Fetch financial data for export
+      try {
+        const response = await fetch('/api/reports/financial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            churchId: organization.id,
+            dateRange: {
+              from: dateRange.from.toISOString(),
+              to: dateRange.to.toISOString()
+            }
+          })
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch financial data')
+        }
+        
+        const data = await response.json()
+        
+        const exportData = {
+          summary: data.summary || {},
+          feeCoverageAnalytics: data.feeCoverageAnalytics || {},
+          payouts: data.payouts || [],
+          dateRange,
+          churchName: organization.name,
+          t
+        }
+        
+        if (format === 'pdf') {
+          exportFinancialToPDF(exportData)
+        } else {
+          exportFinancialToCSV(exportData)
+        }
+        
+        toast.success(t('reports:exportSuccess'))
+      } catch (error) {
+        console.error('Error exporting financial data:', error)
+        toast.error(t('reports:exportError'))
+      }
+      return
+    }
+    
+    // Handle Donations/Expenses export (existing code)
     const exportData = {
       data: transactions,
       summary: summaryData,
-      type: activeTab,
+      type: activeTab as 'donations' | 'expenses',
       dateRange,
       churchName: organization.name,
       t
@@ -179,7 +263,7 @@ export function ReportsPage() {
           <ReportFilters 
             dateRange={dateRange}
             onDateRangeChange={handleDateRangeChange}
-            isLoading={isFilterLoading}
+            isLoading={activeTab === 'financial' ? isFinancialLoading : isFilterLoading}
           />
           
           <DropdownMenu>
@@ -201,17 +285,25 @@ export function ReportsPage() {
         </div>
       </div>
       
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'donations' | 'expenses')} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={activeTab} onValueChange={(v) => {
+    setActiveTab(v as 'donations' | 'expenses' | 'financial')
+    // Update URL without page reload
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', v)
+    router.push(`?${params.toString()}`, { scroll: false })
+  }} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="donations">{t('reports:donationReports')}</TabsTrigger>
           <TabsTrigger value="expenses">{t('reports:expenseReports')}</TabsTrigger>
+          <TabsTrigger value="financial">{t('reports:financialAnalysis')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value={activeTab} className="space-y-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <LoaderOne />
-            </div>
+          {activeTab === 'financial' ? (
+            <FinancialAnalysisContent 
+              dateRange={dateRange} 
+              onLoadingChange={setIsFinancialLoading}
+            />
           ) : error ? (
             <div className="text-center py-12 text-red-500">
               {error}
@@ -219,19 +311,22 @@ export function ReportsPage() {
           ) : (
             <>
               <ReportSummary 
-                type={activeTab}
+                type={activeTab as 'donations' | 'expenses'}
                 data={summaryData}
+                loading={isLoading || isFilterLoading}
               />
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <MonthlyBarChart 
                   data={monthlyData}
                   title={activeTab === 'donations' ? t('reports:donationTrends') : t('reports:expenseTrends')}
+                  loading={isLoading || isFilterLoading}
                 />
                 
                 <CategoryPieChart 
                   data={categoryData}
                   title={activeTab === 'donations' ? t('reports:donationsByFund') : t('reports:expenseCategories')}
+                  loading={isLoading || isFilterLoading}
                 />
               </div>
             </>

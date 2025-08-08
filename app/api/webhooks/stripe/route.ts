@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { Resend } from 'resend';
 import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
@@ -9,6 +9,7 @@ import { captureWebhookEvent, capturePaymentError } from '@/lib/sentry';
 import { format } from 'date-fns';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
 import { generateDonationReceiptHtml, DonationReceiptData } from '@/lib/email/templates/donation-receipt';
+import { isWebhookProcessed } from '@/lib/rate-limit';
 
 // Disable body parsing, we need the raw body for webhook signature verification
 export const runtime = 'nodejs';
@@ -90,6 +91,44 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Webhook Error: Signature verification failed - ${errorMessage}` }, { status: 400 });
   }
 
+  // Check for duplicate webhook processing
+  if (isWebhookProcessed(event.id)) {
+    console.log(`[Stripe Webhook] Event ${event.id} already processed, skipping`);
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  // Define handled events
+  const handledEvents = new Set([
+    'payment_intent.succeeded',
+    'payment_intent.processing',
+    'payment_intent.payment_failed',
+    'account.updated',
+    'checkout.session.completed',
+    'customer.subscription.created',
+    'customer.subscription.updated',
+    'customer.subscription.deleted',
+    // Refund events
+    'charge.refunded',
+    // Dispute events
+    'charge.dispute.created',
+    'charge.dispute.updated',
+    'charge.dispute.closed',
+    // Payout events for reconciliation
+    'payout.created',
+    'payout.updated',
+    'payout.paid',
+    'payout.failed',
+    'payout.canceled'
+  ]);
+
+  // Log unhandled events and return early
+  if (!handledEvents.has(event.type)) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Stripe Webhook] Event type ${event.type} not handled`);
+    }
+    return NextResponse.json({ received: true });
+  }
+
   try {
     // Capture important events in Sentry
     captureWebhookEvent(event.type, {
@@ -108,33 +147,89 @@ export async function POST(req: Request) {
         }
 
         let transaction;
+        let stripeAccount: string | undefined; // Declare at higher scope for reuse
+        
+        // Use database transaction for atomic operations
         try {
-          // First, check if the transaction exists
-          const existingTransaction = await prisma.donationTransaction.findUnique({
-            where: { stripePaymentIntentId: paymentIntentSucceeded.id }
+          transaction = await prisma.$transaction(async (tx) => {
+            // First, check if the transaction exists
+            const existingTransaction = await tx.donationTransaction.findUnique({
+              where: { stripePaymentIntentId: paymentIntentSucceeded.id }
+            });
+            
+            if (!existingTransaction) {
+              captureWebhookEvent('transaction_not_found', {
+                paymentIntentId: paymentIntentSucceeded.id,
+                amount: paymentIntentSucceeded.amount,
+                currency: paymentIntentSucceeded.currency
+              }, 'warning');
+              // Don't fail the webhook - Stripe might retry
+              throw new Error('Transaction not found');
+            }
+            
+            // Debug logging removed: transaction details found
+            
+            // First, determine the actual payment method type used
+            let actualPaymentMethodType: string | null = null;
+            
+            // Get the church's Connect account to retrieve payment details
+            const transactionChurch = await tx.church.findUnique({
+              where: { id: existingTransaction.churchId },
+              select: { clerkOrgId: true }
+            });
+            
+            if (transactionChurch?.clerkOrgId) {
+              const connectAccount = await tx.stripeConnectAccount.findUnique({
+                where: { churchId: transactionChurch.clerkOrgId },
+                select: { stripeAccountId: true }
+              });
+              stripeAccount = connectAccount?.stripeAccountId;
+            }
+            
+            // Retrieve the actual payment method to get its type
+            if (paymentIntentSucceeded.payment_method && typeof paymentIntentSucceeded.payment_method === 'string') {
+              try {
+                const paymentMethod = await stripe.paymentMethods.retrieve(
+                  paymentIntentSucceeded.payment_method,
+                  stripeAccount ? { stripeAccount } : undefined
+                );
+                // Map the payment method type correctly
+                actualPaymentMethodType = paymentMethod.type || 'card';
+              } catch (pmError) {
+                console.warn(`[Stripe Webhook] Could not retrieve payment method: ${pmError}`);
+                // Fallback to the first available type
+                actualPaymentMethodType = paymentIntentSucceeded.payment_method_types[0] || 'card';
+              }
+            } else {
+              // Fallback if no payment method ID
+              actualPaymentMethodType = paymentIntentSucceeded.payment_method_types[0] || 'card';
+            }
+            
+            // The total amount charged to the donor (includes covered fee if applicable)
+            const totalCharged = paymentIntentSucceeded.amount;
+            
+            console.log(`[Stripe Webhook] Processing payment - Total charged: ${totalCharged}, Original donation: ${existingTransaction.amount}, Fee covered by donor: ${existingTransaction.processingFeeCoveredByDonor || 0}`);
+            
+            // Simplified: No longer tracking fees in database
+            // We'll use Stripe Reports API for fee information
+            
+            const updatedTransaction = await tx.donationTransaction.update({
+              where: { stripePaymentIntentId: paymentIntentSucceeded.id },
+              data: {
+                status: 'succeeded',
+                paymentMethodType: actualPaymentMethodType,
+                processedAt: new Date(), // Set the processed timestamp
+              },
+            });
+            // Debug logging removed: transaction status updated
+            
+            return updatedTransaction;
           });
-          
-          if (!existingTransaction) {
-            captureWebhookEvent('transaction_not_found', {
-              paymentIntentId: paymentIntentSucceeded.id,
-              amount: paymentIntentSucceeded.amount,
-              currency: paymentIntentSucceeded.currency
-            }, 'warning');
-            // Don't fail the webhook - Stripe might retry
+        } catch (error) {
+          if (error instanceof Error && error.message === 'Transaction not found') {
             return NextResponse.json({ received: true, warning: 'Transaction not found' });
           }
           
-          // Debug logging removed: transaction details found
-          
-          transaction = await prisma.donationTransaction.update({
-            where: { stripePaymentIntentId: paymentIntentSucceeded.id },
-            data: {
-              status: 'succeeded',
-              paymentMethodType: paymentIntentSucceeded.payment_method_types[0] || null,
-            },
-          });
-          // Debug logging removed: transaction status updated
-        } catch (error) {
           capturePaymentError(error as Error, {
             paymentIntentId: paymentIntentSucceeded.id,
             amount: paymentIntentSucceeded.amount / 100,
@@ -156,16 +251,25 @@ export async function POST(req: Request) {
             let stripeName: string | null = null;
             let stripeEmail: string | null = null;
             let stripeAddress: Stripe.Address | null = null;
+            
+            // The stripeAccount variable is already defined in the parent scope (lines 159-171)
+            // We can use it directly here
 
             const charge = typeof paymentIntentSucceeded.latest_charge === 'string' 
-                ? await stripe.charges.retrieve(paymentIntentSucceeded.latest_charge) // Retrieve if it's an ID
+                ? await stripe.charges.retrieve(
+                    paymentIntentSucceeded.latest_charge,
+                    stripeAccount ? { stripeAccount } : undefined
+                  ) // Retrieve from Connect account if available
                 : typeof paymentIntentSucceeded.latest_charge === 'object' 
                 ? paymentIntentSucceeded.latest_charge as Stripe.Charge 
                 : null;
             if (charge) console.log(`[Stripe Webhook] Extracted charge object from PI.`);
 
             const paymentMethod = typeof paymentIntentSucceeded.payment_method === 'string'
-                ? await stripe.paymentMethods.retrieve(paymentIntentSucceeded.payment_method) // Retrieve if it's an ID
+                ? await stripe.paymentMethods.retrieve(
+                    paymentIntentSucceeded.payment_method,
+                    stripeAccount ? { stripeAccount } : undefined
+                  ) // Retrieve from Connect account if available
                 : typeof paymentIntentSucceeded.payment_method === 'object' 
                 ? paymentIntentSucceeded.payment_method as Stripe.PaymentMethod 
                 : null;
@@ -242,32 +346,22 @@ export async function POST(req: Request) {
         try {
           console.log(`[Stripe Webhook] Attempting to send receipt for PI: ${paymentIntentSucceeded.id}`);
           
-          // Execute email sending asynchronously but don't block the webhook response
-          handleSuccessfulPaymentIntent(paymentIntentSucceeded)
-            .then(() => {
-              console.log(`[Stripe Webhook] Successfully completed receipt handling for PI: ${paymentIntentSucceeded.id}`);
-            })
-            .catch(error => {
-              console.error(`[Stripe Webhook] Error in receipt handling for PI: ${paymentIntentSucceeded.id}:`, error);
-              
-              // Capture the error for monitoring
-              captureWebhookEvent(error, {
-                context: 'stripe_webhook_receipt_handling',
-                paymentIntentId: paymentIntentSucceeded.id,
-                errorMessage: error?.message || 'Unknown receipt handling error',
-              });
-            });
+          // Wait for email sending to complete before responding to webhook
+          // This ensures Stripe will retry if email fails
+          await handleSuccessfulPaymentIntent(paymentIntentSucceeded);
+          console.log(`[Stripe Webhook] Successfully completed receipt handling for PI: ${paymentIntentSucceeded.id}`);
+        } catch (emailError: any) {
+          console.error(`[Stripe Webhook] Error in receipt handling for PI: ${paymentIntentSucceeded.id}:`, emailError);
           
-          console.log(`[Stripe Webhook] Receipt handling initiated for PI: ${paymentIntentSucceeded.id}. Responding to Stripe.`);
-        } catch (receiptError: any) {
-          console.error(`[Stripe Webhook] Critical error in receipt handling setup for PI: ${paymentIntentSucceeded.id}:`, receiptError);
-          
-          // This catches synchronous errors in the setup
-          captureWebhookEvent(receiptError, {
-            context: 'stripe_webhook_receipt_setup',
+          // Capture the error for monitoring
+          captureWebhookEvent(emailError, {
+            context: 'stripe_webhook_receipt_handling',
             paymentIntentId: paymentIntentSucceeded.id,
-            errorMessage: receiptError?.message || 'Unknown setup error',
+            errorMessage: emailError?.message || 'Unknown receipt handling error',
           });
+          
+          // Don't fail the webhook for receipt errors - payment was successful
+          // But still log it for monitoring
         }
         break;
 
@@ -362,12 +456,15 @@ export async function POST(req: Request) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log(`[Stripe Webhook] Processing checkout.session.completed for session: ${session.id}`);
+        console.log('[Stripe Webhook] Full session object:', JSON.stringify(session, null, 2));
         
         // Get the organization ID from metadata or client_reference_id
         const orgId = session.metadata?.organizationId || session.client_reference_id;
         
         console.log('[Stripe Webhook] Session metadata:', session.metadata);
         console.log('[Stripe Webhook] Client reference ID:', session.client_reference_id);
+        console.log('[Stripe Webhook] Customer:', session.customer);
+        console.log('[Stripe Webhook] Subscription:', session.subscription);
         console.log('[Stripe Webhook] Extracted orgId:', orgId);
         
         if (!orgId) {
@@ -406,7 +503,7 @@ export async function POST(req: Request) {
             throw new Error(`Church not found with clerkOrgId: ${orgId}`);
           }
           
-          // Update church subscription status
+          // Update church subscription status AND mark onboarding as complete
           await prisma.church.update({
             where: { clerkOrgId: orgId },
             data: {
@@ -415,6 +512,9 @@ export async function POST(req: Request) {
               subscriptionPlan: plan,
               subscriptionEndsAt: subscriptionEnd,
               stripeCustomerId: session.customer as string,
+              // Mark onboarding as complete if this happens during onboarding
+              onboardingCompleted: true,
+              onboardingStep: 6, // Set to final step
             }
           });
           
@@ -448,6 +548,7 @@ export async function POST(req: Request) {
         break;
       }
 
+      case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
@@ -456,13 +557,43 @@ export async function POST(req: Request) {
         console.log(`[Stripe Webhook] Current period end: ${new Date(subscription.current_period_end * 1000).toISOString()}`);
         
         try {
-          // Find church by subscription ID
-          const church = await prisma.church.findFirst({
+          // For new subscriptions, try to find church by customer ID first
+          let church = await prisma.church.findFirst({
             where: { subscriptionId: subscription.id }
           });
           
+          // If not found by subscription ID, try by customer ID (for new subscriptions)
+          if (!church && event.type === 'customer.subscription.created') {
+            console.log(`[Stripe Webhook] Subscription created, trying to find church by customer ID: ${subscription.customer}`);
+            church = await prisma.church.findFirst({
+              where: { stripeCustomerId: subscription.customer as string }
+            });
+            
+            if (church) {
+              // Update the church with the new subscription ID
+              console.log(`[Stripe Webhook] Found church by customer ID, updating subscription ID`);
+              await prisma.church.update({
+                where: { id: church.id },
+                data: { 
+                  subscriptionId: subscription.id,
+                  subscriptionStatus: 'active',
+                  // Mark onboarding as complete if this is during onboarding
+                  onboardingCompleted: true,
+                  onboardingStep: 6,
+                }
+              });
+            }
+          }
+          
           if (!church) {
-            console.log(`[Stripe Webhook] No church found for subscription ${subscription.id}`);
+            console.log(`[Stripe Webhook] No church found for subscription ${subscription.id} or customer ${subscription.customer}`);
+            console.log(`[Stripe Webhook] Attempting to find church by any means...`);
+            
+            // Last resort: log all churches to debug
+            const allChurches = await prisma.church.findMany({
+              select: { id: true, name: true, stripeCustomerId: true, subscriptionId: true, clerkOrgId: true }
+            });
+            console.log('[Stripe Webhook] All churches in database:', JSON.stringify(allChurches, null, 2));
             break;
           }
           
@@ -601,8 +732,261 @@ export async function POST(req: Request) {
         break;
       }
 
-      default:
-        console.log(`[Stripe Webhook] Unhandled event type ${event.type}`);
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge;
+        console.log(`[Stripe Webhook] Processing charge.refunded for charge: ${charge.id}`);
+        
+        // Null check for payment_intent
+        if (!charge.payment_intent) {
+          console.warn(`[Stripe Webhook] No payment_intent found for charge ${charge.id}`);
+          break;
+        }
+        
+        try {
+          // Use database transaction for atomic operations
+          await prisma.$transaction(async (tx) => {
+            // Find the transaction by payment intent ID
+            const transaction = await tx.donationTransaction.findFirst({
+              where: { 
+                stripePaymentIntentId: charge.payment_intent as string 
+              },
+              include: {
+                church: true,
+                donationType: true,
+              }
+            });
+            
+            if (!transaction) {
+              console.log(`[Stripe Webhook] No transaction found for payment intent ${charge.payment_intent}`);
+              return; // Exit transaction without error
+            }
+            
+            // Calculate refunded amount (could be partial refund)
+            const refundedAmount = charge.amount_refunded;
+            const isFullRefund = refundedAmount === charge.amount;
+            
+            console.log(`[Stripe Webhook] Refund details: Amount refunded: ${refundedAmount}, Full refund: ${isFullRefund}`);
+            
+            // Update transaction with refund information
+            await tx.donationTransaction.update({
+              where: { id: transaction.id },
+              data: {
+                status: isFullRefund ? 'refunded' : 'partially_refunded',
+                refundedAmount: refundedAmount,
+                refundedAt: new Date(),
+              }
+            });
+            
+            console.log(`[Stripe Webhook] Updated transaction ${transaction.id} with refund status`);
+            
+            // TODO: Send notification email to church admin
+            // This will be implemented when we have the email notification system ready
+            console.log(`[Stripe Webhook] TODO: Send refund notification to church ${transaction.church.name}`);
+          });
+          
+        } catch (error) {
+          console.error('[Stripe Webhook] Error processing refund:', error);
+          throw error; // Re-throw to ensure webhook fails and Stripe retries
+        }
+        break;
+      }
+
+      case 'charge.dispute.created':
+      case 'charge.dispute.updated': 
+      case 'charge.dispute.closed': {
+        const dispute = event.data.object as Stripe.Dispute;
+        console.log(`[Stripe Webhook] Processing ${event.type} for dispute: ${dispute.id}`);
+        
+        // Null check for payment_intent
+        if (!dispute.payment_intent) {
+          console.warn(`[Stripe Webhook] No payment_intent found for dispute ${dispute.id}`);
+          break;
+        }
+        
+        try {
+          // Use database transaction for atomic operations
+          await prisma.$transaction(async (tx) => {
+            // Find the transaction by payment intent ID
+            const transaction = await tx.donationTransaction.findFirst({
+              where: { 
+                stripePaymentIntentId: dispute.payment_intent as string 
+              },
+              include: {
+                church: true,
+                donationType: true,
+              }
+            });
+            
+            if (!transaction) {
+              console.log(`[Stripe Webhook] No transaction found for payment intent ${dispute.payment_intent}`);
+              return; // Exit transaction without error
+            }
+            
+            // Map Stripe dispute status to our disputeStatus field
+            let mappedDisputeStatus = dispute.status;
+            if (dispute.status === 'warning_needs_response' || dispute.status === 'needs_response') {
+              mappedDisputeStatus = 'needs_response';
+            }
+            
+            console.log(`[Stripe Webhook] Dispute status: ${dispute.status}, Reason: ${dispute.reason}`);
+            
+            // Update transaction with dispute information
+            const updateData: any = {
+              disputeStatus: mappedDisputeStatus,
+              disputeReason: dispute.reason || 'unknown',
+            };
+            
+            // Set disputedAt only when dispute is created
+            if (event.type === 'charge.dispute.created') {
+              updateData.disputedAt = new Date();
+              updateData.status = 'disputed';
+            }
+            
+            // If dispute is lost, the funds are refunded
+            if (dispute.status === 'lost') {
+              updateData.status = 'refunded';  // Use standard 'refunded' status
+              updateData.refundedAmount = dispute.amount;
+              updateData.refundedAt = new Date();
+            } else if (dispute.status === 'won') {
+              // If dispute is won, restore the status
+              updateData.status = 'succeeded';
+              updateData.disputeStatus = 'won';  // Keep dispute status for reference
+            }
+            
+            await tx.donationTransaction.update({
+              where: { id: transaction.id },
+              data: updateData
+            });
+            
+            console.log(`[Stripe Webhook] Updated transaction ${transaction.id} with dispute status`);
+            
+            // Send urgent alert for new disputes that need response
+            if (event.type === 'charge.dispute.created' || 
+                dispute.status === 'warning_needs_response' || 
+                dispute.status === 'needs_response') {
+              // TODO: Send urgent notification email to church admin
+              console.log(`[Stripe Webhook] URGENT: Dispute needs response for church ${transaction.church.name}`);
+              console.log(`[Stripe Webhook] Dispute amount: $${(dispute.amount / 100).toFixed(2)}`);
+              console.log(`[Stripe Webhook] Response deadline: ${dispute.evidence_details?.due_by ? new Date(dispute.evidence_details.due_by * 1000).toISOString() : 'N/A'}`);
+            }
+          });
+          
+        } catch (error) {
+          console.error('[Stripe Webhook] Error processing dispute:', error);
+          throw error; // Re-throw to ensure webhook fails and Stripe retries
+        }
+        break;
+      }
+      
+      // Payout webhook handlers for reconciliation
+      case 'payout.created':
+      case 'payout.updated':
+      case 'payout.paid':
+      case 'payout.failed':
+      case 'payout.canceled': {
+        const payout = event.data.object as Stripe.Payout;
+        console.log(`[Stripe Webhook] Processing ${event.type} for payout: ${payout.id}`);
+        
+        try {
+          // Use database transaction for atomic operations
+          const { stripeAccountId } = await prisma.$transaction(async (tx) => {
+            // Determine which church this payout belongs to
+            // Payouts are tied to connected accounts, so we need to extract the account ID
+            const accountId = event.account; // This is the connected account ID for Connect webhooks
+            
+            if (!accountId) {
+              console.error('[Stripe Webhook] No account ID found for payout event');
+              throw new Error('No account ID found');
+            }
+            
+            // Find the church by Stripe account ID
+            const stripeAccount = await tx.stripeConnectAccount.findUnique({
+              where: { stripeAccountId: accountId },
+              include: { church: true }
+            });
+            
+            if (!stripeAccount) {
+              console.error(`[Stripe Webhook] No church found for Stripe account: ${accountId}`);
+              throw new Error(`No church found for account: ${accountId}`);
+            }
+            
+            // Check if this payout already exists
+            const existingPayout = await tx.payoutSummary.findUnique({
+              where: { stripePayoutId: payout.id }
+            });
+            
+            if (existingPayout) {
+              // Update existing payout
+              await tx.payoutSummary.update({
+                where: { stripePayoutId: payout.id },
+                data: {
+                  status: payout.status,
+                  failureReason: payout.failure_message || null,
+                  arrivalDate: payout.arrival_date ? new Date(payout.arrival_date * 1000) : existingPayout.arrivalDate,
+                  updatedAt: new Date()
+                }
+              });
+              console.log(`[Stripe Webhook] Updated payout ${payout.id} status to ${payout.status}`);
+            } else if (event.type === 'payout.created') {
+              // Create new payout record
+              await tx.payoutSummary.create({
+                data: {
+                  stripePayoutId: payout.id,
+                  churchId: stripeAccount.church.id,
+                  payoutDate: new Date(payout.created * 1000),
+                  arrivalDate: payout.arrival_date ? new Date(payout.arrival_date * 1000) : new Date(payout.created * 1000),
+                  amount: payout.amount,
+                  currency: payout.currency,
+                  status: payout.status,
+                  failureReason: payout.failure_message || null,
+                  payoutSchedule: payout.automatic ? 'automatic' : 'manual',
+                  netAmount: payout.amount, // Initially set to payout amount
+                  metadata: payout.metadata as any || null
+                }
+              });
+              console.log(`[Stripe Webhook] Created payout record for ${payout.id}`);
+              
+              // TODO: Fetch balance transactions to populate transaction details
+              // This will be done in a separate reconciliation job to avoid webhook timeout
+            }
+            
+            return { stripeAccountId: accountId };
+          });
+          
+          // If payout is paid, trigger reconciliation
+          if (payout.status === 'paid') {
+            console.log(`[Stripe Webhook] Payout ${payout.id} has been paid to bank`);
+            
+            // Trigger reconciliation asynchronously to avoid webhook timeout
+            // We don't await this as it can take time and we want to respond quickly to Stripe
+            import('@/lib/stripe-reconciliation').then(({ reconcilePayout }) => {
+              reconcilePayout(payout.id, stripeAccountId)
+                .then(result => {
+                  if (result.success) {
+                    console.log(`[Stripe Webhook] Payout ${payout.id} reconciled successfully`);
+                  } else {
+                    console.error(`[Stripe Webhook] Failed to reconcile payout ${payout.id}:`, result.error);
+                  }
+                })
+                .catch(error => {
+                  console.error(`[Stripe Webhook] Error reconciling payout ${payout.id}:`, error);
+                });
+            });
+          }
+          
+          // If payout failed, alert the church
+          if (payout.status === 'failed') {
+            console.error(`[Stripe Webhook] Payout ${payout.id} failed: ${payout.failure_message}`);
+            // TODO: Send urgent notification to church admin
+          }
+          
+        } catch (error) {
+          console.error('[Stripe Webhook] Error processing payout:', error);
+          throw error; // Re-throw to ensure webhook fails and Stripe retries
+        }
+        break;
+      }
+
     }
   } catch (error) {
     console.error('[Stripe Webhook] General error processing webhook event:', error);
@@ -674,29 +1058,12 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
 
   let stripeAccount: Stripe.Account | null = null;
   try {
-    // First attempt: retrieve with expansion
-    console.log(`[Receipt] Attempting to retrieve Stripe Account ${connectedStripeAccountId} with expansion: company.tax_ids, settings.tax_ids`);
-    stripeAccount = await stripe.accounts.retrieve(
-      connectedStripeAccountId,
-      {
-        expand: ['company.tax_ids', 'settings.tax_ids'],
-      }
-    );
-    console.log(`[Receipt] Successfully retrieved Stripe Account ${connectedStripeAccountId} with expansion.`);
+    // Express accounts don't support tax_ids expansion, retrieve without expansion
+    console.log(`[Receipt] Retrieving Stripe Express Account ${connectedStripeAccountId}`);
+    stripeAccount = await stripe.accounts.retrieve(connectedStripeAccountId);
+    console.log(`[Receipt] Successfully retrieved Stripe Account ${connectedStripeAccountId}.`);
   } catch (error: any) {
-    console.warn(`[Receipt] Error retrieving Stripe Account ${connectedStripeAccountId} with expansion: ${error.message}`);
-    if (error.type === 'StripeInvalidRequestError' && error.message && error.message.includes('cannot be expanded')) {
-      console.log(`[Receipt] Attempting to retrieve Stripe Account ${connectedStripeAccountId} without expansion due to 'cannot be expanded' error.`);
-      try {
-        // Second attempt: retrieve without expansion
-        stripeAccount = await stripe.accounts.retrieve(connectedStripeAccountId);
-        console.log(`[Receipt] Successfully retrieved Stripe Account ${connectedStripeAccountId} without expansion.`);
-      } catch (fallbackError: any) {
-        console.error(`[Receipt] Error retrieving Stripe Account ${connectedStripeAccountId} even without expansion: ${fallbackError.message}`);
-      }
-    } else {
-      console.error(`[Receipt] Non-expansion related error retrieving Stripe Account ${connectedStripeAccountId} during initial attempt: ${error.message}`);
-    }
+    console.error(`[Receipt] Error retrieving Stripe Account ${connectedStripeAccountId}: ${error.message}`);
   }
 
   if (stripeAccount) {
@@ -850,19 +1217,15 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   const emailHtml = generateDonationReceiptHtml(receiptData, appUrl);
 
   try {
+    const fromEmail = process.env.RESEND_FROM_EMAIL || `Altarflow <support@${process.env.YOUR_VERIFIED_RESEND_DOMAIN || 'altarflow.com'}>`;
     await resend.emails.send({
-      from: `Altarflow <support@${process.env.YOUR_VERIFIED_RESEND_DOMAIN}>`,
+      from: fromEmail,
       to: [donorEmail],
       subject: `Thank you for your contribution to ${receiptData.churchName}`,
       html: emailHtml,
     });
     console.log(`[Receipt] Receipt email sent to ${donorEmail} for transaction ${donationTransaction.id}`);
-
-    await prisma.donationTransaction.update({
-      where: { id: donationTransaction.id },
-      data: { processedAt: new Date() },
-    });
-    console.log(`[Receipt] Marked DonationTransaction ${donationTransaction.id} as processed for receipt.`);
+    // processedAt already set when payment succeeded, no need to update again
   } catch (emailError: any) {
     console.error(`[Receipt] Error sending receipt email for transaction ${donationTransaction.id}:`, emailError);
     

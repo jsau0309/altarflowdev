@@ -76,7 +76,18 @@ export default function RootLayout({
   // Removed client-side Supabase setup logic
 
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        elements: {
+          rootBox: "w-full",
+          card: "shadow-none",
+        }
+      }}
+      signInUrl="/signin"
+      signUpUrl="/signup"
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/after-signup"
+    >
       <html lang="en" suppressHydrationWarning>
         <head>
           {/* Comment block removed */}

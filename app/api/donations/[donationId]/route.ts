@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
@@ -95,7 +95,32 @@ export async function PATCH(
     }
     const donationData = validation.data;
 
-    // 3. Prepare data, handling potential disconnections
+    // 3. Validate foreign keys belong to the same church
+    if (donationData.memberId) {
+      const member = await prisma.member.findFirst({
+        where: {
+          id: donationData.memberId,
+          church: { clerkOrgId: orgId }
+        }
+      });
+      if (!member) {
+        return NextResponse.json({ error: 'Invalid member ID or member does not belong to your organization' }, { status: 400 });
+      }
+    }
+    
+    if (donationData.campaignId) {
+      const campaign = await prisma.campaign.findFirst({
+        where: {
+          id: donationData.campaignId,
+          church: { clerkOrgId: orgId }
+        }
+      });
+      if (!campaign) {
+        return NextResponse.json({ error: 'Invalid campaign ID or campaign does not belong to your organization' }, { status: 400 });
+      }
+    }
+    
+    // 4. Prepare data, handling potential disconnections
     const dataToUpdate: Prisma.DonationUpdateInput = {
       // Only include fields present in the validated data
       ...(donationData.donorFirstName !== undefined && { donorFirstName: donationData.donorFirstName }),
@@ -114,7 +139,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'No valid fields provided for update' }, { status: 400 });
     }
 
-    // 4. Perform update using updateMany to ensure org boundary
+    // 5. Perform update using updateMany to ensure org boundary
     const updateResult = await prisma.donation.updateMany({
       where: { 
         id: donationId,
@@ -124,12 +149,12 @@ export async function PATCH(
       data: dataToUpdate,
     });
 
-    // 5. Check if update occurred
+    // 6. Check if update occurred
     if (updateResult.count === 0) {
        return NextResponse.json({ error: 'Donation not found, access denied, or no changes needed' }, { status: 404 });
     }
     
-    // 6. Fetch and return updated donation
+    // 7. Fetch and return updated donation
     const updatedDonation = await prisma.donation.findFirst({
         where: { id: donationId, church: { clerkOrgId: orgId } }
     });

@@ -1,6 +1,6 @@
 "use server"
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { auth } from "@clerk/nextjs/server";
 import type { DonationTransactionFE } from "@/lib/types";
 
@@ -9,6 +9,7 @@ export interface DonationWithEditHistory extends DonationTransactionFE {
   lastEditedBy?: string | null;
   lastEditedAt?: string | null;
   editHistory?: any;
+  // Include refund and dispute fields from base type
 }
 
 export async function getDonationById(donationId: string): Promise<DonationWithEditHistory | null> {
@@ -82,6 +83,13 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
       lastEditedBy: donation.lastEditedBy,
       lastEditedAt: donation.lastEditedAt?.toISOString() || null,
       editHistory: donation.editHistory,
+      // Include refund tracking fields
+      refundedAmount: donation.refundedAmount,
+      refundedAt: donation.refundedAt?.toISOString() || null,
+      // Include dispute tracking fields
+      disputeStatus: donation.disputeStatus,
+      disputeReason: donation.disputeReason,
+      disputedAt: donation.disputedAt?.toISOString() || null,
     };
 
     return formattedDonation;

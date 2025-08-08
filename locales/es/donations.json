@@ -1,5 +1,10 @@
 {
     "title": "Donaciones",
+    "stepper": {
+      "details": "Detalles",
+      "info": "Información",
+      "donate": "Donar"
+    },
     "newDonation": "Nueva Donación",
     "donationHistory": "Historial de Donaciones",
     "recurringDonations": "Donaciones Recurrentes",
@@ -99,11 +104,11 @@
     
     "donationDetails": {
       "amountPrompt": "Ingresa una cantidad o haz una selección rápida abajo",
-      "selectFundLabel": "Seleccione un Fondo",
+      "selectFundLabel": "Selecciona un Fondo",
       "noFundsAvailable": "No hay fondos disponibles",
-    "coverFeesLabel": "Me gustaria cubrir los cargos por procesamiento.",
-    "processingFee": "Cargo de Procesamiento:",
-    "totalDonation": "Donacion Total:"
+      "coverFeesLabel": "Me gustaría ayudar a cubrir las tarifas de procesamiento.",
+      "processingFee": "Tarifa de Procesamiento:",
+      "totalDonation": "Donación Total:"
     },
     
     "newManualDonation": {
@@ -264,7 +269,7 @@
         "goHomeButton": "Volver al Inicio",
         "contactSupportMessage": "Si tienes alguna pregunta, por favor contacta a soporte: hola@altarflow.com"
     },
-    "donationDetails": {
+    "donationDetailsDrawer": {
       "title": "Detalles de Donación",
       "editableFor": "Editable por",
       "locked": "Esta donación está bloqueada (período de edición expirado)",

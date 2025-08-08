@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { AIService, ToneOption } from "@/lib/ai-service";
 
 export async function POST(request: NextRequest) {

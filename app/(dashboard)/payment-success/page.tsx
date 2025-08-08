@@ -31,8 +31,8 @@ export default function PaymentSuccessPage() {
         {/* Action Buttons */}
         <div className="flex gap-3 justify-center pt-4">
           <Button asChild size="lg" className="min-w-[140px]">
-            <Link href="/dashboard">
-              Get Started
+            <Link href="/settings?tab=account">
+              View Subscription
             </Link>
           </Button>
         </div>

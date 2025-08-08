@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { ResendEmailService } from "@/lib/email/resend-service";
 
 // This endpoint should be called by a cron job service (e.g., Vercel Cron, Railway, or external service)

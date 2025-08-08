@@ -1,83 +1,11 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma, StripeConnectAccount } from '@prisma/client';
+import { prisma } from '@/lib/db'; // Use centralized Prisma instance
 import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import type { OrganizationMembership } from '@clerk/backend';
 import { getBaseUrl } from '@/lib/stripe';
-
-// Create a single Prisma client instance
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-// Initialize Prisma client with logging in development
-const prisma = globalForPrisma.prisma ?? 
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' 
-      ? ['query', 'error', 'warn'] 
-      : ['error'],
-  });
-
-// Assign to global in development to prevent multiple instances
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
-
-// Type assertions for our custom models
-type IdempotencyCache = {
-  key: string;
-  responseData: string;
-  expiresAt: Date;
-};
-
-type StripeConnectAccount = {
-  id: string;
-  stripeAccountId: string;
-  churchId: string;
-  chargesEnabled: boolean;
-  detailsSubmitted: boolean;
-  payoutsEnabled: boolean;
-  verificationStatus: string;
-  requirementsCurrentlyDue: string;
-  requirementsEventuallyDue: string;
-  requirementsDisabledReason: string | null;
-  tosAcceptanceDate: Date | null;
-  metadata: Record<string, unknown>;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-// Extend the Prisma client with our custom models
-type ExtendedPrismaClient = typeof prisma & {
-  idempotencyCache: {
-    findUnique: (args: { where: { key: string } }) => Promise<IdempotencyCache | null>;
-    create: (args: { data: { key: string; responseData: string; expiresAt: Date } }) => Promise<IdempotencyCache>;
-  };
-  stripeConnectAccount: {
-    findUnique: (args: { where: { churchId: string }, select?: any }) => Promise<StripeConnectAccount | null>;
-    findFirst: (args: { 
-      where: { 
-        stripeAccountId?: string;
-        churchId?: string;
-      };
-      select?: any;
-    }) => Promise<{ id: string } | null>;
-    upsert: (args: { 
-      where: { churchId: string };
-      update: Partial<StripeConnectAccount>;
-      create: Omit<StripeConnectAccount, 'id' | 'createdAt' | 'updatedAt'>;
-    }) => Promise<StripeConnectAccount>;
-    update: (args: {
-      where: { stripeAccountId: string };
-      data: Partial<StripeConnectAccount>;
-    }) => Promise<StripeConnectAccount>;
-    delete: (args: { where: { stripeAccountId: string } }) => Promise<StripeConnectAccount>; // Added for delete
-  };
-};
-
-// Cast the Prisma client to our extended type
-const extendedPrisma = prisma as unknown as ExtendedPrismaClient;
 
 // Helper types for our API requests
 type CreateAccountRequest = {
@@ -132,7 +60,7 @@ async function withIdempotency(
   const cacheKey = `${keyPrefix}${idempotencyKey}`;
   
   // Check if we've seen this request before
-  const cachedResponse = await extendedPrisma.idempotencyCache.findUnique({
+  const cachedResponse = await prisma.idempotencyCache.findUnique({
     where: { key: cacheKey },
   });
   
@@ -180,7 +108,7 @@ async function withIdempotency(
   console.log(`[DEBUG] Idempotency: Caching response with body length: ${bodyText.length}, status: ${response.status}`);
 
   try {
-    await extendedPrisma.idempotencyCache.create({
+    await prisma.idempotencyCache.create({
       data: {
         key: cacheKey,
         responseData: JSON.stringify(responseToCache),
@@ -776,7 +704,7 @@ async function handleDeleteAccount(stripeAccountId: string): Promise<NextRespons
     try {
       // Ensure your StripeConnectAccount model has a unique constraint on stripeAccountId
       // or adjust the where clause if deletion needs to be based on another unique field found via stripeAccountId.
-      const deletedDbRecord = await extendedPrisma.stripeConnectAccount.delete({
+      const deletedDbRecord = await prisma.stripeConnectAccount.delete({
         where: { stripeAccountId: stripeAccountId }, 
       });
       console.log(`[DEBUG] Successfully deleted StripeConnectAccount record from DB for Stripe Account ID: ${stripeAccountId}. DB Record ID: ${deletedDbRecord.id}`);

@@ -4,13 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTranslation } from "react-i18next"
 import { DollarSign, TrendingUp, Users, TrendingDown } from "lucide-react"
 import { ReportSummary as ReportSummaryType } from "@/lib/actions/reports.actions"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface ReportSummaryProps {
   type: 'donations' | 'expenses'
   data: ReportSummaryType
+  loading?: boolean
 }
 
-export function ReportSummary({ type, data }: ReportSummaryProps) {
+export function ReportSummary({ type, data, loading }: ReportSummaryProps) {
   const { t } = useTranslation(['reports', 'common'])
   
   const formatCurrency = (amount: number) => {
@@ -36,10 +38,19 @@ export function ReportSummary({ type, data }: ReportSummaryProps) {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(data.total)}</div>
-          <p className="text-xs text-muted-foreground">
-            {t('reports:inSelectedPeriod')}
-          </p>
+          {loading ? (
+            <>
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-3 w-24" />
+            </>
+          ) : (
+            <>
+              <div className="text-2xl font-bold">{formatCurrency(data.total)}</div>
+              <p className="text-xs text-muted-foreground">
+                {t('reports:inSelectedPeriod')}
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
       
@@ -51,10 +62,19 @@ export function ReportSummary({ type, data }: ReportSummaryProps) {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(data.average)}</div>
-          <p className="text-xs text-muted-foreground">
-            {t('reports:perTransaction')}
-          </p>
+          {loading ? (
+            <>
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-3 w-24" />
+            </>
+          ) : (
+            <>
+              <div className="text-2xl font-bold">{formatCurrency(data.average)}</div>
+              <p className="text-xs text-muted-foreground">
+                {t('reports:perTransaction')}
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
       
@@ -73,18 +93,27 @@ export function ReportSummary({ type, data }: ReportSummaryProps) {
           )}
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {type === 'donations' 
-              ? formatNumber(data.count || 0)
-              : formatCurrency(data.netIncome || 0)
-            }
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {type === 'donations' 
-              ? t('reports:contributorsInPeriod')
-              : t('reports:donationsMinusExpenses')
-            }
-          </p>
+          {loading ? (
+            <>
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-3 w-24" />
+            </>
+          ) : (
+            <>
+              <div className="text-2xl font-bold">
+                {type === 'donations' 
+                  ? formatNumber(data.count || 0)
+                  : formatCurrency(data.netIncome || 0)
+                }
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {type === 'donations' 
+                  ? t('reports:contributorsInPeriod')
+                  : t('reports:donationsMinusExpenses')
+                }
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

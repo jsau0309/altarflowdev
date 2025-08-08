@@ -27,6 +27,7 @@ interface SubscriptionPricingProps {
 export function SubscriptionPricing({ currentPlan, currentStatus, organizationId }: SubscriptionPricingProps) {
   const { t } = useTranslation();
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
+  const [error, setError] = useState<string | null>(null);
 
   const plans: PricingPlan[] = [
     {
@@ -98,6 +99,13 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
 
   return (
     <div className="space-y-6">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+          {error}
+        </div>
+      )}
+      
       {/* Billing Toggle */}
       <div className="flex justify-center">
         <div className="flex items-center gap-4 p-1 bg-muted rounded-lg">

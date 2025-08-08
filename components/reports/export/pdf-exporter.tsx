@@ -207,12 +207,35 @@ export function exportToPDF({
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
     doc.setFontSize(10)
+    
+    // Page number and generation time
     doc.text(
       `Page ${i} of ${pageCount} - Generated on ${format(new Date(), 'MMM d, yyyy HH:mm')}`,
       doc.internal.pageSize.width / 2,
-      doc.internal.pageSize.height - 10,
+      doc.internal.pageSize.height - 20,
       { align: 'center' }
     )
+    
+    // Powered by AltarFlow
+    doc.setFontSize(9)
+    doc.setTextColor(100, 100, 100)
+    doc.text(
+      'Powered by AltarFlow',
+      doc.internal.pageSize.width / 2,
+      doc.internal.pageSize.height - 13,
+      { align: 'center' }
+    )
+    
+    // Built with love
+    doc.text(
+      'Built with love for churches worldwide',
+      doc.internal.pageSize.width / 2,
+      doc.internal.pageSize.height - 7,
+      { align: 'center' }
+    )
+    
+    // Reset text color
+    doc.setTextColor(0, 0, 0)
   }
   
   // Generate filename and save

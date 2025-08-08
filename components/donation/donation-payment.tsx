@@ -18,8 +18,15 @@ import {
   useElements,
 } from '@stripe/react-stripe-js'
 
-// Make sure to set this in your .env.local file
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+// Load Stripe with optional Connect account
+const getStripePromise = (stripeAccount?: string | null) => {
+  if (stripeAccount) {
+    return loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!, {
+      stripeAccount: stripeAccount
+    });
+  }
+  return loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+};
 
 interface DonationPaymentProps {
   formData: DonationFormData;
@@ -157,6 +164,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
 export default function DonationPayment({ formData, updateFormData, onBack, churchId, churchSlug, donorId, churchName, idempotencyKey }: DonationPaymentProps) {
   const { t } = useTranslation(['donations', 'common']);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [stripeAccount, setStripeAccount] = useState<string | null>(null); // Store Connect account ID
   const [isLoadingClientSecret, setIsLoadingClientSecret] = useState(true); // Start true as we usually fetch on mount
   const [initError, setInitError] = useState<string | null>(null);
   
@@ -227,6 +235,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
         if (isEffectMounted) {
           if (data.clientSecret) {
             setClientSecret(data.clientSecret);
+            setStripeAccount(data.stripeAccount || null); // Store Connect account ID
           } else {
             throw new Error(t('donations:donationPayment.clientSecretError', 'Failed to retrieve client secret.'));
           }
@@ -317,7 +326,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
   
   return (
     <div className="space-y-6">
-      <Elements options={options} stripe={stripePromise}>
+      <Elements options={options} stripe={getStripePromise(stripeAccount)}>
         <CheckoutForm formData={formData} onBack={onBack} churchId={churchId} churchSlug={churchSlug} churchName={churchName} />
     </Elements>
   </div>

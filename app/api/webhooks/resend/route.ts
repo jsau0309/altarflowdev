@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { RecipientStatus } from "@prisma/client";
 import crypto from "crypto";
 import { serverEnv } from "@/lib/env";

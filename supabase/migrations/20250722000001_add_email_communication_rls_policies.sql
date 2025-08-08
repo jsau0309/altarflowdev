@@ -13,6 +13,12 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- EmailCampaign Policies
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their church campaigns" ON "EmailCampaign";
+DROP POLICY IF EXISTS "Admin and staff can create campaigns" ON "EmailCampaign";
+DROP POLICY IF EXISTS "Admin and staff can update campaigns" ON "EmailCampaign";
+DROP POLICY IF EXISTS "Admin can delete campaigns" ON "EmailCampaign";
+
 -- View: Users can only see campaigns from their church
 CREATE POLICY "Users can view their church campaigns" ON "EmailCampaign"
     FOR SELECT USING ("churchId" = get_church_id_from_auth());

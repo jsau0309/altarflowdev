@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from 'next/navigation';
 import Image from 'next/image'; 
 import DonationForm from "@/components/donation/donation-form";
-import { LanguageToggle } from "@/components/language-toggle"; // Added import
 import { getChurchBySlug } from '@/lib/actions/church.actions'; 
 import { Lock } from 'lucide-react'; // Added for Secure Transaction icon
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 interface DonatePageProps {
   params: Promise<{ // params itself is a Promise
@@ -55,10 +54,7 @@ export default async function DonatePage(props: DonatePageProps) {
   // If donations are disabled or no active Stripe account, show error message
   if (!donationsEnabled || !hasActiveStripeAccount) {
     return (
-      <div className="relative flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>
-        <div className="absolute top-2 right-4 z-50">
-          <LanguageToggle />
-        </div>
+      <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>
         <div className="w-full max-w-md space-y-8">
           <div className="mt-8 flex flex-col items-center space-y-4 bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md">
             <Image
@@ -83,10 +79,7 @@ export default async function DonatePage(props: DonatePageProps) {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}> {/* Added 'relative' */}
-      <div className="absolute top-2 right-4 z-50"> {/* Container for LanguageToggle */}
-        <LanguageToggle />
-      </div>
+    <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>
       <div className="w-full max-w-md space-y-8">
         {/* New Header Structure */}
         <div className="mt-8 flex flex-col items-center space-y-4 bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md"> 

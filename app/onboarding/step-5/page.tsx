@@ -16,8 +16,6 @@ export default function OnboardingStep5() {
   const { organization } = useOrganization();
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual' | null>(null);
-
   useEffect(() => {
     // If no organization, redirect to step 1
     if (!organization) {
@@ -25,34 +23,7 @@ export default function OnboardingStep5() {
     }
   }, [organization, router]);
 
-  const handleUpgrade = async () => {
-    if (!selectedPlan || !organization) return;
-
-    try {
-      setIsLoading(true);
-
-      // Get the appropriate payment link based on selection
-      const paymentUrl = selectedPlan === 'monthly' 
-        ? process.env.NEXT_PUBLIC_STRIPE_MONTHLY_LINK
-        : process.env.NEXT_PUBLIC_STRIPE_ANNUAL_LINK;
-
-      if (!paymentUrl) {
-        throw new Error('Payment URL not configured');
-      }
-
-      // Redirect to Stripe payment link with organization ID
-      window.location.href = `${paymentUrl}?client_reference_id=${organization.id}`;
-    } catch (error) {
-      console.error('Error initiating upgrade:', error);
-      showToast(
-        t('onboarding:step5.upgradeError', 'Failed to start upgrade process. Please try again.'),
-        'error'
-      );
-      setIsLoading(false);
-    }
-  };
-
-  const handleSkip = async () => {
+  const handleContinue = async () => {
     try {
       setIsLoading(true);
 
@@ -73,7 +44,7 @@ export default function OnboardingStep5() {
     } catch (error) {
       console.error('Error completing onboarding:', error);
       showToast(
-        t('onboarding:step5.skipError', 'Failed to complete setup. Please try again.'),
+        t('onboarding:step5.continueError', 'Failed to complete setup. Please try again.'),
         'error'
       );
     } finally {
@@ -143,23 +114,18 @@ export default function OnboardingStep5() {
           {/* Title */}
           <div className="text-center mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-              {t('onboarding:step5.title', 'Upgrade to Pro (Optional)')}
+              {t('onboarding:step5.title', 'AltarFlow Pricing Plans')}
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
-              {t('onboarding:step5.subtitle', 'Unlock all features to maximize your church management')}
+              {t('onboarding:step5.subtitle', 'Review our pricing options - you can upgrade anytime after setup')}
             </p>
           </div>
 
-          {/* Pricing Cards */}
+          {/* Pricing Cards - Display Only */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             {/* Monthly Plan */}
             <Card 
-              className={`cursor-pointer transition-all ${
-                selectedPlan === 'monthly' 
-                  ? 'ring-2 ring-blue-600 border-blue-600' 
-                  : 'hover:border-gray-400'
-              }`}
-              onClick={() => setSelectedPlan('monthly')}
+              className="opacity-90"
             >
               <CardHeader>
                 <CardTitle>{t('settings:pricing.monthly.title', 'Monthly')}</CardTitle>
@@ -177,12 +143,7 @@ export default function OnboardingStep5() {
 
             {/* Annual Plan */}
             <Card 
-              className={`cursor-pointer transition-all relative ${
-                selectedPlan === 'annual' 
-                  ? 'ring-2 ring-blue-600 border-blue-600' 
-                  : 'hover:border-gray-400'
-              }`}
-              onClick={() => setSelectedPlan('annual')}
+              className="opacity-90 relative"
             >
               <div className="absolute -top-3 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
                 {t('settings:pricing.annual.badge', 'SAVE 30%')}
@@ -220,20 +181,13 @@ export default function OnboardingStep5() {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {/* Action Button */}
+          <div className="flex justify-center">
             <Button
-              variant="outline"
-              onClick={handleSkip}
+              onClick={handleContinue}
               disabled={isLoading}
-              className="px-8"
-            >
-              {t('onboarding:step5.skipForNow', 'Skip for now')}
-            </Button>
-            <Button
-              onClick={handleUpgrade}
-              disabled={isLoading || !selectedPlan}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-3"
+              size="lg"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
@@ -244,15 +198,17 @@ export default function OnboardingStep5() {
                   {t('common:processing', 'Processing...')}
                 </span>
               ) : (
-                t('onboarding:step5.upgradeNow', 'Upgrade Now')
+                t('onboarding:step5.continue', 'Continue to Complete Setup')
               )}
             </Button>
           </div>
 
-          {/* Free Trial Note */}
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-            {t('onboarding:step5.freeNote', 'You can always upgrade later from your account settings')}
-          </p>
+          {/* Upgrade Note */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
+            <p className="text-center text-sm text-blue-700 dark:text-blue-300">
+              <strong>{t('onboarding:step5.noteTitle', 'Ready to upgrade?')}</strong> {t('onboarding:step5.noteText', 'You can upgrade to a paid plan anytime from your dashboard after completing setup.')}
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use server"
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { auth } from "@clerk/nextjs/server";
 import { startOfWeek, startOfMonth, startOfYear, subMonths, subWeeks, endOfWeek, endOfMonth, endOfYear } from "date-fns";
 import { revalidateTag } from "next/cache";

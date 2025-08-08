@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server';
 import type { DonationTransactionFE } from '@/lib/types';
 import { Prisma } from '@prisma/client';
@@ -50,6 +50,13 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
     donorId: true;
     idempotencyKey: true;
     source: true; // Added source
+    // Refund tracking fields
+    refundedAmount: true;
+    refundedAt: true;
+    // Dispute tracking fields
+    disputeStatus: true;
+    disputeReason: true;
+    disputedAt: true;
     donationType: {
       select: {
         name: true;
@@ -158,6 +165,13 @@ export async function getDonationTransactions({
         donorId: true,
         idempotencyKey: true,
         source: true, // Ensure source is selected in the actual findMany query
+        // Refund tracking fields
+        refundedAmount: true,
+        refundedAt: true,
+        // Dispute tracking fields
+        disputeStatus: true,
+        disputeReason: true,
+        disputedAt: true,
         donationType: {
           select: {
             name: true,
@@ -198,6 +212,13 @@ export async function getDonationTransactions({
       donationDate: t.transactionDate.toISOString(), // Using transactionDate as donationDate
       createdAt: t.transactionDate.toISOString(), // Fallback: Prisma schema for DonationTransaction doesn't have its own createdAt/updatedAt, using transactionDate
       updatedAt: t.processedAt?.toISOString() ?? t.transactionDate.toISOString(), // Fallback: Using processedAt or transactionDate
+      // Refund tracking fields
+      refundedAmount: t.refundedAmount,
+      refundedAt: t.refundedAt?.toISOString() || null,
+      // Dispute tracking fields
+      disputeStatus: t.disputeStatus,
+      disputeReason: t.disputeReason,
+      disputedAt: t.disputedAt?.toISOString() || null
     }));
 
     return { donations: formattedDonations, totalCount };
@@ -349,6 +370,7 @@ export async function createManualDonation(
     const donationTypeId = donationTypeRecord.id;
 
     // 4. Create the DonationTransaction
+    // Manual donations (cash/check) have no processing fees
     const newTransaction = await prisma.donationTransaction.create({
       data: {
         churchId: actualChurchUuid,
@@ -364,6 +386,7 @@ export async function createManualDonation(
         transactionDate: donationDate,
         processedAt: new Date(), // Mark as processed immediately
         source: "manual", // Crucial field
+        // No fee tracking - will use Stripe Reports API when needed
         // notes: notes, // Temporarily removed
       },
       select: {

@@ -29,12 +29,14 @@ npm run build
 # Run linting
 npm run lint
 
-# Database commands
-npx prisma migrate dev    # Apply migrations in development
-npx prisma migrate deploy  # Apply migrations in production
-npx prisma generate        # Generate Prisma client
-npx prisma db push         # Push schema changes (development only)
-npx prisma db seed         # Seed database with test data
+# Database commands - IMPORTANT: Always use migrations!
+npx prisma migrate dev --name descriptive_name  # Create & apply migration
+npx prisma migrate deploy                       # Apply migrations in production
+npx prisma generate                             # Generate Prisma client
+npx prisma migrate status                       # Check migration status
+npx prisma migrate resolve --applied NAME       # Mark migration as applied
+# WARNING: Avoid using these unless absolutely necessary:
+# npx prisma db push - Only for prototyping, doesn't create migration files!
 
 # Debugging
 npm run debug:subscription # Debug subscription status
@@ -93,9 +95,24 @@ TWILIO_*               # SMS verification
 - No bypass flags in production
 - Email content escaping
 
+## Database Migration Best Practices
+**ALWAYS use migrations to track schema changes:**
+1. Modify the Prisma schema file (`prisma/schema.prisma`)
+2. Create a migration: `npx prisma migrate dev --name descriptive_name`
+3. This creates a migration file in `/prisma/migrations/` and applies it
+4. Commit both the schema changes AND the migration file to git
+
+**If you encounter drift errors:**
+1. Check status: `npx prisma migrate status`
+2. If changes were made without migrations, create a baseline migration
+3. Mark it as applied: `npx prisma migrate resolve --applied "migration_name"`
+
+**NEVER use `npx prisma db push` in production code** - it doesn't create migration files and loses change history!
+
 ## Common Gotchas
 - Prisma import is from `@/lib/db`, not `@/lib/prisma`
 - Date timezone issues: Use noon local time for date-only fields
 - Email campaign status must be DRAFT or SCHEDULED to send
 - Stripe webhooks require signature verification
 - Twilio client must be initialized inside request handlers
+- Always create Prisma migrations - never use `db push` except for quick prototypes

@@ -8,7 +8,12 @@
     "start": "next start",
     "lint": "next lint",
     "db:seed": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed.ts",
-    "debug:subscription": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/debug-subscription-status.ts"
+    "debug:subscription": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/debug-subscription-status.ts",
+    "add-indexes": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/add-stripe-indexes.ts",
+    "db:analyze": "npx prisma db execute --sql \"ANALYZE;\"",
+    "test:stripe": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/test-stripe-integration.ts",
+    "test:fees": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/test-fee-tracking.ts",
+    "debug:email": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/debug-email-receipt.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
@@ -44,6 +49,7 @@
     "@radix-ui/react-toggle": "^1.1.1",
     "@radix-ui/react-toggle-group": "^1.1.1",
     "@radix-ui/react-tooltip": "^1.1.7",
+    "@sentry/nextjs": "^10.1.0",
     "@stripe/connect-js": "^3.3.24",
     "@stripe/react-connect-js": "^3.3.24",
     "@stripe/react-stripe-js": "^3.7.0",
@@ -116,6 +122,7 @@
     "@types/react-dom": "^18",
     "@types/react-email-editor": "^1.5.6",
     "@types/uuid": "^10.0.0",
+    "chalk": "^5.5.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.23",
     "postcss": "^8",

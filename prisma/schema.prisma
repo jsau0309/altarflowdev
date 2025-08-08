@@ -80,6 +80,7 @@ model Church {
   emailCampaigns       EmailCampaign[]
   emailQuota           EmailQuota[]
   emailSettings        EmailSettings?
+  payoutSummaries      PayoutSummary[]
 }
 
 model DonationType {
@@ -124,6 +125,13 @@ model DonationTransaction {
   lastEditedAt                DateTime?
   lastEditedBy                String?
   originalAmount              Int?
+  // Refund tracking fields
+  refundedAmount              Int?         @default(0)
+  refundedAt                  DateTime?
+  // Dispute tracking fields
+  disputeStatus               String?
+  disputeReason               String?
+  disputedAt                  DateTime?
   church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
   donationType                DonationType @relation(fields: [donationTypeId], references: [id])
   donor                       Donor?       @relation(fields: [donorId], references: [id])
@@ -137,6 +145,8 @@ model DonationTransaction {
   @@index([churchId, transactionDate])
   @@index([paymentMethodType])
   @@index([status])
+  @@index([refundedAt])
+  @@index([disputeStatus])
 }
 
 model Profile {
@@ -448,4 +458,36 @@ enum RecipientStatus {
   BOUNCED
   UNSUBSCRIBED
   FAILED
+}
+
+// Payout tracking for reconciliation
+model PayoutSummary {
+  id                  String       @id @default(cuid())
+  stripePayoutId      String       @unique
+  churchId            String       @db.Uuid
+  payoutDate          DateTime     // When Stripe initiated the payout
+  arrivalDate         DateTime     // Expected bank arrival date
+  amount              Int          // Total payout amount in cents
+  currency            String       @default("usd")
+  transactionCount    Int          @default(0)
+  grossVolume         Int          @default(0) // Total charges before fees
+  totalFees           Int          @default(0) // Stripe fees
+  totalRefunds        Int          @default(0) // Refunds deducted
+  totalDisputes       Int          @default(0) // Disputes deducted
+  netAmount           Int          // What actually gets deposited
+  status              String       // pending/in_transit/paid/failed/canceled
+  failureReason       String?      // If payout failed
+  payoutSchedule      String?      // daily/weekly/monthly/manual
+  reconciledAt        DateTime?    // When we reconciled with bank
+  bankReference       String?      // Bank transaction reference
+  metadata            Json?        // Additional Stripe metadata
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  
+  church              Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  
+  @@index([churchId])
+  @@index([payoutDate])
+  @@index([status])
+  @@index([churchId, payoutDate])
 }

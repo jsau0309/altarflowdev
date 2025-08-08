@@ -1,8 +1,22 @@
 {
   "connectWithStripe": "Connect with Stripe",
+  "connectWithStripeTooltip": "Connect your bank account to receive donations",
   "viewInStripeExpress": "View in Stripe Express",
   "verificationInProgress": "Verification in Progress",
   "verificationTooltip": "Your account is being verified. This usually takes 1-2 business days.",
+  "connected": "Connected",
+  "fullyConnected": "Your Stripe account is fully connected and operational",
+  "actionRequired": "Action Required",
+  "actionRequiredTooltip": "Additional information needed: {{requirements}}",
+  "additionalInfoNeeded": "Additional information needed",
+  "accountRestricted": "Account Restricted",
+  "accountRestrictedTooltip": "Account restricted: {{reason}}",
+  "unknownReason": "Unknown reason",
+  "completeVerification": "Complete Verification",
+  "completeVerificationTooltip": "Complete your account verification to enable all features",
+  "requirementsNeeded": "Requirements needed",
+  "viewDashboard": "View Dashboard",
+  "viewDashboardTooltip": "Open Stripe Express Dashboard",
   "bankingContent": {
     "title": "Banking",
     "subtitle": "Manage your church's financial accounts, payouts, and tax information",
@@ -14,9 +28,12 @@
       "description": "Please complete your account verification to enable all banking features and receive payouts."
     },
     "tabs": {
+      "onboarding": "Setup",
       "account": "Account",
+      "payments": "Payments",
       "payouts": "Payouts",
       "balance": "Balance",
+      "reconciliation": "Reconciliation",
       "settings": "Settings"
     },
     "account": {
@@ -85,6 +102,67 @@
       "helpTitle": "Need Help?",
       "helpDescription": "Contact our support team for banking assistance",
       "contactSupportButton": "Contact Support"
+    }
+  },
+  "onboarding": {
+    "title": "Complete Your Account Setup",
+    "description": "Set up your Stripe account to start accepting donations and managing payouts"
+  },
+  "payments": {
+    "title": "Payment Transactions",
+    "description": "View all transactions, process refunds, and manage disputes"
+  },
+  "reconciliation": {
+    "stats": {
+      "totalPayouts": "Total Payouts",
+      "reconciled": "Reconciled",
+      "pending": "Pending",
+      "failed": "Failed"
+    },
+    "recentPayouts": {
+      "title": "Recent Payouts",
+      "description": "View and reconcile your Stripe payouts"
+    },
+    "importing": "Importing...",
+    "importFromStripe": "Import from Stripe",
+    "reconciling": "Reconciling...",
+    "reconcileAllPending": "Reconcile All Pending",
+    "reconcile": "Reconcile",
+    "noPayoutsFound": "No payouts found",
+    "table": {
+      "payoutDate": "Payout Date",
+      "arrivalDate": "Arrival Date",
+      "amount": "Amount",
+      "transactions": "Transactions",
+      "grossVolume": "Gross Volume",
+      "fees": "Fees",
+      "netAmount": "Net Amount",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "reconciled": "Reconciled",
+      "pendingReconciliation": "Pending Reconciliation",
+      "inTransit": "In Transit",
+      "pending": "Pending",
+      "failed": "Failed",
+      "canceled": "Canceled"
+    },
+    "toast": {
+      "reconciling": "Reconciling payout...",
+      "reconcileSuccess": "Payout reconciled successfully",
+      "reconcileError": "Failed to reconcile payout",
+      "reconcilingAll": "Reconciling all pending payouts...",
+      "reconcileAllSuccess": "All pending payouts reconciled",
+      "reconcileAllError": "Failed to reconcile payouts",
+      "checkingStripe": "Checking Stripe for payouts...",
+      "importing": "Importing payouts from Stripe...",
+      "importSuccess": "Imported {{count}} payouts from Stripe",
+      "importError": "Failed to import payouts",
+      "noStripeAccount": "Please complete Stripe onboarding first",
+      "noPayoutsFound": "No payouts found in your Stripe account",
+      "alreadyImported": "{{count}} payouts already in database",
+      "noNewPayouts": "No new payouts to import"
     }
   }
 } 

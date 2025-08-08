@@ -140,7 +140,11 @@ export default function DonationForm({ churchId, churchName, donationTypes, chur
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phoneNumber: formData.phone, code: enteredOtp }),
+        body: JSON.stringify({ 
+          phoneNumber: formData.phone, 
+          code: enteredOtp,
+          churchId: churchId // Pass the churchId from props
+        }),
       });
       const data = await response.json();
 
@@ -245,11 +249,11 @@ interface StepperProps {
 }
 
 function Stepper({ currentStep }: StepperProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('donations');
   const steps = [
-    { id: 1, name: t('stepper.details', "Details") },
-    { id: 2, name: t('stepper.info', "Info") },
-    { id: 3, name: t('stepper.donate', "Donate") },
+    { id: 1, name: t('donations:stepper.details', "Details") },
+    { id: 2, name: t('donations:stepper.info', "Info") },
+    { id: 3, name: t('donations:stepper.donate', "Donate") },
   ]
 
   return (

@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { rateLimit, rateLimitConfigs, getRateLimitHeaders } from "@/lib/rate-limit";
+import { prisma } from '@/lib/db';
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   // Apply rate limiting
-  const rateLimitResult = rateLimit(request, {
-    ...rateLimitConfigs.unsubscribe,
-    keyPrefix: 'unsubscribe',
-  });
+  const limiter = rateLimit({ windowMs: 60000, max: 10 });
+  const rateLimitResult = await limiter(request);
 
-  // Add rate limit headers to all responses
-  const headers = getRateLimitHeaders(rateLimitResult);
-
-  if (!rateLimitResult.allowed) {
+  if (!rateLimitResult.success) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
       { 
         status: 429,
-        headers,
       }
     );
   }
@@ -28,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Unsubscribe token is required" },
-        { status: 400, headers }
+        { status: 400 }
       );
     }
 
@@ -41,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (!emailPreference) {
       return NextResponse.json(
         { error: "Invalid unsubscribe token" },
-        { status: 404, headers }
+        { status: 404 }
       );
     }
 
@@ -69,12 +63,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Successfully unsubscribed",
-    }, { headers });
+    });
   } catch (error) {
     console.error("Error processing unsubscribe:", error);
     return NextResponse.json(
       { error: "Failed to process unsubscribe request" },
-      { status: 500, headers }
+      { status: 500 }
     );
   }
 }

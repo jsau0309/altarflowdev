@@ -1,13 +1,17 @@
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/db';
+import { createConnectAccountSchema, stripeAccountIdSchema, validateInput } from '@/lib/validation/stripe';
 
 export async function createStripeConnectAccount(churchId: string, email: string, country: string = 'US') {
   try {
+    // Validate input
+    const validated = validateInput(createConnectAccountSchema, { churchId, email, country });
+    
     // Create a new Connect account
     const account = await stripe.accounts.create({
       type: 'express',
-      country,
-      email,
+      country: validated.country,
+      email: validated.email,
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },
@@ -19,27 +23,22 @@ export async function createStripeConnectAccount(churchId: string, email: string
       },
       // Store the church ID in metadata for easy lookup
       metadata: {
-        churchId,
+        churchId: validated.churchId,
       },
     });
 
-    // Create a record in our database using raw SQL
-    await prisma.$executeRaw`
-      INSERT INTO "StripeConnectAccount" 
-      ("id", "stripeAccountId", "churchId", "createdAt", "updatedAt")
-      VALUES (gen_random_uuid(), ${account.id}, ${churchId}::uuid, NOW(), NOW())
-    `;
-
-    // Return the created account details
-    const [createdAccount] = await prisma.$queryRaw<Array<{
-      id: string;
-      stripeAccountId: string;
-      churchId: string;
-    }>>`
-      SELECT * FROM "StripeConnectAccount" 
-      WHERE "stripeAccountId" = ${account.id}
-      LIMIT 1
-    `;
+    // Create a record in our database using Prisma ORM (type-safe)
+    const createdAccount = await prisma.stripeConnectAccount.create({
+      data: {
+        stripeAccountId: account.id,
+        churchId: validated.churchId,
+      },
+      select: {
+        id: true,
+        stripeAccountId: true,
+        churchId: true,
+      }
+    });
 
     return {
       account,
@@ -53,6 +52,8 @@ export async function createStripeConnectAccount(churchId: string, email: string
 
 export async function getAccountOnboardingLink(accountId: string, refreshUrl: string, returnUrl: string) {
   try {
+    // Validate Stripe account ID format
+    validateInput(stripeAccountIdSchema, accountId);
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: refreshUrl,
@@ -79,27 +80,10 @@ export async function getExpressDashboardLink(accountId: string) {
 
 export async function getStripeConnectAccount(churchId: string) {
   try {
-    const accounts = await prisma.$queryRaw<Array<{
-      id: string;
-      stripeAccountId: string;
-      churchId: string;
-      chargesEnabled: boolean;
-      detailsSubmitted: boolean;
-      payoutsEnabled: boolean;
-      verificationStatus: string;
-      requirementsCurrentlyDue: string;
-      requirementsEventuallyDue: string;
-      requirementsDisabledReason: string | null;
-      tosAcceptanceDate: Date | null;
-      metadata: any;
-      createdAt: Date;
-      updatedAt: Date;
-    }>>`
-      SELECT * FROM "StripeConnectAccount" 
-      WHERE "churchId" = ${churchId}::uuid
-      LIMIT 1
-    `;
-    return accounts[0] || null;
+    const account = await prisma.stripeConnectAccount.findUnique({
+      where: { churchId: churchId }
+    });
+    return account;
   } catch (error) {
     console.error('Error fetching Stripe Connect account:', error);
     throw error;
