@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
-import { Prisma, StripeConnectAccount } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db'; // Use centralized Prisma instance
 import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import type { OrganizationMembership } from '@clerk/backend';
@@ -523,19 +523,19 @@ async function handleGetAccount({
     let connectAccount: { id: string; stripeAccountId: string } | undefined;
     
     if (accountId) {
-      const accounts = await prisma.$queryRaw<Array<{ id: string; stripeAccountId: string }>>`
-        SELECT * FROM "StripeConnectAccount" 
-        WHERE "stripeAccountId" = ${accountId}
-        LIMIT 1
-      `;
-      connectAccount = accounts[0];
+      // Use Prisma's safe query builder instead of raw SQL
+      const account = await prisma.stripeConnectAccount.findFirst({
+        where: { stripeAccountId: accountId },
+        select: { id: true, stripeAccountId: true }
+      });
+      connectAccount = account || undefined;
     } else if (churchId) {
-      const accounts = await prisma.$queryRaw<Array<{ id: string; stripeAccountId: string }>>`
-        SELECT * FROM "StripeConnectAccount" 
-        WHERE "churchId" = ${churchId}::text
-        LIMIT 1
-      `;
-      connectAccount = accounts[0];
+      // Use Prisma's safe query builder instead of raw SQL
+      const account = await prisma.stripeConnectAccount.findFirst({
+        where: { churchId: churchId },
+        select: { id: true, stripeAccountId: true }
+      });
+      connectAccount = account || undefined;
     }
 
     if (!connectAccount) {
@@ -557,27 +557,21 @@ async function handleGetAccount({
       ? new Date(stripeAccount.tos_acceptance.date * 1000) 
       : null;
 
-    await prisma.$executeRaw`
-      UPDATE "StripeConnectAccount"
-      SET 
-        "chargesEnabled" = ${stripeAccount.charges_enabled || false},
-        "detailsSubmitted" = ${stripeAccount.details_submitted || false},
-        "payoutsEnabled" = ${stripeAccount.payouts_enabled || false},
-        "verificationStatus" = ${verificationStatus},
-        "requirementsCurrentlyDue" = ${newRequirementsCurrentlyDueArray},
-        "requirementsEventuallyDue" = ${newRequirementsEventuallyDueArray},
-        "requirementsDisabledReason" = ${requirementsDisabledReason},
-        "tosAcceptanceDate" = ${tosAcceptanceDate},
-        "updatedAt" = NOW()
-      WHERE "id" = ${connectAccount.id}::uuid
-    `;
-
-    const updatedAccounts = await prisma.$queryRaw<Array<StripeConnectAccount>>`
-      SELECT * FROM "StripeConnectAccount" 
-      WHERE "id" = ${connectAccount.id}::uuid
-      LIMIT 1
-    `;
-    const updatedAccount = updatedAccounts[0];
+    // Use Prisma's safe update method instead of raw SQL
+    const updatedAccount = await prisma.stripeConnectAccount.update({
+      where: { id: connectAccount.id },
+      data: {
+        chargesEnabled: stripeAccount.charges_enabled || false,
+        detailsSubmitted: stripeAccount.details_submitted || false,
+        payoutsEnabled: stripeAccount.payouts_enabled || false,
+        verificationStatus: verificationStatus,
+        requirementsCurrentlyDue: newRequirementsCurrentlyDueArray,
+        requirementsEventuallyDue: newRequirementsEventuallyDueArray,
+        requirementsDisabledReason: requirementsDisabledReason,
+        tosAcceptanceDate: tosAcceptanceDate,
+        updatedAt: new Date()
+      }
+    });
 
     // Construct the response object to match frontend's StripeAccount type
     const responseAccount = {

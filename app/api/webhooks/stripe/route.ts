@@ -978,21 +978,23 @@ export async function POST(req: Request) {
           if (payout.status === 'paid') {
             console.log(`[Stripe Webhook] Payout ${payout.id} has been paid to bank`);
             
-            // Trigger reconciliation asynchronously to avoid webhook timeout
-            // We don't await this as it can take time and we want to respond quickly to Stripe
-            import('@/lib/stripe-reconciliation').then(({ reconcilePayout }) => {
-              reconcilePayout(payout.id, stripeAccountId)
-                .then(result => {
-                  if (result.success) {
-                    console.log(`[Stripe Webhook] Payout ${payout.id} reconciled successfully`);
-                  } else {
-                    console.error(`[Stripe Webhook] Failed to reconcile payout ${payout.id}:`, result.error);
-                  }
-                })
-                .catch(error => {
-                  console.error(`[Stripe Webhook] Error reconciling payout ${payout.id}:`, error);
-                });
-            });
+            // Import and await reconciliation to ensure data consistency
+            // Use try-catch to handle errors gracefully
+            try {
+              const { reconcilePayout } = await import('@/lib/stripe-reconciliation');
+              const result = await reconcilePayout(payout.id, stripeAccountId);
+              
+              if (result.success) {
+                console.log(`[Stripe Webhook] Payout ${payout.id} reconciled successfully`);
+              } else {
+                console.error(`[Stripe Webhook] Failed to reconcile payout ${payout.id}:`, result.error);
+                // Don't fail the webhook, but log for monitoring
+              }
+            } catch (error) {
+              // Log error but don't fail the webhook - Stripe will retry if we return 500
+              console.error(`[Stripe Webhook] Error reconciling payout ${payout.id}:`, error);
+              // Consider adding to a retry queue here in the future
+            }
           }
           
           // If payout failed, alert the church
