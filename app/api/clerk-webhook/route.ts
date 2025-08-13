@@ -2,10 +2,8 @@ import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { 
   WebhookEvent, 
-  OrganizationWebhookEvent, 
   OrganizationMembershipWebhookEvent 
 } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
 
 // Import Prisma client
 import { prisma } from '@/lib/db'; // Use named import
@@ -265,7 +263,7 @@ export async function POST(req: Request) {
         const prismaRole: Role = role === 'org:admin' ? Role.ADMIN : Role.STAFF; // Check for 'org:admin'
 
         // Update the user's Profile
-        const updateData: any = {
+        const updateData: { role: Role } = {
           role: prismaRole,    // Set the application role
         };
 
@@ -282,7 +280,7 @@ export async function POST(req: Request) {
       } catch (error) {
         console.error(`Error updating profile for User ID ${userId} in Org ID ${orgId}:`, error);
         // Check if the error is due to the profile not existing yet (race condition with user.created)
-        if ((error as any).code === 'P2025') { // Prisma code for RecordNotFound
+        if ((error as Error & { code?: string }).code === 'P2025') { // Prisma code for RecordNotFound
           console.warn(`Profile for User ID ${userId} not found. Might be a race condition. Webhook will likely retry.`);
           // Return 500 to signal Clerk to retry
           return new Response('Error occurred -- profile not found, retry needed', { status: 500 });
@@ -321,7 +319,7 @@ export async function POST(req: Request) {
         console.log(`Successfully updated role for User ID: ${userId} to ${prismaRole}`);
       } catch (error) {
         console.error(`Error updating role for User ID ${userId}:`, error);
-        if ((error as any).code === 'P2025') {
+        if ((error as Error & { code?: string }).code === 'P2025') {
           console.warn(`Profile for User ID ${userId} not found. Might be a race condition.`);
           return new Response('Error occurred -- profile not found', { status: 500 });
         }
@@ -356,7 +354,7 @@ export async function POST(req: Request) {
     } catch (error) {
        // Handle cases where the profile might not exist (e.g., already deleted)
        // Prisma throws P2025 for record not found on delete
-      if ((error as any).code === 'P2025') { 
+      if ((error as Error & { code?: string }).code === 'P2025') { 
         console.warn(`Profile deletion skipped: Profile for User ID ${userId} not found (might be already deleted).`);
         // Return 200 OK because the desired state (no profile link) is achieved
         return new Response('', { status: 200 });

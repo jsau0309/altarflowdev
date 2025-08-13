@@ -7,7 +7,7 @@ import { Prisma } from '@prisma/client'; // Import Prisma namespace for types
 export async function GET(request: NextRequest) {
   try {
     // 1. Authentication & Authorization check
-    const { userId, orgId, orgRole } = getAuth(request);
+    const { userId, orgId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -110,10 +110,10 @@ export default async function DonatePage(props: DonatePageProps) {
         <div className="w-full max-w-md space-y-3 text-center bg-white dark:bg-gray-800 px-6 py-6 rounded-lg shadow-md">
           {/* Terms and Privacy */}
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            By continuing, you agree to Altarflow's{' '}
-            <a href="#" className="font-medium underline hover:text-gray-700 dark:hover:text-gray-200">Terms of Service</a>
+            By continuing, you agree to Altarflow&apos;s{' '}
+            <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700 dark:hover:text-gray-200">Terms of Service</a>
             {' and '}
-            <a href="#" className="font-medium underline hover:text-gray-700 dark:hover:text-gray-200">Privacy Policy</a>.
+            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700 dark:hover:text-gray-200">Privacy Policy</a>.
           </p>
 
           {/* Powered by Altarflow */}

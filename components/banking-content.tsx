@@ -8,30 +8,18 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   AlertCircle,
-  ArrowDownToLine,
   BanknoteIcon as BankIcon,
   CheckCircle2,
   CreditCard,
   FileText,
-  HelpCircle,
-  Info,
-  Landmark,
   Loader2,
   RefreshCw,
-  Settings,
-  Shield,
   User,
 } from "lucide-react"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@clerk/nextjs'
-import { StripeConnectButton, type StripeAccount } from './stripe-connect-button'
+import { type StripeAccount } from './stripe-connect-button'
 import StripeConnectEmbeddedWrapper from './stripe/StripeConnectEmbeddedWrapper';
 import LoaderOne from '@/components/ui/loader-one';
 import { PayoutReconciliationDashboard } from './payouts/payout-reconciliation-dashboard';

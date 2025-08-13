@@ -165,7 +165,7 @@ export default function WaitlistFullPage() {
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900">Unable to load form</h3>
                     <p className="text-gray-600 max-w-md">
-                      We're having trouble loading the waitlist form. Please try again or email us at support@altarflow.com
+                      We&apos;re having trouble loading the waitlist form. Please try again or email us at support@altarflow.com
                     </p>
                     <button
                       onClick={reset}

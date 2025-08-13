@@ -29,6 +29,20 @@
   .animation-delay-4000 {
     animation-delay: 4s;
   }
+
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-gradient-shift {
+    animation: gradient-shift 8s ease infinite;
+    background-size: 200% 200%;
+  }
 }
 
 @layer base {
@@ -179,6 +193,16 @@
 
 .animate-gradient {
   animation: gradient 12s ease infinite;
+}
+
+/* Shimmer effect for liquid glass buttons */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
 }
 
 @theme inline {

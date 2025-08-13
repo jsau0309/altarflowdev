@@ -140,20 +140,21 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess, donors }: Man
             </div>
             <div>
               <Label htmlFor="date">{t('donations:newManualDonation.date')}</Label>
-              <Popover>
+              <Popover modal={true}>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    type="button"
+                    variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal mt-1",
                       !manualDonationDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {manualDonationDate ? format(manualDonationDate, "PPP") : <span>{t('donations:newManualDonation.pickDate')}</span>}
+                    {manualDonationDate ? format(manualDonationDate, "MMMM d, yyyy") : <span>{t('donations:newManualDonation.pickDate')}</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <DatePickerCalendar
                     mode="single"
                     selected={manualDonationDate}

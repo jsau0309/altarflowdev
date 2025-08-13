@@ -1,30 +1,44 @@
 import { Prisma } from '@prisma/client'
 
-// Middleware to handle connection errors gracefully
+// Enhanced middleware to handle connection errors gracefully
 export const connectionErrorMiddleware: Prisma.Middleware = async (params, next) => {
   try {
     return await next(params)
-  } catch (error: any) {
-    // Check if it's a connection error
-    if (
-      error.code === 'P1001' || // Can't reach database server
-      error.code === 'P1002' || // Database server timeout
-      error.message?.includes('Connection pool timeout') ||
-      error.message?.includes('Error in PostgreSQL connection')
-    ) {
+  } catch (error: unknown) {
+    const err = error as Error & { code?: string };
+    // Enhanced connection error detection
+    const isConnectionError = 
+      err.code === 'P1001' || // Can't reach database server
+      err.code === 'P1002' || // Database server timeout  
+      err.code === 'P2024' || // Timed out fetching a new connection from the connection pool
+      err.code === 'P1017' || // Server has closed the connection
+      err.message?.includes('Connection pool timeout') ||
+      err.message?.includes('Error in PostgreSQL connection') ||
+      err.message?.includes('Connection terminated unexpectedly') ||
+      err.message?.includes('Connection reset by peer') ||
+      err.message?.includes('Server closed the connection');
+      
+    if (isConnectionError) {
       console.warn('[Prisma] Connection error detected, retrying...', {
         model: params.model,
         action: params.action,
+        error: err.code || err.message,
       })
       
-      // Wait a moment before retrying
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Exponential backoff with jitter
+      const delay = 100 + Math.random() * 100;
+      await new Promise(resolve => setTimeout(resolve, delay));
       
-      // Retry once
+      // Retry once with enhanced error handling
       try {
         return await next(params)
       } catch (retryError) {
-        console.error('[Prisma] Retry failed:', retryError)
+        console.error('[Prisma] Retry failed:', {
+          model: params.model,
+          action: params.action,
+          originalError: err.code || err.message,
+          retryError: (retryError as Error).message,
+        });
         throw retryError
       }
     }

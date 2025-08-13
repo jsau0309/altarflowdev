@@ -12,7 +12,7 @@ import {
     getVisitorList,
 } from '@/lib/actions/reports.actions';
 import { getUserSubscriptionPlan } from "@/lib/stripe/subscription";
-import type { User } from "@clerk/backend"; // Changed User import
+// import type { User } from "@clerk/backend"; // Not used in this endpoint
 import { getChurchByClerkOrgId } from '@/lib/actions/church.actions';
 
 const anthropic = new Anthropic({
@@ -42,13 +42,13 @@ export async function POST(req: NextRequest) {
             return new NextResponse("Unauthorized or Church not found", { status: 403 });
         }
 
-        const clerkUser = { id: userId } as User; // Casting to User type for compatibility
+        // const clerkUser = { id: userId } as User; // Not used in this endpoint
         const subscriptionPlan = await getUserSubscriptionPlan(userId, orgId); // Use userId string
         if (!subscriptionPlan.isPro) { // Use isPro property from placeholder interface
             return new NextResponse('Pro plan required for AI report features.', { status: 403 });
         }
 
-        let fetchedData: any;
+        let fetchedData: unknown;
         let questionTextForLLM = "";
         let noDataMessage = "";
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
                 fetchedData = await getTopDonorsThisMonth(church.id);
                 questionTextForLLM = language === 'es' ? "¿Quiénes fueron los 3 principales donantes este mes?" : "Who were the top 3 donors this month?";
                 noDataMessage = language === 'es' ? "No hay datos de donantes principales para este mes." : "No top donor data available for this month.";
-                if (!fetchedData || fetchedData.length === 0) {
+                if (!fetchedData || (Array.isArray(fetchedData) && fetchedData.length === 0)) {
                     return new NextResponse(noDataMessage, { status: 200 });
                 }
                 break;
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
                 fetchedData = await getExpenseTrendData(church.id);
                 questionTextForLLM = language === 'es' ? "¿Cuál es la tendencia de gastos en los últimos 6 meses?" : "What is the expense trend over the last 6 months?";
                 noDataMessage = language === 'es' ? "No hay suficientes datos de gastos para determinar una tendencia en los últimos 6 meses. Con más datos en el futuro, podremos ofrecer un análisis de tendencias más claro." : "There isn't enough expense data to determine a trend for the last 6 months yet. As more data becomes available over time, we'll be able to provide a clearer trend analysis.";
-                if (!fetchedData || fetchedData.length === 0 || fetchedData.every((d: { totalExpenses: number }) => d.totalExpenses === 0)) {
+                if (!fetchedData || (Array.isArray(fetchedData) && (fetchedData.length === 0 || fetchedData.every((d: { totalExpenses: number }) => d.totalExpenses === 0)))) {
                     return new NextResponse(noDataMessage, { status: 200 });
                 }
                 break;
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
                 fetchedData = await getDonationTrendData(church.id);
                 questionTextForLLM = language === 'es' ? "¿Cuál es la tendencia de donaciones en los últimos 6 meses?" : "What is the donation trend over the last 6 months?";
                 noDataMessage = language === 'es' ? "No hay suficientes datos de donaciones para determinar una tendencia en los últimos 6 meses. Con más datos en el futuro, podremos ofrecer un análisis de tendencias más claro." : "There isn't enough donation data to determine a trend for the last 6 months yet. As more data becomes available over time, we'll be able to provide a clearer trend analysis.";
-                 if (!fetchedData || fetchedData.length === 0 || fetchedData.every((d: { totalDonations: number }) => d.totalDonations === 0)) {
+                 if (!fetchedData || (Array.isArray(fetchedData) && (fetchedData.length === 0 || fetchedData.every((d: { totalDonations: number }) => d.totalDonations === 0)))) {
                     return new NextResponse(noDataMessage, { status: 200 });
                 }
                 break;
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
                 fetchedData = await getActiveMemberList(church.id);
                 questionTextForLLM = language === 'es' ? "¿Puedes listar nuestros miembros activos?" : "Can you list our active members?";
                 noDataMessage = language === 'es' ? "Actualmente no hay miembros activos listados." : "There are currently no active members listed.";
-                if (!fetchedData || fetchedData.length === 0) {
+                if (!fetchedData || (Array.isArray(fetchedData) && fetchedData.length === 0)) {
                     return new NextResponse(noDataMessage, { status: 200 });
                 }
                 break;
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
                 fetchedData = await getVisitorList(church.id);
                 questionTextForLLM = language === 'es' ? "¿Puedes listar nuestros visitantes recientes?" : "Can you list our recent visitors?";
                 noDataMessage = language === 'es' ? "Actualmente no hay visitantes recientes listados." : "There are currently no recent visitors listed.";
-                if (!fetchedData || fetchedData.length === 0) {
+                if (!fetchedData || (Array.isArray(fetchedData) && fetchedData.length === 0)) {
                     return new NextResponse(noDataMessage, { status: 200 });
                 }
                 break;
@@ -196,7 +196,7 @@ Answer directly and conversationally.`;
 }
 
 // Handle OPTIONS requests for CORS
-export async function OPTIONS(req: NextRequest) {
+export async function OPTIONS() {
     return new NextResponse(null, { 
         status: 200,
         headers: {

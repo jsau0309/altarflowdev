@@ -21,15 +21,12 @@ import { safeStorage } from "@/lib/safe-storage"
 import { 
   SidebarProvider, 
   Sidebar, 
-  SidebarContent, // Example, adjust based on what's needed directly here
   SidebarInset // Use SidebarInset as the main content wrapper
 } from "@/components/layout/enhanced-sidebar"
 
 // Import the new header component
 import DashboardHeader from "@/components/layout/dashboard-header"
 
-// Keep cn if still needed, otherwise remove
-import { cn } from "@/lib/utils"
 
 export default function ClientDashboardLayout({ children }: { children: React.ReactNode }) {
   const { orgId } = useAuth(); // <-- Get orgId from Clerk

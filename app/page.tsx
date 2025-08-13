@@ -3,437 +3,72 @@
 import type React from "react"
 import { ArrowRight } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useTranslation } from "react-i18next"
+import { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
+import { usePostHog } from "@/hooks/use-posthog"
 import CircularText from "@/components/ui/circular-text"
-import {
-  Users,
-  BarChart3,
-  DollarSign,
-  FileText,
-  Mail,
-  Calendar,
-  CreditCard,
-  UserPlus,
-  Brain,
-  MessageCircle,
-  Globe,
-  Settings,
-  Link,
-} from "lucide-react"
 import NextLink from "next/link"
-import { ContainerScroll } from "@/components/landing/container-scroll-animation"
-import { HeroTitle, HeroContent } from "@/components/landing/hero-content"
-import { MobileResponsiveTimeline } from "@/components/landing/mobile-responsive-timeline"
+import { HeroTitle } from "@/components/landing/hero-content"
+import { TabbedFeatures } from "@/components/landing/tabbed-features"
+import { MobileFeatures } from "@/components/landing/mobile-features"
 import { AltarflowFooter } from "@/components/landing/simple-footer"
 import { MobileMenu } from "@/components/landing/mobile-menu"
-import { LanguageSwitcher } from "@/components/landing/language-switcher"
-import { InfiniteSlider } from "@/components/landing/infinite-slider"
 import { CTABackgroundPaths } from "@/components/landing/floating-paths"
 import { motion } from "framer-motion"
-
-// Enhanced Feature Card Component - For Desktop Only
-const EnhancedFeatureCard = ({
-  icon,
-  title,
-  description,
-  delay,
-}: {
-  icon: React.ReactNode
-  title: string
-  description: string
-  delay: number
-}) => {
-  return (
-    <motion.div
-      initial={{ y: 4 }}
-      whileInView={{ y: 0 }}
-      transition={{ duration: 0.3, delay, ease: "easeOut" }}
-      viewport={{ once: true, margin: "-150px" }}
-      whileHover={{ y: -2, transition: { duration: 0.2, ease: "easeOut" } }}
-      className="group bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-gray-200"
-    >
-      <div className={`flex items-center space-x-3 mb-4`}>
-        <div className="p-3 rounded-lg bg-gradient-to-br from-[#3B82F6] to-[#2563EB] text-white shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/40 transition-shadow duration-300">
-          {icon}
-        </div>
-        <h4 className="font-bold text-lg text-gray-900 group-hover:text-[#3B82F6] transition-colors duration-300">
-          {title}
-        </h4>
-      </div>
-      <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
-        {description}
-      </p>
-    </motion.div>
-  )
-}
-
-// Feature Slider Card Component
-const FeatureSliderCard = ({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode
-  title: string
-  description: string
-}) => {
-  return (
-    <div className="flex-shrink-0 w-80 bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-      <div className="flex items-center space-x-3 mb-3">
-        <div className="p-2 rounded-lg bg-gradient-to-br from-[#3B82F6] to-[#2563EB] text-white">{icon}</div>
-        <h4 className="font-semibold text-lg text-gray-900">{title}</h4>
-      </div>
-      <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
-    </div>
-  )
-}
 
 
 
 export default function LandingPage() {
   const router = useRouter()
-  const { t } = useTranslation('landing')
+  const { trackEvent } = usePostHog()
 
-  const timelineData = [
-    {
-      title: t('features.financialManagement.title'),
-      features: [
-        {
-          icon: <DollarSign className="h-5 w-5" />,
-          title: t('features.financialManagement.donationTracking.title'),
-          description: t('features.financialManagement.donationTracking.description'),
-        },
-        {
-          icon: <FileText className="h-5 w-5" />,
-          title: t('features.financialManagement.expenseManagement.title'),
-          description: t('features.financialManagement.expenseManagement.description'),
-        },
-        {
-          icon: <BarChart3 className="h-5 w-5" />,
-          title: t('features.financialManagement.reportsInsights.title'),
-          description: t('features.financialManagement.reportsInsights.description'),
-        },
-        {
-          icon: <CreditCard className="h-5 w-5" />,
-          title: t('features.financialManagement.bankingPayouts.title'),
-          description: t('features.financialManagement.bankingPayouts.description'),
-        },
-      ],
-      content: (
-        <div>
-          <p className="text-gray-700 text-base md:text-lg font-medium mb-8 leading-relaxed">
-            {t('features.financialManagement.description')}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <EnhancedFeatureCard
-              icon={<DollarSign className="h-6 w-6" />}
-              title={t('features.financialManagement.donationTracking.title')}
-              description={t('features.financialManagement.donationTracking.description')}
-              delay={0}
-            />
-            <EnhancedFeatureCard
-              icon={<FileText className="h-6 w-6" />}
-              title={t('features.financialManagement.expenseManagement.title')}
-              description={t('features.financialManagement.expenseManagement.description')}
-              delay={0.05}
-            />
-            <EnhancedFeatureCard
-              icon={<BarChart3 className="h-6 w-6" />}
-              title={t('features.financialManagement.reportsInsights.title')}
-              description={t('features.financialManagement.reportsInsights.description')}
-              delay={0.1}
-            />
-            <EnhancedFeatureCard
-              icon={<CreditCard className="h-6 w-6" />}
-              title={t('features.financialManagement.bankingPayouts.title')}
-              description={t('features.financialManagement.bankingPayouts.description')}
-              delay={0.15}
-            />
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: t('features.communicationEngagement.title'),
-      features: [
-        {
-          icon: <Mail className="h-5 w-5" />,
-          title: t('features.communicationEngagement.newsletterBuilder.title'),
-          description: t('features.communicationEngagement.newsletterBuilder.description'),
-        },
-        {
-          icon: <Calendar className="h-5 w-5" />,
-          title: t('features.communicationEngagement.scheduledMessaging.title'),
-          description: t('features.communicationEngagement.scheduledMessaging.description'),
-        },
-        {
-          icon: <Users className="h-5 w-5" />,
-          title: t('features.communicationEngagement.audienceSegmentation.title'),
-          description: t('features.communicationEngagement.audienceSegmentation.description'),
-        },
-        {
-          icon: <FileText className="h-5 w-5" />,
-          title: t('features.communicationEngagement.mediaDesignTools.title'),
-          description: t('features.communicationEngagement.mediaDesignTools.description'),
-        },
-      ],
-      content: (
-        <div>
-          <p className="text-gray-700 text-base md:text-lg font-medium mb-8 leading-relaxed">
-            {t('features.communicationEngagement.description')}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <EnhancedFeatureCard
-              icon={<Mail className="h-6 w-6" />}
-              title={t('features.communicationEngagement.newsletterBuilder.title')}
-              description={t('features.communicationEngagement.newsletterBuilder.description')}
-              delay={0}
-            />
-            <EnhancedFeatureCard
-              icon={<Calendar className="h-6 w-6" />}
-              title={t('features.communicationEngagement.scheduledMessaging.title')}
-              description={t('features.communicationEngagement.scheduledMessaging.description')}
-              delay={0.05}
-            />
-            <EnhancedFeatureCard
-              icon={<Users className="h-6 w-6" />}
-              title={t('features.communicationEngagement.audienceSegmentation.title')}
-              description={t('features.communicationEngagement.audienceSegmentation.description')}
-              delay={0.2}
-            />
-            <EnhancedFeatureCard
-              icon={<FileText className="h-6 w-6" />}
-              title={t('features.communicationEngagement.mediaDesignTools.title')}
-              description={t('features.communicationEngagement.mediaDesignTools.description')}
-              delay={0.15}
-            />
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: t('features.memberCommunityManagement.title'),
-      features: [
-        {
-          icon: <Users className="h-5 w-5" />,
-          title: t('features.memberCommunityManagement.memberDirectory.title'),
-          description: t('features.memberCommunityManagement.memberDirectory.description'),
-        },
-        {
-          icon: <UserPlus className="h-5 w-5" />,
-          title: t('features.memberCommunityManagement.visitorTracking.title'),
-          description: t('features.memberCommunityManagement.visitorTracking.description'),
-        },
-        {
-          icon: <Link className="h-5 w-5" />,
-          title: t('features.memberCommunityManagement.donorLinking.title'),
-          description: t('features.memberCommunityManagement.donorLinking.description'),
-        },
-        {
-          icon: <FileText className="h-5 w-5" />,
-          title: t('features.memberCommunityManagement.flowsForms.title'),
-          description: t('features.memberCommunityManagement.flowsForms.description'),
-        },
-      ],
-      content: (
-        <div>
-          <p className="text-gray-700 text-base md:text-lg font-medium mb-8 leading-relaxed">
-            {t('features.memberCommunityManagement.description')}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <EnhancedFeatureCard
-              icon={<Users className="h-6 w-6" />}
-              title={t('features.memberCommunityManagement.memberDirectory.title')}
-              description={t('features.memberCommunityManagement.memberDirectory.description')}
-              delay={0}
-            />
-            <EnhancedFeatureCard
-              icon={<UserPlus className="h-6 w-6" />}
-              title={t('features.memberCommunityManagement.visitorTracking.title')}
-              description={t('features.memberCommunityManagement.visitorTracking.description')}
-              delay={0.05}
-            />
-            <EnhancedFeatureCard
-              icon={<Link className="h-6 w-6" />}
-              title={t('features.memberCommunityManagement.donorLinking.title')}
-              description={t('features.memberCommunityManagement.donorLinking.description')}
-              delay={0.1}
-            />
-            <EnhancedFeatureCard
-              icon={<FileText className="h-6 w-6" />}
-              title={t('features.memberCommunityManagement.flowsForms.title')}
-              description={t('features.memberCommunityManagement.flowsForms.description')}
-              delay={0.15}
-            />
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: t('features.smartAdministration.title'),
-      features: [
-        {
-          icon: <Brain className="h-5 w-5" />,
-          title: t('features.smartAdministration.aiMonthlySummary.title'),
-          description: t('features.smartAdministration.aiMonthlySummary.description'),
-        },
-        {
-          icon: <MessageCircle className="h-5 w-5" />,
-          title: t('features.smartAdministration.aiQAInsights.title'),
-          description: t('features.smartAdministration.aiQAInsights.description'),
-        },
-        {
-          icon: <Globe className="h-5 w-5" />,
-          title: t('features.smartAdministration.customizableLandingPage.title'),
-          description: t('features.smartAdministration.customizableLandingPage.description'),
-        },
-        {
-          icon: <Settings className="h-5 w-5" />,
-          title: t('features.smartAdministration.accountSettingsControl.title'),
-          description: t('features.smartAdministration.accountSettingsControl.description'),
-        },
-      ],
-      content: (
-        <div>
-          <p className="text-gray-700 text-base md:text-lg font-medium mb-8 leading-relaxed">
-            {t('features.smartAdministration.description')}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <EnhancedFeatureCard
-              icon={<Brain className="h-6 w-6" />}
-              title={t('features.smartAdministration.aiMonthlySummary.title')}
-              description={t('features.smartAdministration.aiMonthlySummary.description')}
-              delay={0}
-            />
-            <EnhancedFeatureCard
-              icon={<MessageCircle className="h-6 w-6" />}
-              title={t('features.smartAdministration.aiQAInsights.title')}
-              description={t('features.smartAdministration.aiQAInsights.description')}
-              delay={0.05}
-            />
-            <EnhancedFeatureCard
-              icon={<Globe className="h-6 w-6" />}
-              title={t('features.smartAdministration.customizableLandingPage.title')}
-              description={t('features.smartAdministration.customizableLandingPage.description')}
-              delay={0.1}
-            />
-            <EnhancedFeatureCard
-              icon={<Settings className="h-6 w-6" />}
-              title={t('features.smartAdministration.accountSettingsControl.title')}
-              description={t('features.smartAdministration.accountSettingsControl.description')}
-              delay={0.15}
-            />
-          </div>
-        </div>
-      ),
-    },
-  ]
-
-  // All features for the slider
-  const allFeatures = [
-    {
-      icon: <DollarSign className="h-5 w-5" />,
-      title: t('features.financialManagement.donationTracking.title'),
-      description: t('features.financialManagement.donationTracking.description'),
-    },
-    {
-      icon: <FileText className="h-5 w-5" />,
-      title: t('features.financialManagement.expenseManagement.title'),
-      description: t('features.financialManagement.expenseManagement.description'),
-    },
-    {
-      icon: <BarChart3 className="h-5 w-5" />,
-      title: t('features.financialManagement.reportsInsights.title'),
-      description: t('features.financialManagement.reportsInsights.description'),
-    },
-    {
-      icon: <CreditCard className="h-5 w-5" />,
-      title: t('features.financialManagement.bankingPayouts.title'),
-      description: t('features.financialManagement.bankingPayouts.description'),
-    },
-    {
-      icon: <Mail className="h-5 w-5" />,
-      title: t('features.communicationEngagement.newsletterBuilder.title'),
-      description: t('features.communicationEngagement.newsletterBuilder.description'),
-    },
-    {
-      icon: <Calendar className="h-5 w-5" />,
-      title: t('features.communicationEngagement.scheduledMessaging.title'),
-      description: t('features.communicationEngagement.scheduledMessaging.description'),
-    },
-    {
-      icon: <Users className="h-5 w-5" />,
-      title: t('features.communicationEngagement.audienceSegmentation.title'),
-      description: t('features.communicationEngagement.audienceSegmentation.description'),
-    },
-    {
-      icon: <UserPlus className="h-5 w-5" />,
-      title: t('features.memberCommunityManagement.visitorTracking.title'),
-      description: t('features.memberCommunityManagement.visitorTracking.description'),
-    },
-    { 
-      icon: <Link className="h-5 w-5" />, 
-      title: t('features.memberCommunityManagement.donorLinking.title'), 
-      description: t('features.memberCommunityManagement.donorLinking.description') 
-    },
-    {
-      icon: <Brain className="h-5 w-5" />,
-      title: t('features.smartAdministration.aiMonthlySummary.title'),
-      description: t('features.smartAdministration.aiMonthlySummary.description'),
-    },
-    {
-      icon: <MessageCircle className="h-5 w-5" />,
-      title: t('features.smartAdministration.aiQAInsights.title'),
-      description: t('features.smartAdministration.aiQAInsights.description'),
-    },
-    {
-      icon: <Globe className="h-5 w-5" />,
-      title: t('features.smartAdministration.customizableLandingPage.title'),
-      description: t('features.smartAdministration.customizableLandingPage.description'),
-    },
-  ]
+  // Send a test event to verify PostHog installation
+  useEffect(() => {
+    trackEvent('landing_page_viewed', { 
+      page: 'home',
+      timestamp: new Date().toISOString()
+    })
+  }, [trackEvent])
 
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <header className="absolute top-0 left-0 right-0 z-40 w-full bg-transparent">
         <div className="container flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex items-center">
-            <img src="/altarflow-logo.svg" alt="Altarflow" className="w-[191px] h-[45px]" />
+            <img src="/altarflow-logo-white.svg" alt="Altarflow" className="w-[191px] h-[45px]" />
           </div>
 
           <div className="flex items-center space-x-6">
             <nav className="hidden md:flex items-center space-x-6">
-              <LanguageSwitcher />
               <NextLink
                 href="#features"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-sm font-medium text-white hover:text-white/80 hover:bg-white/10 px-4 py-2 rounded-full transition-all"
               >
-                {t('header.features')}
-              </NextLink>
-              <NextLink
-                href="#demo"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                {t('header.demo')}
+                Features
               </NextLink>
             </nav>
 
             <div className="flex items-center space-x-3">
               <Button 
                 variant="ghost" 
-                className="hidden md:inline-flex text-gray-600 hover:text-gray-900"
+                className="hidden md:inline-flex text-white hover:text-white/80 hover:bg-white/10 rounded-full"
                 onClick={() => router.push('/signin')}
               >
-                {t('header.signIn')}
+                Sign In
               </Button>
               <Button 
-                className="hidden md:inline-flex bg-[#3B82F6] hover:bg-[#2563EB] text-white px-4 py-2"
-                onClick={() => router.push('/waitlist-full')}
+                className="hidden md:inline-flex bg-white text-[#3B82F6] hover:bg-white/90 px-6 py-2 font-semibold rounded-full"
+                onClick={() => {
+                  trackEvent('get_started_clicked', { 
+                    location: 'header',
+                    timestamp: new Date().toISOString()
+                  })
+                  router.push('/waitlist-full')
+                }}
               >
-                {t('header.getStarted')}
+                Get Started
               </Button>
               <MobileMenu />
             </div>
@@ -441,81 +76,75 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <div className="bg-white">
-        <ContainerScroll titleComponent={<HeroTitle />}>
-          <HeroContent />
-        </ContainerScroll>
-      </div>
-
-      {/* Features Section - Timeline */}
-      <section id="features">
-        <MobileResponsiveTimeline data={timelineData} />
-      </section>
-
-      {/* Demo Video Section - Simple Placeholder */}
-      <section id="demo" className="py-20 md:py-32 bg-gray-50">
-        <div className="container px-4 md:px-6">
-          <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-              {t('demo.title')}
-            </h2>
-            <p className="text-xl text-gray-600 max-w-[800px] mx-auto">
-              {t('demo.subtitle')}
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto mb-16">
-            <div className="relative aspect-video bg-gray-200 rounded-2xl overflow-hidden shadow-2xl">
-              {/* Placeholder for demo video */}
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#3B82F6] to-[#1D4ED8]">
-                <div className="text-center text-white">
-                  <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-semibold mb-2">{t('demo.videoPlaceholder.title')}</h3>
-                  <p className="text-blue-100">{t('demo.videoPlaceholder.description')}</p>
+      {/* Hero Section with Gradient */}
+      <div className="relative overflow-hidden bg-gradient-to-b from-[#3B82F6] via-[#60A5FA] to-white">
+        {/* Primary Gradient Overlay for depth */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#3B82F6]/20 via-transparent to-transparent" />
+        
+        {/* Radial Gradient for Center Glow */}
+        <div className="absolute inset-0 bg-radial-gradient" style={{
+          background: 'radial-gradient(ellipse at top center, rgba(59, 130, 246, 0.15), transparent 50%)'
+        }} />
+        
+        {/* Noise Texture Overlay */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' seed='5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+        }} />
+        
+        {/* Content */}
+        <div className="relative">
+          <div className="container mx-auto px-4 py-16 md:py-24">
+            <HeroTitle />
+            
+            {/* Dashboard Preview - Sharp and Clean (Responsive) */}
+            <div className="mt-8 sm:mt-12 md:mt-16 lg:mt-20 max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-[68rem] mx-auto px-4 sm:px-6 lg:px-4">
+              <div className="relative">
+                {/* Subtle shadow underneath for depth */}
+                <div className="absolute -inset-2 sm:-inset-4 translate-y-4 sm:translate-y-8 bg-gradient-to-b from-[#3B82F6]/8 to-transparent blur-2xl sm:blur-3xl -z-10"></div>
+                
+                {/* Dashboard container - crisp and clear */}
+                <div className="relative rounded-lg sm:rounded-xl md:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl bg-white">
+                  {/* Dashboard image - optimized for sharpness */}
+                  <img 
+                    src="/features/altarflow-dashboard-hero.png" 
+                    alt="Altarflow Dashboard" 
+                    className="w-full h-auto object-cover object-top"
+                    style={{
+                      imageRendering: "-webkit-optimize-contrast",
+                      WebkitFontSmoothing: "antialiased",
+                    }}
+                  />
+                  
+                  {/* Bottom fade - responsive heights */}
+                  <div className="absolute inset-x-0 bottom-0 h-[25%] sm:h-[22%] md:h-[20%] bg-gradient-to-t from-white/90 via-white/40 to-transparent pointer-events-none"></div>
+                  
+                  {/* Very soft blur layer at the bottom - responsive */}
+                  <div className="absolute inset-x-0 bottom-0 h-[22%] sm:h-[20%] md:h-[18%] backdrop-blur-[0.5px] bg-gradient-to-t from-white/25 to-transparent pointer-events-none"></div>
+                  
+                  {/* Very subtle vignette for depth - no blur */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/[0.02] pointer-events-none"></div>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Features Infinite Slider */}
-          <div className="mb-12">
-            <InfiniteSlider gap={24} duration={39} durationOnHover={39} className="py-4">
-              {allFeatures.map((feature, index) => (
-                <FeatureSliderCard
-                  key={index}
-                  icon={feature.icon}
-                  title={feature.title}
-                  description={feature.description}
-                />
-              ))}
-            </InfiniteSlider>
-          </div>
-
-          <div className="text-center">
-            <Button 
-              size="lg" 
-              className="text-xl px-10 py-7 bg-[#3B82F6] hover:bg-[#2563EB]"
-              onClick={() => router.push('/waitlist-full')}
-            >
-              {t('demo.requestAccess')}
-              <ArrowRight className="ml-2 h-6 w-6" />
-            </Button>
-          </div>
         </div>
-      </section>
+      </div>
 
-      {/* Final CTA Section - Enhanced with Better Gradient + Animated Paths */}
+      {/* Features Section - Tabbed Interface */}
+      <TabbedFeatures />
+
+      {/* Mobile Features Section */}
+      <MobileFeatures />
+
+      {/* Final CTA Section - Optimized Animated Gradient */}
       <section className="relative py-20 md:py-32 text-white overflow-hidden">
-        {/* Enhanced Animated Gradient Background - More Visible */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB] via-[#3B82F6] via-[#1D4ED8] to-[#1E40AF] animate-gradient bg-[length:400%_400%]"></div>
+        {/* Animated Gradient Background - Only animate on desktop for performance */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB] via-[#3B82F6] to-[#1E40AF] md:animate-gradient bg-[length:400%_400%]"></div>
 
-        {/* Animated Paths Background */}
-        <CTABackgroundPaths />
+        {/* Animated Paths Background - Hidden on mobile for performance */}
+        <div className="hidden md:block">
+          <CTABackgroundPaths />
+        </div>
 
         {/* Content */}
         <div className="container px-4 md:px-6 text-center relative z-10">
@@ -527,7 +156,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl"
             >
-              {t('cta.title')}
+              Ready to Transform Your Church Operations?
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -536,7 +165,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="text-xl text-blue-100"
             >
-              {t('cta.description')}
+              Join the first churches to unlock smarter ministry operations, more intelligent insights, and simpler management with Altarflow's complete platform.
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -548,30 +177,31 @@ export default function LandingPage() {
               <Button 
                 size="lg" 
                 variant="secondary" 
-                className="text-lg px-8 py-6"
+                className="text-lg px-8 py-6 rounded-full"
                 onClick={() => router.push('/book-demo')}
               >
-                {t('cta.bookDemo')}
+                Book Your Demo
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-[#3B82F6] bg-transparent"
+                className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-[#3B82F6] bg-transparent rounded-full"
                 onClick={() => router.push('/waitlist-full')}
               >
-                {t('cta.joinWaitlist')}
+                Join the Waitlist
               </Button>
             </motion.div>
+            {/* Circular Text - Hidden on mobile for performance */}
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.6 }}
               viewport={{ once: true }}
-              className="flex justify-center items-center"
+              className="hidden md:flex justify-center items-center"
             >
               <CircularText
-                text={t('cta.circularText')}
+                text="• THE FUTURE OF CHURCH MANAGEMENT • COMING SOON "
                 spinDuration={25}
                 className="text-blue-200 text-lg font-semibold"
                 size={280}

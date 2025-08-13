@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { prisma } from '@/lib/db';
+import { prisma, withRetryTransaction } from '@/lib/db';
 import { format } from 'date-fns';
 import { EmailStatus, RecipientStatus } from '@prisma/client';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
@@ -157,9 +157,9 @@ export class ResendEmailService {
         throw new Error('Church not found');
       }
 
-      // Perform atomic quota check and reservation using a transaction
-      quotaReservation = await prisma.$transaction(async (tx) => {
-        // Get or create quota with a lock to prevent concurrent modifications
+      // Optimized atomic quota check and reservation using withRetryTransaction
+      quotaReservation = await withRetryTransaction(async (tx) => {
+        // Get or create quota with optimized query
         const monthYear = format(new Date(), 'yyyy-MM');
         let quota = await tx.emailQuota.findFirst({
           where: {
@@ -197,148 +197,155 @@ export class ResendEmailService {
           throw new Error(`Campaign quota exceeded. You have sent ${quota.emailsSent} of ${quota.quotaLimit} campaigns this month.`);
         }
 
-        // Reserve the quota by incrementing immediately
-        const updatedQuota = await tx.emailQuota.update({
-          where: { id: quota.id },
-          data: {
-            emailsSent: {
-              increment: 1,
+        // Execute quota reservation and campaign status update in parallel
+        const [updatedQuota] = await Promise.all([
+          tx.emailQuota.update({
+            where: { id: quota.id },
+            data: {
+              emailsSent: {
+                increment: 1,
+              },
             },
-          },
-        });
-
-        // Update campaign status to SENDING to prevent duplicate sends
-        await tx.emailCampaign.update({
-          where: { id: campaignId },
-          data: {
-            status: 'SENDING' as EmailStatus,
-          },
-        });
+          }),
+          tx.emailCampaign.update({
+            where: { id: campaignId },
+            data: {
+              status: 'SENDING' as EmailStatus,
+            },
+          }),
+        ]);
 
         console.log(`Campaign quota reserved: ${updatedQuota.emailsSent} of ${updatedQuota.quotaLimit} campaigns used`);
         
         return { quota: updatedQuota, quotaId: quota.id };
       });
 
-      // Send emails in batches via Resend
+      // Optimized batch sending with improved performance
       const batchSize = 100; // Resend recommends batches of 100
       const results = [];
       const emailCount = emails.length;
-
-      for (let i = 0; i < emails.length; i += batchSize) {
-        const batch = emails.slice(i, i + batchSize);
-        console.log(`Processing batch ${Math.floor(i / batchSize + 1)}, emails: ${batch.length}`);
-        
-        // Validate emails in this batch
-        const validBatch = batch.filter(email => {
-          const validation = validateEmail(email.to);
-          if (!validation.isValid) {
-            console.error(`Skipping invalid email: ${email.to} - ${validation.reason}`);
-            return false;
-          }
-          return true;
-        });
-
-        if (validBatch.length === 0) {
-          console.log(`Batch ${Math.floor(i / batchSize + 1)} has no valid emails, skipping`);
-          continue;
+      
+      // Pre-validate all emails to avoid processing invalid ones
+      const validEmails = emails.filter(email => {
+        const validation = validateEmail(email.to);
+        if (!validation.isValid) {
+          console.error(`Skipping invalid email: ${email.to} - ${validation.reason}`);
+          return false;
         }
+        return true;
+      });
+      
+      console.log(`Processing ${validEmails.length} valid emails out of ${emails.length} total`);
+      
+      // Pre-process all email content for faster batch sending
+      const processedEmails = validEmails.map(email => {
+        const sanitizedHtml = sanitizeEmailHtml(email.html);
+        const sanitizedSubject = sanitizeEmailSubject(email.subject);
+        const plainText = sanitizedHtml
+          .replace(/<[^>]+>/g, '') // Remove HTML tags
+          .replace(/\s+/g, ' ') // Normalize whitespace
+          .trim();
+        
+        return {
+          ...email,
+          sanitizedHtml,
+          sanitizedSubject,
+          plainText,
+        };
+      });
 
-        const batchResponse = await resend.batch.send(
-          validBatch.map(email => {
-            // Sanitize HTML content and subject to prevent XSS attacks
-            const sanitizedHtml = sanitizeEmailHtml(email.html);
-            const sanitizedSubject = sanitizeEmailSubject(email.subject);
-            
-            // Generate plain text from sanitized HTML
-            const plainText = sanitizedHtml
-              .replace(/<[^>]+>/g, '') // Remove HTML tags
-              .replace(/\s+/g, ' ') // Normalize whitespace
-              .trim();
-            
-            return {
-              from: from || this.FROM_EMAIL,
-              to: email.to,
-              subject: sanitizedSubject,
-              html: sanitizedHtml,
-              text: plainText,
-              tags: [
-                { name: 'church_id', value: churchId.replace(/[^a-zA-Z0-9_-]/g, '_') },
-                { name: 'campaign_id', value: campaignId.replace(/[^a-zA-Z0-9_-]/g, '_') },
-                { name: 'batch', value: `${Math.floor(i / batchSize + 1)}` },
-              ],
-            };
-          })
-        );
+      // Send emails in optimized batches
+      for (let i = 0; i < processedEmails.length; i += batchSize) {
+        const batch = processedEmails.slice(i, i + batchSize);
+        const batchNumber = Math.floor(i / batchSize + 1);
+        console.log(`Processing batch ${batchNumber}/${Math.ceil(processedEmails.length / batchSize)}, emails: ${batch.length}`);
+        
+        // Build batch payload efficiently
+        const batchPayload = batch.map((email, index) => ({
+          from: from || this.FROM_EMAIL,
+          to: email.to,
+          subject: email.sanitizedSubject,
+          html: email.sanitizedHtml,
+          text: email.plainText,
+          tags: [
+            { name: 'church_id', value: churchId.replace(/[^a-zA-Z0-9_-]/g, '_') },
+            { name: 'campaign_id', value: campaignId.replace(/[^a-zA-Z0-9_-]/g, '_') },
+            { name: 'batch', value: batchNumber.toString() },
+            { name: 'batch_index', value: index.toString() },
+          ],
+        }));
 
-        console.log('Batch response received:', {
-          hasError: !!batchResponse.error,
-          hasData: !!batchResponse.data,
-          dataLength: batchResponse.data && Array.isArray(batchResponse.data) ? batchResponse.data.length : 0,
-        });
+        const batchResponse = await resend.batch.send(batchPayload);
 
         if (batchResponse.error) {
-          throw new Error(batchResponse.error.message);
+          throw new Error(`Batch ${batchNumber} failed: ${batchResponse.error.message}`);
         }
 
-        // Handle batch response
+        // Process batch response efficiently
         if (batchResponse.data) {
-          // The batch API returns a data property with an array
           const batchResults = 'data' in batchResponse.data ? (batchResponse.data as any).data : batchResponse.data;
           
           if (Array.isArray(batchResults)) {
             results.push(...batchResults);
             
-            // Update recipient status
-            for (let index = 0; index < batch.length; index++) {
+            // Batch update all recipients at once instead of one by one (MAJOR PERFORMANCE IMPROVEMENT)
+            const recipientUpdates: Array<{
+              email: string;
+              resendEmailId: string;
+              sentAt: Date;
+            }> = [];
+            const currentTime = new Date();
+            
+            for (let index = 0; index < Math.min(batch.length, batchResults.length); index++) {
               const email = batch[index];
               const result = batchResults[index];
               
-              console.log(`Processing email ${index}:`, {
-                to: email.to,
-                resultType: result ? typeof result : 'null',
-                hasId: result && 'id' in result,
-                resultId: result && 'id' in result ? result.id : 'NO_ID',
-              });
-              
               if (result && 'id' in result) {
-                // Update recipient as sent
-                // Extract email address (email.to could be string or array)
                 const recipientEmail = Array.isArray(email.to) ? email.to[0] : email.to;
-                
-                console.log(`Updating recipient: ${recipientEmail} with resendEmailId: ${result.id}`);
-                
-                const updateResult = await prisma.emailRecipient.updateMany({
-                  where: {
-                    campaignId,
-                    email: recipientEmail,
-                  },
-                  data: {
-                    status: 'SENT' as RecipientStatus,
-                    sentAt: new Date(),
-                    resendEmailId: result.id,
-                  },
-                });
-                
-                console.log(`Update result for ${recipientEmail}:`, {
-                  count: updateResult.count,
-                  campaignId,
+                recipientUpdates.push({
+                  email: recipientEmail,
                   resendEmailId: result.id,
+                  sentAt: currentTime,
                 });
               }
+            }
+            
+            // Execute all recipient updates in a single transaction (HUGE PERFORMANCE GAIN)
+            if (recipientUpdates.length > 0) {
+              await withRetryTransaction(async (tx) => {
+                const updatePromises = recipientUpdates.map(update => 
+                  tx.emailRecipient.updateMany({
+                    where: {
+                      campaignId,
+                      email: update.email,
+                    },
+                    data: {
+                      status: 'SENT' as RecipientStatus,
+                      sentAt: update.sentAt,
+                      resendEmailId: update.resendEmailId,
+                    },
+                  })
+                );
+                
+                await Promise.all(updatePromises);
+              });
+              
+              console.log(`Batch ${batchNumber}: Updated ${recipientUpdates.length} recipients`);
             }
           }
         }
       }
 
-      // Update campaign status to SENT
-      await prisma.emailCampaign.update({
-        where: { id: campaignId },
-        data: {
-          status: 'SENT' as EmailStatus,
-          sentAt: new Date(),
-          sentCount: emailCount,
-        },
+      // Update campaign status to SENT with retry logic
+      await withRetryTransaction(async (tx) => {
+        await tx.emailCampaign.update({
+          where: { id: campaignId },
+          data: {
+            status: 'SENT' as EmailStatus,
+            sentAt: new Date(),
+            sentCount: emailCount,
+          },
+        });
       });
 
       console.log('=== sendBulkEmails SUCCESS ===');
@@ -354,24 +361,24 @@ export class ResendEmailService {
       if (quotaReservation?.quotaId && params.campaignId) {
         const quotaId = quotaReservation.quotaId;
         try {
-          await prisma.$transaction(async (tx) => {
-            // Rollback the quota increment
-            await tx.emailQuota.update({
-              where: { id: quotaId },
-              data: {
-                emailsSent: {
-                  decrement: 1,
+          await withRetryTransaction(async (tx) => {
+            // Execute rollback operations in parallel for better performance
+            await Promise.all([
+              tx.emailQuota.update({
+                where: { id: quotaId },
+                data: {
+                  emailsSent: {
+                    decrement: 1,
+                  },
                 },
-              },
-            });
-            
-            // Update campaign status to failed
-            await tx.emailCampaign.update({
-              where: { id: params.campaignId },
-              data: {
-                status: 'FAILED' as EmailStatus,
-              },
-            });
+              }),
+              tx.emailCampaign.update({
+                where: { id: params.campaignId },
+                data: {
+                  status: 'FAILED' as EmailStatus,
+                },
+              }),
+            ]);
           });
           
           console.log('Quota reservation rolled back due to send failure');

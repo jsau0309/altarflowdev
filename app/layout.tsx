@@ -6,18 +6,17 @@ import { ThemeProvider } from "@/components/theme-provider"
 import I18nClientProvider from "@/components/i18n-client-provider";
 import { Toaster } from 'sonner';
 import { 
-  ClerkProvider,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton
+  ClerkProvider
 } from '@clerk/nextjs'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { LoadingProvider } from '@/contexts/loading-context'
+import { PostHogProvider } from '@/components/providers/posthog-provider'
+import { SentryProvider } from '@/components/providers/sentry-provider'
 
 // Removed client-side Supabase imports
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com'),
   title: "Altarflow - All-in-One Church Management Platform",
   description: "Transform your church operations with Altarflow. Manage donations, expenses, members, and communications in one powerful bilingual platform built for Hispanic churches.",
   keywords: ["church management", "church software", "donation tracking", "church administration", "iglesia", "gestión iglesia"],
@@ -85,8 +84,8 @@ export default function RootLayout({
       }}
       signInUrl="/signin"
       signUpUrl="/signup"
-      afterSignInUrl="/dashboard"
-      afterSignUpUrl="/after-signup"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/after-signup"
     >
       <html lang="en" suppressHydrationWarning>
         <head>
@@ -106,10 +105,14 @@ export default function RootLayout({
           >
             <I18nClientProvider>
               <LoadingProvider>
-                <ErrorBoundary>
-                  {children}
-                </ErrorBoundary>
-                <Toaster richColors position="bottom-right" />
+                <SentryProvider>
+                  <PostHogProvider>
+                    <ErrorBoundary>
+                      {children}
+                    </ErrorBoundary>
+                  </PostHogProvider>
+                  <Toaster richColors position="bottom-right" />
+                </SentryProvider>
               </LoadingProvider>
             </I18nClientProvider>
           </ThemeProvider>

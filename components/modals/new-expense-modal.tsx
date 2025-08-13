@@ -263,7 +263,15 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
 
               <div className="space-y-2">
                 <Label htmlFor="expenseDate">{t('expenses:newExpenseModal.dateLabel')}</Label>
-                <Input id="expenseDate" name="expenseDate" type="date" required value={formData.expenseDate} onChange={handleInputChange} />
+                <Input 
+                  id="expenseDate" 
+                  name="expenseDate" 
+                  type="date" 
+                  required 
+                  value={formData.expenseDate} 
+                  onChange={handleInputChange}
+                  className="text-sm"
+                />
               </div>
             </div>
 

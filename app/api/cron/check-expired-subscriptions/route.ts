@@ -1,12 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prisma } from '@/lib/db';
 import { format } from "date-fns";
-import { getQuotaLimit } from "@/lib/subscription-helpers";
 
 // This cron job runs daily to check for expired subscriptions and update quotas
 // It handles grace period expiration and subscription end dates
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // Verify the request is from Vercel Cron (in production)
     const headersList = await headers();

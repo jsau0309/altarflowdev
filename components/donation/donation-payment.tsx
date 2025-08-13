@@ -8,6 +8,7 @@ import type { DonationFormData } from "./donation-form"
 import { Gift, Loader2 } from "lucide-react"
 
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@/hooks/use-posthog'
 
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js'
 import {
@@ -63,6 +64,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
   const stripe = useStripe();
   const elements = useElements();
   const { t } = useTranslation(['donations', 'common']);
+  const { trackDonation, trackEvent } = usePostHog();
 
   const [message, setMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -89,6 +91,14 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
 
     setIsProcessing(true);
     setMessage(null);
+
+    // Track donation attempt
+    trackEvent('donation_initiated', {
+      amount: displayAmount,
+      donation_type: formData.donationTypeName || 'Unknown',
+      church_slug: churchSlug,
+      covers_fees: formData.coverFees || false,
+    });
 
     const calculatedReturnUrl = `${window.location.origin}/${churchSlug}/donation-successful`;
     // Debug logging removed: confirming Stripe payment

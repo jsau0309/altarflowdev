@@ -108,7 +108,7 @@ export default function BookDemoPage() {
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900">Unable to load calendar</h3>
                     <p className="text-gray-600 max-w-md">
-                      We're having trouble loading the booking calendar. Please try again or email us at support@altarflow.com to schedule a demo.
+                      We&apos;re having trouble loading the booking calendar. Please try again or email us at support@altarflow.com to schedule a demo.
                     </p>
                     <button
                       onClick={reset}

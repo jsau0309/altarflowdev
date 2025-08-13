@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format, addDays, setHours, setMinutes } from "date-fns";
-import { CalendarIcon, Clock, Send, AlertCircle, Sunrise, Sun, Sunset } from "lucide-react";
+import { CalendarIcon, Clock, Send, Sunrise, Sun, Sunset } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@clerk/nextjs";

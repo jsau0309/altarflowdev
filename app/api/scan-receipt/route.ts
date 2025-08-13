@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as mindee from "mindee";
 // import { createServerClient, type CookieOptions } from '@supabase/ssr'; // <-- Remove Supabase
 // import { cookies } from 'next/headers'; // <-- Remove if not used
-import { prisma } from '@/lib/db'; // Import Prisma client
+// import { prisma } from '@/lib/db'; // Not used in this endpoint
 import { createAdminClient } from '@/utils/supabase/admin'; // Import the admin client creator
 import { getAuth } from '@clerk/nextjs/server'; // Use getAuth
 

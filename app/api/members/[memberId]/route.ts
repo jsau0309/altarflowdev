@@ -184,14 +184,37 @@ export async function DELETE(
 
     // Remove profile fetch
 
-    // 2. Use deleteMany with compound where clause to ensure ownership
-    const deleteResult = await prisma.member.deleteMany({
-      where: { 
-        id: memberId, 
-        church: { // Ensure deletion only happens for the correct org
-          clerkOrgId: orgId
-        }
-      },
+    // 2. Delete related records first (in a transaction)
+    const deleteResult = await prisma.$transaction(async (tx) => {
+      // Delete related EmailRecipient records
+      await tx.emailRecipient.deleteMany({
+        where: { memberId }
+      });
+
+      // Delete related EmailPreference if exists
+      await tx.emailPreference.deleteMany({
+        where: { memberId }
+      });
+
+      // Delete related Submission records
+      await tx.submission.deleteMany({
+        where: { memberId }
+      });
+
+      // Delete related Donation records
+      await tx.donation.deleteMany({
+        where: { memberId }
+      });
+
+      // Finally delete the member with compound where clause to ensure ownership
+      return await tx.member.deleteMany({
+        where: { 
+          id: memberId, 
+          church: { // Ensure deletion only happens for the correct org
+            clerkOrgId: orgId
+          }
+        },
+      });
     });
 
     // 3. Check if a record was actually deleted
@@ -209,9 +232,18 @@ export async function DELETE(
   } catch (error) {
     const { memberId } = await params;
     console.error(`Error deleting member ${memberId}:`, error);
-    // Handle potential Prisma errors (e.g., foreign key constraint if member has related donations)
-    if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code === 'P2003') { 
-        return NextResponse.json({ error: 'Cannot delete member due to existing related records (e.g., donations).' }, { status: 409 }); // Conflict
+    // Handle potential Prisma errors
+    if (error instanceof Error && 'code' in error && typeof error.code === 'string') {
+      if (error.code === 'P2003') {
+        return NextResponse.json({ 
+          error: 'Cannot delete member due to existing related records. Please contact support if this persists.' 
+        }, { status: 409 }); // Conflict
+      }
+      if (error.code === 'P2025') {
+        return NextResponse.json({ 
+          error: 'Member not found or already deleted.' 
+        }, { status: 404 });
+      }
     }
     return NextResponse.json({ error: 'Failed to delete member' }, { status: 500 });
   }

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid phone number format. Please use E.164 format (e.g., +1234567890).' }, { status: 400 });
     }
 
-    const verification = await client.verify.v2
+    await client.verify.v2
       .services(verifyServiceSid)
       .verifications.create({ to: phoneNumber, channel: 'sms' });
 
