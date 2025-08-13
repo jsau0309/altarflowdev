@@ -70,7 +70,7 @@ export function TestEmailDialog({
             Send Test Email
           </DialogTitle>
           <DialogDescription>
-            Send a test version of your email to preview how it will look in recipients' inboxes.
+            Send a test version of your email to preview how it will look in recipients&apos; inboxes.
           </DialogDescription>
         </DialogHeader>
         
@@ -101,7 +101,7 @@ export function TestEmailDialog({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              The test email will have "[TEST]" added to the subject line and won't affect your monthly quota.
+              The test email will have &quot;[TEST]&quot; added to the subject line and won&apos;t affect your monthly quota.
             </AlertDescription>
           </Alert>
         </div>

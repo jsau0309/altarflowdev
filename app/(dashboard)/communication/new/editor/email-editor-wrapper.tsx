@@ -32,10 +32,11 @@ interface Campaign {
   id: string;
   subject: string;
   previewText: string;
-  design: any;
+  design: Record<string, unknown>;
   htmlContent?: string;
   status: string;
 }
+
 
 export function EmailEditorWrapper() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export function EmailEditorWrapper() {
   const { organization } = useOrganization();
   const { resolvedTheme } = useTheme();
   const { t, i18n } = useTranslation(['communication']);
-  const [templateData, setTemplateData] = useState<any>(null);
+  const [templateData, setTemplateData] = useState<Record<string, unknown> | null>(null);
   
   const campaignId = searchParams.get("campaignId");
   const returnTo = searchParams.get("returnTo");
@@ -98,13 +99,13 @@ export function EmailEditorWrapper() {
     };
 
     loadCampaign();
-  }, [campaignId, getToken, router]);
+  }, [campaignId, getToken, router, t]);
 
   // Create a stable key for the editor
   const editorKey = campaign?.id || 'new';
 
   // Auto-save functionality
-  const saveDesign = useCallback(async (template: any, html: string) => {
+  const saveDesign = useCallback(async (template: Record<string, unknown>, html: string) => {
     if (!campaignId) return;
 
     setIsSaving(true);
@@ -135,9 +136,9 @@ export function EmailEditorWrapper() {
     } finally {
       setIsSaving(false);
     }
-  }, [campaignId, getToken]);
+  }, [campaignId, getToken, t]);
 
-  const handleEditorSave = useCallback((json: any, html: any) => {
+  const handleEditorSave = useCallback((json: Record<string, unknown>, html: string) => {
     // Store the template data for manual save actions
     setTemplateData({ json, html });
     setHasUnsavedChanges(false); // Mark as saved after successful save
@@ -146,7 +147,7 @@ export function EmailEditorWrapper() {
     saveDesign(json, html);
   }, [saveDesign]);
 
-  const handleSaveAndClose = useCallback(async (json: any, html: any) => {
+  const handleSaveAndClose = useCallback(async (json: Record<string, unknown>, html: string) => {
     console.log('handleSaveAndClose called');
     
     // Store the template data
@@ -170,7 +171,7 @@ export function EmailEditorWrapper() {
       console.error('Error in handleSaveAndClose:', error);
       toast.error(t('communication:emailEditor.failedToSave'), { id: loadingToast });
     }
-  }, [saveDesign, router]);
+  }, [saveDesign, router, t]);
 
   const handleEditorLoaded = useCallback(() => {
     // Editor is ready
@@ -182,9 +183,10 @@ export function EmailEditorWrapper() {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
-        // For modern browsers
-        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        return e.returnValue;
+        // For modern browsers (returnValue is deprecated but still required for older browsers)
+        const message = 'You have unsaved changes. Are you sure you want to leave?';
+        e.returnValue = message;
+        return message;
       }
     };
 
@@ -196,7 +198,7 @@ export function EmailEditorWrapper() {
   }, [hasUnsavedChanges]);
 
 
-  const handleTestSend = useCallback(async (email: string | string[], _json: any, html: any) => {
+  const handleTestSend = useCallback(async (email: string | string[], _json: Record<string, unknown>, html: string) => {
     const loadingToast = toast.loading(t('communication:emailEditor.sendingTestEmail'));
     
     try {
@@ -234,7 +236,7 @@ export function EmailEditorWrapper() {
       console.error('Error sending test email:', error);
       toast.error(error instanceof Error ? error.message : t('communication:emailEditor.failedToSendTest'), { id: loadingToast });
     }
-  }, [campaign, getToken]);
+  }, [campaign, getToken, t]);
 
   const handleSaveDraft = () => {
     if (isProcessingSave) return; // Prevent multiple clicks
@@ -256,7 +258,7 @@ export function EmailEditorWrapper() {
     } else {
       // Fallback: use last known template data
       if (templateData) {
-        saveDesign(templateData.json, templateData.html)
+        saveDesign(templateData.json as Record<string, unknown>, templateData.html as string)
           .then(() => {
             toast.success(t('communication:emailEditor.draftSavedSuccess'), { id: loadingToast });
             router.push("/communication");
@@ -300,7 +302,7 @@ export function EmailEditorWrapper() {
     } else {
       // Fallback: use last known template data
       if (templateData) {
-        saveDesign(templateData.json, templateData.html)
+        saveDesign(templateData.json as Record<string, unknown>, templateData.html as string)
           .then(() => {
             toast.success(t('communication:emailEditor.designSaved'), { id: loadingToast });
             // If returnTo is set, go back to review page

@@ -4,13 +4,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { useTranslation } from "react-i18next"
-import { LanguageSwitcher } from "@/components/landing/language-switcher"
 
 export function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const router = useRouter()
-  const { t } = useTranslation('landing')
 
   const toggleMenu = () => setIsOpen(!isOpen)
 
@@ -95,48 +92,25 @@ export function MobileMenu() {
             }}
           >
             <div className="flex flex-col h-full pt-24 px-8 pb-8 w-full">
-              {/* Language Switcher */}
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.4, delay: 0.05 }}
-                className="flex justify-center mb-8"
-              >
-                <LanguageSwitcher />
-              </motion.div>
-              
               {/* Navigation Links */}
               <div className="flex-1 space-y-8">
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
+                  transition={{ duration: 0.4, delay: 0.05 }}
                 >
                   <button
                     onClick={() => handleNavClick("#features")}
                     className="block w-full text-left text-2xl font-semibold text-gray-900 hover:text-[#3B82F6] transition-colors py-4 border-b border-gray-200"
                   >
-                    {t('header.features')}
+                    Features
                   </button>
                 </motion.div>
 
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                >
-                  <button
-                    onClick={() => handleNavClick("#demo")}
-                    className="block w-full text-left text-2xl font-semibold text-gray-900 hover:text-[#3B82F6] transition-colors py-4 border-b border-gray-200"
-                  >
-                    {t('header.demo')}
-                  </button>
-                </motion.div>
-
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
                 >
                   <button
                     onClick={() => {
@@ -145,7 +119,7 @@ export function MobileMenu() {
                     }}
                     className="block w-full text-left text-2xl font-semibold text-gray-900 hover:text-[#3B82F6] transition-colors py-4"
                   >
-                    {t('header.signIn')}
+                    Sign In
                   </button>
                 </motion.div>
               </div>
@@ -154,7 +128,7 @@ export function MobileMenu() {
               <motion.div
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.4, delay: 0.4 }}
+                transition={{ duration: 0.4, delay: 0.35 }}
                 className="pt-8 border-t border-gray-200"
               >
                 <Button
@@ -162,7 +136,7 @@ export function MobileMenu() {
                   className="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white text-xl py-6 rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
                   size="lg"
                 >
-                  {t('header.getStarted')}
+                  Get Started
                 </Button>
               </motion.div>
             </div>

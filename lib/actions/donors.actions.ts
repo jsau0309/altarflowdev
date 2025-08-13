@@ -61,16 +61,32 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
       };
     }
 
+    // Get donors who have made donations to this specific church
+    // This ensures each church only sees donors who have donated to them
+    const donorIdsForChurch = await prisma.donationTransaction.findMany({
+      where: {
+        churchId: church.id,
+      },
+      select: {
+        donorId: true,
+      },
+      distinct: ['donorId'],
+    });
+
+    const donorIds = donorIdsForChurch.map(d => d.donorId).filter(id => id !== null) as string[];
+
     const whereClause: Prisma.DonorWhereInput = {
-      churchId: church.id,
+      id: { in: donorIds },
     };
 
     if (query) {
-      whereClause.OR = [
-        { firstName: { contains: query, mode: 'insensitive' } },
-        { lastName: { contains: query, mode: 'insensitive' } },
-        { email: { contains: query, mode: 'insensitive' } },
-      ];
+      whereClause.AND = {
+        OR: [
+          { firstName: { contains: query, mode: 'insensitive' } },
+          { lastName: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+        ]
+      };
     }
 
     const donorsFromPrisma = await prisma.donor.findMany({
@@ -129,10 +145,23 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
   }
 }
 
-export async function getDonorDetails(donorId: string): Promise<DonorDetailsData | null> {
+export async function getDonorDetails(donorId: string, churchId?: string): Promise<DonorDetailsData | null> {
   if (!donorId) {
     console.error("[getDonorDetails] Error: donorId is required.");
     return null;
+  }
+
+  // Get churchId from auth if not provided
+  let effectiveChurchId = churchId;
+  if (!effectiveChurchId) {
+    const { orgId } = await auth();
+    if (orgId) {
+      const church = await prisma.church.findUnique({
+        where: { clerkOrgId: orgId },
+        select: { id: true },
+      });
+      effectiveChurchId = church?.id;
+    }
   }
 
   try {
@@ -154,6 +183,9 @@ export async function getDonorDetails(donorId: string): Promise<DonorDetailsData
         createdAt: true,
         updatedAt: true,
         transactions: {
+          where: effectiveChurchId ? {
+            churchId: effectiveChurchId  // Filter transactions by church
+          } : undefined,
           select: {
             id: true,
             amount: true,
@@ -165,6 +197,7 @@ export async function getDonorDetails(donorId: string): Promise<DonorDetailsData
             donationTypeId: true,
             stripePaymentIntentId: true,
             processedAt: true,
+            churchId: true,  // Include churchId in selection
             // Only select fields directly on DonationTransaction or needed for mapping
             donationType: { // This is the campaign
               select: {
@@ -467,7 +500,7 @@ export async function updateDonorDetails(
       // If only memberId was in payload and it was undefined, or payload was empty.
       // Fetch current donor data to return, as no update was performed.
       console.log(`[updateDonorDetails] No fields to update for donor ${donorId} other than potentially memberId, or payload was empty. Fetching current details.`);
-      return getDonorDetails(donorId);
+      return getDonorDetails(donorId, undefined); // Will use auth to get churchId
     }
 
     const updatedDonor = await prisma.donor.update({
@@ -478,7 +511,7 @@ export async function updateDonorDetails(
     revalidatePath('/donors'); 
     revalidatePath(`/donors/${donorId}`); 
 
-    return getDonorDetails(updatedDonor.id);
+    return getDonorDetails(updatedDonor.id, undefined); // Will use auth to get churchId
 
   } catch (error: any) {
     console.error("Failed to update donor details:", error);

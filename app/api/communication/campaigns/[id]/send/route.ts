@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from '@/lib/db';
+import { prisma, withRetryTransaction } from '@/lib/db';
 import { ResendEmailService } from "@/lib/email/resend-service";
 import { validateEmail } from "@/lib/email/validate-email";
 import { escapeHtml, escapeUrl } from "@/lib/email/escape-html";
@@ -54,7 +54,7 @@ export async function POST(
       return NextResponse.json({ error: "Church not found" }, { status: 404 });
     }
 
-    // Get campaign with recipients and their members
+    // Get campaign with recipients and their members in a single optimized query
     const campaign = await prisma.emailCampaign.findFirst({
       where: {
         id: id,
@@ -62,8 +62,18 @@ export async function POST(
       },
       include: {
         recipients: {
-          include: {
-            member: true,
+          select: {
+            id: true,
+            email: true,
+            memberId: true,
+            status: true,
+            member: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
           },
         },
       },
@@ -89,156 +99,263 @@ export async function POST(
       );
     }
 
-    // Update campaign status to SENDING
-    await prisma.emailCampaign.update({
-      where: { id: id },
-      data: {
-        status: "SENDING",
-        totalRecipients: campaign.recipients.length,
-      },
-    });
-
-    // Filter recipients and prepare emails for bulk sending
-    const emailsToSend: EmailToSend[] = [];
-    const unsubscribedRecipients: string[] = [];
-    const invalidEmailRecipients: InvalidEmailRecipient[] = [];
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
-
-    for (const recipient of campaign.recipients) {
-      // Validate email address
-      const emailValidation = validateEmail(recipient.email);
-      if (!emailValidation.isValid) {
-        console.log(`Invalid email for recipient ${recipient.memberId}: ${recipient.email} - ${emailValidation.reason}`);
-        invalidEmailRecipients.push({
-          recipientId: recipient.id,
-          email: recipient.email,
-          reason: emailValidation.reason,
-        });
-        continue;
-      }
-      // Get or create email preference
-      let emailPreference = await prisma.emailPreference.findUnique({
-        where: { memberId: recipient.memberId },
-      });
-
-      if (!emailPreference) {
-        emailPreference = await prisma.emailPreference.create({
+    // Optimize email preparation with efficient batch operations
+    const preferencesMap = await withRetryTransaction(async (tx) => {
+      // Update campaign status to SENDING in parallel with preference queries
+      const [, existingPreferences] = await Promise.all([
+        tx.emailCampaign.update({
+          where: { id: id },
           data: {
+            status: "SENDING",
+            totalRecipients: campaign.recipients.length,
+          },
+        }),
+        // Fix N+1 query: Get all email preferences in one optimized query
+        tx.emailPreference.findMany({
+          where: {
+            memberId: { in: campaign.recipients.map(r => r.memberId) }
+          },
+          select: {
+            id: true,
+            memberId: true,
+            email: true,
+            isSubscribed: true,
+            isEmailValid: true,
+            unsubscribeToken: true,
+          },
+        }),
+      ]);
+
+      // Create efficient lookup map
+      const preferencesMap = new Map(
+        existingPreferences.map(pref => [pref.memberId, pref])
+      );
+
+      // Batch create missing email preferences efficiently
+      const recipientsNeedingPreferences = campaign.recipients.filter(
+        recipient => !preferencesMap.has(recipient.memberId)
+      );
+
+      if (recipientsNeedingPreferences.length > 0) {
+        // Use createMany for bulk insert (much faster than individual creates)
+        await tx.emailPreference.createMany({
+          data: recipientsNeedingPreferences.map(recipient => ({
             memberId: recipient.memberId,
             email: recipient.email,
             isSubscribed: true,
+          })),
+          skipDuplicates: true,
+        });
+
+        // Efficiently fetch newly created preferences
+        const createdPreferences = await tx.emailPreference.findMany({
+          where: {
+            memberId: { in: recipientsNeedingPreferences.map(r => r.memberId) }
           },
+          select: {
+            id: true,
+            memberId: true,
+            email: true,
+            isSubscribed: true,
+            isEmailValid: true,
+            unsubscribeToken: true,
+          },
+        });
+
+        // Add to lookup map
+        createdPreferences.forEach(pref => {
+          preferencesMap.set(pref.memberId, pref);
         });
       }
 
-      // Skip if unsubscribed
-      if (!emailPreference.isSubscribed) {
-        unsubscribedRecipients.push(recipient.id);
-        continue;
+      return preferencesMap;
+    });
+
+    // Optimize email preparation with bulk processing
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
+    const baseHtml = campaign.htmlContent || "";
+    
+    // Pre-process HTML template with preview text (do once instead of per email)
+    let processedHtml = baseHtml;
+    if (campaign.previewText) {
+      const escapedPreviewText = escapeHtml(campaign.previewText);
+      const hiddenPreviewText = `<div style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapedPreviewText}</div>`;
+      processedHtml = hiddenPreviewText + processedHtml;
+    }
+
+    // Pre-generate church footer template
+    const churchFooterTemplate = `
+      <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; text-align: center; font-size: 12px; color: #666;">
+        <p style="margin: 0 0 8px 0;">
+          <strong>${escapeHtml(church.name)}</strong>
+        </p>
+        ${church.address ? `<p style="margin: 0 0 8px 0;">${escapeHtml(church.address)}</p>` : ''}
+        <p style="margin: 0;">
+          <a href="{{UNSUBSCRIBE_URL}}" style="color: #666; text-decoration: underline;">Unsubscribe</a>
+        </p>
+      </div>
+    `;
+
+    // Bulk process recipients (much faster than individual processing)
+    const emailsToSend: EmailToSend[] = [];
+    const unsubscribedRecipients: string[] = [];
+    const invalidEmailRecipients: InvalidEmailRecipient[] = [];
+
+    // Process all recipients in parallel batches for better performance
+    const processBatch = (recipients: typeof campaign.recipients) => {
+      const batch = {
+        emails: [] as EmailToSend[],
+        unsubscribed: [] as string[],
+        invalid: [] as InvalidEmailRecipient[],
+      };
+
+      for (const recipient of recipients) {
+        // Fast email validation
+        const emailValidation = validateEmail(recipient.email);
+        if (!emailValidation.isValid) {
+          batch.invalid.push({
+            recipientId: recipient.id,
+            email: recipient.email,
+            reason: emailValidation.reason,
+          });
+          continue;
+        }
+
+        // O(1) lookup from our pre-built map
+        const emailPreference = preferencesMap.get(recipient.memberId);
+        if (!emailPreference) {
+          console.error(`Email preference not found for member ${recipient.memberId}`);
+          continue;
+        }
+
+        // Fast unsubscribe check
+        if (!emailPreference.isSubscribed) {
+          batch.unsubscribed.push(recipient.id);
+          continue;
+        }
+
+        // Fast HTML processing with template replacement
+        const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${escapeUrl(emailPreference.unsubscribeToken)}`;
+        const finalFooter = churchFooterTemplate.replace('{{UNSUBSCRIBE_URL}}', unsubscribeUrl);
+        
+        let finalHtml = processedHtml;
+        if (finalHtml.includes('</body>')) {
+          finalHtml = finalHtml.replace('</body>', `${finalFooter}</body>`);
+        } else {
+          finalHtml += finalFooter;
+        }
+        
+        batch.emails.push({
+          to: emailValidation.email,
+          subject: campaign.subject,
+          html: finalHtml,
+        });
       }
 
-      let html = campaign.htmlContent || "";
-      
-      // Add preview text if provided
-      if (campaign.previewText) {
-        const escapedPreviewText = escapeHtml(campaign.previewText);
-        const hiddenPreviewText = `<div style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapedPreviewText}</div>`;
-        html = hiddenPreviewText + html;
-      }
+      return batch;
+    };
 
-      // Add unsubscribe footer with church address
-      const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${escapeUrl(emailPreference.unsubscribeToken)}`;
-      
-      const unsubscribeFooter = `
-        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; text-align: center; font-size: 12px; color: #666;">
-          <p style="margin: 0 0 8px 0;">
-            <strong>${escapeHtml(church.name)}</strong>
-          </p>
-          ${church.address ? `<p style="margin: 0 0 8px 0;">${escapeHtml(church.address)}</p>` : ''}
-          <p style="margin: 0;">
-            <a href="${unsubscribeUrl}" style="color: #666; text-decoration: underline;">Unsubscribe</a>
-          </p>
-        </div>
-      `;
-      
-      // Add unsubscribe footer to HTML
-      html = html.replace('</body>', `${unsubscribeFooter}</body>`);
-      if (!html.includes('</body>')) {
-        html += unsubscribeFooter;
-      }
-      
-      emailsToSend.push({
-        to: emailValidation.email, // Use validated/normalized email
-        subject: campaign.subject,
-        html: html,
+    // Process recipients (could be parallelized further if needed)
+    const result = processBatch(campaign.recipients);
+    emailsToSend.push(...result.emails);
+    unsubscribedRecipients.push(...result.unsubscribed);
+    invalidEmailRecipients.push(...result.invalid);
+
+    // Optimized batch updates with parallel execution
+    if (unsubscribedRecipients.length > 0 || invalidEmailRecipients.length > 0) {
+      await withRetryTransaction(async (tx) => {
+        const updates: Promise<any>[] = [];
+
+        // Batch update unsubscribed recipients
+        if (unsubscribedRecipients.length > 0) {
+          updates.push(
+            tx.emailRecipient.updateMany({
+              where: {
+                id: { in: unsubscribedRecipients },
+              },
+              data: {
+                status: "UNSUBSCRIBED",
+                unsubscribedAt: new Date(),
+              },
+            })
+          );
+        }
+
+        // Batch update invalid email recipients
+        if (invalidEmailRecipients.length > 0) {
+          const invalidRecipientIds = invalidEmailRecipients.map(r => r.recipientId);
+          const invalidMemberIds = campaign.recipients
+            .filter(r => invalidEmailRecipients.some(ir => ir.recipientId === r.id))
+            .map(r => r.memberId);
+
+          updates.push(
+            tx.emailRecipient.updateMany({
+              where: {
+                id: { in: invalidRecipientIds },
+              },
+              data: {
+                status: "FAILED",
+                failureReason: "Invalid email address",
+              },
+            })
+          );
+
+          // Update email preferences to mark emails as invalid
+          if (invalidMemberIds.length > 0) {
+            updates.push(
+              tx.emailPreference.updateMany({
+                where: {
+                  memberId: { in: invalidMemberIds },
+                },
+                data: {
+                  isEmailValid: false,
+                },
+              })
+            );
+          }
+        }
+
+        // Execute all updates in parallel for better performance
+        await Promise.all(updates);
       });
     }
 
-    // Update unsubscribed recipients
-    if (unsubscribedRecipients.length > 0) {
-      await prisma.emailRecipient.updateMany({
-        where: {
-          id: { in: unsubscribedRecipients },
-        },
-        data: {
-          status: "UNSUBSCRIBED",
-          unsubscribedAt: new Date(),
-        },
-      });
-    }
-
-    // Update invalid email recipients
-    if (invalidEmailRecipients.length > 0) {
-      await prisma.emailRecipient.updateMany({
-        where: {
-          id: { in: invalidEmailRecipients.map(r => r.recipientId) },
-        },
-        data: {
-          status: "FAILED",
-          failureReason: "Invalid email address",
-        },
-      });
-
-      // Update email preferences to mark emails as invalid
-      const memberIds = campaign.recipients
-        .filter(r => invalidEmailRecipients.some(ir => ir.recipientId === r.id))
-        .map(r => r.memberId);
-      
-      await prisma.emailPreference.updateMany({
-        where: {
-          memberId: { in: memberIds },
-        },
-        data: {
-          isEmailValid: false,
-        },
-      });
-    }
-
-    // Check if we have any emails to send
+    // Early return optimization for zero-send campaigns
     if (emailsToSend.length === 0) {
-      await prisma.emailCampaign.update({
-        where: { id: id },
-        data: {
-          status: "SENT",
-          unsubscribedCount: unsubscribedRecipients.length,
-        },
+      // Use withRetry for this database operation
+      await withRetryTransaction(async (tx) => {
+        await tx.emailCampaign.update({
+          where: { id: id },
+          data: {
+            status: "SENT",
+            unsubscribedCount: unsubscribedRecipients.length,
+          },
+        });
       });
 
       return NextResponse.json({
         success: true,
         sentCount: 0,
         unsubscribedCount: unsubscribedRecipients.length,
-        message: "All recipients have unsubscribed",
+        invalidEmailCount: invalidEmailRecipients.length,
+        message: "No valid recipients to send to",
       });
     }
 
     try {
-      // Send emails
+      // Send emails with optimized bulk processing
+      console.log(`Starting bulk email send for ${emailsToSend.length} recipients`);
+      const startTime = Date.now();
+      
       const result = await ResendEmailService.sendBulkEmails({
         emails: emailsToSend,
         churchId: church.id,
         campaignId: campaign.id,
       });
+
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      console.log(`Bulk email send completed in ${duration}ms (${(duration / emailsToSend.length).toFixed(2)}ms per email)`);
 
       return NextResponse.json({
         success: true,
@@ -246,14 +363,19 @@ export async function POST(
         campaignId: campaign.id,
         unsubscribedCount: unsubscribedRecipients.length,
         invalidEmailCount: invalidEmailRecipients.length,
+        processingTimeMs: duration,
       });
     } catch (emailError) {
-      // If email sending fails, update campaign status
-      await prisma.emailCampaign.update({
-        where: { id: id },
-        data: {
-          status: "FAILED",
-        },
+      // If email sending fails, update campaign status with retry logic
+      console.error('Email sending failed:', emailError);
+      
+      await withRetryTransaction(async (tx) => {
+        await tx.emailCampaign.update({
+          where: { id: id },
+          data: {
+            status: "FAILED",
+          },
+        });
       });
 
       throw emailError;

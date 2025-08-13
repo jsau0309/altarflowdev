@@ -30,10 +30,12 @@ export const ContainerScroll = ({
 
   const rotate = useTransform(scrollYProgress, [0, 1], [20, 0])
   const scale = useTransform(scrollYProgress, [0, 1], scaleDimensions())
+  
+  // Use same animation range for both mobile and desktop for consistency
   const translate = useTransform(scrollYProgress, [0, 1], [0, -100])
 
   return (
-    <div className="h-[60rem] md:h-[80rem] flex items-center justify-center relative p-2 md:p-20" ref={containerRef}>
+    <div className="h-[60rem] sm:h-[65rem] md:h-[70rem] lg:h-[80rem] flex items-center justify-center relative p-2 md:p-20 overflow-hidden" ref={containerRef}>
       <div
         className="py-10 md:py-40 w-full relative"
         style={{
@@ -65,6 +67,7 @@ export const Header = ({ translate, titleComponent }: any) => {
 export const Card = ({
   rotate,
   scale,
+  translate,
   children,
 }: {
   rotate: any
@@ -77,10 +80,11 @@ export const Card = ({
       style={{
         rotateX: rotate,
         scale,
+        translateY: translate,
       }}
-      className="max-w-5xl -mt-12 mx-auto h-[30rem] md:h-[40rem] w-full border-4 border-[#6C6C6C] p-2 md:p-6 bg-[#222222] rounded-[30px] shadow-2xl"
+      className="max-w-5xl -mt-12 mx-auto h-[18rem] sm:h-[22rem] md:h-[28rem] lg:h-[32rem] w-full border-2 sm:border-3 md:border-4 border-[#6C6C6C] p-2 sm:p-3 md:p-4 bg-[#222222] rounded-[20px] md:rounded-[30px] shadow-2xl"
     >
-      <div className="bg-gray-100 h-full w-full rounded-2xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 overflow-hidden p-4">
+      <div className="h-full w-full rounded-lg md:rounded-xl overflow-hidden">
         {children}
       </div>
     </motion.div>

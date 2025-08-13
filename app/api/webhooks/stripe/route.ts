@@ -5,7 +5,8 @@ import { Resend } from 'resend';
 import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
-import { captureWebhookEvent, capturePaymentError } from '@/lib/sentry';
+import * as Sentry from '@sentry/nextjs';
+import { captureWebhookEvent, capturePaymentError, withApiSpan, logger, withStripeSpan } from '@/lib/sentry';
 import { format } from 'date-fns';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
 import { generateDonationReceiptHtml, DonationReceiptData } from '@/lib/email/templates/donation-receipt';
@@ -18,8 +19,13 @@ export const runtime = 'nodejs';
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function POST(req: Request) {
-  let body: string;
-  let signature: string | null;
+  return withApiSpan('POST /api/webhooks/stripe', {
+    'http.method': 'POST',
+    'http.route': '/api/webhooks/stripe',
+    'webhook.type': 'stripe'
+  }, async () => {
+    let body: string;
+    let signature: string | null;
 
   try {
     // Important: Get the raw body as text for signature verification
@@ -28,7 +34,7 @@ export async function POST(req: Request) {
     signature = headersList.get('stripe-signature');
     
     if (!body) {
-      console.error('[Stripe Webhook] Empty body received');
+      logger.error('Stripe webhook received empty body');
       return NextResponse.json(
         { error: 'Webhook Error: Empty request body' },
         { status: 400 }
@@ -36,14 +42,17 @@ export async function POST(req: Request) {
     }
     
     if (!signature) {
-      console.error('[Stripe Webhook] No signature header found');
+      logger.error('Stripe webhook missing signature header');
       return NextResponse.json(
         { error: 'Webhook Error: No stripe-signature header' },
         { status: 400 }
       );
     }
   } catch (bodyError) {
-    console.error('[Stripe Webhook] Error reading request body:', bodyError);
+    logger.error('Failed to read Stripe webhook body', {
+      error: (bodyError as Error).message
+    });
+    Sentry.captureException(bodyError);
     return NextResponse.json(
       { error: 'Webhook Error: Failed to read request body' },
       { status: 400 }
@@ -350,14 +359,15 @@ export async function POST(req: Request) {
           // This ensures Stripe will retry if email fails
           await handleSuccessfulPaymentIntent(paymentIntentSucceeded);
           console.log(`[Stripe Webhook] Successfully completed receipt handling for PI: ${paymentIntentSucceeded.id}`);
-        } catch (emailError: any) {
+        } catch (emailError: unknown) {
           console.error(`[Stripe Webhook] Error in receipt handling for PI: ${paymentIntentSucceeded.id}:`, emailError);
+          const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown receipt handling error';
           
           // Capture the error for monitoring
-          captureWebhookEvent(emailError, {
+          captureWebhookEvent('stripe_webhook_receipt_handling_error', {
             context: 'stripe_webhook_receipt_handling',
             paymentIntentId: paymentIntentSucceeded.id,
-            errorMessage: emailError?.message || 'Unknown receipt handling error',
+            errorMessage,
           });
           
           // Don't fail the webhook for receipt errors - payment was successful
@@ -624,7 +634,11 @@ export async function POST(req: Request) {
           }
           
           // For canceled subscriptions, we need to update the subscriptionEndsAt to show when it will actually end
-          const updateData: any = {
+          const updateData: {
+            subscriptionStatus: string;
+            subscriptionPlan: string | null;
+            subscriptionEndsAt?: Date | null;
+          } = {
             subscriptionStatus: status,
             subscriptionPlan: plan,
           };
@@ -831,7 +845,14 @@ export async function POST(req: Request) {
             console.log(`[Stripe Webhook] Dispute status: ${dispute.status}, Reason: ${dispute.reason}`);
             
             // Update transaction with dispute information
-            const updateData: any = {
+            const updateData: {
+              disputeStatus: string;
+              disputeReason: string;
+              disputedAt?: Date;
+              status?: string;
+              refundedAmount?: number;
+              refundedAt?: Date;
+            } = {
               disputeStatus: mappedDisputeStatus,
               disputeReason: dispute.reason || 'unknown',
             };
@@ -941,7 +962,7 @@ export async function POST(req: Request) {
                   failureReason: payout.failure_message || null,
                   payoutSchedule: payout.automatic ? 'automatic' : 'manual',
                   netAmount: payout.amount, // Initially set to payout amount
-                  metadata: payout.metadata as any || null
+                  metadata: payout.metadata || undefined
                 }
               });
               console.log(`[Stripe Webhook] Created payout record for ${payout.id}`);
@@ -1000,8 +1021,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Webhook handler failed. View logs.' }, { status: 500 });
   }
 
-  console.log('[Stripe Webhook] Successfully processed event. Responding to Stripe.');
+  logger.info('Stripe webhook processed successfully');
   return NextResponse.json({ received: true });
+  });
 }
 
 async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
@@ -1062,8 +1084,9 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     console.log(`[Receipt] Retrieving Stripe Express Account ${connectedStripeAccountId}`);
     stripeAccount = await stripe.accounts.retrieve(connectedStripeAccountId);
     console.log(`[Receipt] Successfully retrieved Stripe Account ${connectedStripeAccountId}.`);
-  } catch (error: any) {
-    console.error(`[Receipt] Error retrieving Stripe Account ${connectedStripeAccountId}: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[Receipt] Error retrieving Stripe Account ${connectedStripeAccountId}: ${errorMessage}`);
   }
 
   if (stripeAccount) {
@@ -1085,7 +1108,7 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
 
     let foundEin: string | undefined = undefined;
 
-    const companyTaxIds = (stripeAccount.company as any)?.tax_ids;
+    const companyTaxIds = (stripeAccount.company as Stripe.Account.Company & { tax_ids?: { data: Array<{ type: string; value: string }> } })?.tax_ids;
     if (companyTaxIds && companyTaxIds.data && Array.isArray(companyTaxIds.data)) {
       console.log(`[Receipt] Checking company.tax_ids (expanded). Found ${companyTaxIds.data.length} IDs.`);
       for (const taxId of companyTaxIds.data) {
@@ -1099,7 +1122,7 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
       console.log(`[Receipt] company.tax_ids (expanded) not available, not in expected format, or expansion failed.`);
     }
 
-    const settingsTaxIds = (stripeAccount.settings as any)?.tax_ids;
+    const settingsTaxIds = (stripeAccount.settings as Stripe.Account.Settings & { tax_ids?: { data: Array<{ type: string; value: string }> } })?.tax_ids;
     if (!foundEin && settingsTaxIds && settingsTaxIds.data && Array.isArray(settingsTaxIds.data)) {
       console.log(`[Receipt] Checking settings.tax_ids (expanded). Found ${settingsTaxIds.data.length} IDs.`);
       for (const taxId of settingsTaxIds.data) {
@@ -1127,8 +1150,9 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
               console.log(`[Receipt] EIN found via default_account_tax_ids: ${foundEin}`);
               break;
             }
-          } catch (taxIdError: any) {
-            console.warn(`[Receipt] Error fetching Tax ID ${taxIdString}: ${taxIdError.message}`);
+          } catch (taxIdError: unknown) {
+            const errorMsg = taxIdError instanceof Error ? taxIdError.message : 'Unknown error';
+            console.warn(`[Receipt] Error fetching Tax ID ${taxIdString}: ${errorMsg}`);
           }
         }
       }
@@ -1141,8 +1165,15 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
       console.log(`[Receipt] Final EIN for receipt: ${ein} for Stripe Account ${connectedStripeAccountId}`);
     } else {
       console.warn(`[Receipt] EIN not found for Stripe Account ${connectedStripeAccountId} after all checks. Defaulting to 'N/A'.`);
-      const companyInfoForLog = stripeAccount.company ? { name: stripeAccount.company.name, tax_ids_exist: !!(stripeAccount.company as any)?.tax_ids } : 'No company info';
-      const settingsInfoForLog = stripeAccount.settings ? { dashboard_display_name: stripeAccount.settings.dashboard?.display_name, tax_ids_exist: !!(stripeAccount.settings as any)?.tax_ids, default_tax_ids_exist: !!stripeAccount.settings.invoices?.default_account_tax_ids } : 'No settings info';
+      const companyInfoForLog = stripeAccount.company ? { 
+        name: stripeAccount.company.name, 
+        tax_ids_exist: !!(stripeAccount.company as Stripe.Account.Company & { tax_ids?: unknown })?.tax_ids 
+      } : 'No company info';
+      const settingsInfoForLog = stripeAccount.settings ? { 
+        dashboard_display_name: stripeAccount.settings.dashboard?.display_name, 
+        tax_ids_exist: !!(stripeAccount.settings as Stripe.Account.Settings & { tax_ids?: unknown })?.tax_ids, 
+        default_tax_ids_exist: !!stripeAccount.settings.invoices?.default_account_tax_ids 
+      } : 'No settings info';
       console.log(`[Receipt] Stripe Account for EIN review (summary): company: ${JSON.stringify(companyInfoForLog)}, settings: ${JSON.stringify(settingsInfoForLog)}`);
     }
   } else {
@@ -1226,11 +1257,13 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     });
     console.log(`[Receipt] Receipt email sent to ${donorEmail} for transaction ${donationTransaction.id}`);
     // processedAt already set when payment succeeded, no need to update again
-  } catch (emailError: any) {
+  } catch (emailError: unknown) {
     console.error(`[Receipt] Error sending receipt email for transaction ${donationTransaction.id}:`, emailError);
+    const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown email error';
+    const errorCode = emailError instanceof Error && 'code' in emailError ? (emailError as Error & { code?: string }).code : undefined;
     
     // Capture error details for monitoring
-    capturePaymentError(emailError, {
+    capturePaymentError(emailError as Error, {
       paymentIntentId: paymentIntent.id,
       churchId: donationTransaction.churchId,
     });
@@ -1239,8 +1272,8 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     console.error(`[Receipt] Email error details:`, {
       transactionId: donationTransaction.id,
       donorEmail,
-      errorMessage: emailError?.message || 'Unknown email error',
-      errorCode: emailError?.code,
+      errorMessage,
+      errorCode,
     });
     
     // Log the failure for manual follow-up
@@ -1248,7 +1281,7 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     // 1. Send to a dead letter queue
     // 2. Create a task in a job queue for retry
     // 3. Alert the support team
-    console.warn(`[Receipt] MANUAL FOLLOW-UP NEEDED: Receipt email failed for transaction ${donationTransaction.id} to ${donorEmail}`);
+    logger.warn(logger.fmt`MANUAL FOLLOW-UP NEEDED: Receipt email failed for transaction ${donationTransaction.id} to ${donorEmail}`);
     
     // Don't throw - let the webhook succeed even if email fails
     // This prevents Stripe from retrying the webhook unnecessarily

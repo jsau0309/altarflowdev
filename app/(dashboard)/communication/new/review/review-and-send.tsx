@@ -13,9 +13,7 @@ import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { 
   Send, 
-  Clock, 
   Users, 
-  Mail, 
   Eye,
   CheckCircle2,
   AlertCircle,

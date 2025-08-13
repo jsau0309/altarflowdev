@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -65,6 +65,7 @@ interface Campaign {
   recipients?: Recipient[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getStatusConfig = (t: any) => ({
   DRAFT: { variant: "secondary" as const, label: t('communication:viewDetails.status.draft') },
   SCHEDULED: { variant: "default" as const, label: t('communication:viewDetails.status.scheduled') },
@@ -73,6 +74,7 @@ const getStatusConfig = (t: any) => ({
   FAILED: { variant: "destructive" as const, label: t('communication:viewDetails.status.failed') },
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getRecipientStatusConfig = (t: any) => ({
   PENDING: { variant: "secondary" as const, label: t('communication:viewDetails.recipientStatus.pending', 'Pending') },
   SENT: { variant: "default" as const, label: t('communication:viewDetails.recipientStatus.sent', 'Sent') },
@@ -90,11 +92,7 @@ export default function CampaignDetailsPage() {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCampaignDetails();
-  }, [id]);
-
-  const fetchCampaignDetails = async () => {
+  const fetchCampaignDetails = useCallback(async () => {
     try {
       const token = await getToken();
       const response = await fetch(`/api/communication/campaigns/${id}`, {
@@ -116,7 +114,11 @@ export default function CampaignDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getToken, id, t, router]);
+
+  useEffect(() => {
+    fetchCampaignDetails();
+  }, [fetchCampaignDetails]);
 
 
   if (loading) {

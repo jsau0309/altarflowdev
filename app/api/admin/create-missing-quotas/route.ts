@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from '@/lib/db';
 import { format } from "date-fns";
@@ -6,7 +6,7 @@ import { getQuotaLimit } from "@/lib/subscription-helpers";
 
 // This endpoint creates email quotas for churches that don't have one yet
 // Useful for migration or fixing churches created before the quota system
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const { userId } = await auth();
     

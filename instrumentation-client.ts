@@ -1,0 +1,49 @@
+import * as Sentry from "@sentry/nextjs";
+
+// Client-side Sentry initialization
+// This file replaces sentry.client.config.ts for Turbopack compatibility
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  
+  // Performance Monitoring
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+  
+  // Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  
+  // Release Tracking
+  environment: process.env.NODE_ENV,
+  
+  // Integrations
+  integrations: [
+    Sentry.replayIntegration({
+      maskAllText: false,
+      blockAllMedia: false,
+    }),
+    // Log console.error, console.warn, and console.log calls to Sentry
+    Sentry.consoleLoggingIntegration({ 
+      levels: ["error", "warn", "log"] 
+    }),
+  ],
+  
+  // Enable logging experiments
+  _experiments: {
+    enableLogs: true,
+  },
+  
+  // Before sending errors
+  beforeSend(event) {
+    // Filter out known non-critical errors
+    if (event.exception?.values?.[0]?.type === 'ChunkLoadError') {
+      return null;
+    }
+    
+    // Don't send events in development unless explicitly enabled
+    if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_SENTRY_ENABLE_DEV) {
+      return null;
+    }
+    
+    return event;
+  },
+});

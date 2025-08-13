@@ -32,7 +32,7 @@ export async function POST() {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 30);
 
-      const updated = await prisma.church.update({
+      await prisma.church.update({
         where: { clerkOrgId: orgId },
         data: {
           trialEndsAt: trialEndsAt,

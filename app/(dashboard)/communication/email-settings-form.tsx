@@ -164,7 +164,7 @@ export function EmailSettingsForm() {
     };
 
     fetchSettings();
-  }, [form, getToken]);
+  }, [form, getToken, t]);
 
 
   const onSubmit = async (data: FormData) => {

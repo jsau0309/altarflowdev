@@ -9,6 +9,8 @@ import DonationInfo from "./donation-info"
 import DonationPayment from "./donation-payment"
 import { useTranslation } from "react-i18next"
 import { DonationType } from "@prisma/client"; // Added import
+import * as Sentry from '@sentry/nextjs';
+import { trackUserInteraction } from '@/lib/sentry-ui';
 
 // New props interface
 interface DonationFormProps {
@@ -54,7 +56,7 @@ export type PhoneVerificationStage =
   | 'otp_failed'
   | 'verification_error';
 
-export default function DonationForm({ churchId, churchName, donationTypes, churchSlug }: DonationFormProps) {
+function DonationForm({ churchId, churchName, donationTypes, churchSlug }: DonationFormProps) {
   const [formData, setFormData] = useState<DonationFormData>({
     amount: 0,
     // donationType: "one-time", // Removed
@@ -99,6 +101,7 @@ export default function DonationForm({ churchId, churchName, donationTypes, chur
   const handleSendOtp = async () => {
     if (!formData.phone || !isValidPhoneNumber(formData.phone)) {
       setApiErrorMessage('Please enter a valid phone number.');
+      trackUserInteraction('OTP Send Failed', 'donation', { reason: 'invalid_phone' });
       return;
     }
     setIsLoadingOtpAction(true);
@@ -303,3 +306,20 @@ function StepConnector({ completed }: { completed: boolean }) {
     </div>
   )
 }
+
+// Export with Sentry error boundary
+export default Sentry.withErrorBoundary(DonationForm, {
+  fallback: ({ resetError }) => (
+    <div className="p-8 text-center">
+      <h2 className="text-xl font-semibold mb-4">Something went wrong with the donation form</h2>
+      <p className="text-gray-600 mb-4">We apologize for the inconvenience. Please try again.</p>
+      <button 
+        onClick={resetError}
+        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+      >
+        Try Again
+      </button>
+    </div>
+  ),
+  showDialog: false
+});

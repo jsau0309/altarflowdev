@@ -39,7 +39,7 @@ interface Campaign {
   id: string;
   subject: string;
   recipientType: string;
-  recipientFilters: any;
+  recipientFilters: Record<string, unknown>;
   recipientIds: string[];
 }
 
@@ -51,7 +51,7 @@ export function RecipientsSelector() {
   const campaignId = searchParams.get("campaignId");
   const returnTo = searchParams.get("returnTo");
 
-  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [, setCampaign] = useState<Campaign | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -124,7 +124,7 @@ export function RecipientsSelector() {
     };
 
     loadData();
-  }, [campaignId, getToken, router]);
+  }, [campaignId, getToken, router, t]);
 
   // Filter members based on search and status
   const filteredMembers = (members || []).filter((member) => {
@@ -251,7 +251,7 @@ export function RecipientsSelector() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <RadioGroup value={recipientType} onValueChange={(value: any) => setRecipientType(value)}>
+          <RadioGroup value={recipientType} onValueChange={(value: "all" | "selected" | "filtered") => setRecipientType(value)}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="all" id="all" />
               <Label htmlFor="all" className="flex items-center gap-2 cursor-pointer">

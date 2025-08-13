@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prisma } from '@/lib/db';
 import { format } from "date-fns";
@@ -6,7 +6,7 @@ import { getQuotaLimit } from "@/lib/subscription-helpers";
 
 // This cron job runs on the 1st of each month to reset email quotas
 // It can be called by Vercel Cron or manually
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // Verify the request is from Vercel Cron (in production)
     const headersList = await headers();
@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest) {
     const currentMonthYear = format(new Date(), 'yyyy-MM');
     const previousMonth = new Date();
     previousMonth.setMonth(previousMonth.getMonth() - 1);
-    const previousMonthYear = format(previousMonth, 'yyyy-MM');
+    // const previousMonthYear = format(previousMonth, 'yyyy-MM'); // Not used currently
 
     console.log(`Resetting email quotas for month: ${currentMonthYear}`);
 

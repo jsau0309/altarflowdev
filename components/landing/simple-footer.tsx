@@ -1,6 +1,5 @@
 "use client"
 import Link from "next/link"
-import { Linkedin, Instagram } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const tape = (
@@ -47,7 +46,7 @@ export const AltarflowFooter = () => {
                   <Link className="text-gray-600 hover:text-[#3B82F6] transition-colors" href="#features">
                     {t('footer.product.features')}
                   </Link>
-                  <Link className="text-gray-600 hover:text-[#3B82F6] transition-colors" href="#demo">
+                  <Link className="text-gray-600 hover:text-[#3B82F6] transition-colors" href="/book-demo">
                     {t('footer.product.demo')}
                   </Link>
                   <Link className="pointer-events-none text-gray-400 flex items-center" href="#">
@@ -116,9 +115,6 @@ export const AltarflowFooter = () => {
                   <Link href="/terms-of-service" className="text-gray-600 hover:text-[#3B82F6] transition-colors">
                     {t('footer.legal.terms')}
                   </Link>
-                  <Link href="/cookie-policy" className="text-gray-600 hover:text-[#3B82F6] transition-colors">
-                    {t('footer.legal.cookies')}
-                  </Link>
                 </div>
               </div>
             </div>
@@ -137,7 +133,7 @@ export const AltarflowFooter = () => {
                 </Link>
                 <Link
                   className="text-gray-500 whitespace-nowrap font-medium hover:text-[#3B82F6] transition-colors"
-                  href="#demo"
+                  href="/book-demo"
                 >
                   {t('footer.product.demo')}
                 </Link>
@@ -210,44 +206,19 @@ export const AltarflowFooter = () => {
 
       {/* Bottom Section - Simplified for Mobile */}
       <div className="my-3 px-4 md:px-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-sm text-gray-600">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-12 items-start sm:items-center">
-          <div className="flex flex-col gap-1 items-start sm:items-start">
-            <p className="whitespace-nowrap">{t('footer.copyright', { year: currentYear })}</p>
-            <p className="text-xs text-gray-500 whitespace-nowrap">{t('footer.subsidiary')}</p>
-          </div>
-          {/* Hide policy links on mobile since they're in the Legal section now */}
-          <div className="hidden md:flex flex-row gap-4 sm:ml-4">
-            <Link href="/privacy-policy" className="hover:text-[#3B82F6] transition-colors">
-              {t('footer.legal.privacy')}
-            </Link>
-            <Link href="/terms-of-service" className="hover:text-[#3B82F6] transition-colors">
-              {t('footer.legal.terms')}
-            </Link>
-            <Link href="/cookie-policy" className="hover:text-[#3B82F6] transition-colors">
-              {t('footer.legal.cookies')}
-            </Link>
-          </div>
+        <div className="flex flex-col gap-1 items-start">
+          <p className="whitespace-nowrap">{t('footer.copyright', { year: currentYear })}</p>
+          <p className="text-xs text-gray-500 whitespace-nowrap">{t('footer.subsidiary')}</p>
         </div>
 
-        <div className="flex gap-4 items-center mt-4 md:mt-0">
-          <a
-            href="https://linkedin.com/company/altarflow"
-            target="_blank"
-            rel="noreferrer nofollow noopener"
-            aria-label="Altarflow LinkedIn"
-            className="hover:text-[#3B82F6] transition-colors"
-          >
-            <Linkedin className="w-5 h-5 fill-current" />
-          </a>
-          <a
-            href="https://instagram.com/altarflow"
-            target="_blank"
-            rel="noreferrer nofollow noopener"
-            aria-label="Altarflow Instagram"
-            className="hover:text-[#3B82F6] transition-colors"
-          >
-            <Instagram className="w-5 h-5" />
-          </a>
+        {/* Policy links moved to the right */}
+        <div className="flex flex-row gap-4 items-center mt-4 md:mt-0">
+          <Link href="/privacy-policy" className="hover:text-[#3B82F6] transition-colors">
+            {t('footer.legal.privacy')}
+          </Link>
+          <Link href="/terms-of-service" className="hover:text-[#3B82F6] transition-colors">
+            {t('footer.legal.terms')}
+          </Link>
         </div>
       </div>
     </footer>

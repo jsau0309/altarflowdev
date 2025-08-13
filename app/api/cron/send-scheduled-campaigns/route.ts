@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
 
         // Send emails if any
         if (emailsToSend.length > 0) {
-          const result = await ResendEmailService.sendBulkEmails({
+          await ResendEmailService.sendBulkEmails({
             emails: emailsToSend,
             churchId: campaign.churchId,
             campaignId: campaign.id,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,11 +34,7 @@ export function MemberSelector({ selectedMembers, onSelectionChange }: MemberSel
   const [searchTerm, setSearchTerm] = useState("");
   const [showUnsubscribed, setShowUnsubscribed] = useState(false);
 
-  useEffect(() => {
-    fetchMembers();
-  }, []);
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       const token = await getToken();
       const response = await fetch("/api/members/with-email-preferences", {
@@ -59,7 +55,11 @@ export function MemberSelector({ selectedMembers, onSelectionChange }: MemberSel
     } finally {
       setLoading(false);
     }
-  };
+  }, [getToken]);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
 
   const filteredMembers = members.filter((member) => {
     // Filter by email availability

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import Stripe from 'stripe';
 import { z } from 'zod'; // For input validation
+import * as Sentry from '@sentry/nextjs';
+import { withApiSpan, withDatabaseSpan, withStripeSpan, logger, capturePaymentError } from '@/lib/sentry';
 
 // Initialize Stripe with the secret key from environment variables
 
@@ -46,33 +48,52 @@ const initiateDonationSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const validation = initiateDonationSchema.safeParse(body);
+  return withApiSpan('POST /api/donations/initiate', {
+    'http.method': 'POST',
+    'http.route': '/api/donations/initiate'
+  }, async () => {
+    let churchUUIDFromInput: string = '';
+    let baseAmount: number = 0;
+    let donorEmail: string | undefined;
+    let isAnonymous: boolean = false;
+    
+    try {
+      const body = await request.json();
+      
+      // Log the donation initiation attempt
+      logger.info('Donation initiation requested', {
+        hasIdempotencyKey: !!body.idempotencyKey,
+        churchId: body.churchId,
+        amount: body.baseAmount,
+        currency: body.currency || 'usd'
+      });
+      const validation = initiateDonationSchema.safeParse(body);
 
-    if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid input.', issues: validation.error.issues }, { status: 400 });
-    }
+      if (!validation.success) {
+        logger.warn('Invalid donation initiation input', {
+          issues: validation.error.issues
+        });
+        return NextResponse.json({ error: 'Invalid input.', issues: validation.error.issues }, { status: 400 });
+      }
 
-    const {
-      idempotencyKey,
-      churchId: churchUUIDFromInput,
-      donationTypeId,
-      baseAmount,
-      currency,
-      firstName,
-      lastName,
-      donorEmail,
-      phone,
-      // Note: 'address' here is validation.data.address (the Zod object),
-      // but we'll use the top-level flat fields (validation.data.street, validation.data.addressLine2, etc.)
-      // for Stripe customer address details for consistency with Prisma and form data.
-      // address, // We will not directly use the nested 'address' object for Stripe customer details.
-      isAnonymous, // Ensure isAnonymous is destructured
-      donorClerkId,
-      coverFees,
-      donorId,
-    } = validation.data;
+      const {
+        idempotencyKey,
+        churchId,
+        donationTypeId,
+        currency,
+        firstName,
+        lastName,
+        phone,
+        donorClerkId,
+        coverFees,
+        donorId,
+      } = validation.data;
+      
+      // Assign to outer scope variables for error handling
+      churchUUIDFromInput = churchId;
+      baseAmount = validation.data.baseAmount;
+      donorEmail = validation.data.donorEmail;
+      isAnonymous = validation.data.isAnonymous;
 
 
     // Update Donor record if donorId is provided and details are available
@@ -114,7 +135,14 @@ export async function POST(request: Request) {
           });
           // Debug logging removed: donor successfully updated
         } catch (dbError) {
-          console.error("[API /donations/initiate] Error updating donor in DB:", dbError);
+          logger.error('Error updating donor in database', {
+            donorId,
+            error: (dbError as Error).message
+          });
+          // Don't fail the donation if donor update fails
+          Sentry.captureException(dbError, {
+            tags: { 'error.type': 'donor_update' }
+          });
         }
       } else {
          // Debug logging removed: no donor update performed (empty data)
@@ -152,7 +180,7 @@ export async function POST(request: Request) {
               select: { stripeAccountId: true }
             });
             
-            if (stripeConnectAccountForExisting?.stripeAccountId) {
+            if (stripeConnectAccountForExisting?.stripeAccountId && existingTransaction.stripePaymentIntentId) {
               // Retrieve from the Connect account
               const paymentIntent = await stripe.paymentIntents.retrieve(
                 existingTransaction.stripePaymentIntentId,
@@ -426,10 +454,11 @@ export async function POST(request: Request) {
         processingFeeCoveredByDonor: calculatedProcessingFeeInCents,
       },
     });
-    } catch (dbError: any) {
-      if (dbError.code === 'P2002') {
+    } catch (dbError: unknown) {
+      const error = dbError as Error & { code?: string; meta?: { target?: string[] } };
+      if (error.code === 'P2002') {
         // Handle unique constraint violation for either stripePaymentIntentId or idempotencyKey
-        const target = dbError.meta?.target as string[] || [];
+        const target = error.meta?.target || [];
         
         if (target.includes('stripePaymentIntentId')) {
           // Debug logging removed: unique constraint on stripePaymentIntentId
@@ -474,14 +503,44 @@ export async function POST(request: Request) {
       stripeAccount: churchStripeAccountId, // Pass the Connect account ID for frontend
     }, { status: 201 });
 
-  } catch (error) {
-    console.error('Failed to initiate donation:', error);
-    let errorMessage = 'Failed to initiate donation.';
-    if (error instanceof Stripe.errors.StripeError) {
-      errorMessage = error.message;
-    } else if (error instanceof Error) {
-      errorMessage = error.message;
+    } catch (error) {
+      // Log error with Sentry
+      logger.error('Failed to initiate donation', {
+        error: (error as Error).message,
+        stack: (error as Error).stack,
+        churchId: churchUUIDFromInput,
+        amount: baseAmount
+      });
+      
+      // Capture exception with context
+      Sentry.captureException(error, {
+        contexts: {
+          donation: {
+            churchId: churchUUIDFromInput,
+            amount: baseAmount,
+            donorEmail,
+            isAnonymous
+          }
+        },
+        tags: {
+          'error.type': error instanceof Stripe.errors.StripeError ? 'stripe' : 'application'
+        }
+      });
+      
+      // Specific handling for payment errors
+      if (error instanceof Stripe.errors.StripeError) {
+        capturePaymentError(error, {
+          churchId: churchUUIDFromInput,
+          amount: baseAmount
+        });
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      
+      let errorMessage = 'Failed to initiate donation.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
-  }
+  });
 }

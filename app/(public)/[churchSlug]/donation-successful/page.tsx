@@ -1,16 +1,14 @@
 // app/[churchSlug]/donation-successful/page.tsx
 "use client";
 
-import { useEffect, useState, Suspense, use as useReact } from 'react'; // Added useReact
-import { useSearchParams, useParams } from 'next/navigation';
-import { loadStripe, Stripe, PaymentIntent } from '@stripe/stripe-js';
+import { Suspense, use as useReact, useEffect } from 'react'; // Added useReact
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button'; 
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from 'next/navigation';
+import { usePostHog } from '@/hooks/use-posthog';
 
-// Initialize Stripe.js with your publishable key
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface PageProps {
   params: Promise<{ // params itself is a Promise
@@ -24,6 +22,22 @@ interface DonationSuccessfulContentProps {
 
 const DonationSuccessfulContent: React.FC<DonationSuccessfulContentProps> = ({ churchSlug }) => {
   const { t } = useTranslation('donations');
+  const searchParams = useSearchParams();
+  const { trackEvent } = usePostHog();
+
+  useEffect(() => {
+    // Track successful donation
+    const amount = searchParams.get('amount');
+    const churchName = searchParams.get('churchName');
+    
+    if (amount) {
+      trackEvent('donation_completed', {
+        amount: parseFloat(amount),
+        church_slug: churchSlug,
+        church_name: churchName || 'Unknown',
+      });
+    }
+  }, [searchParams, churchSlug, trackEvent]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>

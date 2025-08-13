@@ -40,7 +40,10 @@ export async function GET() {
           (!stripeSubscription.cancel_at_period_end && church.subscriptionEndsAt);
           
         if (shouldUpdate) {
-          const updateData: any = {
+          const updateData: {
+            subscriptionStatus: string;
+            subscriptionEndsAt?: Date | null;
+          } = {
             subscriptionStatus: stripeStatus,
           };
           

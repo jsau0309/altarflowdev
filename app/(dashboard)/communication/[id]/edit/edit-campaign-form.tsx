@@ -3,7 +3,7 @@
 // TODO: This edit functionality needs to be updated to use Topol editor
 // Temporarily disabled to fix build errors
 
-export function EditCampaignForm({ campaignId }: { campaignId: string }) {
+export function EditCampaignForm() {
   return (
     <div className="p-6 text-center">
       <p className="text-muted-foreground">

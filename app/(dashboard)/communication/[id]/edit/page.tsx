@@ -9,12 +9,10 @@ export const metadata: Metadata = {
   description: "Edit your email campaign",
 };
 
-export default async function EditCampaignPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+export default async function EditCampaignPage() {
+  // TODO: Re-enable when edit functionality is restored
+  // params: { params: Promise<{ id: string }>}
+  // const { id } = await params;
   
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -37,7 +35,7 @@ export default async function EditCampaignPage({
         </div>
       </div>
       
-      <EditCampaignForm campaignId={id} />
+      <EditCampaignForm />
     </div>
   );
 }

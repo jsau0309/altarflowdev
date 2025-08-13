@@ -1,18 +1,16 @@
 "use client"
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect } from "react"
-import { useTranslation } from "react-i18next"
 
 export const AnimatedTitle = () => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
-  const { t } = useTranslation('landing')
   
   const rotatingWords = [
-    t('hero.rotatingWords.forms'),
-    t('hero.rotatingWords.newsletters'),
-    t('hero.rotatingWords.donations'),
-    t('hero.rotatingWords.expenses'),
-    t('hero.rotatingWords.reports')
+    'Forms',
+    'Newsletters',
+    'Donations',
+    'Expenses',
+    'Reports'
   ]
 
   useEffect(() => {
@@ -21,15 +19,16 @@ export const AnimatedTitle = () => {
     }, 2000)
 
     return () => clearInterval(wordInterval)
-  }, [])
+  }, [rotatingWords.length])
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl text-center">
-        {t('hero.title')}
+    <div className="space-y-4 md:space-y-6 px-4">
+      <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-center text-white leading-tight">
+        <span className="block">The Complete Church</span>
+        <span className="block">Management Suite</span>
       </h1>
 
-      <div className="flex justify-center items-center h-16">
+      <div className="flex justify-center items-center h-12 md:h-16">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentWordIndex}
@@ -40,7 +39,7 @@ export const AnimatedTitle = () => {
               duration: 0.5,
               ease: "easeInOut",
             }}
-            className="text-3xl sm:text-4xl md:text-5xl font-medium text-[#3B82F6] text-center"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[#1e3a8a] text-center"
           >
             {rotatingWords[currentWordIndex]}
           </motion.div>
@@ -48,8 +47,8 @@ export const AnimatedTitle = () => {
       </div>
 
       <div className="relative flex items-center justify-center">
-        <p className="text-xl text-gray-600 max-w-[700px] mx-auto text-center">
-          {t('hero.description')}
+        <p className="text-base sm:text-lg md:text-xl text-white/90 max-w-[700px] mx-auto text-center leading-relaxed">
+          Run your ministry smarter, engage your congregation deeper, and grow your impact — all from one place.
         </p>
       </div>
     </div>

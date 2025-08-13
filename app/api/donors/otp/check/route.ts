@@ -41,34 +41,42 @@ export async function POST(request: NextRequest) {
       .verificationChecks.create({ to: phoneNumber, code: code });
 
     if (verificationCheck.status === 'approved') {
-      // OTP is valid, check if donor exists for this church
-      const existingDonor = await prisma.donor.findFirst({
+      // OTP is valid, check if donor exists globally (not per church)
+      const existingDonor = await prisma.donor.findUnique({
         where: { 
-          phone: phoneNumber,
-          churchId: churchId 
+          phone: phoneNumber
         },
       });
 
       if (existingDonor) {
+        // Donor exists globally - they might be donating to a new church
+        // Update their verification status if needed
+        if (!existingDonor.isPhoneVerified) {
+          await prisma.donor.update({
+            where: { id: existingDonor.id },
+            data: { isPhoneVerified: true }
+          });
+        }
+        
         return NextResponse.json({
           success: true,
           isExistingDonor: true,
-          donorData: existingDonor, // Changed key to donorData for consistency with frontend
+          donorData: existingDonor,
         });
       } else {
-        // New donor: Create a donor record with the phone number and churchId
+        // New donor: Create a donor record with the phone number
+        // Note: We're NOT setting churchId here since donors are global
         const newDonor = await prisma.donor.create({
           data: {
             phone: phoneNumber,
-            churchId: churchId,
             isPhoneVerified: true, // Phone is verified through OTP
-            // Other fields can be populated later or have defaults
+            // churchId is intentionally not set - donors are global
           },
         });
         return NextResponse.json({
           success: true,
           isExistingDonor: false,
-          donorData: newDonor, // Return the newly created donor's data (including ID)
+          donorData: newDonor,
         });
       }
     } else {
