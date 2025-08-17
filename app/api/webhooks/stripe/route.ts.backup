@@ -1,0 +1,3 @@
+// Backup of current webhook implementation for reference
+// This file shows the synchronous processing approach
+// For production, consider using a queue system like BullMQ or Inngest for async processing
