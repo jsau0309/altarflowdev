@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import Stripe from 'stripe';
+import { getStripeInstance } from '@/lib/stripe-server';
 import { z } from 'zod'; // For input validation
 import * as Sentry from '@sentry/nextjs';
 import { withApiSpan, withDatabaseSpan, withStripeSpan, logger, capturePaymentError } from '@/lib/sentry';
 
-// Initialize Stripe with the secret key from environment variables
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia', 
-  typescript: true,
-});
+// Initialize Stripe with proper error handling
+const stripe = getStripeInstance();
  
 // Define a schema for input validation using Zod
 const initiateDonationSchema = z.object({

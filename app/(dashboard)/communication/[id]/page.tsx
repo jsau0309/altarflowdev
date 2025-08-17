@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { sanitizeEmailHtml } from "@/lib/email/sanitize-html";
 import {
   ArrowLeft,
   Calendar,
@@ -233,7 +234,7 @@ export default function CampaignDetailsPage() {
             <div className="max-h-[600px] overflow-y-auto p-4">
               <div
                 className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: campaign.htmlContent }}
+                dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(campaign.htmlContent) }}
               />
             </div>
           </div>

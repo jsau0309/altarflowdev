@@ -2,11 +2,9 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/db';
+import { getStripeInstance } from '@/lib/stripe-server';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia', // Use your project's Stripe API version
-  typescript: true,
-});
+const stripe = getStripeInstance();
 
 export async function POST(req: Request) {
   try {

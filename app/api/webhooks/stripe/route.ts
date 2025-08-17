@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { Resend } from 'resend';
 import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
+import { getStripeWebhookSecret } from '@/lib/stripe-server';
 import { headers } from 'next/headers';
 import * as Sentry from '@sentry/nextjs';
 import { captureWebhookEvent, capturePaymentError, withApiSpan, logger, withStripeSpan } from '@/lib/sentry';
@@ -15,8 +16,9 @@ import { isWebhookProcessed } from '@/lib/rate-limit';
 // Disable body parsing, we need the raw body for webhook signature verification
 export const runtime = 'nodejs';
 
-// Initialize Resend client (ensure RESEND_API_KEY is in .env)
-const resend = new Resend(process.env.RESEND_API_KEY!);
+// Initialize Resend client with environment validation
+import { serverEnv } from '@/lib/env';
+const resend = new Resend(serverEnv.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   return withApiSpan('POST /api/webhooks/stripe', {
@@ -77,7 +79,7 @@ export async function POST(req: Request) {
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      getStripeWebhookSecret()
     );
     // Sentry will capture this with context
     if (process.env.NODE_ENV === 'development') {

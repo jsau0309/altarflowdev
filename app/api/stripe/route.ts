@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
+import { getStripeInstance } from '@/lib/stripe-server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db'; // Use centralized Prisma instance
 import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
@@ -188,16 +189,8 @@ async function getAdminEmailForOrganization(clerkOrgId: string): Promise<string 
   }
 }
 
-// Initialize Stripe client with the secret key from environment variables
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia',
-  typescript: true,
-  maxNetworkRetries: 2,
-  appInfo: {
-    name: 'AltarFlow',
-    version: '1.0.0',
-  },
-});
+// Initialize Stripe client with proper error handling
+const stripe = getStripeInstance();
 
 // Type guard functions for request types
 function isCreateAccountRequest(req: StripeApiRequest): req is CreateAccountRequest {

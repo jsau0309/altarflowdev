@@ -8,11 +8,18 @@ import { getQuotaLimit } from "@/lib/subscription-helpers";
 // It can be called by Vercel Cron or manually
 export async function GET() {
   try {
-    // Verify the request is from Vercel Cron (in production)
+    // Verify the request is from Vercel Cron
     const headersList = await headers();
     const authHeader = headersList.get("authorization");
+    const cronSecret = process.env.CRON_SECRET;
     
-    if (process.env.NODE_ENV === "production" && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    // Always require authentication in production, allow bypass in dev only if CRON_SECRET is not set
+    if (!cronSecret && process.env.NODE_ENV === "production") {
+      console.error("CRON_SECRET is not configured in production!");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
+    
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
