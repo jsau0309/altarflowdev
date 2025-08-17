@@ -12,49 +12,115 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { LoadingProvider } from '@/contexts/loading-context'
 import { PostHogProvider } from '@/components/providers/posthog-provider'
 import { SentryProvider } from '@/components/providers/sentry-provider'
+import { StructuredData } from '@/components/seo/structured-data'
 
 // Removed client-side Supabase imports
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com'),
-  title: "Altarflow - All-in-One Church Management Platform",
-  description: "Transform your church operations with Altarflow. Manage donations, expenses, members, and communications in one powerful bilingual platform built for Hispanic churches.",
-  keywords: ["church management", "church software", "donation tracking", "church administration", "iglesia", "gestión iglesia"],
-  authors: [{ name: "Altarflow" }],
-  creator: "Altarflow",
+  title: {
+    default: 'AltarFlow - Church Management Software for Hispanic Churches',
+    template: '%s | AltarFlow'
+  },
+  description: 'Streamline your church operations with AltarFlow. Bilingual church management software designed for Hispanic churches. Manage donations, track expenses, organize members, and send communications - all in one platform. Try free for 30 days.',
+  keywords: [
+    'church management software',
+    'church administration software', 
+    'donation tracking system',
+    'church expense management',
+    'church member database',
+    'church email campaigns',
+    'software para iglesias',
+    'gestión de iglesias',
+    'administración iglesia hispana',
+    'donaciones iglesia',
+    'Hispanic church software',
+    'bilingual church management',
+    'church CRM',
+    'church accounting software',
+    'online church donations',
+    'church communication platform'
+  ],
+  authors: [{ name: 'AltarFlow Team' }],
+  creator: 'AltarFlow',
+  publisher: 'AltarFlow',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    other: [
+      {
+        rel: 'android-chrome',
+        url: '/android-chrome-192x192.png',
+        sizes: '192x192',
+      },
+      {
+        rel: 'android-chrome',
+        url: '/android-chrome-512x512.png',
+        sizes: '512x512',
+      },
+    ],
+  },
+  manifest: '/site.webmanifest',
+  alternates: {
+    canonical: 'https://altarflow.com',
+    languages: {
+      'en-US': 'https://altarflow.com',
+      'es-US': 'https://altarflow.com/es',
+    },
+  },
   openGraph: {
-    title: "Altarflow - All-in-One Church Management Platform",
-    description: "Transform your church operations with Altarflow. Manage donations, expenses, members, and communications in one powerful bilingual platform.",
+    title: 'AltarFlow - Church Management Software for Hispanic Churches',
+    description: 'Streamline your church operations with AltarFlow. Bilingual church management platform with donation tracking, expense management, member database, and email campaigns. Built specifically for Hispanic churches in the United States.',
     url: 'https://altarflow.com',
-    siteName: 'Altarflow',
+    siteName: 'AltarFlow',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Altarflow - Church Management Platform',
+        alt: 'AltarFlow - Church Management Platform',
       }
     ],
     locale: 'en_US',
+    alternateLocale: 'es_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Altarflow - All-in-One Church Management Platform',
-    description: 'Transform your church operations with Altarflow. Manage donations, expenses, members, and communications in one powerful bilingual platform.',
-    images: ['/og-image.png'],
+    title: 'AltarFlow - Church Management Software',
+    description: 'Bilingual church management platform for Hispanic churches. Manage donations, expenses, members & communications in one place.',
+    site: '@altarflow',
     creator: '@altarflow',
+    images: ['/og-image.png'],
   },
   robots: {
     index: true,
     follow: true,
+    nocache: false,
     googleBot: {
       index: true,
       follow: true,
+      noimageindex: false,
       'max-video-preview': -1,
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
+    yahoo: process.env.NEXT_PUBLIC_YAHOO_VERIFICATION,
   },
 }
 
@@ -89,6 +155,7 @@ export default function RootLayout({
     >
       <html lang="en" suppressHydrationWarning>
         <head>
+          <StructuredData />
           {/* Comment block removed */}
         </head>
         <body className={GeistSans.className}>
