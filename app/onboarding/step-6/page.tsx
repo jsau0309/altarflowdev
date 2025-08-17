@@ -112,18 +112,6 @@ export default function OnboardingStep6() {
             {t('onboarding:step6.goToDashboard', 'Go to Dashboard')} →
           </Button>
 
-          {/* Help Text */}
-          <div className="space-y-2">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {t('onboarding:step6.helpText', 'Need help getting started?')}
-            </p>
-            <a 
-              href="/help" 
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline font-medium"
-            >
-              {t('onboarding:step6.viewGuide', 'View our getting started guide')} →
-            </a>
-          </div>
         </div>
       </div>
     </div>

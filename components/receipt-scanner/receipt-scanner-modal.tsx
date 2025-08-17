@@ -57,19 +57,19 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
         throw new Error(result.error || `API Error: ${response.statusText}`)
       }
 
-      const apiData = result.data
+      const apiData = result.extractedData || result.data || {}
       setExtractedData({
         vendor: apiData.vendor,
         total: apiData.total,
         date: apiData.date,
         description: "",
-        items: [],
-        receiptUrl: apiData.receiptUrl || null,
-        receiptPath: apiData.receiptPath || null,
+        items: apiData.items || [],
+        receiptUrl: result.receiptUrl || null,
+        receiptPath: result.receiptPath || null,
         receiptImage: typeof fileSource === 'string' ? fileSource : receiptImage
       })
-      if (apiData.receiptUrl) {
-        setReceiptImage(apiData.receiptUrl);
+      if (result.receiptUrl) {
+        setReceiptImage(result.receiptUrl);
       }
       setScanningStage("review")
     } catch (err) {

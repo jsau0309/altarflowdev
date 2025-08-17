@@ -1,6 +1,6 @@
 {
-    "title": "Configuración",
-    "subtitle": "Gestiona la configuración y preferencias de tu cuenta",
+    "title": "Configuraciones",
+    "subtitle": "Administra la configuración y preferencias de tu iglesia",
     "general": "Configuración General",
     "church": "Perfil de la Iglesia",
     "users": "Gestión de Usuarios",
@@ -183,7 +183,7 @@
     },
 
     "landing": {
-      "qrCode": "Código QR de Página NFC",
+      "qrCode": "Codigo QR Pagina de Destino",
       "qrCodeDesc": "Imprime este código QR y colócalo en la entrada de tu iglesia para fácil acceso",
       "pageUrl": "URL de la Página de Destino",
       "downloadQR": "Descargar Código QR",

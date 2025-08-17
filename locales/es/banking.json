@@ -104,8 +104,23 @@
       }
     },
     "onboarding": {
-      "title": "Completa la Configuración de tu Cuenta",
-      "description": "Configura tu cuenta de Stripe para comenzar a aceptar donaciones y administrar pagos"
+      "title": "Configura tu Cuenta de Pagos",
+      "description": "Acepta donaciones y administra pagos de forma segura con Stripe",
+      "feature1": {
+        "title": "Acepta Donaciones en Línea",
+        "description": "Procesa donaciones con tarjeta de crédito y ACH de forma segura"
+      },
+      "feature2": {
+        "title": "Seguridad de Nivel Bancario",
+        "description": "Cumplimiento PCI con transacciones encriptadas"
+      },
+      "feature3": {
+        "title": "Depósitos Bancarios Directos",
+        "description": "Fondos depositados directamente en la cuenta bancaria de tu iglesia"
+      },
+      "setupTime": "La configuración toma aproximadamente 5-10 minutos. Necesitarás el EIN de tu iglesia y los detalles de la cuenta bancaria.",
+      "startButton": "Iniciar Configuración",
+      "continueButton": "Continuar Configuración"
     },
     "payments": {
       "title": "Transacciones de Pago",

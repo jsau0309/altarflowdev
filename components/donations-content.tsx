@@ -693,7 +693,6 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
         isOpen={showModal}
         onClose={handleModalClose}
         onSuccess={handleManualDonationSuccess}
-        donors={propDonors}
       />
 
       <NewDonorModal isOpen={showDonorModal} onClose={handleDonorModalClose} onSuccess={handleDonorCreated} />

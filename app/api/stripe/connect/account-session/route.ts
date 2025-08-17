@@ -35,11 +35,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Church not found for this organization.' }, { status: 404 });
     }
 
-    // Handle case where no Stripe account exists yet - create one for onboarding
+    // Check if we need to create an account
     let stripeConnectAccountId: string;
     
     if (!church.stripeConnectAccount || !church.stripeConnectAccount.stripeAccountId) {
-      // Create a new Connect account for onboarding
+      // Check if this is an explicit request to start onboarding
+      const body = await req.json().catch(() => ({}));
+      const startOnboarding = body.startOnboarding === true;
+      
+      if (!startOnboarding) {
+        // Return a response indicating onboarding is needed without creating account
+        return NextResponse.json({ 
+          requiresOnboarding: true,
+          message: 'No Stripe Connect account exists. User must start onboarding first.'
+        }, { status: 200 });
+      }
+      
+      // Only create account if explicitly requested
       const account = await stripe.accounts.create({
         type: 'express',
         country: 'US',
@@ -52,17 +64,21 @@ export async function POST(req: Request) {
         },
       });
       
-      // Save the account to database
-      // Note: churchId references clerkOrgId in the schema, not the church.id
-      await prisma.stripeConnectAccount.create({
-        data: {
-          churchId: orgId, // Use orgId which is the clerkOrgId
+      // Save the account to database using upsert to handle race conditions
+      await prisma.stripeConnectAccount.upsert({
+        where: { churchId: orgId },
+        create: {
+          churchId: orgId,
           stripeAccountId: account.id,
           detailsSubmitted: false,
           chargesEnabled: false,
           payoutsEnabled: false,
           verificationStatus: 'unverified',
         },
+        update: {
+          stripeAccountId: account.id,
+          updatedAt: new Date(),
+        }
       });
       
       stripeConnectAccountId = account.id;

@@ -43,113 +43,25 @@ export default function WaitlistFullPage() {
         <span className="text-sm font-medium">{t('waitlist.backToHome')}</span>
       </Link>
       
-      {/* Left Panel - Why Join */}
-      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12">
-        <div className="relative z-10 w-full max-w-lg">
-          <div className="space-y-8">
-            {/* Main heading */}
-            <div className="space-y-4">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {t('waitlist.badge')}
-              </div>
-              <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-                {t('waitlist.title')}
-              </h1>
-              <p className="text-xl text-gray-600 leading-relaxed">
-                {t('waitlist.subtitle')}
-              </p>
+      {/* Full Width Content */}
+      <div className="relative flex flex-1 flex-col px-4 py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-5xl mx-auto space-y-8">
+          {/* Header Section */}
+          <div className="text-center space-y-4">
+            {/* Coming Soon Badge */}
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {t('waitlist.badge')}
             </div>
             
-            {/* Join Today & Unlock */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">{t('waitlist.joinToday')}</h2>
-              
-              <div className="space-y-6">
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">{t('waitlist.benefit1.title')}</h3>
-                    <p className="text-gray-600 mt-1">{t('waitlist.benefit1.description')}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">{t('waitlist.benefit2.title')}</h3>
-                    <p className="text-gray-600 mt-1">{t('waitlist.benefit2.description')}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">{t('waitlist.benefit3.title')}</h3>
-                    <p className="text-gray-600 mt-1">{t('waitlist.benefit3.description')}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Urgency message */}
-            <div className="pt-6 border-t border-gray-200">
-              <p className="text-lg text-gray-700 font-medium pt-6">
-                {t('waitlist.urgency')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Panel - Waitlist Form */}
-      <div className="relative flex flex-1 items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-xl space-y-6">
-          {/* Call to action title */}
-          <div className="text-center mt-6 lg:mt-6">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {t('waitlist.callToAction')}
-            </h2>
-          </div>
-          
-          {/* Mobile Context - Only shown on small screens */}
-          <div className="block lg:hidden bg-blue-50 rounded-xl p-6 space-y-4">
-            <h3 className="font-semibold text-gray-900">{t('waitlist.mobileContext.title')}</h3>
-            <ul className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start">
-                <svg className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(t('waitlist.mobileContext.benefit1')) }} />
-              </li>
-              <li className="flex items-start">
-                <svg className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>{t('waitlist.mobileContext.benefit2')}</span>
-              </li>
-              <li className="flex items-start">
-                <svg className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>{t('waitlist.mobileContext.benefit3')}</span>
-              </li>
-            </ul>
-            <p className="text-xs text-gray-600 italic">{t('waitlist.mobileContext.instruction')}</p>
+            {/* Title */}
+            <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
+              {t('waitlist.title')}
+            </h1>
+            
+            {/* Subtitle */}
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              {t('waitlist.subtitle')}
+            </p>
           </div>
           
           {/* Typeform Widget */}

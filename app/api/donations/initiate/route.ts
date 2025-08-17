@@ -14,7 +14,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  
 // Define a schema for input validation using Zod
 const initiateDonationSchema = z.object({
-  idempotencyKey: z.string().uuid(), 
+  idempotencyKey: z.string().min(1), // Changed from UUID to allow composite keys
   churchId: z.string().uuid(), 
   donationTypeId: z.string().trim().min(1), 
   baseAmount: z.number().int().positive(), 
@@ -270,9 +270,17 @@ export async function POST(request: Request) {
     let stripeCustomerId: string | undefined = undefined;
 
     if (!isAnonymous && donorEmail) {
+      // Normalize email for consistent customer lookup
+      const normalizedEmail = donorEmail.toLowerCase().trim();
+      
+      // Add a small delay to help with race conditions in development
+      if (process.env.NODE_ENV === 'development') {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
       // Search for existing customers on the church's Connect account
       const existingCustomers = await stripe.customers.list(
-        { email: donorEmail, limit: 1 },
+        { email: normalizedEmail, limit: 1 },
         { stripeAccount: churchStripeAccountId } // Use church's Connect account
       );
 
@@ -321,7 +329,7 @@ export async function POST(request: Request) {
 
       } else { // Create a new Stripe customer
         const customerParams: Stripe.CustomerCreateParams = {
-          email: donorEmail,
+          email: normalizedEmail,
         };
         if (firstName || lastName) {
           customerParams.name = `${firstName || ''} ${lastName || ''}`.trim();
@@ -351,7 +359,10 @@ export async function POST(request: Request) {
 
         const newStripeCustomer = await stripe.customers.create(
           customerParams,
-          { stripeAccount: churchStripeAccountId } // Create customer on church's Connect account
+          { 
+            stripeAccount: churchStripeAccountId, // Create customer on church's Connect account
+            idempotencyKey: `${idempotencyKey}_customer` // Use idempotency for customer creation too!
+          }
         );
         stripeCustomerId = newStripeCustomer.id;
       }

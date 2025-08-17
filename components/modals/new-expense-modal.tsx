@@ -109,19 +109,19 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
     // Client-side validation for amount
     const amountValue = parseFloat(formData.amount);
     if (!formData.amount || isNaN(amountValue) || amountValue <= 0) {
-      toast.error(t('newExpenseModal.validation.amountRequired', 'Please enter a valid amount.'));
+      toast.error(t('expenses:newExpenseModal.validation.amountRequired', 'Please enter a valid amount.'));
       return; // Prevent submission
     }
 
     // Client-side validation for date
     if (!formData.expenseDate) {
-      toast.error(t('newExpenseModal.validation.dateRequired', 'Please select a date.'));
+      toast.error(t('expenses:newExpenseModal.validation.dateRequired', 'Please select a date.'));
       return; // Prevent submission
     }
 
     // Client-side validation for category
     if (!formData.category) {
-      toast.error(t('newExpenseModal.validation.categoryRequired', 'Please select a category.'));
+      toast.error(t('expenses:newExpenseModal.validation.categoryRequired', 'Please select a category.'));
       return; // Prevent submission
     }
 
@@ -174,7 +174,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
         onClose(); // Close modal after successful edit
       } else {
         // For new expense creation
-        toast.success(t('newExpenseModal.createSuccess'));
+        toast.success(t('expenses:newExpenseModal.createSuccess'));
         if (onSuccess) {
           onSuccess();
         } else {
@@ -201,7 +201,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
   const handleReceiptData = (data: unknown) => {
     if (typeof data === 'object' && data !== null) {
       const expenseData = data as Partial<{ 
-        total: string, 
+        total: string | number, 
         date: string, 
         notes: string, 
         receiptImage: string, 
@@ -213,7 +213,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
 
       setFormData((prev) => ({
         ...prev,
-        amount: expenseData.total || prev.amount,
+        amount: expenseData.total ? String(expenseData.total) : prev.amount,
         expenseDate: expenseData.date || prev.expenseDate,
         notes: expenseData.notes || prev.description,
         vendor: expenseData.vendor || prev.vendor,

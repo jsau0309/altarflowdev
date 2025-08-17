@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ManualDonationDialog } from "@/components/modals/manual-donation-dialog";
-import { getDistinctDonorsForFilter, DonorFilterItem } from "@/lib/actions/donations.actions";
 import { NewExpenseModal } from "@/components/modals/new-expense-modal"
 import { AddMemberModal } from "@/components/members/add-member-modal"
 import { GenerateReportModal } from "@/components/modals/generate-report-modal";
@@ -54,7 +53,6 @@ export function DashboardContent() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [donorsList, setDonorsList] = useState<DonorFilterItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionInfo, setSubscriptionInfo] = useState<{
     status: string;
@@ -77,9 +75,8 @@ export function DashboardContent() {
         if (!churchIdFromStorage) {
           console.warn("ChurchId not available in localStorage");
         }
-        const [summaryData, donorsData, subscriptionData] = await Promise.all([
+        const [summaryData, subscriptionData] = await Promise.all([
           getDashboardSummaryOptimized(),
-          churchIdFromStorage ? getDistinctDonorsForFilter() : Promise.resolve([] as DonorFilterItem[]),
           fetch('/api/subscription').then(res => res.json()).catch(() => null)
         ]);
         
@@ -89,7 +86,6 @@ export function DashboardContent() {
           setDashboardData(summaryData);
         }
         
-        setDonorsList(donorsData);
         
         if (subscriptionData) {
           setSubscriptionInfo({
@@ -493,7 +489,7 @@ export function DashboardContent() {
       )}
 
       {/* Modals */}
-      <ManualDonationDialog isOpen={activeModal === "donation"} onClose={closeModal} onSuccess={() => handleDataRefresh("new manual donation")} donors={donorsList} />
+      <ManualDonationDialog isOpen={activeModal === "donation"} onClose={closeModal} onSuccess={() => handleDataRefresh("new manual donation")} />
       <NewExpenseModal isOpen={activeModal === "expense"} onClose={closeModal} onSuccess={() => handleDataRefresh("new expense")} />
       <AddMemberModal 
         open={activeModal === "member"} 

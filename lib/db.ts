@@ -5,7 +5,10 @@ import { connectionErrorMiddleware } from './prisma-middleware';
 // exhausting your database connection limit.
 // Learn more: https://pris.ly/d/help/next-js-best-practices
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const globalForPrisma = global as unknown as { 
+  prisma: PrismaClient;
+  handlersRegistered?: boolean;
+};
 
 // Create Prisma client with optimized configuration
 function createPrismaClient() {
@@ -114,17 +117,35 @@ export async function checkDatabaseHealth(): Promise<{ healthy: boolean; latency
   }
 }
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+  
+  // Only add shutdown handlers once in development
+  if (!globalForPrisma.handlersRegistered) {
+    globalForPrisma.handlersRegistered = true;
+    
+    // Graceful shutdown handler
+    process.on('SIGTERM', async () => {
+      console.log('Received SIGTERM, closing database connections...');
+      await prisma.$disconnect();
+    });
 
-// Graceful shutdown handler
-process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM, closing database connections...');
-  await prisma.$disconnect();
-});
+    process.on('SIGINT', async () => {
+      console.log('Received SIGINT, closing database connections...');
+      await prisma.$disconnect();
+    });
+  }
+} else {
+  // In production, always register handlers
+  process.on('SIGTERM', async () => {
+    console.log('Received SIGTERM, closing database connections...');
+    await prisma.$disconnect();
+  });
 
-process.on('SIGINT', async () => {
-  console.log('Received SIGINT, closing database connections...');
-  await prisma.$disconnect();
-});
+  process.on('SIGINT', async () => {
+    console.log('Received SIGINT, closing database connections...');
+    await prisma.$disconnect();
+  });
+}
 
 export default prisma;

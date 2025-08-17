@@ -407,27 +407,29 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
                 <SelectValue placeholder={t('selectMemberToLink', { ns: 'donations' })} />
               </SelectTrigger>
               <SelectContent>
-                {loadingMembers ? (
-                  <SelectItem value="__loading__" disabled>
-                    {t('loadingMembers', { ns: 'donations' })}...
-                  </SelectItem>
-                ) : (
-                  <>
-                    <SelectItem value="__none__">
-                      {t('noMemberOrUnlink', { ns: 'donations' })}
+                <ScrollArea className="h-[200px]">
+                  {loadingMembers ? (
+                    <SelectItem value="__loading__" disabled>
+                      {t('loadingMembers', { ns: 'donations' })}...
                     </SelectItem>
-                    {members.map((member: MemberForLinkingSummary) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.firstName} {member.lastName} ({member.email ?? t('noEmail', { ns: 'common' })})
+                  ) : (
+                    <>
+                      <SelectItem value="__none__">
+                        {t('noMemberOrUnlink', { ns: 'donations' })}
                       </SelectItem>
-                    ))}
-                    {(!members || members.length === 0) && !loadingMembers && (
-                       <SelectItem value="__no_members_found__" disabled>
-                         {t('noMembersFound', { ns: 'donations' })}
-                       </SelectItem>
-                    )}
-                  </>
-                )}
+                      {members.map((member: MemberForLinkingSummary) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.firstName} {member.lastName} ({member.email ?? t('noEmail', { ns: 'common' })})
+                        </SelectItem>
+                      ))}
+                      {(!members || members.length === 0) && !loadingMembers && (
+                         <SelectItem value="__no_members_found__" disabled>
+                           {t('noMembersFound', { ns: 'donations' })}
+                         </SelectItem>
+                      )}
+                    </>
+                  )}
+                </ScrollArea>
               </SelectContent>
             </Select>
             {/* TODO: Add error display for memberId if needed */}

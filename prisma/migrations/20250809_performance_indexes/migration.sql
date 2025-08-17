@@ -8,7 +8,7 @@ CREATE INDEX IF NOT EXISTS "idx_donations_church_date"
 ON "DonationTransaction"("churchId", "createdAt" DESC);
 
 CREATE INDEX IF NOT EXISTS "idx_members_church_status" 
-ON "Member"("churchId", "status");
+ON "Member"("churchId", "membershipStatus");
 
 CREATE INDEX IF NOT EXISTS "idx_campaigns_church_status" 
 ON "EmailCampaign"("churchId", "status");
@@ -23,10 +23,10 @@ CREATE INDEX IF NOT EXISTS "idx_donations_church_fund_date"
 ON "DonationTransaction"("churchId", "donationTypeId", "createdAt" DESC);
 
 CREATE INDEX IF NOT EXISTS "idx_expenses_church_date" 
-ON "Expense"("churchId", "date" DESC);
+ON "Expense"("churchId", "expenseDate" DESC);
 
-CREATE INDEX IF NOT EXISTS "idx_email_prefs_member_church" 
-ON "EmailPreference"("memberId", "churchId");
+CREATE INDEX IF NOT EXISTS "idx_email_prefs_member" 
+ON "EmailPreference"("memberId");
 
 -- Drop unused indexes identified by Supabase
 DROP INDEX IF EXISTS "DonationTransaction_refundedAt_idx";

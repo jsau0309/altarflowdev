@@ -1,6 +1,6 @@
 {
   "title": "Settings",
-  "subtitle": "Manage your account settings and preferences",
+  "subtitle": "Manage your church settings and preferences",
   "general": "General Settings",
   "church": "Church Profile",
   "users": "User Management",
@@ -184,7 +184,7 @@
   },
 
   "landing": {
-    "qrCode": "NFC Landing Page QR Code",
+    "qrCode": "Landing Page QR Code",
     "qrCodeDesc": "Print this QR code and place it at your church entrance for easy access",
     "pageUrl": "Landing Page URL",
     "downloadQR": "Download QR Code",

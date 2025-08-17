@@ -83,7 +83,16 @@
     "saving": "Saving...",
     "updating": "Updating...",
     "saveButton": "Save Expense",
-    "updateButton": "Update Expense"
+    "updateButton": "Update Expense",
+    "createSuccess": "Expense created successfully",
+    "updateSuccess": "Expense updated successfully",
+    "createError": "Error creating expense",
+    "updateError": "Error updating expense",
+    "validation": {
+      "amountRequired": "Please enter a valid amount",
+      "dateRequired": "Please select a date",
+      "categoryRequired": "Please select a category"
+    }
   },
   "detailsDrawer": {
     "title": "Expense Details",

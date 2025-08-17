@@ -20,8 +20,23 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
   useEffect(() => {
     async function setupCamera() {
       try {
+        // Check if it's iOS for specific optimizations
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: { 
+            facingMode: "environment",
+            width: { ideal: isIOS ? 3840 : 1920, min: 1280 },
+            height: { ideal: isIOS ? 2160 : 1080, min: 720 },
+            aspectRatio: { ideal: 16/9 },
+            // Request highest resolution available on the device
+            ...(isIOS && { 
+              advanced: [{ 
+                width: { min: 1920 },
+                height: { min: 1080 }
+              }]
+            })
+          },
         })
 
         setStream(mediaStream)
@@ -58,8 +73,8 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-        // Convert canvas to data URL
-        const imageData = canvas.toDataURL("image/jpeg")
+        // Convert canvas to data URL with high quality
+        const imageData = canvas.toDataURL("image/jpeg", 0.95)
         onCapture(imageData)
 
         // Stop the camera stream

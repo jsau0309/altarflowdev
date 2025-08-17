@@ -28,6 +28,11 @@ export async function POST(req: Request) {
 
   // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
+    console.error('Missing webhook headers:', {
+      has_svix_id: !!svix_id,
+      has_svix_timestamp: !!svix_timestamp,
+      has_svix_signature: !!svix_signature
+    });
     return new Response('Error occurred -- no svix headers', {
       status: 400
     })
@@ -51,6 +56,13 @@ export async function POST(req: Request) {
     }) as WebhookEvent
   } catch (err) {
     console.error('Error verifying webhook:', err);
+    console.error('Webhook verification details:', {
+      webhook_secret_length: WEBHOOK_SECRET.length,
+      webhook_secret_prefix: WEBHOOK_SECRET.substring(0, 10),
+      svix_id: svix_id,
+      svix_timestamp: svix_timestamp,
+      signature_length: svix_signature?.length
+    });
     return new Response('Error occurred -- verifying webhook', {
       status: 400
     })
@@ -253,9 +265,11 @@ export async function POST(req: Request) {
 
         if (!church) {
           console.error(`Church not found for Org ID: ${orgId}`);
-          // Optionally, retry or handle cases where the Church might not be created yet
-          // For now, return an error
-          return new Response('Error occurred -- church not found', { status: 404 });
+          
+          // This is likely a race condition - the organization.created webhook hasn't processed yet
+          // Return 202 Accepted to tell Clerk to retry later
+          console.log(`Church not yet created for Org ID: ${orgId}. Returning 202 for retry.`);
+          return new Response('Accepted - retry later', { status: 202 });
         }
 
         // Determine the application-specific role based on the Clerk role

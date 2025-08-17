@@ -97,23 +97,24 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
             AND "expenseDate" >= ${thisYearStart}
         `;
 
-        // Single query for member stats
+        // Single query for member stats (exclude visitors from active count)
         const memberStats = await prisma.$queryRaw<Array<{
           new_members: bigint;
           active_members: bigint;
         }>>`
           SELECT 
-            COUNT(CASE WHEN "joinDate" >= ${thisMonthStart} THEN 1 END) as new_members,
-            COUNT(CASE WHEN "membershipStatus" IN ('Member', 'Visitor') THEN 1 END) as active_members
+            COUNT(CASE WHEN "joinDate" >= ${thisMonthStart} AND "membershipStatus" = 'Member' THEN 1 END) as new_members,
+            COUNT(CASE WHEN "membershipStatus" = 'Member' THEN 1 END) as active_members
           FROM "Member"
           WHERE "churchId" = ${church.id}::uuid
         `;
 
-        // Get recent members
+        // Get recent members (exclude visitors)
         const recentMembers = await prisma.member.findMany({
           where: {
             churchId: church.id,
-            joinDate: { not: null }
+            joinDate: { not: null },
+            membershipStatus: 'Member'
           },
           select: {
             id: true,

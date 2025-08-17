@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react";
-import { v4 as uuidv4 } from 'uuid';
+import { useState } from "react";
 import { isValidPhoneNumber } from 'react-phone-number-input';
 import { Check } from "lucide-react"
 import DonationDetails from "./donation-details"
@@ -84,7 +83,6 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
   const [enteredOtp, setEnteredOtp] = useState<string>('');
   const [isLoadingOtpAction, setIsLoadingOtpAction] = useState<boolean>(false);
   const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
-  const idempotencyKeyRef = useRef<string>(uuidv4()); // Generate once for the entire form lifecycle
 
   const updateFormData = (data: Partial<DonationFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -233,7 +231,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
         />;
       case 3:
         // Pass churchId, donorId, and churchName to DonationPayment
-        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} churchSlug={churchSlug} donorId={formData.donorId} churchName={churchName} idempotencyKey={idempotencyKeyRef.current} />;
+        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} churchSlug={churchSlug} donorId={formData.donorId} churchName={churchName} />;
       default:
         return <div>Something went wrong.</div>;
     }

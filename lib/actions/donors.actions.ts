@@ -5,6 +5,7 @@ import { unstable_noStore as noStore, revalidatePath } from 'next/cache';
 import type { Prisma, Donation as PrismaDonation, Campaign as PrismaCampaign, Member as PrismaMember } from '@prisma/client';
 import { DonorDetailsData, DonorFE } from '@/lib/types'; // Removed Member type as createDonor will now return Donor
 import { Donor } from '@prisma/client';
+import { DonorFilterItem } from './donations.actions';
 
 // Define the payload for creating a new donor
 export type CreateDonorPayload = {
@@ -62,8 +63,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
     }
 
     // Get donors who have made donations to this specific church
-    // This ensures each church only sees donors who have donated to them
-    const donorIdsForChurch = await prisma.donationTransaction.findMany({
+    const donorIdsFromTransactions = await prisma.donationTransaction.findMany({
       where: {
         churchId: church.id,
       },
@@ -73,18 +73,35 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
       distinct: ['donorId'],
     });
 
-    const donorIds = donorIdsForChurch.map(d => d.donorId).filter(id => id !== null) as string[];
+    const transactionDonorIds = donorIdsFromTransactions.map(d => d.donorId).filter(id => id !== null) as string[];
 
-    const whereClause: Prisma.DonorWhereInput = {
-      id: { in: donorIds },
+    // Build where clause to include:
+    // 1. Manual donors (churchId = current church)
+    // 2. Universal donors who have donated to this church
+    let whereClause: Prisma.DonorWhereInput = {
+      OR: [
+        { churchId: church.id }, // Manual donors for this church
+        { id: { in: transactionDonorIds } } // Universal donors who donated to this church
+      ]
     };
 
     if (query) {
-      whereClause.AND = {
-        OR: [
-          { firstName: { contains: query, mode: 'insensitive' } },
-          { lastName: { contains: query, mode: 'insensitive' } },
-          { email: { contains: query, mode: 'insensitive' } },
+      // Combine the donor filtering with search query
+      whereClause = {
+        AND: [
+          {
+            OR: [
+              { churchId: church.id },
+              { id: { in: transactionDonorIds } }
+            ]
+          },
+          {
+            OR: [
+              { firstName: { contains: query, mode: 'insensitive' } },
+              { lastName: { contains: query, mode: 'insensitive' } },
+              { email: { contains: query, mode: 'insensitive' } },
+            ]
+          }
         ]
       };
     }
@@ -461,6 +478,75 @@ export type UpdateDonorPayload = {
   memberId?: string | null;   // For linking/unlinking a Member record
   // notes field from UI is not currently on Donor model. Add to schema if needed.
 };
+
+// Get all donors available for manual donation selection
+// Returns: Manual donors for this church + Universal donors who have donated to this church
+export async function getAllDonorsForManualDonation(): Promise<DonorFilterItem[]> {
+  noStore();
+  
+  const { orgId } = await auth();
+  if (!orgId) {
+    console.error("No organization ID found for manual donation donors");
+    return [];
+  }
+
+  try {
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: orgId },
+      select: { id: true }
+    });
+
+    if (!church) {
+      console.error("Church not found for manual donation donors");
+      return [];
+    }
+
+    // Get donor IDs from transactions for this church
+    const donorIdsFromTransactions = await prisma.donationTransaction.findMany({
+      where: {
+        churchId: church.id,
+      },
+      select: {
+        donorId: true,
+      },
+      distinct: ['donorId'],
+    });
+
+    const transactionDonorIds = donorIdsFromTransactions
+      .map(d => d.donorId)
+      .filter(id => id !== null) as string[];
+
+    // Fetch all donors that are either:
+    // 1. Manual donors for this church (churchId = church.id)
+    // 2. Universal donors who have donated to this church
+    const donors = await prisma.donor.findMany({
+      where: {
+        OR: [
+          { churchId: church.id }, // Manual donors
+          { id: { in: transactionDonorIds } } // Universal donors with donations
+        ]
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+      orderBy: [
+        { lastName: 'asc' },
+        { firstName: 'asc' }
+      ],
+    });
+
+    return donors.map(donor => ({
+      id: donor.id,
+      name: `${donor.firstName || ''} ${donor.lastName || ''}`.trim() || donor.email || 'Unknown Donor',
+    }));
+  } catch (error) {
+    console.error("Failed to fetch donors for manual donation:", error);
+    return [];
+  }
+}
 
 export async function updateDonorDetails(
   donorId: string,

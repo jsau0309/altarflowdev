@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@clerk/nextjs'
 import { type StripeAccount } from './stripe-connect-button'
 import StripeConnectEmbeddedWrapper from './stripe/StripeConnectEmbeddedWrapper';
+import StripeOnboardingStart from './stripe/StripeOnboardingStart';
 import LoaderOne from '@/components/ui/loader-one';
 import { PayoutReconciliationDashboard } from './payouts/payout-reconciliation-dashboard';
 
@@ -251,24 +252,20 @@ export function BankingContent() {
           <LoaderOne />
         </div>
       ) : !isFullyConnected ? (
-        // Onboarding State - No tabs, just the onboarding interface
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>{t('banking:onboarding.title')}</CardTitle>
-            <CardDescription>
-              {t('banking:onboarding.description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 px-6 py-5">
-            {churchId ? (
-              <StripeConnectEmbeddedWrapper componentKey="accountOnboarding" />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                {t('common:loading')}...
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        // Onboarding State - Show the start onboarding component
+        <div className="mt-6">
+          {churchId ? (
+            <StripeOnboardingStart />
+          ) : (
+            <Card>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  {t('common:loading')}...
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       ) : (
         // Management State - Show tabs for connected accounts
         <Tabs value={activeTab} className="w-full space-y-6" onValueChange={handleTabChange}>

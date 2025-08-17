@@ -70,9 +70,7 @@ export async function POST(req: Request) {
   try {
     // Only log in development
     if (process.env.NODE_ENV === 'development') {
-      const webhookSecretLength = process.env.STRIPE_WEBHOOK_SECRET?.length || 0;
-      const webhookSecretPrefix = process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 10) || 'not-set';
-      console.log(`[Stripe Webhook] Using webhook secret: ${webhookSecretPrefix}... (length: ${webhookSecretLength})`);
+      // Webhook secret validated
       console.log(`[Stripe Webhook] Signature header present: ${!!signature}`);
     }
     
@@ -466,15 +464,10 @@ export async function POST(req: Request) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log(`[Stripe Webhook] Processing checkout.session.completed for session: ${session.id}`);
-        console.log('[Stripe Webhook] Full session object:', JSON.stringify(session, null, 2));
         
         // Get the organization ID from metadata or client_reference_id
         const orgId = session.metadata?.organizationId || session.client_reference_id;
         
-        console.log('[Stripe Webhook] Session metadata:', session.metadata);
-        console.log('[Stripe Webhook] Client reference ID:', session.client_reference_id);
-        console.log('[Stripe Webhook] Customer:', session.customer);
-        console.log('[Stripe Webhook] Subscription:', session.subscription);
         console.log('[Stripe Webhook] Extracted orgId:', orgId);
         
         if (!orgId) {
@@ -488,14 +481,33 @@ export async function POST(req: Request) {
           let subscriptionEnd = null;
           let plan = 'monthly'; // default
           
+          // Only fetch subscription details if we have a subscription ID
+          // The customer.subscription.created webhook will handle the full details
           if (subscriptionId) {
-            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-            subscriptionEnd = new Date(subscription.current_period_end * 1000);
-            
-            // Determine plan based on interval
-            if (subscription.items.data[0]?.price?.recurring?.interval === 'year') {
-              plan = 'annual';
+            try {
+              // Add a timeout to prevent hanging
+              const subscriptionPromise = stripe.subscriptions.retrieve(subscriptionId);
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Stripe API timeout')), 5000)
+              );
+              
+              const subscription = await Promise.race([subscriptionPromise, timeoutPromise]) as Stripe.Subscription;
+              subscriptionEnd = new Date(subscription.current_period_end * 1000);
+              
+              // Determine plan based on interval
+              if (subscription.items.data[0]?.price?.recurring?.interval === 'year') {
+                plan = 'annual';
+              }
+            } catch (error) {
+              console.warn('[Stripe Webhook] Could not retrieve subscription details, using defaults:', error);
+              // Set a default subscription end date (30 days for monthly)
+              subscriptionEnd = new Date();
+              subscriptionEnd.setDate(subscriptionEnd.getDate() + 30);
             }
+          } else {
+            // No subscription ID, set default
+            subscriptionEnd = new Date();
+            subscriptionEnd.setDate(subscriptionEnd.getDate() + 30);
           }
           
           // First check if church exists
@@ -505,50 +517,49 @@ export async function POST(req: Request) {
           
           if (!existingChurch) {
             console.error(`[Stripe Webhook] Church not found with clerkOrgId: ${orgId}`);
-            // List all churches for debugging
-            const allChurches = await prisma.church.findMany({
-              select: { id: true, name: true, clerkOrgId: true }
-            });
-            console.log('[Stripe Webhook] All churches:', allChurches);
+            // Don't fetch all churches in production - this is expensive!
             throw new Error(`Church not found with clerkOrgId: ${orgId}`);
           }
           
-          // Update church subscription status AND mark onboarding as complete
-          await prisma.church.update({
-            where: { clerkOrgId: orgId },
-            data: {
-              subscriptionStatus: 'active',
-              subscriptionId: subscriptionId || session.id,
-              subscriptionPlan: plan,
-              subscriptionEndsAt: subscriptionEnd,
-              stripeCustomerId: session.customer as string,
-              // Mark onboarding as complete if this happens during onboarding
-              onboardingCompleted: true,
-              onboardingStep: 6, // Set to final step
-            }
-          });
-          
-          console.log(`[Stripe Webhook] Updated church ${orgId} to active subscription`);
-          
-          // Update email quota for the current month
+          // Batch database operations in a transaction for better performance
           const currentMonthYear = format(new Date(), 'yyyy-MM');
           const quotaLimit = 10000; // Paid subscription gets 10,000 campaigns
           
-          await prisma.emailQuota.upsert({
-            where: {
-              churchId_monthYear: {
+          await prisma.$transaction(async (tx) => {
+            // Update church subscription status AND mark onboarding as complete
+            await tx.church.update({
+              where: { clerkOrgId: orgId },
+              data: {
+                subscriptionStatus: 'active',
+                subscriptionId: subscriptionId || session.id,
+                subscriptionPlan: plan,
+                subscriptionEndsAt: subscriptionEnd,
+                stripeCustomerId: session.customer as string,
+                // Mark onboarding as complete if this happens during onboarding
+                onboardingCompleted: true,
+                onboardingStep: 6, // Set to final step
+              }
+            });
+            
+            // Update email quota for the current month
+            await tx.emailQuota.upsert({
+              where: {
+                churchId_monthYear: {
+                  churchId: existingChurch.id,
+                  monthYear: currentMonthYear,
+                }
+              },
+              update: { quotaLimit },
+              create: {
                 churchId: existingChurch.id,
                 monthYear: currentMonthYear,
+                quotaLimit,
+                emailsSent: 0,
               }
-            },
-            update: { quotaLimit },
-            create: {
-              churchId: existingChurch.id,
-              monthYear: currentMonthYear,
-              quotaLimit,
-              emailsSent: 0,
-            }
+            });
           });
+          
+          console.log(`[Stripe Webhook] Updated church ${orgId} to active subscription`);
           
           console.log(`[Stripe Webhook] Updated email quota to ${quotaLimit} campaigns for church ${orgId}`);
         } catch (error) {
@@ -599,11 +610,11 @@ export async function POST(req: Request) {
             console.log(`[Stripe Webhook] No church found for subscription ${subscription.id} or customer ${subscription.customer}`);
             console.log(`[Stripe Webhook] Attempting to find church by any means...`);
             
-            // Last resort: log all churches to debug
-            const allChurches = await prisma.church.findMany({
-              select: { id: true, name: true, stripeCustomerId: true, subscriptionId: true, clerkOrgId: true }
+            // Don't fetch all churches in production - log the search criteria instead
+            console.log('[Stripe Webhook] Could not find church with:', {
+              subscriptionId: subscription.id,
+              customerId: subscription.customer
             });
-            console.log('[Stripe Webhook] All churches in database:', JSON.stringify(allChurches, null, 2));
             break;
           }
           

@@ -105,8 +105,23 @@
     }
   },
   "onboarding": {
-    "title": "Complete Your Account Setup",
-    "description": "Set up your Stripe account to start accepting donations and managing payouts"
+    "title": "Set Up Your Payment Account",
+    "description": "Accept donations and manage payouts securely with Stripe",
+    "feature1": {
+      "title": "Accept Donations Online",
+      "description": "Process credit card and ACH donations securely"
+    },
+    "feature2": {
+      "title": "Bank-Level Security",
+      "description": "PCI compliant with encrypted transactions"
+    },
+    "feature3": {
+      "title": "Direct Bank Deposits",
+      "description": "Funds deposited directly to your church bank account"
+    },
+    "setupTime": "Setup takes about 5-10 minutes. You'll need your church EIN and bank account details.",
+    "startButton": "Start Setup",
+    "continueButton": "Continue Setup"
   },
   "payments": {
     "title": "Payment Transactions",

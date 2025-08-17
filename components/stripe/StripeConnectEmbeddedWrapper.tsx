@@ -13,7 +13,7 @@ import {
   ConnectNotificationBanner,
   ConnectDocuments,
 } from '@stripe/react-connect-js';
-import { loadConnectAndInitialize, StripeConnectInstance } from '@stripe/connect-js';
+import { loadConnectAndInitialize, StripeConnectInstance } from '@stripe/connect-js/pure';
 
 // Define the possible component keys
 type StripeComponentKey =
@@ -98,6 +98,14 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
         }
 
         const data = await response.json();
+        
+        // Check if onboarding is required but not started
+        if (data.requiresOnboarding) {
+          const errorMessage = 'Onboarding required but not started';
+          setError(errorMessage);
+          throw new Error(errorMessage);
+        }
+        
         if (data.client_secret) {
           setError(null); // Clear any previous error on success
           return data.client_secret;

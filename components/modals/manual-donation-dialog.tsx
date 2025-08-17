@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { createManualDonation, CreateManualDonationParams } from "@/lib/actions/donations.actions";
 import { DonorFilterItem } from "@/lib/actions/donations.actions";
+import { getAllDonorsForManualDonation } from "@/lib/actions/donors.actions";
 import { format } from "date-fns";
 import { CalendarIcon, ChevronsUpDown, Check, Loader2 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
@@ -24,12 +25,12 @@ interface ManualDonationDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  donors: DonorFilterItem[];
+  // donors prop removed - we always fetch the correct list internally
   // Add churchId prop if we decide to pass it instead of reading from localStorage
   // churchId: string | null;
 }
 
-export function ManualDonationDialog({ isOpen, onClose, onSuccess, donors }: ManualDonationDialogProps) {
+export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonationDialogProps) {
   const { t } = useTranslation(['donations', 'common']); // Load donations and common namespaces
   const [manualDonationAmount, setManualDonationAmount] = useState<string>("");
   const [manualDonationDate, setManualDonationDate] = useState<Date | undefined>(new Date());
@@ -39,11 +40,13 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess, donors }: Man
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | undefined>(undefined);
   const [manualDonationNotes, setManualDonationNotes] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [donors, setDonors] = useState<DonorFilterItem[]>([]);
+  const [isLoadingDonors, setIsLoadingDonors] = useState<boolean>(false);
 
-  // Effect to reset form when modal is closed or opened for a new entry
+  // Effect to fetch donors when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Reset fields when modal opens, unless we want to preserve state across quick closes/opens
+      // Reset fields when modal opens
       setManualDonationAmount("");
       setManualDonationDate(new Date());
       setSelectedDonorId(null);
@@ -51,8 +54,27 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess, donors }: Man
       setSelectedPaymentMethod(undefined);
       setManualDonationNotes("");
       setIsSaving(false);
+      
+      // Always fetch donors for manual donation to get the correct list
+      // This ensures we get both manual donors AND universal donors who have donated
+      const fetchDonors = async () => {
+        setIsLoadingDonors(true);
+        try {
+          const donorsList = await getAllDonorsForManualDonation();
+          setDonors(donorsList);
+        } catch (error) {
+          console.error("Failed to fetch donors for manual donation:", error);
+          setDonors([]);
+          toast.error(t('donations:newManualDonation.failedToLoadDonors', 'Failed to load donors'));
+        } finally {
+          setIsLoadingDonors(false);
+        }
+      };
+      
+      // Always fetch the correct donor list
+      fetchDonors();
     }
-  }, [isOpen]);
+  }, [isOpen, t]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -185,29 +207,36 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess, donors }: Man
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                 <Command>
                   <CommandInput placeholder={t('donations:newManualDonation.searchDonor')} />
-                  <CommandEmpty>{t('donations:newManualDonation.noDonorFound')}</CommandEmpty>
-                  <CommandGroup>
-                    <ScrollArea className="h-[200px]">
-                      {donors.map((donor) => (
-                        <CommandItem
-                          key={donor.id}
-                          value={donor.name} // Ensure value is unique and useful for search
-                          onSelect={() => {
-                            setSelectedDonorId(donor.id === selectedDonorId ? null : donor.id);
-                            setIsDonorComboboxOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedDonorId === donor.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {donor.name}
-                        </CommandItem>
-                      ))}
-                    </ScrollArea>
-                  </CommandGroup>
+                  {isLoadingDonors ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      {t('donations:newManualDonation.loadingDonors', 'Loading donors...')}
+                    </div>
+                  ) : donors.length === 0 ? (
+                    <CommandEmpty>{t('donations:newManualDonation.noDonorFound')}</CommandEmpty>
+                  ) : (
+                    <CommandGroup>
+                      <ScrollArea className="h-[200px]">
+                        {donors.map((donor) => (
+                          <CommandItem
+                            key={donor.id}
+                            value={donor.name} // Ensure value is unique and useful for search
+                            onSelect={() => {
+                              setSelectedDonorId(donor.id === selectedDonorId ? null : donor.id);
+                              setIsDonorComboboxOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedDonorId === donor.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {donor.name}
+                          </CommandItem>
+                        ))}
+                      </ScrollArea>
+                    </CommandGroup>
+                  )}
                 </Command>
               </PopoverContent>
             </Popover>
