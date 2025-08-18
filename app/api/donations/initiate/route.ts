@@ -410,9 +410,8 @@ export async function POST(request: Request) {
       },
     };
 
-    if (validation.data.donorEmail) {
-      paymentIntentParams.receipt_email = validation.data.donorEmail;
-    }
+    // Note: We don't set receipt_email here because we send custom receipts via Resend
+    // This prevents duplicate receipts (one from Stripe, one from our system)
     
     // Create the payment intent on the church's Connect account
     // This ensures the customer reference works and the church receives funds directly

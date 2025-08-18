@@ -1327,7 +1327,8 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   const emailHtml = generateDonationReceiptHtml(receiptData, appUrl);
 
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || `Altarflow <support@${process.env.YOUR_VERIFIED_RESEND_DOMAIN || 'altarflow.com'}>`;
+    // Use validated serverEnv to ensure proper email format without quotes
+    const fromEmail = serverEnv.RESEND_FROM_EMAIL;
     await resend.emails.send({
       from: fromEmail,
       to: [donorEmail],
