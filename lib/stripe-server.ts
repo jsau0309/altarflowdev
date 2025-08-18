@@ -13,7 +13,7 @@ export function getStripeInstance(): Stripe {
   }
   
   return new Stripe(apiKey, {
-    apiVersion: '2025-02-24.acacia',
+    apiVersion: '2025-07-30.basil' as any,
     typescript: true,
     maxNetworkRetries: 2,
     appInfo: {

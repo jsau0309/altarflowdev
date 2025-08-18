@@ -9,7 +9,7 @@ if (!process.env.STRIPE_WEBHOOK_SECRET) {
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-02-24.acacia', // Required API version
+  apiVersion: '2025-07-30.basil' as any, // Required API version - using 'as any' until Stripe types are updated
   typescript: true,
   appInfo: {
     name: 'AltarFlow', // Your application name
