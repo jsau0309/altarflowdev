@@ -200,13 +200,15 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
         createdAt: true,
         updatedAt: true,
         transactions: {
-          where: effectiveChurchId ? {
-            churchId: effectiveChurchId  // Filter transactions by church
-          } : undefined,
+          where: {
+            ...(effectiveChurchId ? { churchId: effectiveChurchId } : {}),
+            status: 'succeeded'  // Only fetch successful donations
+          },
           select: {
             id: true,
             amount: true,
             currency: true,
+            status: true,  // Include status to filter out pending donations
             transactionDate: true,
             donorName: true,
             donorEmail: true,
@@ -254,6 +256,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
         id: true;
         amount: true;
         currency: true;
+        status: true;
         transactionDate: true;
         donorName: true;
         donorEmail: true;
@@ -302,6 +305,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
         id: tx.id,
         amount: (tx.amount / 100).toFixed(2),
         currency: tx.currency,
+        status: tx.status,  // Include status field
         donationDate: tx.transactionDate.toISOString(),
         donorFirstName: tx.donorName?.split(' ')[0] ?? donorDetails.firstName ?? null,
         donorLastName: tx.donorName?.split(' ').slice(1).join(' ') ?? donorDetails.lastName ?? null,

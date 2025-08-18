@@ -56,6 +56,8 @@ export async function POST(req: Request) {
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
+          link_payments: { requested: true }, // Enable Link
+          us_bank_account_ach_payments: { requested: true }, // Enable ACH bank payments
         },
         metadata: {
           churchId: orgId,

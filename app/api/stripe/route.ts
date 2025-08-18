@@ -415,6 +415,9 @@ async function handleCreateAccount(
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },
+        link_payments: { requested: true }, // Enable Link
+        us_bank_account_ach_payments: { requested: true }, // Enable ACH bank payments
+        // Apple Pay and Google Pay are automatically enabled with card_payments
       },
       business_profile: {
         mcc: '8398', 
@@ -636,6 +639,8 @@ async function handleCreateAccountLink({
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
+          link_payments: { requested: true }, // Enable Link
+          us_bank_account_ach_payments: { requested: true }, // Enable ACH bank payments
         },
       });
       console.log(`Ensured capabilities (card_payments, transfers) are requested for account: ${accountId}`);

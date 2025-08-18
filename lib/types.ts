@@ -147,6 +147,7 @@ export type DonorDetailsData = {
     id: string;
     amount: string; // Prisma Decimal serializes to string
     currency: string;
+    status: string; // 'pending', 'succeeded', 'failed', etc.
     donationDate: string; // ISO string
     donorFirstName: string | null;
     donorLastName: string | null;

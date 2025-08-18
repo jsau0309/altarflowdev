@@ -131,6 +131,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: '#ffffff', // White theme color for browser UI
 };
 
 export default function RootLayout({

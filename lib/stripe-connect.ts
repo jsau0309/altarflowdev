@@ -15,6 +15,8 @@ export async function createStripeConnectAccount(churchId: string, email: string
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },
+        link_payments: { requested: true }, // Enable Link
+        us_bank_account_ach_payments: { requested: true }, // Enable ACH bank payments
       },
       // Pre-fill the business profile
       business_profile: {

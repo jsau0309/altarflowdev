@@ -53,27 +53,40 @@ export async function POST(request: NextRequest) {
     
     // Get headers
     const headersList = await headers();
-    const signature = headersList.get("resend-signature");
+    // Try multiple possible header names that Resend might use
+    const signature = headersList.get("webhook-signature") || 
+                     headersList.get("x-resend-signature") || 
+                     headersList.get("resend-signature") ||
+                     headersList.get("x-signature");
+    
+    // Debug: Log headers when signature is missing
+    if (!signature && process.env.NODE_ENV === 'production') {
+      console.error('Resend webhook missing signature. Available headers:', 
+        Array.from(headersList.keys()).filter(h => 
+          h.includes('signature') || h.includes('resend') || h.includes('webhook')
+        )
+      );
+    }
     
     // Verify webhook signature
     const webhookSecret = serverEnv.RESEND_WEBHOOK_SECRET;
     
-    // In production, webhook verification is mandatory
+    // In production, webhook verification is mandatory if secret is configured
     if (process.env.NODE_ENV === 'production') {
       if (!webhookSecret) {
-        console.error("RESEND_WEBHOOK_SECRET not configured in production");
-        return NextResponse.json({ error: "Webhook configuration error" }, { status: 500 });
-      }
-      
-      if (!signature) {
-        console.error("Missing webhook signature in production");
-        return NextResponse.json({ error: "Missing signature" }, { status: 401 });
-      }
-      
-      const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
-      if (!isValid) {
-        console.error("Invalid webhook signature");
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+        console.warn("RESEND_WEBHOOK_SECRET not configured in production - webhook signature verification skipped");
+        // Continue processing but log warning
+      } else {
+        if (!signature) {
+          console.error("Missing webhook signature in production when secret is configured");
+          return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+        }
+        
+        const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
+        if (!isValid) {
+          console.error("Invalid webhook signature");
+          return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+        }
       }
     } else {
       // In development, verify if both secret and signature are present

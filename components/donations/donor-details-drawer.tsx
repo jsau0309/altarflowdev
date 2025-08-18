@@ -56,7 +56,10 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
   }, [donorId, isOpen])
 
 
-  const totalDonated = donorData?.donations.reduce((sum, donation) => sum + parseFloat(donation.amount), 0) ?? 0
+  // Only count donations that were successfully processed (status === 'succeeded')
+  const totalDonated = donorData?.donations
+    .filter(donation => donation.status === 'succeeded')
+    .reduce((sum, donation) => sum + parseFloat(donation.amount), 0) ?? 0
 
   const renderContent = () => {
     if (isLoading) {

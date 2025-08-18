@@ -69,11 +69,10 @@ export async function POST(req: Request) {
     console.log(`[Stripe Webhook] Body length: ${body?.length || 0}`);
   }
 
+  // Try platform webhook secret first
   try {
-    // Only log in development
     if (process.env.NODE_ENV === 'development') {
-      // Webhook secret validated
-      console.log(`[Stripe Webhook] Signature header present: ${!!signature}`);
+      console.log(`[Stripe Webhook] Trying platform webhook secret`);
     }
     
     event = stripe.webhooks.constructEvent(
@@ -81,23 +80,48 @@ export async function POST(req: Request) {
       signature,
       getStripeWebhookSecret()
     );
-    // Sentry will capture this with context
+    
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[Stripe Webhook] Event constructed: ${event.type}, ID: ${event.id}`);
+      console.log(`[Stripe Webhook] Event verified with platform secret: ${event.type}, ID: ${event.id}`);
     }
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    console.error(`[Stripe Webhook] Signature verification failed: ${errorMessage}`);
-    console.error(`[Stripe Webhook] Debug info:`, {
-      signaturePresent: !!signature,
-      signatureLength: signature?.length,
-      bodyLength: body?.length,
-      webhookSecretSet: !!process.env.STRIPE_WEBHOOK_SECRET,
-      error: errorMessage
-    });
+    // If platform secret fails, try Connect webhook secret
+    const connectSecret = serverEnv.STRIPE_CONNECT_WEBHOOK_SECRET;
     
-    // Always fail on signature verification errors - no bypass allowed
-    return NextResponse.json({ error: `Webhook Error: Signature verification failed - ${errorMessage}` }, { status: 400 });
+    if (connectSecret) {
+      try {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Stripe Webhook] Platform secret failed, trying Connect webhook secret`);
+        }
+        
+        event = stripe.webhooks.constructEvent(
+          body,
+          signature,
+          connectSecret
+        );
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Stripe Webhook] Event verified with Connect secret: ${event.type}, ID: ${event.id}`);
+        }
+      } catch (connectErr) {
+        // Both secrets failed
+        const errorMessage = connectErr instanceof Error ? connectErr.message : 'Unknown error';
+        console.error(`[Stripe Webhook] Both signature verifications failed`);
+        console.error(`[Stripe Webhook] Debug info:`, {
+          signaturePresent: !!signature,
+          platformSecretSet: !!process.env.STRIPE_WEBHOOK_SECRET,
+          connectSecretSet: !!connectSecret,
+          error: errorMessage
+        });
+        
+        return NextResponse.json({ error: `Webhook Error: Signature verification failed for both secrets` }, { status: 400 });
+      }
+    } else {
+      // No Connect secret configured, fail with original error
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error(`[Stripe Webhook] Platform signature verification failed, no Connect secret configured`);
+      return NextResponse.json({ error: `Webhook Error: Signature verification failed - ${errorMessage}` }, { status: 400 });
+    }
   }
 
   // Check for duplicate webhook processing

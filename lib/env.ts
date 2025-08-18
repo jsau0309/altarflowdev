@@ -27,6 +27,7 @@ const serverEnvSchema = z.object({
   STRIPE_SECRET_KEY: z.string().min(1, "STRIPE_SECRET_KEY is required"),
   STRIPE_SECRET_KEY_LIVE: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1, "STRIPE_WEBHOOK_SECRET is required"),
+  STRIPE_CONNECT_WEBHOOK_SECRET: z.string().optional(), // For Connect events webhook
   
   // SMS Service (Twilio)
   TWILIO_ACCOUNT_SID: z.string().optional(),
