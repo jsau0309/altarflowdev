@@ -477,11 +477,13 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: 'Missing organization ID' }, { status: 400 });
         }
         
+        // Move these to outer scope for error handling
+        let subscriptionEnd: Date | null = null; // Active subscriptions don't have an end date
+        let plan = 'monthly'; // default
+        
         try {
           // Get subscription details
           const subscriptionId = session.subscription as string;
-          let subscriptionEnd = null;
-          let plan = 'monthly'; // default
           
           // Only fetch subscription details if we have a subscription ID
           // The customer.subscription.created webhook will handle the full details
@@ -494,7 +496,16 @@ export async function POST(req: Request) {
               );
               
               const subscription = await Promise.race([subscriptionPromise, timeoutPromise]) as Stripe.Subscription;
-              subscriptionEnd = new Date(subscription.current_period_end * 1000);
+              
+              // Only set subscriptionEnd if the subscription is canceled or will end
+              if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
+                subscriptionEnd = new Date(subscription.current_period_end * 1000);
+                console.log('[Stripe Webhook] Subscription is canceled/ending, setting end date:', subscriptionEnd);
+              } else {
+                // Active subscriptions don't have an end date
+                subscriptionEnd = null;
+                console.log('[Stripe Webhook] Subscription is active, no end date set');
+              }
               
               // Determine plan based on interval
               if (subscription.items.data[0]?.price?.recurring?.interval === 'year') {
@@ -502,14 +513,13 @@ export async function POST(req: Request) {
               }
             } catch (error) {
               console.warn('[Stripe Webhook] Could not retrieve subscription details, using defaults:', error);
-              // Set a default subscription end date (30 days for monthly)
-              subscriptionEnd = new Date();
-              subscriptionEnd.setDate(subscriptionEnd.getDate() + 30);
+              // For active subscriptions, don't set an end date
+              subscriptionEnd = null;
             }
           } else {
-            // No subscription ID, set default
-            subscriptionEnd = new Date();
-            subscriptionEnd.setDate(subscriptionEnd.getDate() + 30);
+            // No subscription ID means one-time payment or error, don't set end date
+            subscriptionEnd = null;
+            console.log('[Stripe Webhook] No subscription ID in session, treating as one-time payment');
           }
           
           // First check if church exists
@@ -529,18 +539,27 @@ export async function POST(req: Request) {
           
           await prisma.$transaction(async (tx) => {
             // Update church subscription status AND mark onboarding as complete
+            const updateData: any = {
+              subscriptionStatus: 'active',
+              subscriptionId: subscriptionId || session.id,
+              subscriptionPlan: plan,
+              stripeCustomerId: session.customer as string,
+              // Mark onboarding as complete if this happens during onboarding
+              onboardingCompleted: true,
+              onboardingStep: 6, // Set to final step
+            };
+            
+            // Only set subscriptionEndsAt if we have a valid date (for canceled subscriptions)
+            if (subscriptionEnd !== null) {
+              updateData.subscriptionEndsAt = subscriptionEnd;
+            } else {
+              // Explicitly set to null for active subscriptions
+              updateData.subscriptionEndsAt = null;
+            }
+            
             await tx.church.update({
               where: { clerkOrgId: orgId },
-              data: {
-                subscriptionStatus: 'active',
-                subscriptionId: subscriptionId || session.id,
-                subscriptionPlan: plan,
-                subscriptionEndsAt: subscriptionEnd,
-                stripeCustomerId: session.customer as string,
-                // Mark onboarding as complete if this happens during onboarding
-                onboardingCompleted: true,
-                onboardingStep: 6, // Set to final step
-              }
+              data: updateData
             });
             
             // Update email quota for the current month
@@ -566,6 +585,21 @@ export async function POST(req: Request) {
           console.log(`[Stripe Webhook] Updated email quota to ${quotaLimit} campaigns for church ${orgId}`);
         } catch (error) {
           console.error('[Stripe Webhook] Error updating church subscription:', error);
+          // Log detailed error information for debugging
+          if (error instanceof Error) {
+            console.error('[Stripe Webhook] Error details:', {
+              name: error.name,
+              message: error.message,
+              eventType: event.type,
+              eventId: event.id,
+              orgId: orgId,
+              subscriptionEnd: subscriptionEnd ? (subscriptionEnd instanceof Date ? subscriptionEnd.toISOString() : 'Invalid Date') : 'null',
+              sessionData: {
+                customer: session.customer,
+                subscription: session.subscription
+              }
+            });
+          }
           return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 });
         }
         break;
@@ -658,8 +692,14 @@ export async function POST(req: Request) {
           
           // Only update subscriptionEndsAt if the subscription is canceled or will end
           if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
-            updateData.subscriptionEndsAt = new Date(subscription.current_period_end * 1000);
-            console.log(`[Stripe Webhook] Subscription is canceled/ending. Setting subscriptionEndsAt to: ${updateData.subscriptionEndsAt}`);
+            // Validate that current_period_end is a valid timestamp
+            if (subscription.current_period_end && !isNaN(subscription.current_period_end)) {
+              updateData.subscriptionEndsAt = new Date(subscription.current_period_end * 1000);
+              console.log(`[Stripe Webhook] Subscription is canceled/ending. Setting subscriptionEndsAt to: ${updateData.subscriptionEndsAt.toISOString()}`);
+            } else {
+              console.warn(`[Stripe Webhook] Invalid current_period_end timestamp: ${subscription.current_period_end}`);
+              updateData.subscriptionEndsAt = null;
+            }
           } else if (subscription.status === 'active') {
             // Clear subscriptionEndsAt if the subscription is active (e.g., reactivated)
             updateData.subscriptionEndsAt = null;
