@@ -7,8 +7,11 @@ import LoaderOne from '@/components/ui/loader-one';
 
 export default function AfterSignupPage() {
   const router = useRouter();
-  const { isLoaded, userInvitations } = useOrganizationList({
+  const { isLoaded, userInvitations, userMemberships } = useOrganizationList({
     userInvitations: {
+      infinite: true,
+    },
+    userMemberships: {
       infinite: true,
     },
   });
@@ -16,17 +19,21 @@ export default function AfterSignupPage() {
   useEffect(() => {
     if (!isLoaded) return;
 
+    // Check if user already has organization memberships (accepted invitation during signup)
+    if (userMemberships && userMemberships.data && userMemberships.data.length > 0) {
+      // User is already a member - they accepted an invitation during signup
+      // Send them directly to dashboard
+      router.replace('/dashboard');
+    } 
     // Check if user has pending organization invitations
-    if (userInvitations && userInvitations.data && userInvitations.data.length > 0) {
-      // User was invited to join an existing church - go to invitation pending
-      // The invitation-pending page will handle acceptance and then route to dashboard
-      // The dashboard will check if the church has completed onboarding
+    else if (userInvitations && userInvitations.data && userInvitations.data.length > 0) {
+      // User was invited but hasn't accepted yet - go to invitation pending
       router.replace('/invitation-pending');
     } else {
       // User signed up to create their own church - go to onboarding
       router.replace('/onboarding/step-1');
     }
-  }, [isLoaded, userInvitations, router]);
+  }, [isLoaded, userInvitations, userMemberships, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
