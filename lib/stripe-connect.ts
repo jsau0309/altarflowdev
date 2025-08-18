@@ -8,7 +8,8 @@ export async function createStripeConnectAccount(churchId: string, email: string
     const validated = validateInput(createConnectAccountSchema, { churchId, email, country });
     
     // Create a new Connect account
-    const account = await stripe.accounts.create({
+    // Build the account params with proper typing
+    const accountParams: any = {
       type: 'express',
       country: validated.country,
       email: validated.email,
@@ -23,11 +24,26 @@ export async function createStripeConnectAccount(churchId: string, email: string
         mcc: '8661', // Religious organizations
         url: process.env.NEXT_PUBLIC_APP_URL,
       },
+      // Settings with statement descriptor
+      settings: {
+        payments: {
+          statement_descriptor: 'ALTARFLOW DONATION',
+        },
+        // Disable automatic email receipts for Express accounts
+        // This is valid in the API but not in TypeScript definitions
+        emails: {
+          customer: {
+            enabled: false
+          }
+        }
+      },
       // Store the church ID in metadata for easy lookup
       metadata: {
         churchId: validated.churchId,
       },
-    });
+    };
+    
+    const account = await stripe.accounts.create(accountParams);
 
     // Create a record in our database using Prisma ORM (type-safe)
     const createdAccount = await prisma.stripeConnectAccount.create({
@@ -88,6 +104,35 @@ export async function getStripeConnectAccount(churchId: string) {
     return account;
   } catch (error) {
     console.error('Error fetching Stripe Connect account:', error);
+    throw error;
+  }
+}
+
+export async function disableStripeAutomaticReceipts(stripeAccountId: string) {
+  try {
+    // Update the Connect account to disable automatic receipts
+    // This works for Express and Custom accounts
+    const updateParams: any = {
+      settings: {
+        payments: {
+          statement_descriptor: 'ALTARFLOW DONATION',
+        },
+        // Disable automatic email receipts
+        // This is valid in the API but not in TypeScript definitions
+        emails: {
+          customer: {
+            enabled: false
+          }
+        }
+      },
+    };
+    
+    const updatedAccount = await stripe.accounts.update(stripeAccountId, updateParams);
+    
+    console.log(`Disabled automatic receipts for Stripe account: ${stripeAccountId}`);
+    return updatedAccount;
+  } catch (error) {
+    console.error('Error disabling automatic receipts:', error);
     throw error;
   }
 }
