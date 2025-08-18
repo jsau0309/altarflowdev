@@ -89,10 +89,18 @@ export async function PUT(request: NextRequest) {
       website: churchData.website || null,
     };
 
-    // 5. Update the church details using clerkOrgId
-    const updatedChurch = await prisma.church.update({
+    // 5. Update the church details using clerkOrgId (or create if doesn't exist yet)
+    // This handles race conditions where the webhook hasn't created the church yet
+    const updatedChurch = await prisma.church.upsert({
       where: { clerkOrgId: orgId },
-      data: dataToUpdate,
+      update: dataToUpdate,
+      create: {
+        ...dataToUpdate,
+        clerkOrgId: orgId,
+        slug: orgId.toLowerCase().replace(/[^a-z0-9]+/g, '-'), // Generate slug from orgId
+        onboardingStep: 3,
+        onboardingCompleted: false,
+      },
       select: { 
         id: true,
         clerkOrgId: true,

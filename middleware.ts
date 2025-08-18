@@ -68,11 +68,10 @@ export default clerkMiddleware(async (auth, req) => {
                       referer.includes('clerk.') ||
                       req.nextUrl.searchParams.has('__clerk_status')
                       )
+  const isFromSignUp = referer.includes('/signup') || req.nextUrl.searchParams.has('__clerk_status')
 
   // If user has no organization and not on onboarding
   if (!orgId && !isOnboardingRoute(req)) {
-    // Check if this is coming from a signup with organization invitation
-    const isFromSignUp = referer.includes('/signup') || req.nextUrl.searchParams.has('__clerk_status')
     
     // If coming from signup, check the path they're trying to access
     if (req.nextUrl.pathname === '/invitation-pending') {
@@ -83,6 +82,13 @@ export default clerkMiddleware(async (auth, req) => {
     // Default: redirect to onboarding for church creation
     // The invitation-pending page will handle checking for pending invitations
     return NextResponse.redirect(new URL('/onboarding/step-1', req.url))
+  }
+
+  // If user HAS an organization and just signed up (invited member case)
+  if (orgId && isFromSignUp && !isOnboardingRoute(req) && !req.nextUrl.pathname.startsWith('/dashboard')) {
+    // They just accepted an invitation and joined an existing org
+    // Send them to dashboard - the dashboard will check if church onboarding is complete
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   // Allow all other routes to proceed

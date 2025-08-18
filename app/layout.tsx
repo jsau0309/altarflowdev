@@ -19,10 +19,10 @@ import { StructuredData } from '@/components/seo/structured-data'
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com'),
   title: {
-    default: 'AltarFlow - Church Management Software for Hispanic Churches',
+    default: 'AltarFlow - Modern Church Management Software',
     template: '%s | AltarFlow'
   },
-  description: 'Streamline your church operations with AltarFlow. Bilingual church management software designed for Hispanic churches. Manage donations, track expenses, organize members, and send communications - all in one platform. Try free for 30 days.',
+  description: 'Streamline your church operations with AltarFlow. Complete bilingual church management platform to manage donations, track expenses, organize members, and send communications - all in one powerful platform. Try free for 30 days.',
   keywords: [
     'church management software',
     'church administration software', 
@@ -32,14 +32,15 @@ export const metadata: Metadata = {
     'church email campaigns',
     'software para iglesias',
     'gestión de iglesias',
-    'administración iglesia hispana',
+    'administración de iglesias',
     'donaciones iglesia',
-    'Hispanic church software',
+    'bilingual church software',
     'bilingual church management',
     'church CRM',
     'church accounting software',
     'online church donations',
-    'church communication platform'
+    'church communication platform',
+    'ministry management software'
   ],
   authors: [{ name: 'AltarFlow Team' }],
   creator: 'AltarFlow',
@@ -80,8 +81,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'AltarFlow - Church Management Software for Hispanic Churches',
-    description: 'Streamline your church operations with AltarFlow. Bilingual church management platform with donation tracking, expense management, member database, and email campaigns. Built specifically for Hispanic churches in the United States.',
+    title: 'AltarFlow - Modern Church Management Software',
+    description: 'Streamline your church operations with AltarFlow. Complete bilingual church management platform with donation tracking, expense management, member database, and email campaigns. Built for churches of all sizes and languages.',
     url: 'https://altarflow.com',
     siteName: 'AltarFlow',
     images: [
@@ -99,7 +100,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'AltarFlow - Church Management Software',
-    description: 'Bilingual church management platform for Hispanic churches. Manage donations, expenses, members & communications in one place.',
+    description: 'Complete bilingual church management platform. Manage donations, expenses, members & communications all in one place.',
     site: '@altarflow',
     creator: '@altarflow',
     images: ['/og-image.png'],

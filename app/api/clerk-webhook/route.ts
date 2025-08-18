@@ -284,12 +284,20 @@ export async function POST(req: Request) {
         // Don't mark onboarding complete anymore - they need to go through the full flow
         // This ensures all users complete the onboarding process
 
-        await prisma.profile.update({
+        // Use upsert to handle race condition where user.created webhook hasn't fired yet
+        await prisma.profile.upsert({
           where: { id: userId },
-          data: updateData,
+          update: updateData,
+          create: {
+            id: userId,
+            role: prismaRole,
+            firstName: public_user_data?.first_name || '',
+            lastName: public_user_data?.last_name || '',
+            email: '', // This will be updated by user.created webhook when it arrives
+          },
         });
 
-        console.log(`Successfully updated profile for User ID: ${userId} in Org ID: ${orgId}`);
+        console.log(`Successfully updated/created profile for User ID: ${userId} in Org ID: ${orgId}`);
 
       } catch (error) {
         console.error(`Error updating profile for User ID ${userId} in Org ID ${orgId}:`, error);
@@ -321,13 +329,31 @@ export async function POST(req: Request) {
       console.log(`Processing organizationMembership.updated for Org ID: ${orgId}, User ID: ${userId}, New Role: ${role}`);
 
       try {
+        // First fetch the church to get the churchId
+        const church = await prisma.church.findUnique({
+          where: { clerkOrgId: orgId },
+          select: { id: true }
+        });
+
+        if (!church) {
+          console.error(`Church not found for Org ID: ${orgId} in organizationMembership.updated`);
+          return new Response('Church not found', { status: 404 });
+        }
+
         // Map Clerk's role to our application role
         const prismaRole: Role = role === 'org:admin' ? Role.ADMIN : Role.STAFF;
 
-        // Update the user's role in the profile
-        await prisma.profile.update({
+        // Update the user's role in the profile (use upsert in case of race conditions)
+        await prisma.profile.upsert({
           where: { id: userId },
-          data: { role: prismaRole }
+          update: { role: prismaRole },
+          create: {
+            id: userId,
+            role: prismaRole,
+            firstName: public_user_data?.first_name || '',
+            lastName: public_user_data?.last_name || '',
+            email: '',
+          }
         });
 
         console.log(`Successfully updated role for User ID: ${userId} to ${prismaRole}`);
