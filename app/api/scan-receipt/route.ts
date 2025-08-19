@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { getAuth } from '@clerk/nextjs/server';
-import { processReceiptWithDocumentAI, mapToExpenseFormat } from '@/lib/document-ai-gcloud';
+import { processReceiptWithDocumentAI, mapToExpenseFormat } from '@/lib/document-ai-auth';
 
 // Helper function to add delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

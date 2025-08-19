@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { RecipientStatus } from "@prisma/client";
 import crypto from "crypto";
 import { serverEnv } from "@/lib/env";
+import { Webhook } from 'svix';
 
 // Resend webhook event types
 interface ResendWebhookEvent {
@@ -53,52 +54,61 @@ export async function POST(request: NextRequest) {
     
     // Get headers
     const headersList = await headers();
-    // Try multiple possible header names that Resend might use
-    const signature = headersList.get("webhook-signature") || 
-                     headersList.get("x-resend-signature") || 
-                     headersList.get("resend-signature") ||
-                     headersList.get("x-signature");
     
-    // Debug: Log headers when signature is missing
-    if (!signature && process.env.NODE_ENV === 'production') {
-      console.error('Resend webhook missing signature. Available headers:', 
-        Array.from(headersList.keys()).filter(h => 
-          h.includes('signature') || h.includes('resend') || h.includes('webhook')
-        )
-      );
-    }
+    // Check for Svix headers (Resend uses Svix for webhook delivery)
+    const svixId = headersList.get("svix-id");
+    const svixTimestamp = headersList.get("svix-timestamp");
+    const svixSignature = headersList.get("svix-signature");
     
-    // Verify webhook signature
+    // Legacy HMAC headers (for backward compatibility)
+    const legacySignature = headersList.get("webhook-signature") || 
+                           headersList.get("x-resend-signature") || 
+                           headersList.get("resend-signature") ||
+                           headersList.get("x-signature");
+    
+    // Get webhook secret
     const webhookSecret = serverEnv.RESEND_WEBHOOK_SECRET;
     
-    // In production, webhook verification is mandatory if secret is configured
-    if (process.env.NODE_ENV === 'production') {
+    // Verify webhook signature
+    if (svixId && svixTimestamp && svixSignature) {
+      // Use Svix verification (production - Resend uses Svix)
       if (!webhookSecret) {
-        console.warn("RESEND_WEBHOOK_SECRET not configured in production - webhook signature verification skipped");
-        // Continue processing but log warning
+        console.warn("RESEND_WEBHOOK_SECRET not configured - webhook signature verification skipped");
       } else {
-        if (!signature) {
-          console.error("Missing webhook signature in production when secret is configured");
-          return NextResponse.json({ error: "Missing signature" }, { status: 401 });
-        }
-        
-        const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
-        if (!isValid) {
-          console.error("Invalid webhook signature");
+        try {
+          const wh = new Webhook(webhookSecret);
+          wh.verify(rawBody, {
+            "svix-id": svixId,
+            "svix-timestamp": svixTimestamp,
+            "svix-signature": svixSignature,
+          });
+          console.log("Resend webhook verified successfully using Svix");
+        } catch (err) {
+          console.error("Invalid Svix webhook signature:", err);
           return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
         }
       }
-    } else {
-      // In development, verify if both secret and signature are present
-      if (webhookSecret && signature) {
-        const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
+    } else if (legacySignature) {
+      // Fall back to HMAC verification (legacy/development)
+      if (webhookSecret) {
+        const isValid = verifyWebhookSignature(rawBody, legacySignature, webhookSecret);
         if (!isValid) {
-          console.error("Invalid webhook signature");
+          console.error("Invalid HMAC webhook signature");
           return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
         }
-      } else if (webhookSecret || signature) {
-        // Warn if only one is present
-        console.warn("Webhook signature verification skipped: both RESEND_WEBHOOK_SECRET and signature header required");
+        console.log("Resend webhook verified using legacy HMAC");
+      }
+    } else {
+      // No signature headers found
+      if (process.env.NODE_ENV === 'production' && webhookSecret) {
+        console.error('Resend webhook missing signature. Available headers:', 
+          Array.from(headersList.keys()).filter(h => 
+            h.includes('signature') || h.includes('svix') || h.includes('resend') || h.includes('webhook')
+          )
+        );
+        return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+      } else if (process.env.NODE_ENV !== 'production') {
+        console.warn("Webhook signature verification skipped in development");
       }
     }
     

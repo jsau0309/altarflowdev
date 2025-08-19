@@ -79,8 +79,11 @@ export async function POST(req: Request) {
     const { id, first_name, last_name } = evt.data;
     console.log(`Processing user.created for user ID: ${id}`);
     try {
-      await prisma.profile.create({
-        data: {
+      // Use upsert to handle duplicate webhook calls gracefully
+      await prisma.profile.upsert({
+        where: { id: id },
+        create: {
+          // If profile doesn't exist, create with these values
           id: id, // Use Clerk user ID as Profile ID
           firstName: first_name,
           lastName: last_name,
@@ -88,13 +91,19 @@ export async function POST(req: Request) {
           role: 'STAFF', // Default role
           onboardingComplete: false,
           // churchId can be linked later (e.g., via invite acceptance)
+        },
+        update: {
+          // If profile exists (duplicate webhook), only update safe fields
+          firstName: first_name,
+          lastName: last_name,
+          // Don't update role or onboardingComplete to preserve existing values
         }
       });
-      console.log(`Successfully created profile for user ${id}`);
+      console.log(`Successfully created/updated profile for user ${id}`);
     } catch (error) {
-      console.error(`Error creating profile for user ${id}:`, error);
+      console.error(`Error creating/updating profile for user ${id}:`, error);
       // Return error response to Clerk so it knows the webhook failed
-      return new Response('Error occurred -- creating profile', { status: 500 });
+      return new Response('Error occurred -- creating/updating profile', { status: 500 });
     }
   }
 
