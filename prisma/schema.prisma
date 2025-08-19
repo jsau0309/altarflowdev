@@ -281,6 +281,10 @@ model StripeConnectAccount {
   requirementsEventuallyDue  String[]  @default([])
   tosAcceptanceDate          DateTime?
   verificationStatus         String    @default("unverified")
+  // Payment method domain registration tracking
+  paymentDomainsRegistered   Boolean   @default(false)
+  paymentDomainsRegisteredAt DateTime?
+  registeredDomains          String[]  @default([])
   church                     Church    @relation(fields: [churchId], references: [clerkOrgId], onDelete: Cascade)
 
   @@index([churchId])

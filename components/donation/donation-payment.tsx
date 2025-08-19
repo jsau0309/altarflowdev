@@ -91,7 +91,6 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
   const [message, setMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
-  const [linkEmail, setLinkEmail] = useState(''); // State for LinkAuthenticationElement email
 
   // Calculate display amount based on formData
   const baseAmount = formData.amount || 0;
@@ -129,7 +128,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
       elements,
       confirmParams: {
         return_url: `${window.location.origin}/${churchSlug}/donation-successful?amount=${formData.amount}&churchName=${encodeURIComponent(churchName || '')}`,
-        receipt_email: formData.email || linkEmail || undefined, // Send receipt if email is available
+        // receipt_email removed - we send custom receipts via webhook/Resend instead
       },
       redirect: "if_required" // Changed to if_required to handle redirect better
     });
@@ -163,11 +162,6 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
     <form onSubmit={handleSubmit} className="space-y-4">
       <LinkAuthenticationElement
         id="link-authentication-element"
-        // @ts-ignore - Stripe's event type can be broad, this captures the email if Link provides it.
-        onChange={(event) => {
-          // Update linkEmail state if user changes email within Link UI
-          if (event.value) setLinkEmail(event.value.email);
-        }}
       />
       <PaymentElement id="payment-element" onReady={() => setIsPaymentElementReady(true)} options={{
         layout: {
@@ -175,6 +169,11 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
           defaultCollapsed: false,
           radios: false,
           spacedAccordionItems: true
+        },
+        // Explicitly enable wallets (Apple Pay, Google Pay)
+        wallets: {
+          applePay: 'auto',
+          googlePay: 'auto'
         }
       }} />
       
@@ -315,6 +314,10 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
       const data = await response.json();
       if (data.clientSecret) {
         console.log('[DonationPayment] Successfully received client secret, transaction ID:', data.transactionId);
+        
+        // Debug: Log payment method information
+        console.log('[DonationPayment] Payment method types:', data.paymentMethodTypes);
+        console.log('[DonationPayment] Payment method config:', data.paymentMethodConfiguration);
         
         // Store in sessionStorage to prevent duplicate calls
         sessionStorage.setItem(donationSessionKey, JSON.stringify({

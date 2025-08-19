@@ -445,6 +445,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ received: true });
           }
           
+          // Store the previous state to detect transitions
+          const wasChargesEnabled = stripeConnectAccount.chargesEnabled;
+          
           // Determine verification status
           let verificationStatus = 'unverified';
           if (account.charges_enabled && account.payouts_enabled) {
@@ -477,6 +480,69 @@ export async function POST(req: Request) {
           });
           
           console.log(`[Stripe Webhook] Successfully updated StripeConnectAccount for ${account.id}. Status: ${verificationStatus}, Charges: ${account.charges_enabled}, Payouts: ${account.payouts_enabled}`);
+          
+          // Register payment method domains if charges just became enabled
+          if (account.charges_enabled && !wasChargesEnabled && !stripeConnectAccount.paymentDomainsRegistered) {
+            console.log(`[Stripe Webhook] Account ${account.id} just became active, registering payment method domains`);
+            
+            const domainsToRegister = [
+              'altarflow.com',
+              'www.altarflow.com'
+            ];
+            
+            const successfullyRegistered: string[] = [];
+            
+            for (const domainName of domainsToRegister) {
+              try {
+                // Check if domain already exists for this account
+                const existingDomains = await stripe.paymentMethodDomains.list(
+                  { domain_name: domainName },
+                  { stripeAccount: account.id }
+                );
+                
+                if (existingDomains.data.length === 0) {
+                  // Register the domain for this Connect account
+                  await stripe.paymentMethodDomains.create(
+                    {
+                      domain_name: domainName,
+                      enabled: true
+                    },
+                    { stripeAccount: account.id }
+                  );
+                  console.log(`[Stripe Webhook] Successfully registered domain ${domainName} for account ${account.id}`);
+                  successfullyRegistered.push(domainName);
+                } else {
+                  console.log(`[Stripe Webhook] Domain ${domainName} already registered for account ${account.id}`);
+                  successfullyRegistered.push(domainName); // Consider it successful if already exists
+                }
+              } catch (domainError) {
+                // Log error but don't fail the webhook
+                console.error(`[Stripe Webhook] Error registering domain ${domainName} for account ${account.id}:`, domainError);
+                captureWebhookEvent('domain_registration_error', {
+                  accountId: account.id,
+                  domain: domainName,
+                  error: domainError instanceof Error ? domainError.message : 'Unknown error'
+                }, 'error');
+              }
+            }
+            
+            // Update database with domain registration status
+            if (successfullyRegistered.length > 0) {
+              try {
+                await prisma.stripeConnectAccount.update({
+                  where: { stripeAccountId: account.id },
+                  data: {
+                    paymentDomainsRegistered: true,
+                    paymentDomainsRegisteredAt: new Date(),
+                    registeredDomains: successfullyRegistered
+                  }
+                });
+                console.log(`[Stripe Webhook] Updated database with registered domains for account ${account.id}`);
+              } catch (dbError) {
+                console.error(`[Stripe Webhook] Error updating domain registration status in database:`, dbError);
+              }
+            }
+          }
         } catch (error) {
           console.error(`[Stripe Webhook] Error updating StripeConnectAccount for account ${account.id}:`, error);
           // Don't fail the webhook - log the error but allow Stripe to consider it successful

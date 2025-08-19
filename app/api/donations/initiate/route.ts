@@ -399,7 +399,11 @@ export async function POST(request: Request) {
       amount: finalAmountForStripe,
       currency: currency,
       customer: stripeCustomerId,
-      automatic_payment_methods: { enabled: true }, // Enable various payment methods via Payment Element
+      // Use automatic_payment_methods to let Stripe determine available methods
+      automatic_payment_methods: { 
+        enabled: true,
+        allow_redirects: 'always' // Allow redirect-based methods like bank transfers
+      },
       // Remove transfer_data since we're creating directly on Connect account
       // The church will receive funds directly
       metadata: {
@@ -508,6 +512,10 @@ export async function POST(request: Request) {
       clientSecret: paymentIntent.client_secret,
       transactionId: donationTransaction.id,
       stripeAccount: churchStripeAccountId, // Pass the Connect account ID for frontend
+      // Include payment method types for debugging
+      paymentMethodTypes: paymentIntent.payment_method_types,
+      // Include the payment method configuration if available
+      paymentMethodConfiguration: paymentIntent.payment_method_configuration_details,
     }, { status: 201 });
 
     } catch (error) {
