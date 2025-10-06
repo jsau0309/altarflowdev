@@ -219,7 +219,10 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
         state: formData.state || null,
         zipCode: formData.zipCode || null, // maps to postalCode
         // country is not in FormData, so it won't be sent unless added
-        memberId: selectedMemberId, // Use the state variable for selected member ID
+        // If selectedMemberId is undefined, check if donor had a linked member - if yes, unlink it
+        memberId: selectedMemberId === undefined && donor?.memberId
+          ? null // Explicitly unlink if donor had a member and user reset selection
+          : selectedMemberId, // Otherwise use the selected value
       };
 
       // Remove undefined fields to avoid sending them, unless they are explicitly set to null (like email/phone)
@@ -400,7 +403,10 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
             )}
             <Select
               value={selectedMemberId || ''}
-              onValueChange={setSelectedMemberId}
+              onValueChange={(value) => {
+                // If "No Member / Unlink" is selected, reset to undefined to show placeholder
+                setSelectedMemberId(value === '__none__' ? null : value);
+              }}
               disabled={loadingMembers}
             >
               <SelectTrigger id="memberId" className="w-full">

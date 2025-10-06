@@ -121,7 +121,11 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
     try {
       const result = await createManualDonation(params);
       if (result.error) {
-        toast.error(result.error);
+        // Check if the error is an i18n key (starts with 'donations:')
+        const errorMessage = result.error.startsWith('donations:')
+          ? t(result.error, result.error) // Translate if it's an i18n key
+          : result.error; // Use as-is if it's a regular error message
+        toast.error(errorMessage);
         setIsSaving(false);
       } else {
         toast.success(t('donations:newManualDonation.success_message', 'Donation created successfully!'));

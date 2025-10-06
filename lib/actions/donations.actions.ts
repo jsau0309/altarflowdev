@@ -340,13 +340,46 @@ export async function createManualDonation(
     }
     const actualChurchUuid = churchRecord.id;
 
-    // 2. Fetch Donor details to get donorName and donorEmail
-    const donor = await prisma.donor.findUnique({
-      where: { id: donorId, churchId: actualChurchUuid }, // Ensure donor belongs to the church
-      select: { firstName: true, lastName: true, email: true },
+    // 2. Fetch Donor details and validate church access
+    // Accept donors who are EITHER:
+    // - Manual donors (churchId matches)
+    // - Universal donors (churchId is null) linked to a member of this church
+    const donor = await prisma.donor.findFirst({
+      where: {
+        id: donorId,
+        OR: [
+          { churchId: actualChurchUuid }, // Manual donor
+          {
+            churchId: null, // Universal donor
+            member: {
+              churchId: actualChurchUuid // Linked to a member of this church
+            }
+          }
+        ]
+      },
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        churchId: true,
+        member: {
+          select: { churchId: true }
+        }
+      },
     });
 
     if (!donor) {
+      // Provide specific error messages
+      const universalDonor = await prisma.donor.findUnique({
+        where: { id: donorId },
+        select: { churchId: true, memberId: true }
+      });
+
+      if (universalDonor?.churchId === null && !universalDonor.memberId) {
+        return { success: false, error: 'donations:editDonorModal.errors.universalDonorNotLinked' };
+      } else if (universalDonor?.churchId === null && universalDonor.memberId) {
+        return { success: false, error: 'donations:editDonorModal.errors.universalDonorDifferentChurch' };
+      }
       return { success: false, error: `Donor with ID ${donorId} not found for this church.` };
     }
     const donorName = `${donor.firstName || ''} ${donor.lastName || ''}`.trim() || null;

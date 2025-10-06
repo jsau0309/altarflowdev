@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
           });
           
           // Log the complaint
-          console.warn(`Spam complaint received for member ${complainedRecipient.memberId}`);
+          console.warn('Spam complaint received for member', complainedRecipient.memberId);
         }
         break;
         

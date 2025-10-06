@@ -215,7 +215,9 @@
       "invalidPhone": "Invalid phone number format.",
       "invalidZip": "Invalid zip/postal code format.",
       "updateFailed": "Failed to update donor. Please try again.",
-      "unexpectedError": "An unexpected error occurred."
+      "unexpectedError": "An unexpected error occurred.",
+      "universalDonorNotLinked": "Donor must be linked to a church member before adding manual donations.",
+      "universalDonorDifferentChurch": "This universal donor is linked to a member of a different church and cannot receive manual donations here."
     }
   },
   "donationSuccessful": {

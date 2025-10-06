@@ -701,7 +701,10 @@ export async function POST(req: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         console.log(`[Stripe Webhook] Processing ${event.type} for subscription: ${subscription.id}`);
         console.log(`[Stripe Webhook] Subscription status: ${subscription.status}, cancel_at_period_end: ${subscription.cancel_at_period_end}`);
-        console.log(`[Stripe Webhook] Current period end: ${new Date(subscription.current_period_end * 1000).toISOString()}`);
+        const periodEndDate = subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000).toISOString()
+          : 'N/A';
+        console.log(`[Stripe Webhook] Current period end: ${periodEndDate}`);
         
         try {
           // For new subscriptions, try to find church by customer ID first
