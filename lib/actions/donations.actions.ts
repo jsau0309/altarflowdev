@@ -352,8 +352,10 @@ export async function createManualDonation(
           {
             churchId: null, // Universal donor
             member: {
-              churchId: actualChurchUuid // Linked to a member of this church
-            }
+              is: {
+                churchId: actualChurchUuid, // Linked to a member of this church
+              },
+            },
           }
         ]
       },
