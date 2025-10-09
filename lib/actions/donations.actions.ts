@@ -352,6 +352,7 @@ export async function createManualDonation(
           {
             churchId: null, // Universal donor
             member: {
+              // Prisma requires relation filters to use the `is` wrapper for one-to-one relations
               is: {
                 churchId: actualChurchUuid, // Linked to a member of this church
               },
