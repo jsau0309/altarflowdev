@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from 'next-themes';
 import {
   ConnectComponentsProvider,
   ConnectAccountManagement,
@@ -48,18 +49,41 @@ const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
   </div>
 );
 
-const stripeAppearance = {
+// Light mode appearance
+const lightModeAppearance = {
   variables: {
-    colorPrimary: '#2563EB', // Altarflow Blue
-    colorBackground: '#FFFFFF',
-    colorText: '#1F2937', // Dark gray for text
-    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
-    spacingUnit: '4px', // Base unit for spacing
-    borderRadius: '6px',  // Slightly rounded corners
+    colorPrimary: '#3b82f6', // Primary blue
+    colorBackground: '#ffffff',
+    colorText: '#1F2937',
+    fontFamily: 'Geist, ui-sans-serif, sans-serif, system-ui',
+    spacingUnit: '4px',
+    borderRadius: '0.375rem',
   },
   rules: {
     '.Input': {
-      borderColor: '#D1D5DB', // Light gray border for inputs
+      borderColor: '#e5e7eb',
+    },
+  }
+};
+
+// Dark mode appearance - matching your neutral gray theme
+const darkModeAppearance = {
+  variables: {
+    colorPrimary: '#3b82f6', // Primary blue (same for consistency)
+    colorBackground: 'hsl(240, 3.7%, 15.9%)', // Match card background
+    colorText: 'hsl(240, 4.8%, 95.9%)', // Light gray text
+    colorSecondaryText: 'hsl(240, 5%, 64.9%)', // Muted foreground
+    fontFamily: 'Geist, ui-sans-serif, sans-serif, system-ui',
+    spacingUnit: '4px',
+    borderRadius: '0.375rem',
+  },
+  rules: {
+    '.Input': {
+      borderColor: 'hsl(240, 3.7%, 20%)', // Subtle border for dark mode
+      backgroundColor: 'hsl(240, 5.9%, 10%)', // Darker input background
+    },
+    '.Label': {
+      color: 'hsl(240, 4.8%, 95.9%)',
     },
   }
 };
@@ -69,6 +93,10 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { i18n } = useTranslation();
+  const { theme, resolvedTheme } = useTheme();
+
+  // Determine if we're in dark mode
+  const isDarkMode = resolvedTheme === 'dark' || theme === 'dark';
   
   // Map i18n language to Stripe locale
   const getStripeLocale = () => {
@@ -142,7 +170,7 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
         const instance = loadConnectAndInitialize({
           publishableKey,
           fetchClientSecret: fetchClientSecretCallback,
-          appearance: stripeAppearance,
+          appearance: isDarkMode ? darkModeAppearance : lightModeAppearance,
           locale: getStripeLocale() as any, // Set locale based on current language
         });
         // Set the instance if initialization was successful
@@ -159,7 +187,16 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
     };
 
     initializeStripeConnect();
-  }, [i18n.language]); // Reinitialize when language changes
+  }, [i18n.language, isDarkMode]); // Reinitialize when language or theme changes
+
+  // Update appearance when theme changes after initial load
+  useEffect(() => {
+    if (connectInstance) {
+      connectInstance.update({
+        appearance: isDarkMode ? darkModeAppearance : lightModeAppearance,
+      });
+    }
+  }, [isDarkMode, connectInstance]);
 
   if (loading) {
     return <LoadingSpinner />;

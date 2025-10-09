@@ -284,15 +284,15 @@ function StepIndicator({ step, currentStep, label }: StepIndicatorProps) {
       <div
         className={`
         w-10 h-10 rounded-full flex items-center justify-center
-        ${isActive ? "bg-blue-600 border-4 border-gray-300 dark:border-gray-600" : ""}
+        ${isActive ? "bg-blue-600 border-4 border-gray-300" : ""}
         ${isCompleted ? "bg-blue-600" : ""}
-        ${!isActive && !isCompleted ? "bg-gray-200 dark:bg-gray-700" : ""}
+        ${!isActive && !isCompleted ? "bg-gray-200" : ""}
       `}
       >
         {isCompleted && <Check className="h-5 w-5 text-white" />}
         {isActive && <div className="w-4 h-4 rounded-full bg-white"></div>}
       </div>
-      <span className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-200">{label}</span>
+      <span className="mt-2 text-sm font-medium text-gray-900">{label}</span>
     </div>
   )
 }
@@ -300,7 +300,7 @@ function StepIndicator({ step, currentStep, label }: StepIndicatorProps) {
 function StepConnector({ completed }: { completed: boolean }) {
   return (
     <div className="flex-1 h-px mx-2 w-16">
-      <div className={`h-full ${completed ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-700"}`}></div>
+      <div className={`h-full ${completed ? "bg-blue-600" : "bg-gray-200"}`}></div>
     </div>
   )
 }

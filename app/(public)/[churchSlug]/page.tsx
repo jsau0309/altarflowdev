@@ -56,19 +56,19 @@ export default async function DonatePage(props: DonatePageProps) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>
         <div className="w-full max-w-md space-y-8">
-          <div className="mt-8 flex flex-col items-center space-y-4 bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md">
+          <div className="mt-8 flex flex-col items-center space-y-4 bg-white px-6 py-8 rounded-lg shadow-md">
             <Image
               src="/images/Altarflow.svg"
               alt="Altarflow Logo"
-              width={240} 
-              height={80}  
-              priority 
+              width={240}
+              height={80}
+              priority
             />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+            <h1 className="text-2xl font-bold text-gray-900 text-center">
               {church.name}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-center">
-              {!hasActiveStripeAccount 
+            <p className="text-gray-600 text-center">
+              {!hasActiveStripeAccount
                 ? "Donations are not available at this time. Please contact the church for more information."
                 : "This donation page has been temporarily disabled."}
             </p>
@@ -82,22 +82,22 @@ export default async function DonatePage(props: DonatePageProps) {
     <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>
       <div className="w-full max-w-md space-y-8">
         {/* New Header Structure */}
-        <div className="mt-8 flex flex-col items-center space-y-4 bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md"> 
+        <div className="mt-8 flex flex-col items-center space-y-4 bg-white px-6 py-8 rounded-lg shadow-md">
           <Image
             src="/images/Altarflow.svg"
             alt="Altarflow Logo"
-            width={240} 
-            height={80}  
-            priority 
+            width={240}
+            height={80}
+            priority
           />
           {/* Church Name Display */}
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+          <h1 className="text-2xl font-bold text-gray-900 text-center">
             {church.name}
           </h1>
         </div>
 
         {/* Donation Form Card */}
-        <div className="bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md">
+        <div className="bg-white px-6 py-8 rounded-lg shadow-md">
           <DonationForm
             churchId={church.id}
             churchName={church.name} // churchName is still passed to the form if needed internally
@@ -107,17 +107,17 @@ export default async function DonatePage(props: DonatePageProps) {
         </div>
 
         {/* Footer Sections */}
-        <div className="w-full max-w-md space-y-3 text-center bg-white dark:bg-gray-800 px-6 py-6 rounded-lg shadow-md">
+        <div className="w-full max-w-md space-y-3 text-center bg-white px-6 py-6 rounded-lg shadow-md">
           {/* Terms and Privacy */}
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             By continuing, you agree to Altarflow&apos;s{' '}
-            <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700 dark:hover:text-gray-200">Terms of Service</a>
+            <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700">Terms of Service</a>
             {' and '}
-            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700 dark:hover:text-gray-200">Privacy Policy</a>.
+            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700">Privacy Policy</a>.
           </p>
 
           {/* Powered by Altarflow */}
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
             <span>Powered by</span>
             <Image
               src="/images/Altarflow.svg"
@@ -128,7 +128,7 @@ export default async function DonatePage(props: DonatePageProps) {
           </div>
 
           {/* Secure Transaction */}
-          <div className="flex items-center justify-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center justify-center space-x-1 text-xs text-gray-500">
             <Lock className="h-3 w-3" />
             <span>Secure Transaction</span>
           </div>

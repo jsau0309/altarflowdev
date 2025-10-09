@@ -7,8 +7,9 @@ import { PanelLeft } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
 import { useTranslation } from 'react-i18next';
+import { useTheme } from "next-themes"
 import {
-  BarChart3, CreditCard, DollarSign, LayoutDashboard, 
+  BarChart3, CreditCard, DollarSign, LayoutDashboard,
   Settings, Users, RefreshCcw, FileText, Lock, Mail // Removed HelpCircle and Receipt as they're no longer used
 } from "lucide-react"
 
@@ -198,6 +199,7 @@ const Sidebar = React.forwardRef<
     const pathname = usePathname()
     const router = useRouter()
     const { t } = useTranslation(['layout', 'common']);
+    const { theme } = useTheme()
     const [subscriptionInfo, setSubscriptionInfo] = React.useState<{
       status: string;
       daysLeftInTrial: number | null;
@@ -313,12 +315,12 @@ const Sidebar = React.forwardRef<
             <div className="flex h-full w-full flex-col">
               <SidebarHeader>
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold p-2">
-                  <Image 
-                    src="/images/Altarflow.svg"    
+                  <Image
+                    src={theme === "dark" ? "/images/Altarflow-Dark.svg" : "/images/Altarflow-Light.svg"}
                     alt={t('common:appName', 'Altarflow') + " Logo"}
-                    width={176} 
-                    height={35} 
-                    priority 
+                    width={176}
+                    height={35}
+                    priority
                   />
                 </Link>
               </SidebarHeader>
@@ -399,12 +401,12 @@ const Sidebar = React.forwardRef<
                 state === 'collapsed' ? "px-2 justify-center" : "px-4"
               )}>
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                  <Image 
-                    src="/images/Altarflow.svg" 
+                  <Image
+                    src={theme === "dark" ? "/images/Altarflow-Dark.svg" : "/images/Altarflow-Light.svg"}
                     alt={t('common:appName', 'Altarflow') + " Logo"}
                     width={state === 'collapsed' ? 40 : 176}
                     height={state === 'collapsed' ? 32 : 35}
-                    priority 
+                    priority
                     className={cn(
                       "transition-all duration-300 ease-in-out",
                     )}

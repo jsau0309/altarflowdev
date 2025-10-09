@@ -173,15 +173,15 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
     // If submission was successful, show message and hide form
     if (submitResult?.success) {
         return (
-             <Card className="w-full max-w-md mx-auto">
+             <Card className="w-full max-w-md mx-auto bg-white text-gray-900 border-gray-300">
                  <CardHeader>
-                     <CardTitle>{t('connect-form:successCardTitle')}</CardTitle>
+                     <CardTitle className="text-gray-900">{t('connect-form:successCardTitle')}</CardTitle>
                  </CardHeader>
                  <CardContent>
-                    <Alert variant="default">
-                       <AlertCircle className="h-4 w-4" />
-                       <AlertTitle>{t('common:successTitle')}</AlertTitle>
-                       <AlertDescription>
+                    <Alert variant="default" className="bg-white border-gray-300 text-gray-900">
+                       <AlertCircle className="h-4 w-4 !text-gray-900" />
+                       <AlertTitle className="text-gray-900">{t('common:successTitle')}</AlertTitle>
+                       <AlertDescription className="text-gray-900">
                          {submitResult.message ? t(submitResult.message, { ns: 'connect-form' }) : t('connect-form:successMessage')}
                        </AlertDescription>
                     </Alert>
@@ -191,10 +191,10 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
     }
 
     return (
-        <Card className="w-full max-w-md mx-auto">
+        <Card className="w-full max-w-md mx-auto bg-white text-gray-900 border-gray-300">
             <CardHeader>
-                <CardTitle>{t('connect-form:title', { churchName: churchName })}</CardTitle>
-                <CardDescription>{t('connect-form:description')}</CardDescription>
+                <CardTitle className="text-gray-900">{t('connect-form:title', { churchName: churchName })}</CardTitle>
+                <CardDescription className="text-gray-600">{t('connect-form:description')}</CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
                 <CardContent className="space-y-6">
@@ -209,49 +209,50 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                         aria-hidden="true"
                     />
                     
-                    {/* --- Standard Fields --- */} 
+                    {/* --- Standard Fields --- */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="firstName">{t('connect-form:labelFirstName')}</Label>
-                            <Input id="firstName" {...register("firstName")} />
+                            <Label htmlFor="firstName" className="text-gray-900">{t('connect-form:labelFirstName')}</Label>
+                            <Input id="firstName" {...register("firstName")} className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500" />
                             {errors.firstName && <p className="text-sm text-destructive">{errors.firstName.message}</p>}
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="lastName">{t('connect-form:labelLastName')}</Label>
-                            <Input id="lastName" {...register("lastName")} />
+                            <Label htmlFor="lastName" className="text-gray-900">{t('connect-form:labelLastName')}</Label>
+                            <Input id="lastName" {...register("lastName")} className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500" />
                             {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="email">{t('common:email')}</Label>
-                        <Input id="email" type="email" {...register("email")} />
+                        <Label htmlFor="email" className="text-gray-900">{t('common:email')}</Label>
+                        <Input id="email" type="email" {...register("email")} className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500" />
                          {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="phone">{t('common:phone')}</Label>
-                        <Input 
-                            id="phone" 
-                            type="tel" 
-                            {...register("phone")} 
-                            onChange={handlePhoneChange} 
-                            placeholder={t('common:placeholders.phoneExample', '(555) 123-4567')} 
+                        <Label htmlFor="phone" className="text-gray-900">{t('common:phone')}</Label>
+                        <Input
+                            id="phone"
+                            type="tel"
+                            {...register("phone")}
+                            onChange={handlePhoneChange}
+                            placeholder={t('common:placeholders.phoneExample', '(555) 123-4567')}
+                            className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
                         />
                          {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
                     </div>
                     <div className="space-y-2">
-                         <Label>{t('connect-form:labelRelationshipStatus')}</Label>
-                        <RadioGroup 
+                         <Label className="text-gray-900">{t('connect-form:labelRelationshipStatus')}</Label>
+                        <RadioGroup
                             onValueChange={(value) => setValue("relationshipStatus", value as RelationshipStatus)}
                             defaultValue={watch("relationshipStatus")}
                             className="flex space-x-4"
                          >
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="visitor" id="visitor" />
-                                <Label htmlFor="visitor">{t('connect-form:optionVisitor')}</Label>
+                                <Label htmlFor="visitor" className="text-gray-900">{t('connect-form:optionVisitor')}</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="regular" id="regular" />
-                                <Label htmlFor="regular">{t('connect-form:optionRegular')}</Label>
+                                <Label htmlFor="regular" className="text-gray-900">{t('connect-form:optionRegular')}</Label>
                             </div>
                         </RadioGroup>
                          {errors.relationshipStatus && <p className="text-sm text-destructive">{errors.relationshipStatus.message}</p>}
@@ -259,13 +260,13 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
 
                      {/* --- Conditional Fields --- */}
 
-                    {/* Service Times */} 
+                    {/* Service Times */}
                     {activeServiceTimes.length > 0 && (
                         <div className="space-y-2">
-                             <Label>{t('connect-form:labelServiceAttended')}</Label>
+                             <Label className="text-gray-900">{t('connect-form:labelServiceAttended')}</Label>
                              {activeServiceTimes.map((st) => (
                                 <div key={st.id} className="flex items-center space-x-2">
-                                    <Checkbox 
+                                    <Checkbox
                                         id={`service-${st.id}`}
                                         value={st.id}
                                         onCheckedChange={(checked) => {
@@ -276,20 +277,20 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                                             setValue("serviceTimes", newSelection);
                                         }}
                                     />
-                                    <Label htmlFor={`service-${st.id}`}>{st.day} {st.time}</Label>
+                                    <Label htmlFor={`service-${st.id}`} className="text-gray-900">{st.day} {st.time}</Label>
                                 </div>
                              ))}
                              {/* Add error display if needed */}
                         </div>
                     )}
 
-                     {/* Ministries */} 
+                     {/* Ministries */}
                      {activeMinistries.length > 0 && (
                         <div className="space-y-2">
-                             <Label>{t('connect-form:labelMinistryInterest')}</Label>
+                             <Label className="text-gray-900">{t('connect-form:labelMinistryInterest')}</Label>
                              {activeMinistries.map((m) => (
                                 <div key={m.id} className="flex items-center space-x-2">
-                                    <Checkbox 
+                                    <Checkbox
                                          id={`ministry-${m.id}`}
                                          value={m.id}
                                         onCheckedChange={(checked) => {
@@ -300,18 +301,18 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                                             setValue("interestedMinistries", newSelection);
                                         }}
                                      />
-                                    <Label htmlFor={`ministry-${m.id}`}>{m.name}</Label>
+                                    <Label htmlFor={`ministry-${m.id}`} className="text-gray-900">{m.name}</Label>
                                 </div>
                              ))}
                              {/* Add error display if needed */}
                         </div>
                     )}
 
-                    {/* Life Stage */} 
+                    {/* Life Stage */}
                     {settings.enableLifeStage && (
                         <div className="space-y-2">
-                            <Label>{t('connect-form:labelLifeStage')}</Label>
-                             <RadioGroup 
+                            <Label className="text-gray-900">{t('connect-form:labelLifeStage')}</Label>
+                             <RadioGroup
                                 onValueChange={(value) => setValue("lifeStage", value as LifeStage)}
                                 defaultValue={watch("lifeStage")}
                                 className="grid grid-cols-2 gap-2"
@@ -319,7 +320,7 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                                  {(["teens", "20s", "30s", "40s", "50s", "60s", "70plus"] as LifeStage[]).map(stage => (
                                     <div key={stage} className="flex items-center space-x-2">
                                         <RadioGroupItem value={stage} id={`lifeStage-${stage}`} />
-                                        <Label htmlFor={`lifeStage-${stage}`} className="capitalize">
+                                        <Label htmlFor={`lifeStage-${stage}`} className="capitalize text-gray-900">
                                             {t(`connect-form:optionLifeStage${stage.charAt(0).toUpperCase() + stage.slice(1)}`, stage === '70plus' ? '70+' : stage)}
                                         </Label>
                                     </div>
@@ -328,23 +329,23 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                              {errors.lifeStage && <p className="text-sm text-destructive">{errors.lifeStage.message}</p>}
                         </div>
                     )}
-                    
-                    {/* Referral Source */} 
+
+                    {/* Referral Source */}
                     {settings.enableReferralTracking && (
                         <div className="space-y-2">
-                            <Label htmlFor="referralSource">{t('connect-form:labelReferralSource')}</Label>
-                            <Input id="referralSource" {...register("referralSource")} />
+                            <Label htmlFor="referralSource" className="text-gray-900">{t('connect-form:labelReferralSource')}</Label>
+                            <Input id="referralSource" {...register("referralSource")} className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500" />
                              {errors.referralSource && <p className="text-sm text-destructive">{errors.referralSource.message}</p>}
                         </div>
                     )}
 
-                     {/* Prayer Request */} 
+                     {/* Prayer Request */}
                      {settings.enablePrayerRequests && (
                          <div className="space-y-4">
                             <div className="flex items-center space-x-2">
-                                <Checkbox 
+                                <Checkbox
                                     id="prayerRequested"
-                                    checked={watch("prayerRequested")} 
+                                    checked={watch("prayerRequested")}
                                     onCheckedChange={(checked) => {
                                         const isChecked = !!checked;
                                          setValue("prayerRequested", isChecked);
@@ -354,28 +355,29 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
                                          }
                                     }}
                                 />
-                                <Label htmlFor="prayerRequested">{t('connect-form:labelRequestPrayer')}</Label>
+                                <Label htmlFor="prayerRequested" className="text-gray-900">{t('connect-form:labelRequestPrayer')}</Label>
                             </div>
                             {showPrayerInput && (
                                 <div className="space-y-2 pl-6">
-                                    <Label htmlFor="prayerRequest">{t('connect-form:labelPrayerRequest')}</Label>
-                                    <Textarea 
+                                    <Label htmlFor="prayerRequest" className="text-gray-900">{t('connect-form:labelPrayerRequest')}</Label>
+                                    <Textarea
                                         id="prayerRequest"
-                                         {...register("prayerRequest")} 
-                                         placeholder={t('connect-form:placeholderPrayer')} 
+                                         {...register("prayerRequest")}
+                                         placeholder={t('connect-form:placeholderPrayer')}
+                                         className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
                                      />
                                      {/* Add error display if needed */}
                                  </div>
                             )}
                          </div>
                      )}
-                    
-                     {/* Display General Submit Error */} 
+
+                     {/* Display General Submit Error */}
                      {submitResult && !submitResult.success && (
-                         <Alert variant="destructive">
-                           <AlertCircle className="h-4 w-4" />
-                           <AlertTitle>{t('common:errors.errorTitle')}</AlertTitle>
-                           <AlertDescription>
+                         <Alert variant="destructive" className="bg-red-50 border-red-300">
+                           <AlertCircle className="h-4 w-4 text-red-600" />
+                           <AlertTitle className="text-red-900">{t('common:errors.errorTitle')}</AlertTitle>
+                           <AlertDescription className="text-red-800">
                              {submitResult.message || t('connect-form:errorMessageDefault')}
                            </AlertDescription>
                         </Alert>

@@ -87,35 +87,35 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: oklch(0.145 0 0);
-    --card-foreground: 210 40% 98%;
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: 210 40% 98%;
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
+    --background: 240 5.9% 10%; /* Match sidebar - neutral gray */
+    --foreground: 240 4.8% 95.9%; /* Light gray text */
+    --card: 240 3.7% 15.9%; /* Slightly lighter gray for cards */
+    --card-foreground: 240 4.8% 95.9%;
+    --popover: 240 3.7% 15.9%;
+    --popover-foreground: 240 4.8% 95.9%;
+    --primary: 221.2 83.2% 53.3%; /* Keep primary blue */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 240 3.7% 15.9%; /* Neutral gray */
+    --secondary-foreground: 240 4.8% 95.9%;
+    --muted: 240 3.7% 15.9%; /* Neutral gray */
+    --muted-foreground: 240 5% 64.9%; /* Medium gray */
+    --accent: 240 3.7% 15.9%; /* Neutral gray */
+    --accent-foreground: 240 4.8% 95.9%;
+    --destructive: 0 84.2% 60.2%; /* Red */
+    --destructive-foreground: 210 40% 98%;
+    --border: 240 3.7% 20%; /* Subtle border */
+    --input: 240 3.7% 20%; /* Subtle input border */
+    --ring: 221.2 83.2% 53.3%; /* Blue ring */
 
-    /* Add Dark Sidebar variables from reference */
+    /* Sidebar variables - using same gray foundation */
     --sidebar-background: 240 5.9% 10%; /* Almost black */
     --sidebar-foreground: 240 4.8% 95.9%; /* Very light gray */
-    --sidebar-primary: 224.3 76.3% 48%; /* Blue */
-    --sidebar-primary-foreground: 0 0% 100%; /* White */
+    --sidebar-primary: 221.2 83.2% 53.3%; /* Match primary blue */
+    --sidebar-primary-foreground: 210 40% 98%; /* White */
     --sidebar-accent: 240 3.7% 15.9%; /* Dark gray */
     --sidebar-accent-foreground: 240 4.8% 95.9%; /* Very light gray */
-    --sidebar-border: oklch(0.269 0 0); /* Dark gray */
-    --sidebar-ring: oklch(0.439 0 0); /* Blue */
+    --sidebar-border: 240 3.7% 20%; /* Match border */
+    --sidebar-ring: 221.2 83.2% 53.3%; /* Match ring */
 
     /* Chart colors for dark mode - adjust if needed for better contrast */
     --chart-1: 217.2 91.2% 59.8%; /* Lighter Blue */
