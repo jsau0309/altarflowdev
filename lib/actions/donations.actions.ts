@@ -282,7 +282,7 @@ export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
 
     return donorList;
 
-  } catch (error) {
+  } catch {
     // Error fetching donors
     return [];
   }
