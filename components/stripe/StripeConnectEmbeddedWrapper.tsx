@@ -92,11 +92,17 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
   const [connectInstance, setConnectInstance] = useState<StripeConnectInstance | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState<boolean>(false);
   const { i18n } = useTranslation();
-  const { theme, resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
-  // Determine if we're in dark mode
-  const isDarkMode = resolvedTheme === 'dark' || theme === 'dark';
+  // Prevent hydration mismatch by only applying theme after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Determine if we're in dark mode (only after mount to prevent hydration mismatch)
+  const isDarkMode = mounted && resolvedTheme === 'dark';
   
   // Map i18n language to Stripe locale
   const getStripeLocale = () => {

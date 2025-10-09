@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import I18nClientProvider from "@/components/i18n-client-provider";
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from '@/components/error-boundary'
+import { ThemeErrorBoundary } from '@/components/providers/theme-error-boundary'
 import { LoadingProvider } from '@/contexts/loading-context'
 import { ClerkThemeProvider } from '@/components/providers/clerk-theme-provider'
 import { PostHogProvider } from '@/components/providers/posthog-provider'
@@ -147,27 +148,29 @@ export default function RootLayout({
         {/* Comment block removed */}
       </head>
       <body className={GeistSans.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <ClerkThemeProvider>
-            <I18nClientProvider>
-              <LoadingProvider>
-                <SentryProvider>
-                  <PostHogProvider>
-                    <ErrorBoundary>
-                      {children}
-                    </ErrorBoundary>
-                  </PostHogProvider>
-                  <Toaster richColors position="bottom-right" />
-                </SentryProvider>
-              </LoadingProvider>
-            </I18nClientProvider>
-          </ClerkThemeProvider>
-        </ThemeProvider>
+        <ThemeErrorBoundary>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <ClerkThemeProvider>
+              <I18nClientProvider>
+                <LoadingProvider>
+                  <SentryProvider>
+                    <PostHogProvider>
+                      <ErrorBoundary>
+                        {children}
+                      </ErrorBoundary>
+                    </PostHogProvider>
+                    <Toaster richColors position="bottom-right" />
+                  </SentryProvider>
+                </LoadingProvider>
+              </I18nClientProvider>
+            </ClerkThemeProvider>
+          </ThemeProvider>
+        </ThemeErrorBoundary>
       </body>
     </html>
   )

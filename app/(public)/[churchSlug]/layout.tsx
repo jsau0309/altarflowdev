@@ -12,13 +12,8 @@ export default function ChurchPublicLayout({
 }) {
   return (
     <div
-      className="light text-gray-900"
+      className="light text-gray-900 public-page-light"
       data-theme="light"
-      style={{
-        colorScheme: 'light',
-        background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)',
-        minHeight: '100vh'
-      }}
     >
       {children}
     </div>

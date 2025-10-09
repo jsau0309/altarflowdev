@@ -188,7 +188,7 @@ MCP acts like a "USB-C port for AI" - providing standardized connections between
 #### Authentication
 ```bash
 # Basic Anthropic API
-export ANTHROPIC_API_KEY=sk-...
+export ANTHROPIC_API_KEY=your_api_key_here
 
 # Amazon Bedrock
 export CLAUDE_CODE_USE_BEDROCK=1

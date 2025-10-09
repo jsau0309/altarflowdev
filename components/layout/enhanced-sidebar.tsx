@@ -199,7 +199,7 @@ const Sidebar = React.forwardRef<
     const pathname = usePathname()
     const router = useRouter()
     const { t } = useTranslation(['layout', 'common']);
-    const { theme } = useTheme()
+    const { resolvedTheme } = useTheme()
     const [subscriptionInfo, setSubscriptionInfo] = React.useState<{
       status: string;
       daysLeftInTrial: number | null;
@@ -316,7 +316,7 @@ const Sidebar = React.forwardRef<
               <SidebarHeader>
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold p-2">
                   <Image
-                    src={theme === "dark" ? "/images/Altarflow-Dark.svg" : "/images/Altarflow-Light.svg"}
+                    src={resolvedTheme === "dark" ? "/images/Altarflow-Dark.svg" : "/images/Altarflow-Light.svg"}
                     alt={t('common:appName', 'Altarflow') + " Logo"}
                     width={176}
                     height={35}
@@ -402,7 +402,7 @@ const Sidebar = React.forwardRef<
               )}>
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
                   <Image
-                    src={theme === "dark" ? "/images/Altarflow-Dark.svg" : "/images/Altarflow-Light.svg"}
+                    src={resolvedTheme === "dark" ? "/images/Altarflow-Dark.svg" : "/images/Altarflow-Light.svg"}
                     alt={t('common:appName', 'Altarflow') + " Logo"}
                     width={state === 'collapsed' ? 40 : 176}
                     height={state === 'collapsed' ? 32 : 35}

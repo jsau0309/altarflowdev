@@ -90,7 +90,7 @@ TWILIO_VERIFY_SERVICE_SID=VAxxxxx
 MINDEE_API_KEY=xxxxx
 
 # Anthropic Claude (Optional - for email preview text generation)
-ANTHROPIC_API_KEY=sk-ant-xxxxx
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 # Topol Email Editor
 NEXT_PUBLIC_TOPOL_API_KEY=xxxxx
