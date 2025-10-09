@@ -630,7 +630,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                         <DollarSign className="h-10 w-10 text-primary" />
                       </div>
                       <h3 className="mt-6 text-xl font-semibold">{t('donations:donationsContent.empty.title', 'No donations found')}</h3>
-                      <p className="mt-2 text-sm text-muted-foreground">
+                      <p className="mt-2 mb-6 text-sm text-muted-foreground">
                         {getActiveFilterCount() > 0
                           ? t('donations:donationsContent.empty.adjustFilters', 'Try adjusting your search or filters.')
                           : t('donations:donationsContent.empty.addFirst', 'Add your first donation to get started.')}

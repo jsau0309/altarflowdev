@@ -81,41 +81,41 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between text-gray-900">
         <div className="text-2xl font-medium">$</div>
         <input
           type="text"
           inputMode="decimal"
           value={amount}
           onChange={(e) => handleAmountChange(e.target.value)}
-          className="w-full text-center text-4xl font-bold bg-transparent border-none focus:outline-none focus:ring-0"
+          className="w-full text-center text-4xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0"
           placeholder="0"
         />
         <div className="text-2xl font-medium">{t('common:currency.usd', 'USD')}</div>
       </div>
 
-      <div className="text-sm text-center text-gray-500 dark:text-gray-400">
+      <div className="text-sm text-center text-gray-500">
         {t('donations:donationDetails.amountPrompt', 'Enter an amount or make a quick selection below')}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Button type="button" variant="outline" onClick={() => handleQuickAmount(50)}>
+        <Button type="button" variant="outline" className="bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:text-gray-900" onClick={() => handleQuickAmount(50)}>
           $50
         </Button>
-        <Button type="button" variant="outline" onClick={() => handleQuickAmount(100)}>
+        <Button type="button" variant="outline" className="bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:text-gray-900" onClick={() => handleQuickAmount(100)}>
           $100
         </Button>
-        <Button type="button" variant="outline" onClick={() => handleQuickAmount(500)}>
+        <Button type="button" variant="outline" className="bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:text-gray-900" onClick={() => handleQuickAmount(500)}>
           $500
         </Button>
-        <Button type="button" variant="outline" onClick={() => handleQuickAmount(1000)}>
+        <Button type="button" variant="outline" className="bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:text-gray-900" onClick={() => handleQuickAmount(1000)}>
           $1,000
         </Button>
       </div>
 
       {/* REPLACED the old campaign Select with this new one for Donation Types */}
       <div className="space-y-2">
-        <Label htmlFor="donationTypeSelect">{t('donations:donationDetails.selectFundLabel', 'Select a Fund')}</Label>
+        <Label htmlFor="donationTypeSelect" className="text-gray-900">{t('donations:donationDetails.selectFundLabel', 'Select a Fund')}</Label>
         <select
           id="donationTypeSelect"
           value={formData.donationTypeId}
@@ -127,7 +127,7 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
               donationTypeName: selectedDonationType ? selectedDonationType.name : undefined
             });
           }}
-          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="">{/* Intentionally empty for no visible placeholder text */}</option>
           {donationTypes.map((type) => {
@@ -148,7 +148,7 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
       </div>
 
       <div className="items-top flex space-x-2">
-        <Checkbox 
+        <Checkbox
           id="coverFees"
           checked={!!formData.coverFees}
           onCheckedChange={(checked) => {
@@ -158,12 +158,12 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
         <div className="grid gap-1.5 leading-none">
           <label
             htmlFor="coverFees"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="text-sm font-medium text-gray-900 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             {t('donations:donationDetails.coverFeesLabel', "I'd like to help cover the processing fees.")}
           </label>
           {formData.coverFees && calculatedFee > 0 && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-600">
               {t('donations:donationDetails.processingFee', 'Processing Fee:')} ${calculatedFee.toFixed(2)}<br />
               {t('donations:donationDetails.totalDonation', 'Total Donation:')} ${totalWithFees.toFixed(2)}
             </p>

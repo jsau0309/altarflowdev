@@ -5,11 +5,10 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import I18nClientProvider from "@/components/i18n-client-provider";
 import { Toaster } from 'sonner';
-import { 
-  ClerkProvider
-} from '@clerk/nextjs'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { ThemeErrorBoundary } from '@/components/providers/theme-error-boundary'
 import { LoadingProvider } from '@/contexts/loading-context'
+import { ClerkThemeProvider } from '@/components/providers/clerk-theme-provider'
 import { PostHogProvider } from '@/components/providers/posthog-provider'
 import { SentryProvider } from '@/components/providers/sentry-provider'
 import { StructuredData } from '@/components/seo/structured-data'
@@ -143,50 +142,36 @@ export default function RootLayout({
   // Removed client-side Supabase setup logic
 
   return (
-    <ClerkProvider
-      appearance={{
-        elements: {
-          rootBox: "w-full",
-          card: "shadow-none",
-        }
-      }}
-      signInUrl="/signin"
-      signUpUrl="/signup"
-      signInFallbackRedirectUrl="/dashboard"
-      signUpFallbackRedirectUrl="/after-signup"
-    >
-      <html lang="en" suppressHydrationWarning>
-        <head>
-          <StructuredData />
-          {/* Comment block removed */}
-        </head>
-        <body className={GeistSans.className}>
-          {/* REMOVED global simple header */}
-          {/* <header style={{...}}>
-            <SignedOut>...</SignedOut>
-            <SignedIn>...</SignedIn>
-          </header> */}
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <StructuredData />
+        {/* Comment block removed */}
+      </head>
+      <body className={GeistSans.className}>
+        <ThemeErrorBoundary>
           <ThemeProvider
             attribute="class"
             defaultTheme="light"
             enableSystem
             disableTransitionOnChange
           >
-            <I18nClientProvider>
-              <LoadingProvider>
-                <SentryProvider>
-                  <PostHogProvider>
-                    <ErrorBoundary>
-                      {children}
-                    </ErrorBoundary>
-                  </PostHogProvider>
-                  <Toaster richColors position="bottom-right" />
-                </SentryProvider>
-              </LoadingProvider>
-            </I18nClientProvider>
+            <ClerkThemeProvider>
+              <I18nClientProvider>
+                <LoadingProvider>
+                  <SentryProvider>
+                    <PostHogProvider>
+                      <ErrorBoundary>
+                        {children}
+                      </ErrorBoundary>
+                    </PostHogProvider>
+                    <Toaster richColors position="bottom-right" />
+                  </SentryProvider>
+                </LoadingProvider>
+              </I18nClientProvider>
+            </ClerkThemeProvider>
           </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+        </ThemeErrorBoundary>
+      </body>
+    </html>
   )
 }

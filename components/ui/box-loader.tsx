@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 export const BoxLoader: React.FC = () => {
   const { t } = useTranslation('common');
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
       {/* Animated background pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 -left-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
@@ -164,14 +164,14 @@ export const BoxLoader: React.FC = () => {
         </div>
 
         {/* Loading text */}
-        <motion.div 
+        <motion.div
           className="text-center space-y-8 ml-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
         >
-          <motion.p 
-            className="text-gray-600 text-lg"
+          <motion.p
+            className="text-gray-600 dark:text-gray-300 text-lg"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}

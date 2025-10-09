@@ -227,7 +227,9 @@
         "lastNameRequired": "El apellido es requerido",
         "invalidEmail": "Por favor, ingresa un correo electrónico válido",
         "invalidPhone": "Por favor, ingresa un número de teléfono válido",
-        "invalidZip": "Por favor, ingresa un código postal válido"
+        "invalidZip": "Por favor, ingresa un código postal válido",
+        "universalDonorNotLinked": "Donante tiene que estar vinculado a un miembro de la iglesia antes de agregar donación manual.",
+        "universalDonorDifferentChurch": "Este donante universal está vinculado a un miembro de otra iglesia y no puede recibir donaciones manuales aquí."
       }
     },
     "donorTableActions": {

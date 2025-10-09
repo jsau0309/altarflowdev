@@ -42,9 +42,11 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
     console.error(`ConnectFlowPage: Error parsing configJson for slug ${flowSlug}:`, error);
     // Handle parsing error - maybe show a generic error message
     return (
-      <div className="container mx-auto py-8 text-center text-destructive">
-        <h1>Error Loading Form Configuration</h1>
-        <p>There was a problem loading the form settings. Please try again later.</p>
+      <div className="container mx-auto py-8 text-center">
+        <div className="bg-white text-gray-900 p-8 rounded-lg shadow-md max-w-md mx-auto">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Form Configuration</h1>
+          <p className="text-gray-600">There was a problem loading the form settings. Please try again later.</p>
+        </div>
       </div>
     );
   }

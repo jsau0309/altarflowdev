@@ -85,7 +85,7 @@ export default function DonationInfo({
         return (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="phone-initial-input">{t('members:phone', 'Phone Number for Verification')}</Label>
+              <Label htmlFor="phone-initial-input" className="text-gray-900">{t('members:phone', 'Phone Number for Verification')}</Label>
               <PhoneInput
                 id="phone-initial-input"
                 international
@@ -94,9 +94,9 @@ export default function DonationInfo({
                 onChange={(value) => updateFormData({ phone: value || '' })}
                 placeholder={t('donations:donationInfo.phonePlaceholderE164', 'e.g., +11234567890')}
                 disabled={isLoadingOtpAction}
-                className="input flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="input flex h-10 w-full rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
               />
-              <p className="text-xs text-gray-500 mt-1">{t('donations:donationInfo.phoneVerificationPrompt', 'We will send a one-time code to this number.')}</p>
+              <p className="text-xs text-gray-600 mt-1">{t('donations:donationInfo.phoneVerificationPrompt', 'We will send a one-time code to this number.')}</p>
             </div>
             <Button onClick={handleSendOtp} disabled={isLoadingOtpAction || !formData.phone} className="w-full">
               {isLoadingOtpAction ? t('donations:donationInfo.sendingOtp', 'Sending OTP...') : t('donations:donationInfo.verifyPhone', 'Verify Phone')}
@@ -107,7 +107,7 @@ export default function DonationInfo({
                 checked={formData.isAnonymous || false}
                 onCheckedChange={(checked) => handleAnonymousChange(!!checked)}
               />
-              <Label htmlFor="anonymous-initial" className="text-sm font-normal">
+              <Label htmlFor="anonymous-initial" className="text-sm font-normal text-gray-900">
                 {t('donations:donationInfo.anonymousLabel', 'Donate anonymously')}
               </Label>
             </div>
@@ -121,9 +121,9 @@ export default function DonationInfo({
       case 'verification_error':
         return (
           <div className="space-y-4">
-            <p>{t('donations:donationInfo.otpSentTo', 'An OTP has been sent to:')} {formData.phone}</p>
+            <p className="text-gray-900">{t('donations:donationInfo.otpSentTo', 'An OTP has been sent to:')} {formData.phone}</p>
             <div>
-              <Label htmlFor="otpCode">{t('donations:donationInfo.otpCode', 'Verification Code')}</Label>
+              <Label htmlFor="otpCode" className="text-gray-900">{t('donations:donationInfo.otpCode', 'Verification Code')}</Label>
               <Input
                 id="otpCode"
                 type="text"
@@ -132,6 +132,7 @@ export default function DonationInfo({
                 placeholder={t('donations:donationInfo.otpPlaceholder', 'Enter 6-digit code')}
                 maxLength={6}
                 disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}
+                className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
               />
             </div>
             <Button
@@ -161,8 +162,8 @@ export default function DonationInfo({
           <div className="space-y-4">
             { (phoneVerificationStage === 'verified_existing_donor' || phoneVerificationStage === 'verified_new_donor') && formData.phone && (
               <div className="mb-3 flex justify-center items-center text-center py-2">
-                <p className="text-md text-gray-800 dark:text-gray-200">
-                  {t('donations:donationInfo.youHaveVerified', 'You have verified')} {formData.phone ? formatPhoneNumber(formData.phone) : ''} 
+                <p className="text-md text-gray-900">
+                  {t('donations:donationInfo.youHaveVerified', 'You have verified')} {formData.phone ? formatPhoneNumber(formData.phone) : ''}
                   <Check className="inline h-5 w-5 text-green-500 ml-2" />
                 </p>
               </div>
@@ -170,67 +171,71 @@ export default function DonationInfo({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">{t('members:firstName', 'First Name')}</Label>
+                <Label htmlFor="firstName" className="text-gray-900">{t('members:firstName', 'First Name')}</Label>
                 <Input
                   id="firstName"
                   value={formData.firstName || ""}
                   onChange={(e) => updateFormData({ firstName: e.target.value })}
                   required
                   disabled={phoneVerificationStage === 'anonymous_selected' && !formData.isAnonymous}
+                  className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">{t('members:lastName', 'Last Name')}</Label>
+                <Label htmlFor="lastName" className="text-gray-900">{t('members:lastName', 'Last Name')}</Label>
                 <Input
                   id="lastName"
                   value={formData.lastName || ""}
                   onChange={(e) => updateFormData({ lastName: e.target.value })}
                   required
                   disabled={phoneVerificationStage === 'anonymous_selected' && !formData.isAnonymous}
+                  className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">{t('members:email', 'Email')}</Label>
+              <Label htmlFor="email" className="text-gray-900">{t('members:email', 'Email')}</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email || ""}
                 onChange={(e) => updateFormData({ email: e.target.value })}
-                required 
+                required
+                className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
               />
             </div>
 
             { phoneVerificationStage !== 'anonymous_selected' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="street">{t('members:address', 'Address (Street)')}</Label>
+                  <Label htmlFor="street" className="text-gray-900">{t('members:address', 'Address (Street)')}</Label>
                   <Input
                     id="street"
                     value={formData.street || ""}
                     onChange={(e) => updateFormData({ street: e.target.value })}
                     placeholder={t('members:streetAddressPlaceholder', 'Street address')}
                     required
+                    className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="city">{t('members:city', 'City')}</Label>
-                    <Input id="city" value={formData.city || ""} onChange={(e) => updateFormData({ city: e.target.value })} placeholder={t('members:cityPlaceholder', 'City')} required />
+                    <Label htmlFor="city" className="text-gray-900">{t('members:city', 'City')}</Label>
+                    <Input id="city" value={formData.city || ""} onChange={(e) => updateFormData({ city: e.target.value })} placeholder={t('members:cityPlaceholder', 'City')} required className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state">{t('members:state', 'State / Province')}</Label>
-                    <Input id="state" value={formData.state || ""} onChange={(e) => updateFormData({ state: e.target.value })} placeholder={t('members:statePlaceholder', 'State / Province')} required />
+                    <Label htmlFor="state" className="text-gray-900">{t('members:state', 'State / Province')}</Label>
+                    <Input id="state" value={formData.state || ""} onChange={(e) => updateFormData({ state: e.target.value })} placeholder={t('members:statePlaceholder', 'State / Province')} required className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="zipCode">{t('members:zipCode', 'Zip / Postal Code')}</Label>
-                    <Input id="zipCode" value={formData.zipCode || ""} onChange={(e) => updateFormData({ zipCode: e.target.value })} placeholder={t('members:zipCodePlaceholder', 'Zip / Postal Code')} required />
+                    <Label htmlFor="zipCode" className="text-gray-900">{t('members:zipCode', 'Zip / Postal Code')}</Label>
+                    <Input id="zipCode" value={formData.zipCode || ""} onChange={(e) => updateFormData({ zipCode: e.target.value })} placeholder={t('members:zipCodePlaceholder', 'Zip / Postal Code')} required className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="country">{t('members:country', 'Country')}</Label>
-                  <Input id="country" value={formData.country || ""} onChange={(e) => updateFormData({ country: e.target.value })} placeholder={t('members:countryPlaceholder', 'Country')} required />
+                  <Label htmlFor="country" className="text-gray-900">{t('members:country', 'Country')}</Label>
+                  <Input id="country" value={formData.country || ""} onChange={(e) => updateFormData({ country: e.target.value })} placeholder={t('members:countryPlaceholder', 'Country')} required className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500" />
                 </div>
               </>
             )}
@@ -242,7 +247,7 @@ export default function DonationInfo({
                         checked={true}
                         onCheckedChange={(checked) => handleAnonymousChange(!!checked)}
                     />
-                    <Label htmlFor="anonymous-selected-view" className="text-sm font-normal">
+                    <Label htmlFor="anonymous-selected-view" className="text-sm font-normal text-gray-900">
                         {t('donations:donationInfo.anonymousLabel', 'Donate anonymously')}
                     </Label>
                 </div>
@@ -278,16 +283,16 @@ export default function DonationInfo({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
-        <div className="text-xl font-medium text-gray-500 dark:text-gray-400">$</div>
-        <div className="text-4xl font-bold text-center text-gray-900 dark:text-white">{displayAmount.toFixed(2)}</div>
-        <div className="text-xl font-medium text-gray-500 dark:text-gray-400">{t('common:currency.usd', 'USD')}</div>
+      <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-4">
+        <div className="text-xl font-medium text-gray-600">$</div>
+        <div className="text-4xl font-bold text-center text-gray-900">{displayAmount.toFixed(2)}</div>
+        <div className="text-xl font-medium text-gray-600">{t('common:currency.usd', 'USD')}</div>
       </div>
 
       {renderContent()}
 
       <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onBack} className="flex-1">
+        <Button type="button" variant="outline" onClick={onBack} className="flex-1 bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:text-gray-900">
           {t('common:back', 'Back')}
         </Button>
         {(phoneVerificationStage === 'anonymous_selected' || 

@@ -15,7 +15,7 @@ export function PersonalInfoSection() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">{t("members:memberForm.personalInfo.title")}</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 px-0.5">
         <FormField
           control={control}
           name="firstName"
