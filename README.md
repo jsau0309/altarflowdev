@@ -9,13 +9,22 @@
   </p>
 </div>
 
-## 🎯 Latest Updates (v1.1 - December 2024)
+## 🎯 Latest Updates (v1.2 - October 2025)
 
-### 🔥 Critical Production Fixes (December 19, 2024)
-- **Gemini OCR Upgrade** - Migrated receipt scanning from Document AI to Gemini 2.5 Flash with structured JSON output
-- **Clerk Webhooks** - Resolved duplicate user creation with upsert operations
-- **Resend Webhooks** - Fixed signature verification using Svix
-- **PostHog Analytics** - Configured CORS for production domain
+### 🚀 ALT-22: Gemini Flash 2.5 OCR Migration (October 2025)
+- **Complete OCR Overhaul** - Full migration from Google Document AI to Gemini Flash 2.5
+- **Structured JSON Output** - Receipt data extraction with confidence scores (high/medium/low)
+- **Enhanced Mobile UX** - Redesigned scanning flow with improved animations and state management
+- **Cost Optimization** - Reduced OCR costs by ~90% compared to Document AI
+- **PostHog LLM Analytics** - Comprehensive tracking of AI operations and performance metrics
+- **Robust Validation** - Enhanced error handling with nullable schema fields for incomplete receipts
+- **Improved Processing UI** - Multi-stage visual feedback during upload, analysis, and extraction
+
+### 🔧 ALT-7 & ALT-27: Critical Bug Fixes (October 2025)
+- **Universal Donor Support** - Fixed manual donations for universal donors linked to members
+- **Dark Mode Improvements** - Consistent theme handling across dashboard and mobile components
+- **Security Enhancements** - Multiple critical security patches and validation improvements
+- **Webhook Reliability** - Improved Clerk and Resend webhook handling with proper idempotency
 
 ### 🆕 Financial Reconciliation System
 - **Stripe Connect Payout Reconciliation** - Automatic sync and tracking of all payouts
@@ -373,4 +382,4 @@ For support, please:
 
 **Built with ❤️ for churches worldwide**
 
-*Production Status: Live | Version: 1.1.0 | Last Updated: December 19, 2024*
+*Production Status: Live | Version: 1.2.0 | Last Updated: October 13, 2025*
