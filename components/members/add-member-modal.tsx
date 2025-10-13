@@ -186,8 +186,8 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
         }
       }}
     >
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="pb-4">
+      <DialogContent className="w-full h-full sm:max-w-[700px] sm:max-h-[90vh] sm:h-auto overflow-hidden flex flex-col p-0 sm:p-6 sm:rounded-lg">
+        <DialogHeader className="px-6 pt-6 pb-4 sm:px-0 sm:pt-0 sm:pb-4">
           <DialogTitle className="mb-2">{t('members:newMember')}</DialogTitle>
           <DialogDescription>
             {t('members:modal.description')}
@@ -195,7 +195,7 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
         </DialogHeader>
 
         <FormProvider {...form}>
-          <div className="overflow-y-auto pr-1 flex-grow"> {/* Added scroll for content overflow */}
+          <div className="overflow-y-auto overflow-x-hidden px-6 sm:px-1 flex-grow"> {/* Added scroll for content overflow */}
             <form id="add-member-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
               <PersonalInfoSection />
               <AddressSection />
@@ -209,11 +209,11 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
           </div>
         </FormProvider>
         
-        <DialogFooter className="pt-4 mt-auto border-t"> {/* Ensure footer is at bottom */}
-          <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isApiSubmitting || isFormProcessing}>
+        <DialogFooter className="pt-4 pb-6 px-6 mt-auto border-t sm:px-0 sm:pb-0 flex-col-reverse sm:flex-row gap-2"> {/* Ensure footer is at bottom */}
+          <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isApiSubmitting || isFormProcessing} className="w-full sm:w-auto">
             {t('common:cancel')}
           </Button>
-          <Button type="submit" form="add-member-form" disabled={isApiSubmitting || isFormProcessing}>
+          <Button type="submit" form="add-member-form" disabled={isApiSubmitting || isFormProcessing} className="w-full sm:w-auto">
             {(isApiSubmitting || isFormProcessing) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('common:addMember')}
           </Button>

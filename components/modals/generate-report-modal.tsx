@@ -176,13 +176,13 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="w-full h-full sm:max-w-[500px] sm:max-h-[85vh] sm:h-auto overflow-hidden flex flex-col p-0 sm:p-6 sm:rounded-lg">
+        <DialogHeader className="px-6 pt-6 pb-4 sm:px-0 sm:pt-0 sm:pb-0">
           <DialogTitle>{t('reports:generateReportModal.title', 'Generate Report')}</DialogTitle>
           <DialogDescription>{t('reports:generateReportModal.description', 'Select the report you want to generate.')}</DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto pr-1">
+        <div className="overflow-y-auto overflow-x-hidden px-6 sm:px-1 flex-grow">
           <form id="report-form" onSubmit={handleSubmit} className="space-y-4 py-4">
             {error && (
               <Alert variant="destructive">
@@ -347,8 +347,8 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
           </form>
         </div>
 
-        <DialogFooter className="mt-2 pt-2 border-t">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <DialogFooter className="pt-4 pb-6 px-6 mt-auto border-t sm:px-0 sm:pb-0 flex-col-reverse sm:flex-row gap-2">
+          <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
             {t('reports:generateReportModal.cancelButton', 'Cancel')}
           </Button>
           <Button
@@ -357,6 +357,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
             onClick={() => {
               (document.getElementById("report-form") as HTMLFormElement | null)?.requestSubmit()
             }}
+            className="w-full sm:w-auto"
           >
             {isLoading ? (
               <>

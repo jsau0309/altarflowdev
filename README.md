@@ -9,13 +9,22 @@
   </p>
 </div>
 
-## 🎯 Latest Updates (v1.1 - December 2024)
+## 🎯 Latest Updates (v1.2 - October 2025)
 
-### 🔥 Critical Production Fixes (December 19, 2024)
-- **Document AI Fixed** - Switched from gcloud CLI to service account authentication
-- **Clerk Webhooks** - Resolved duplicate user creation with upsert operations
-- **Resend Webhooks** - Fixed signature verification using Svix
-- **PostHog Analytics** - Configured CORS for production domain
+### 🚀 ALT-22: Gemini Flash 2.5 OCR Migration (October 2025)
+- **Complete OCR Overhaul** - Full migration from Google Document AI to Gemini Flash 2.5
+- **Structured JSON Output** - Receipt data extraction with confidence scores (high/medium/low)
+- **Enhanced Mobile UX** - Redesigned scanning flow with improved animations and state management
+- **Cost Optimization** - Reduced OCR costs by ~90% compared to Document AI
+- **PostHog LLM Analytics** - Comprehensive tracking of AI operations and performance metrics
+- **Robust Validation** - Enhanced error handling with nullable schema fields for incomplete receipts
+- **Improved Processing UI** - Multi-stage visual feedback during upload, analysis, and extraction
+
+### 🔧 ALT-7 & ALT-27: Critical Bug Fixes (October 2025)
+- **Universal Donor Support** - Fixed manual donations for universal donors linked to members
+- **Dark Mode Improvements** - Consistent theme handling across dashboard and mobile components
+- **Security Enhancements** - Multiple critical security patches and validation improvements
+- **Webhook Reliability** - Improved Clerk and Resend webhook handling with proper idempotency
 
 ### 🆕 Financial Reconciliation System
 - **Stripe Connect Payout Reconciliation** - Automatic sync and tracking of all payouts
@@ -64,7 +73,7 @@
 - **Email:** [Resend](https://resend.com/) + [Topol.io](https://topol.io/) (Visual editor)
 - **SMS:** [Twilio](https://www.twilio.com/) (OTP verification)
 - **AI:** [OpenAI GPT-4](https://openai.com/) (Report summaries)
-- **OCR:** [Google Document AI](https://cloud.google.com/document-ai) (Receipt scanning)
+- **OCR:** [Google Gemini Flash](https://ai.google.dev/) (Receipt scanning)
 - **Analytics:** [PostHog](https://posthog.com/) + [Sentry](https://sentry.io/)
 
 ### Infrastructure
@@ -81,6 +90,7 @@
 - [Stripe](https://stripe.com/) account
 - [Resend](https://resend.com/) account
 - [OpenAI](https://platform.openai.com/) API key
+- [Google AI Studio](https://aistudio.google.com/apikey) API key (Gemini OCR)
 - [Twilio](https://www.twilio.com/) account (optional)
 
 ## 🚀 Getting Started
@@ -125,6 +135,7 @@ RESEND_API_KEY=re_...
 
 # AI Features
 OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=ai-...
 
 # Payments
 STRIPE_SECRET_KEY=sk_...
@@ -270,6 +281,7 @@ Ensure all critical environment variables are set:
 - `CLERK_SECRET_KEY` - Authentication
 - `RESEND_API_KEY` - Email sending
 - `OPENAI_API_KEY` - AI features
+- `GEMINI_API_KEY` - Receipt OCR (Gemini Flash)
 - `STRIPE_SECRET_KEY` - Payments
 - `STRIPE_WEBHOOK_SECRET` - Webhook verification
 - `RESEND_WEBHOOK_SECRET` - Email webhook verification
@@ -315,7 +327,7 @@ See `/docs/versions/v1/DEPLOYMENT_CHECKLIST_V1.md` for detailed deployment infor
 ### Recent Security Improvements (December 2024)
 - ✅ Fixed database connection pool exhaustion
 - ✅ Webhook idempotency for all providers (Stripe, Clerk, Resend)
-- ✅ Service account authentication for Document AI
+- ✅ Gemini OCR monitoring with graceful fallbacks
 - ✅ Svix signature verification for webhooks
 - ✅ Atomic transactions for all financial operations
 - ✅ Enhanced CORS configuration for analytics
@@ -370,4 +382,4 @@ For support, please:
 
 **Built with ❤️ for churches worldwide**
 
-*Production Status: Live | Version: 1.1.0 | Last Updated: December 19, 2024*
+*Production Status: Live | Version: 1.2.0 | Last Updated: October 13, 2025*

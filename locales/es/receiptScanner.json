@@ -4,12 +4,36 @@
     "processing": {
       "title": "Procesando el recibo",
       "extracting": "Extrayendo detalles de los gastos",
-      "wait": "Esto puede tomar unos momentos..."
+      "wait": "Esto puede tomar unos momentos...",
+      "eta": "Est. {{seconds}}s restantes",
+      "stages": {
+        "uploading": {
+          "label": "Subiendo",
+          "short": "Subir",
+          "description": "Subiendo tu recibo de forma segura a AltarFlow",
+          "helper": "Encriptando y enviando la imagen"
+        },
+        "analyzing": {
+          "label": "Analizando",
+          "short": "Analizar",
+          "description": "Analizando el formato y el texto del recibo",
+          "helper": "Detectando la estructura del recibo"
+        },
+        "extracting": {
+          "label": "Extrayendo",
+          "short": "Extraer",
+          "description": "Extrayendo totales, fechas y detalles del proveedor",
+          "helper": "Capturando los datos del gasto"
+        }
+      }
     },
     
     "mobile": {
       "centerInFrame": "Centra el recibo en el marco",
-      "ensureLighting": "Asegúrate de tener buena iluminación y que todo el recibo sea visible"
+      "ensureLighting": "Asegúrate de tener buena iluminación y que todo el recibo sea visible",
+      "alignGuides": "Alinea los bordes del recibo con las guías de las esquinas",
+      "tapToCapture": "Toca el obturador para una captura nítida",
+      "autoFocusReady": "Autoenfoque listo"
     },
     
     "autoFilled": {
@@ -59,7 +83,31 @@
       "currencySymbol": "$",
       "cancelButton": "Cancelar",
       "saveChangesButton": "Guardar cambios",
-      "useDataButton": "Usar estos datos"
+      "useDataButton": "Usar estos datos",
+      "receiptPreview": "Vista previa del recibo",
+      "previewHelper": "Verifica que los datos importantes sean legibles antes de confirmar.",
+      "receiptPreviewAlt": "Vista previa del recibo escaneado",
+      "noPreview": "Vista previa no disponible",
+      "extractedData": "Datos extraídos",
+      "quickEditHelper": "Realiza ajustes rápidos o restablece un campo si algo no coincide.",
+      "clearField": "Limpiar",
+      "resetField": "Restablecer",
+      "quickValidationTitle": "Validación rápida",
+      "quickValidationPass": "Todo se ve bien.",
+      "lowConfidenceTitle": "Recomendamos revisar la precisión",
+      "lowConfidenceDescription": "Detectamos baja confianza o valores faltantes. Considera capturar el recibo nuevamente.",
+      "rescanButton": "Reescanear recibo",
+      "confidence": {
+        "high": "Alta confianza",
+        "medium": "Confianza media",
+        "low": "Baja confianza",
+        "unknown": "Confianza pendiente"
+      },
+      "validation": {
+        "missingVendor": "Falta el proveedor: agrega un nombre comercial para continuar.",
+        "invalidTotal": "El monto total debe ser un número positivo.",
+        "invalidDate": "Ingresa una fecha válida (AAAA-MM-DD)."
+      }
     },
     
     "modal": {
@@ -71,7 +119,8 @@
       "startCameraButton": "Iniciar cámara",
       "uploadTitle": "Carga de recibo",
       "uploadDescription": "Carga una imagen de tu recibo para extraer automáticamente los detalles de los gastos",
-      "selectFileButton": "Seleccionar archivo"
+      "selectFileButton": "Seleccionar archivo",
+      "usePhotoButton": "Usar foto"
     },
     
     "expenseModal": {

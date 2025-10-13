@@ -144,15 +144,16 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[525px]">
-        <DialogHeader>
+      <DialogContent className="w-full h-full sm:max-w-[525px] sm:max-h-[90vh] sm:h-auto overflow-hidden flex flex-col p-0 sm:p-6 sm:rounded-lg">
+        <DialogHeader className="px-6 pt-6 pb-4 sm:px-0 sm:pt-0 sm:pb-0">
           <DialogTitle>{t('donations:newManualDonation.title')}</DialogTitle>
           <DialogDescription>
             {t('donations:newManualDonation.description')}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="overflow-y-auto overflow-x-hidden px-6 sm:px-1 flex-grow">
+          <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="amount">{t('donations:newManualDonation.amount')}</Label>
               <Input
@@ -246,7 +247,7 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
             </Popover>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="donationType">{t('donations:newManualDonation.donationType')}</Label>
               <Select value={selectedDonationType} onValueChange={setSelectedDonationType}>
@@ -287,9 +288,10 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{t('donations:newManualDonation.cancelButton')}</Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+        </div>
+        <DialogFooter className="pt-4 pb-6 px-6 mt-auto border-t sm:px-0 sm:pb-0 flex-col-reverse sm:flex-row gap-2">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">{t('donations:newManualDonation.cancelButton')}</Button>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
             {isSaving ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('donations:newManualDonation.saving')}</>
             ) : (

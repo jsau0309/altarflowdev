@@ -260,15 +260,15 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
         }
       }}
     >
-      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="w-full h-full sm:max-w-[500px] sm:max-h-[85vh] sm:h-auto overflow-hidden flex flex-col p-0 sm:p-6 sm:rounded-lg">
+        <DialogHeader className="px-6 pt-6 pb-4 sm:px-0 sm:pt-0 sm:pb-0">
           <DialogTitle>{t('donations:newDonationModal.title')}</DialogTitle>
           <DialogDescription>{t('donations:newDonationModal.description')}</DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto pr-1">
+        <div className="overflow-y-auto overflow-x-hidden px-6 sm:px-1 flex-grow">
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="amount">{t('donations:newDonationModal.amountLabel')}</Label>
                 <div className="relative">
@@ -289,7 +289,14 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
 
               <div className="space-y-2">
                 <Label htmlFor="donationDate">{t('donations:date')}</Label>
-                <Input id="donationDate" type="date" value={formData.donationDate} onChange={handleChange} required />
+                <Input
+                  id="donationDate"
+                  type="date"
+                  value={formData.donationDate}
+                  onChange={handleChange}
+                  required
+                  className="w-full h-10 text-base"
+                />
               </div>
             </div>
 
@@ -464,8 +471,8 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
           </form>
         </div>
 
-        <DialogFooter className="mt-2 pt-2 border-t">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+        <DialogFooter className="pt-4 pb-6 px-6 mt-auto border-t sm:px-0 sm:pb-0 flex-col-reverse sm:flex-row gap-2">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="w-full sm:w-auto">
             {t('donations:newDonationModal.cancelButton')}
           </Button>
           <Button
@@ -476,6 +483,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
               const form = e.currentTarget.closest("div")?.querySelector("form")
               if (form) form.requestSubmit()
             }}
+            className="w-full sm:w-auto"
           >
             {isLoading ? (
               <>

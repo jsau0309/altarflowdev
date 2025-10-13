@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { captureLLMEvent } from '@/lib/posthog/server';
 import {
     getTopDonorsThisMonth,
     getMostUsedPaymentMethodThisMonth,
@@ -146,6 +147,7 @@ ${JSON.stringify(fetchedData, null, 2)}
 
 Answer directly and conversationally.`;
 
+        const startTime = performance.now();
         const stream = await anthropic.messages.create({
             model: 'claude-3-haiku-20240307', // Fast, cost-effective for conversational responses
             stream: true,
@@ -157,21 +159,60 @@ Answer directly and conversationally.`;
             max_tokens: 500, // Slightly more room for thoughtful responses
         });
 
+        // Track token usage for streaming
+        let inputTokens = 0;
+        let outputTokens = 0;
+
         // Create a custom streaming response for Claude
         const encoder = new TextEncoder();
         const readableStream = new ReadableStream({
             async start(controller) {
                 try {
                     for await (const chunk of stream) {
+                        // Track token usage from message_start event
+                        if (chunk.type === 'message_start') {
+                            inputTokens = chunk.message.usage.input_tokens;
+                        }
+
                         if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
                             const text = chunk.delta.text;
                             // Format as Vercel AI SDK expects
                             const formattedChunk = `0:${JSON.stringify(text)}\n`;
                             controller.enqueue(encoder.encode(formattedChunk));
                         }
+
+                        // Track final token usage from message_delta
+                        if (chunk.type === 'message_delta') {
+                            outputTokens = chunk.usage.output_tokens;
+                        }
                     }
                     // Send completion signal
                     controller.enqueue(encoder.encode('2:"[DONE]"\n'));
+
+                    // Track LLM usage after stream completes
+                    const latencyMs = performance.now() - startTime;
+                    // Claude 3 Haiku pricing: $0.25 per 1M input tokens, $1.25 per 1M output tokens
+                    const inputCost = (inputTokens / 1_000_000) * 0.25;
+                    const outputCost = (outputTokens / 1_000_000) * 1.25;
+
+                    captureLLMEvent({
+                        distinctId: userId,
+                        traceId: `report_follow_up_${Date.now()}_${userId}`,
+                        model: 'claude-3-haiku-20240307',
+                        provider: 'anthropic',
+                        inputTokens,
+                        outputTokens,
+                        totalCostUsd: inputCost + outputCost,
+                        latencyMs,
+                        properties: {
+                            feature: 'report_follow_up',
+                            question_key: questionKey,
+                            language,
+                            streaming: true,
+                        },
+                        groups: { company: orgId },
+                    });
+
                     controller.close();
                 } catch (error) {
                     controller.error(error);

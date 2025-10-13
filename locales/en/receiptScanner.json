@@ -4,12 +4,36 @@
   "processing": {
     "title": "Processing Receipt",
     "extracting": "Extracting expense details",
-    "wait": "This may take a few moments..."
+    "wait": "This may take a few moments...",
+    "eta": "Est. {{seconds}}s remaining",
+    "stages": {
+      "uploading": {
+        "label": "Uploading",
+        "short": "Upload",
+        "description": "Securely uploading your receipt to AltarFlow",
+        "helper": "Encrypting and sending the image"
+      },
+      "analyzing": {
+        "label": "Analyzing",
+        "short": "Analyze",
+        "description": "Analyzing the receipt layout and text",
+        "helper": "Detecting receipt structure"
+      },
+      "extracting": {
+        "label": "Extracting",
+        "short": "Extract",
+        "description": "Extracting totals, dates, and vendor details",
+        "helper": "Capturing expense data"
+      }
+    }
   },
   
   "mobile": {
     "centerInFrame": "Center receipt in frame",
-    "ensureLighting": "Ensure good lighting and that the entire receipt is visible"
+    "ensureLighting": "Ensure good lighting and that the entire receipt is visible",
+    "alignGuides": "Align receipt edges with the corner guides",
+    "tapToCapture": "Tap the shutter button for a crisp capture",
+    "autoFocusReady": "Auto-focus ready"
   },
   
   "autoFilled": {
@@ -59,7 +83,31 @@
     "currencySymbol": "$",
     "cancelButton": "Cancel",
     "saveChangesButton": "Save Changes",
-    "useDataButton": "Use This Data"
+    "useDataButton": "Use This Data",
+    "receiptPreview": "Receipt preview",
+    "previewHelper": "Check that the important details are readable before confirming.",
+    "receiptPreviewAlt": "Scanned receipt preview",
+    "noPreview": "Receipt preview unavailable",
+    "extractedData": "Extracted details",
+    "quickEditHelper": "Make quick adjustments or reset a field if something looks off.",
+    "clearField": "Clear",
+    "resetField": "Reset",
+    "quickValidationTitle": "Quick validation",
+    "quickValidationPass": "Everything looks good.",
+    "lowConfidenceTitle": "Accuracy check recommended",
+    "lowConfidenceDescription": "We detected low confidence or missing values. Consider capturing the receipt again.",
+    "rescanButton": "Re-scan receipt",
+    "confidence": {
+      "high": "High confidence",
+      "medium": "Medium confidence",
+      "low": "Low confidence",
+      "unknown": "Confidence pending"
+    },
+    "validation": {
+      "missingVendor": "Vendor looks missing — add a business name to continue.",
+      "invalidTotal": "Total amount should be a positive number.",
+      "invalidDate": "Enter a valid date (YYYY-MM-DD)."
+    }
   },
   
   "modal": {
@@ -71,7 +119,8 @@
     "startCameraButton": "Start Camera",
     "uploadTitle": "Upload Receipt",
     "uploadDescription": "Upload an image of your receipt to automatically extract expense details",
-    "selectFileButton": "Select File"
+    "selectFileButton": "Select File",
+    "usePhotoButton": "Use Photo"
   },
   
   "expenseModal": {

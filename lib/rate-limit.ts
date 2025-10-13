@@ -235,6 +235,7 @@ export const rateLimits = {
   otp: rateLimit({ windowMs: 60000, max: 5 }), // 5 OTP requests per minute
   webhooks: rateLimit({ windowMs: 1000, max: 100 }), // 100 webhooks per second
   stripe: rateLimit({ windowMs: 60000, max: 30 }), // 30 Stripe API calls per minute
+  receiptScan: rateLimit({ windowMs: 60000, max: 10 }), // 10 receipt scans per minute
 };
 
 // Export memory statistics for monitoring
