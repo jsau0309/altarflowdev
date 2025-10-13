@@ -11,7 +11,7 @@ AltarFlow is a bilingual church management platform for Hispanic churches in the
 - **Authentication**: Clerk (multi-tenant with organizations)
 - **Email**: Resend API with Topol.io editor, campaign management
 - **Payments**: Stripe Connect for donations
-- **AI**: OpenAI API for report summaries and email suggestions
+- **AI**: OpenAI API for report summaries and email suggestions; Google Gemini Flash for receipt OCR
 - **Internationalization**: i18next for English/Spanish support
 - **SMS**: Twilio for OTP verification
 
@@ -78,6 +78,7 @@ DIRECT_URL             # Direct connection for migrations
 CLERK_SECRET_KEY       # Clerk authentication
 RESEND_API_KEY         # Email sending
 OPENAI_API_KEY         # AI features
+GEMINI_API_KEY         # Receipt OCR (Gemini Flash)
 STRIPE_SECRET_KEY      # Payment processing
 TWILIO_*               # SMS verification
 ```

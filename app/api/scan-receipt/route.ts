@@ -1,28 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/utils/supabase/admin';
 import { getAuth } from '@clerk/nextjs/server';
-import { processReceiptWithDocumentAI, mapToExpenseFormat } from '@/lib/document-ai-auth';
+import { processReceiptWithGemini } from '@/lib/gemini-receipt-ocr';
+import { rateLimits } from '@/lib/rate-limit';
 
-// Helper function to add delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+type ApiExtractedData = {
+  vendor: string | null;
+  total: number | null;
+  date: string | null;
+  confidence?: 'high' | 'medium' | 'low';
+};
 
 export async function POST(request: NextRequest) {
-  // --- Log Environment Variable Before Initializing Admin Client ---
-  console.log(`Checking SUPABASE_SERVICE_ROLE_KEY existence: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Exists' : 'MISSING or undefined'}`);
-
-  // Initialize Supabase Admin Client (used for storage upload)
-  const supabaseAdmin = createAdminClient();
-  console.log('Supabase admin client initialized successfully.');
-
   let orgId: string | null | undefined = null; // Declare outside try
 
   try {
+    // 0. Rate limiting check
+    const rateLimitResult = await rateLimits.receiptScan(request);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many receipt scan requests. Please try again in a minute.',
+          remaining: rateLimitResult.remaining
+        },
+        { status: 429 }
+      );
+    }
+
     // 1. Get Authenticated User ID & Org ID using Clerk
     const authResult = getAuth(request);
     const userId = authResult.userId;
     orgId = authResult.orgId;
-    
-    if (!userId) { 
+
+    if (!userId) {
       console.error('Auth Error: No Clerk userId found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -30,64 +39,100 @@ export async function POST(request: NextRequest) {
         console.error(`Auth Error: User ${userId} has no active organization.`);
         return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
       }
-    console.log(`Authenticated Clerk User ID: ${userId}, Org ID: ${orgId}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Authenticated User - Org: [REDACTED]`);
+    }
 
-    // --- Process Form Data --- 
+    // --- Process Form Data ---
     const formData = await request.formData();
     const file = formData.get('receipt') as File | null;
 
     if (!file) {
       return NextResponse.json({ error: 'No receipt file found' }, { status: 400 });
     }
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const originalFilename = file.name;
-    const contentType = file.type || 'application/octet-stream'; // Get content type
 
-    console.log(`Step 1: File found (${originalFilename}, ${contentType})`); 
-    console.log(`Step 2: File buffer created, length: ${fileBuffer.length}`);
-    
-    // --- Document AI Parsing --- 
-    console.log("Step 3: Starting Document AI processing...");
-    
-    let extractedData;
+    // File size validation (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({
+        error: 'File too large. Maximum size is 10MB.'
+      }, { status: 413 });
+    }
+
+    // MIME type validation
+    const ALLOWED_MIME_TYPES = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/pdf'
+    ];
+
+    const contentType = file.type || 'application/octet-stream';
+
+    if (!ALLOWED_MIME_TYPES.includes(contentType)) {
+      return NextResponse.json({
+        error: 'Invalid file type. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed.'
+      }, { status: 400 });
+    }
+
+    // Convert file to buffer with error handling
+    let fileBuffer: Buffer;
     try {
-      // Process with Google Document AI
-      const documentAIResult = await processReceiptWithDocumentAI(
+      fileBuffer = Buffer.from(await file.arrayBuffer());
+    } catch (bufferError) {
+      console.error('File buffer conversion error:', bufferError);
+      return NextResponse.json({
+        error: 'Failed to process file. Please try again.'
+      }, { status: 500 });
+    }
+
+    const originalFilename = file.name;
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`File: ${originalFilename}, Type: ${contentType}, Size: ${fileBuffer.length} bytes`);
+    }
+
+    // --- Gemini OCR Parsing ---
+
+    let extractedData: ApiExtractedData;
+    try {
+      const geminiResult = await processReceiptWithGemini({
         fileBuffer,
-        contentType
-      );
-      
-      // Map to our format
-      const mappedData = mapToExpenseFormat(documentAIResult);
-      
+        mimeType: contentType,
+        trackingContext: {
+          distinctId: userId,
+          traceId: `receipt_scan_${Date.now()}_${userId}`,
+          orgId,
+        },
+      });
+
       extractedData = {
-        vendor: mappedData.vendor,
-        total: mappedData.amount,
-        date: mappedData.date,
-        // Additional fields from Document AI
-        taxAmount: documentAIResult.taxAmount,
-        invoiceNumber: documentAIResult.invoiceNumber,
-        currency: documentAIResult.currency,
-        items: documentAIResult.items,
+        vendor: geminiResult.vendor,
+        total: geminiResult.total,
+        date: geminiResult.date,
+        confidence: geminiResult.confidence,
       };
-      
-      console.log("Step 4: Document AI processing complete:", extractedData);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Gemini OCR completed successfully');
+      }
     } catch (parseError) {
-      console.error('Document AI Parsing Error:', parseError);
-      
-      // Check if Document AI is not configured
-      if (parseError instanceof Error && parseError.message.includes('configuration missing')) {
+      console.error('Gemini OCR Parsing Error:', parseError);
+
+      if (parseError instanceof Error && parseError.message.includes('GEMINI_API_KEY')) {
         return NextResponse.json(
-          { 
+          {
             error: 'Receipt scanning is temporarily unavailable. Please enter details manually.',
-            fallback: true 
+            fallback: true
           },
           { status: 503 }
         );
       }
-      
+
       return NextResponse.json(
-        { 
+        {
           error: 'Failed to process receipt. Please try again or enter details manually.',
           details: parseError instanceof Error ? parseError.message : 'Unknown error'
         },
@@ -95,63 +140,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // --- Supabase Storage Upload (USING ADMIN CLIENT) ---
-    console.log("Step 5: Attempting Supabase upload (using admin client)...");
-    const timestamp = Date.now();
-    const sanitizedFilename = originalFilename.replace(/[^a-zA-Z0-9_.-]/g, '_'); 
-    const filePath = `${orgId}/receipts/${userId}/${timestamp}_${sanitizedFilename}`;
-
-    console.log(`  >> Uploading to path: ${filePath}`);
-
-    // Use supabaseAdmin client here
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from('receipts')
-      .upload(filePath, fileBuffer, {
-        contentType: contentType,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('Supabase Admin Upload Error:', uploadError);
-      const errorMessage = uploadError.message || 'Failed to upload receipt to storage via admin';
-      const errorDetails = uploadError.stack || undefined;
-      return NextResponse.json({ error: errorMessage, details: errorDetails }, { status: 500 });
-    }
-    console.log("Step 6: Supabase upload successful (via admin):", uploadData);
-
-    // --- Get Signed URL (USING ADMIN CLIENT) ---
-    console.log("Step 7: Getting signed URL (using admin client)...");
-    console.log("Waiting 0.5 second for Supabase to process the file...");
-    await delay(500); 
-    
-    let receiptUrl: string | null = null; // Default to null
-    try {
-      console.log(`  >> Creating signed URL for path: ${filePath}`);
-      const { data: urlData, error: signedUrlError } = await supabaseAdmin.storage
-        .from('receipts')
-        .createSignedUrl(filePath, 86400); // 24 hours
-        
-      if (signedUrlError) {
-        console.error('Supabase Admin Signed URL Error:', signedUrlError);
-      } else if (urlData?.signedUrl) {
-        receiptUrl = urlData.signedUrl;
-        console.log("Step 8: Signed URL obtained (via admin, expires in 24 hours)");
-      } else {
-        console.warn("Admin Signed URL generation returned no URL data.");
-      }
-    } catch (signedUrlCatchError) {
-      console.error('Error creating admin signed URL:', signedUrlCatchError);
-    }
-
     // --- Return Response ---
     const response = {
       extractedData,
-      receiptPath: uploadData?.path || filePath,
-      receiptUrl,
-      message: 'Receipt processed successfully with Document AI'
+      metadata: {
+        originalFilename,
+        contentType,
+        size: fileBuffer.length,
+        orgId,
+        userId,
+      },
+      message: 'Receipt processed successfully with Gemini OCR'
     };
 
-    console.log("Step 9: Returning response");
     return NextResponse.json(response);
 
   } catch (error) {

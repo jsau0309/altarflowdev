@@ -31,6 +31,8 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
   const [isLoading, setIsLoading] = useState(false)
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptMetadata, setReceiptMetadata] = useState<Record<string, unknown> | null>(null);
   
   // Function to safely format date string to YYYY-MM-DD
   const formatDateForInput = (dateInput: Date | string | undefined | null): string => {
@@ -72,6 +74,8 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
         });
         setReceiptImage(expenseToEdit.receiptUrl || null);
         setReceiptPath(expenseToEdit.receiptPath || null); // Populate receiptPath for editing
+        setReceiptFile(null);
+        setReceiptMetadata(null);
       } else {
         // New mode: Reset form to defaults using the resetForm function
         resetForm();
@@ -89,6 +93,8 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
     });
     setReceiptImage(null);
     setReceiptPath(null);
+    setReceiptFile(null);
+    setReceiptMetadata(null);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -133,31 +139,46 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
       ? new Date(`${formData.expenseDate}T12:00:00`) // Noon in local timezone
       : new Date();
 
-    const payload = {
-      amount: parseFloat(formData.amount) || 0,
-      expenseDate: expenseDate.toISOString(),
-      category: formData.category,
-      vendor: formData.vendor || null,
-      description: formData.description || null,
-      receiptUrl: receiptImage || null,
-      receiptPath: receiptPath || null,
-    };
+    const normalizedAmount = parseFloat(formData.amount) || 0
+
+    const formPayload = new FormData()
+    formPayload.append('amount', String(normalizedAmount))
+    formPayload.append('expenseDate', expenseDate.toISOString())
+    formPayload.append('category', formData.category)
+
+    formPayload.append('vendor', formData.vendor ?? '')
+    formPayload.append('description', formData.description ?? '')
+    if (receiptFile) {
+      formPayload.append('receipt', receiptFile, receiptFile.name)
+    }
+    if (receiptMetadata) {
+      formPayload.append('receiptMetadata', JSON.stringify(receiptMetadata))
+    }
+    if (receiptPath && !receiptFile) {
+      formPayload.append('receiptPath', receiptPath)
+    }
+
+    const previousReceiptPath = expenseToEdit?.receiptPath ?? null
+    const hasPreviousReceipt = Boolean(previousReceiptPath)
+    const receiptRemoved = hasPreviousReceipt && !receiptFile && !receiptPath
+
+    if (expenseToEdit && previousReceiptPath && receiptFile) {
+      formPayload.append('previousReceiptPath', previousReceiptPath)
+    }
+
+    if (expenseToEdit && receiptRemoved && previousReceiptPath) {
+      formPayload.append('previousReceiptPath', previousReceiptPath)
+      formPayload.append('removeReceipt', 'true')
+    }
 
     try {
-      let response;
-      if (expenseToEdit) {
-        response = await fetch(`/api/expenses/${expenseToEdit.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        response = await fetch('/api/expenses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      }
+      const endpoint = expenseToEdit ? `/api/expenses/${expenseToEdit.id}` : '/api/expenses'
+      const method = expenseToEdit ? 'PATCH' : 'POST'
+
+      const response = await fetch(endpoint, {
+        method,
+        body: formPayload,
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -199,50 +220,72 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
   };
 
   const handleReceiptData = (data: unknown) => {
-    if (typeof data === 'object' && data !== null) {
-      const expenseData = data as Partial<{ 
-        total: string | number, 
-        date: string, 
-        notes: string, 
-        receiptImage: string, 
-        receiptUrl: string,
-        receiptPath: string,
-        vendor: string, 
-        category: string 
-      }>;
+    if (typeof data !== 'object' || data === null) {
+      return;
+    }
 
-      setFormData((prev) => ({
-        ...prev,
-        amount: expenseData.total ? String(expenseData.total) : prev.amount,
-        expenseDate: expenseData.date || prev.expenseDate,
-        notes: expenseData.notes || prev.description,
-        vendor: expenseData.vendor || prev.vendor,
-        category: expenseData.category || prev.category,
-      }))
+    const expenseData = data as Partial<{
+      total: string | number
+      date: string
+      description: string
+      receiptImage: string
+      receiptUrl: string
+      receiptPath: string | null
+      vendor: string
+      category: string
+      receiptFile: File | null
+      receiptMetadata: Record<string, unknown> | null
+    }>
 
-      if (expenseData.receiptUrl) {
-        setReceiptImage(expenseData.receiptUrl);
-      } else if (expenseData.receiptImage) {
-        setReceiptImage(expenseData.receiptImage);
-      }
-      
-      if (expenseData.receiptPath) {
-        setReceiptPath(expenseData.receiptPath);
-      }
+    setFormData((prev) => ({
+      ...prev,
+      amount: expenseData.total ? String(expenseData.total) : prev.amount,
+      expenseDate: expenseData.date || prev.expenseDate,
+      description: expenseData.description || prev.description,
+      vendor: expenseData.vendor || prev.vendor,
+      category: expenseData.category || prev.category,
+    }))
+
+    if (expenseData.receiptFile instanceof File) {
+      setReceiptFile(expenseData.receiptFile)
+    } else if ('receiptFile' in expenseData) {
+      setReceiptFile(null)
+    }
+
+    if ('receiptMetadata' in expenseData) {
+      const metadataCandidate = expenseData.receiptMetadata
+      setReceiptMetadata(
+        metadataCandidate && typeof metadataCandidate === 'object'
+          ? metadataCandidate
+          : null
+      )
+    }
+
+    if ('receiptPath' in expenseData) {
+      setReceiptPath(expenseData.receiptPath ?? null)
+    }
+
+    if (expenseData.receiptUrl) {
+      setReceiptImage(expenseData.receiptUrl)
+    } else if (expenseData.receiptImage) {
+      setReceiptImage(expenseData.receiptImage)
+    } else if (expenseData.receiptFile instanceof File) {
+      const objectUrl = URL.createObjectURL(expenseData.receiptFile)
+      setReceiptImage(objectUrl)
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="w-full h-full sm:max-w-[500px] sm:max-h-[90vh] sm:h-auto overflow-hidden flex flex-col p-0 sm:p-6 sm:rounded-lg">
+        <DialogHeader className="px-6 pt-6 pb-4 sm:px-0 sm:pt-0 sm:pb-0">
           <DialogTitle>{expenseToEdit ? t('expenses:newExpenseModal.editTitle') : t('expenses:newExpenseModal.newTitle')}</DialogTitle>
           <DialogDescription>{t('expenses:newExpenseModal.description')}</DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto pr-1">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 sm:px-1">
           <form id="expense-form" onSubmit={handleSubmit} className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="amount">{t('expenses:newExpenseModal.amountLabel')}</Label>
                 <div className="relative">
@@ -263,14 +306,14 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
 
               <div className="space-y-2">
                 <Label htmlFor="expenseDate">{t('expenses:newExpenseModal.dateLabel')}</Label>
-                <Input 
-                  id="expenseDate" 
-                  name="expenseDate" 
-                  type="date" 
-                  required 
-                  value={formData.expenseDate} 
+                <Input
+                  id="expenseDate"
+                  name="expenseDate"
+                  type="date"
+                  required
+                  value={formData.expenseDate}
                   onChange={handleInputChange}
-                  className="text-sm"
+                  className="w-full h-10 text-base"
                 />
               </div>
             </div>
@@ -325,7 +368,17 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
                       Receipt Attached
                     </p>
                     <div className="flex justify-center gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => { setReceiptImage(null); setReceiptPath(null); }}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setReceiptImage(null);
+                          setReceiptPath(null);
+                          setReceiptFile(null);
+                          setReceiptMetadata(null);
+                        }}
+                      >
                         {t('expenses:newExpenseModal.removeReceiptButton')}
                       </Button>
                       <ReceiptScannerButton onDataCaptured={handleReceiptData} variant="outline" size="sm">
@@ -347,8 +400,8 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
           </form>
         </div>
 
-        <DialogFooter className="mt-2 pt-2 border-t">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <DialogFooter className="pt-4 pb-6 px-6 border-t sm:px-0 sm:pb-0 flex-col-reverse sm:flex-row gap-2">
+          <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
             {t('expenses:newExpenseModal.cancelButton')}
           </Button>
           <Button
@@ -357,6 +410,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
             onClick={(e) => {
               handleSubmit(e as any);
             }}
+            className="w-full sm:w-auto"
           >
             {isLoading ? (
               <>

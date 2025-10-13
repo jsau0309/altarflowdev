@@ -39,15 +39,17 @@ export function DashboardMobileMenu() {
   return (
     <>
       {/* Mobile Menu Button - Only visible on mobile */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleMenu}
-        className="md:hidden relative z-[100]"
-        aria-label="Toggle menu"
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
+      {!isOpen && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleMenu}
+          className="md:hidden relative z-[100]"
+          aria-label="Toggle menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+      )}
 
       {/* Mobile Menu Overlay */}
       <AnimatePresence>
@@ -117,9 +119,16 @@ export function DashboardMobileMenu() {
                 
                 {/* Footer */}
                 <div className="p-4 border-t">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    AltarFlow © {new Date().getFullYear()}
-                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <img
+                      src="/images/Altarflow-Cloud-Blue.png"
+                      alt="AltarFlow"
+                      className="h-5 w-5"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      AltarFlow © {new Date().getFullYear()}
+                    </p>
+                  </div>
                 </div>
               </div>
             </motion.div>

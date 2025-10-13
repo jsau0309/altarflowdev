@@ -2,10 +2,60 @@ import { NextRequest, NextResponse } from 'next/server';
 // import { createServerClient, type CookieOptions } from '@supabase/ssr'; // <-- Remove Supabase
 // import { cookies } from 'next/headers'; // <-- Remove if not used
 import { prisma } from '@/lib/db';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { getAuth } from '@clerk/nextjs/server'; // <-- Use getAuth
 import { revalidateTag } from 'next/cache';
 
 // Removed Supabase getUser helper function
+
+const RECEIPTS_BUCKET = 'receipts';
+const SIGNED_URL_TTL_SECONDS = 86_400; // 24 hours
+
+const sanitizeFilename = (filename: string) =>
+  filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+
+async function uploadReceipt({
+  file,
+  orgId,
+  userId,
+  preferredName,
+}: {
+  file: File;
+  orgId: string;
+  userId: string;
+  preferredName?: string | null;
+}) {
+  const supabaseAdmin = createAdminClient();
+  const arrayBuffer = await file.arrayBuffer();
+  const fileBuffer = Buffer.from(arrayBuffer);
+  const baseName = preferredName && preferredName.length > 0 ? preferredName : (file.name || 'receipt');
+  const sanitizedFilename = sanitizeFilename(baseName);
+  const filePath = `${orgId}/receipts/${userId}/${Date.now()}_${sanitizedFilename}`;
+
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from(RECEIPTS_BUCKET)
+    .upload(filePath, fileBuffer, {
+      contentType: file.type || 'application/octet-stream',
+      upsert: false,
+    });
+
+  if (uploadError) {
+    throw new Error(uploadError.message || 'Failed to upload receipt to storage.');
+  }
+
+  const { data: urlData, error: signedUrlError } = await supabaseAdmin.storage
+    .from(RECEIPTS_BUCKET)
+    .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
+
+  if (signedUrlError) {
+    console.error('Error generating signed URL after upload:', signedUrlError);
+  }
+
+  return {
+    receiptPath: filePath,
+    receiptUrl: urlData?.signedUrl ?? null,
+  };
+}
 
 // GET /api/expenses - Fetch expenses for the user's active organization
 export async function GET(request: NextRequest) {
@@ -76,27 +126,123 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    
+    const contentType = request.headers.get('content-type') ?? '';
+    let amountValue: number | null = null;
+    let expenseDateValue: string | null = null;
+    let categoryValue: string | null = null;
+    let vendorValue: string | null = null;
+    let descriptionValue: string | null = null;
+    let receiptFile: File | null = null;
+    let preferredFilename: string | null = null;
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const amountRaw = formData.get('amount');
+      if (typeof amountRaw === 'string' && amountRaw.trim().length > 0) {
+        amountValue = Number.parseFloat(amountRaw);
+      }
+
+      const expenseDateRaw = formData.get('expenseDate');
+      if (typeof expenseDateRaw === 'string' && expenseDateRaw.trim().length > 0) {
+        expenseDateValue = expenseDateRaw;
+      }
+
+      const categoryRaw = formData.get('category');
+      if (typeof categoryRaw === 'string' && categoryRaw.trim().length > 0) {
+        categoryValue = categoryRaw;
+      }
+
+      const vendorRaw = formData.get('vendor');
+      if (typeof vendorRaw === 'string') {
+        vendorValue = vendorRaw.trim().length > 0 ? vendorRaw : null;
+      }
+
+      const descriptionRaw = formData.get('description');
+      if (typeof descriptionRaw === 'string') {
+        descriptionValue = descriptionRaw.trim().length > 0 ? descriptionRaw : null;
+      }
+
+      const receiptEntry = formData.get('receipt');
+      if (receiptEntry instanceof File && receiptEntry.size > 0) {
+        receiptFile = receiptEntry;
+      }
+
+      const metadataEntry = formData.get('receiptMetadata');
+      if (typeof metadataEntry === 'string') {
+        try {
+          const parsed = JSON.parse(metadataEntry);
+          if (parsed && typeof parsed === 'object' && typeof parsed.originalFilename === 'string') {
+            preferredFilename = parsed.originalFilename;
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse receipt metadata JSON:', parseError);
+        }
+      }
+    } else {
+      const body = await request.json();
+      if (body?.amount !== undefined && body.amount !== null && body.amount !== '') {
+        amountValue = Number.parseFloat(body.amount);
+      }
+      expenseDateValue = typeof body?.expenseDate === 'string' ? body.expenseDate : null;
+      categoryValue = typeof body?.category === 'string' ? body.category : null;
+      vendorValue = typeof body?.vendor === 'string' ? (body.vendor.trim() ? body.vendor : null) : null;
+      descriptionValue = typeof body?.description === 'string' ? (body.description.trim() ? body.description : null) : null;
+    }
+
     // 2. Validate required fields
-    const { amount, expenseDate, category, vendor, description, receiptUrl, receiptPath } = body;
-    if (!amount || !expenseDate || !category) {
+    if (
+      amountValue === null ||
+      Number.isNaN(amountValue) ||
+      amountValue <= 0 ||
+      !expenseDateValue ||
+      !categoryValue
+    ) {
       return NextResponse.json(
-        { error: 'Missing required fields (amount, expenseDate, category)' }, 
+        { error: 'Missing required fields (amount, expenseDate, category)' },
         { status: 400 }
       );
+    }
+
+    const expenseDate = new Date(expenseDateValue);
+    if (Number.isNaN(expenseDate.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid expense date provided.' },
+        { status: 400 }
+      );
+    }
+
+    let receiptPath: string | null = null;
+    let receiptUrl: string | null = null;
+
+    if (receiptFile) {
+      try {
+        const uploadResult = await uploadReceipt({
+          file: receiptFile,
+          orgId,
+          userId,
+          preferredName: preferredFilename,
+        });
+        receiptPath = uploadResult.receiptPath;
+        receiptUrl = uploadResult.receiptUrl;
+      } catch (uploadError) {
+        console.error('Receipt upload failed:', uploadError);
+        return NextResponse.json(
+          { error: uploadError instanceof Error ? uploadError.message : 'Failed to upload receipt.' },
+          { status: 500 }
+        );
+      }
     }
 
     // 3. Create the expense, connecting church via clerkOrgId
     const newExpense = await prisma.expense.create({
       data: {
-        amount: parseFloat(amount),
-        expenseDate: new Date(expenseDate),
-        category,
-        vendor: vendor || null,
-        description: description || null,
-        receiptUrl: receiptUrl || null,
-        receiptPath: receiptPath || null,
+        amount: amountValue,
+        expenseDate,
+        category: categoryValue,
+        vendor: vendorValue,
+        description: descriptionValue,
+        receiptUrl,
+        receiptPath,
         status: 'PENDING', 
         currency: 'USD',   
         submitter: {

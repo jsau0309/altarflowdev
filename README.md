@@ -12,7 +12,7 @@
 ## 🎯 Latest Updates (v1.1 - December 2024)
 
 ### 🔥 Critical Production Fixes (December 19, 2024)
-- **Document AI Fixed** - Switched from gcloud CLI to service account authentication
+- **Gemini OCR Upgrade** - Migrated receipt scanning from Document AI to Gemini 2.5 Flash with structured JSON output
 - **Clerk Webhooks** - Resolved duplicate user creation with upsert operations
 - **Resend Webhooks** - Fixed signature verification using Svix
 - **PostHog Analytics** - Configured CORS for production domain
@@ -64,7 +64,7 @@
 - **Email:** [Resend](https://resend.com/) + [Topol.io](https://topol.io/) (Visual editor)
 - **SMS:** [Twilio](https://www.twilio.com/) (OTP verification)
 - **AI:** [OpenAI GPT-4](https://openai.com/) (Report summaries)
-- **OCR:** [Google Document AI](https://cloud.google.com/document-ai) (Receipt scanning)
+- **OCR:** [Google Gemini Flash](https://ai.google.dev/) (Receipt scanning)
 - **Analytics:** [PostHog](https://posthog.com/) + [Sentry](https://sentry.io/)
 
 ### Infrastructure
@@ -81,6 +81,7 @@
 - [Stripe](https://stripe.com/) account
 - [Resend](https://resend.com/) account
 - [OpenAI](https://platform.openai.com/) API key
+- [Google AI Studio](https://aistudio.google.com/apikey) API key (Gemini OCR)
 - [Twilio](https://www.twilio.com/) account (optional)
 
 ## 🚀 Getting Started
@@ -125,6 +126,7 @@ RESEND_API_KEY=re_...
 
 # AI Features
 OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=ai-...
 
 # Payments
 STRIPE_SECRET_KEY=sk_...
@@ -270,6 +272,7 @@ Ensure all critical environment variables are set:
 - `CLERK_SECRET_KEY` - Authentication
 - `RESEND_API_KEY` - Email sending
 - `OPENAI_API_KEY` - AI features
+- `GEMINI_API_KEY` - Receipt OCR (Gemini Flash)
 - `STRIPE_SECRET_KEY` - Payments
 - `STRIPE_WEBHOOK_SECRET` - Webhook verification
 - `RESEND_WEBHOOK_SECRET` - Email webhook verification
@@ -315,7 +318,7 @@ See `/docs/versions/v1/DEPLOYMENT_CHECKLIST_V1.md` for detailed deployment infor
 ### Recent Security Improvements (December 2024)
 - ✅ Fixed database connection pool exhaustion
 - ✅ Webhook idempotency for all providers (Stripe, Clerk, Resend)
-- ✅ Service account authentication for Document AI
+- ✅ Gemini OCR monitoring with graceful fallbacks
 - ✅ Svix signature verification for webhooks
 - ✅ Atomic transactions for all financial operations
 - ✅ Enhanced CORS configuration for analytics

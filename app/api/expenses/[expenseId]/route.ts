@@ -2,8 +2,73 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod'; // Using Zod for validation
+import { createAdminClient } from '@/utils/supabase/admin';
 import { createClient } from '@supabase/supabase-js'; // Import standard Supabase client
 import { revalidateTag } from 'next/cache';
+
+const RECEIPTS_BUCKET = 'receipts';
+const SIGNED_URL_TTL_SECONDS = 86_400;
+
+const sanitizeFilename = (filename: string) =>
+  filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+
+async function uploadReceipt({
+  file,
+  orgId,
+  userId,
+  preferredName,
+}: {
+  file: File;
+  orgId: string;
+  userId: string;
+  preferredName?: string | null;
+}) {
+  const supabaseAdmin = createAdminClient();
+  const arrayBuffer = await file.arrayBuffer();
+  const fileBuffer = Buffer.from(arrayBuffer);
+  const baseName = preferredName && preferredName.length > 0 ? preferredName : (file.name || 'receipt');
+  const sanitizedFilename = sanitizeFilename(baseName);
+  const filePath = `${orgId}/receipts/${userId}/${Date.now()}_${sanitizedFilename}`;
+
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from(RECEIPTS_BUCKET)
+    .upload(filePath, fileBuffer, {
+      contentType: file.type || 'application/octet-stream',
+      upsert: false,
+    });
+
+  if (uploadError) {
+    throw new Error(uploadError.message || 'Failed to upload receipt to storage.');
+  }
+
+  const { data: urlData, error: signedUrlError } = await supabaseAdmin.storage
+    .from(RECEIPTS_BUCKET)
+    .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
+
+  if (signedUrlError) {
+    console.error('Error generating signed URL after upload:', signedUrlError);
+  }
+
+  return {
+    receiptPath: filePath,
+    receiptUrl: urlData?.signedUrl ?? null,
+  };
+}
+
+async function removeReceipt(path: string) {
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin.storage
+      .from(RECEIPTS_BUCKET)
+      .remove([path]);
+
+    if (error) {
+      console.warn(`Failed to delete existing receipt at ${path}:`, error);
+    }
+  } catch (deleteError) {
+    console.error(`Unexpected error deleting receipt at ${path}:`, deleteError);
+  }
+}
 
 // Define schema for PATCH validation (optional but recommended)
 const expenseUpdateSchema = z.object({
@@ -90,7 +155,7 @@ export async function PATCH(
         id: expenseId, 
         church: { clerkOrgId: orgId } 
       },
-      select: { submitterId: true, status: true } // Select only needed fields
+      select: { submitterId: true, status: true, receiptPath: true } // Select only needed fields
     });
 
     if (!existingExpense) {
@@ -106,18 +171,235 @@ export async function PATCH(
         return NextResponse.json({ error: 'Forbidden: Expense not pending' }, { status: 403 });
     }
 
-    const body = await request.json();
-    
-    // 4. Validate input data
-    const validation = expenseUpdateSchema.safeParse(body);
-    if (!validation.success) {
-        return NextResponse.json({ error: 'Invalid input data', details: validation.error.errors }, { status: 400 });
-    }
-    let dataToUpdate = validation.data as any; // Type assertion after validation
+    const contentType = request.headers.get('content-type') ?? '';
+    const isMultipart = contentType.includes('multipart/form-data');
 
-    // Ensure date is handled correctly
-    if(dataToUpdate.expenseDate) {
-        dataToUpdate.expenseDate = new Date(dataToUpdate.expenseDate);
+    let amountValue: number | undefined;
+    let expenseDateValue: string | undefined;
+    let categoryValue: string | undefined;
+    let vendorValue: string | null | undefined;
+    let descriptionValue: string | null | undefined;
+    let receiptFile: File | null = null;
+    let preferredFilename: string | null = null;
+    let removeReceiptFlag = false;
+    let providedReceiptPath: string | null | undefined;
+    let previousReceiptPath: string | null = existingExpense.receiptPath ?? null;
+
+    let hasAmountField = false;
+    let hasExpenseDateField = false;
+    let hasCategoryField = false;
+    let hasVendorField = false;
+    let hasDescriptionField = false;
+    let hasReceiptPathField = false;
+
+    if (isMultipart) {
+      const formData = await request.formData();
+
+      if (formData.has('amount')) {
+        hasAmountField = true;
+        const amountRaw = formData.get('amount');
+        if (typeof amountRaw === 'string' && amountRaw.trim().length > 0) {
+          amountValue = Number.parseFloat(amountRaw);
+        }
+      }
+
+      if (formData.has('expenseDate')) {
+        hasExpenseDateField = true;
+        const expenseDateRaw = formData.get('expenseDate');
+        if (typeof expenseDateRaw === 'string' && expenseDateRaw.trim().length > 0) {
+          expenseDateValue = expenseDateRaw;
+        }
+      }
+
+      if (formData.has('category')) {
+        hasCategoryField = true;
+        const categoryRaw = formData.get('category');
+        if (typeof categoryRaw === 'string' && categoryRaw.trim().length > 0) {
+          categoryValue = categoryRaw;
+        }
+      }
+
+      if (formData.has('vendor')) {
+        hasVendorField = true;
+        const vendorRaw = formData.get('vendor');
+        if (typeof vendorRaw === 'string') {
+          vendorValue = vendorRaw.trim().length > 0 ? vendorRaw : null;
+        } else {
+          vendorValue = null;
+        }
+      }
+
+      if (formData.has('description')) {
+        hasDescriptionField = true;
+        const descriptionRaw = formData.get('description');
+        if (typeof descriptionRaw === 'string') {
+          descriptionValue = descriptionRaw.trim().length > 0 ? descriptionRaw : null;
+        } else {
+          descriptionValue = null;
+        }
+      }
+
+      if (formData.has('receipt')) {
+        const receiptEntry = formData.get('receipt');
+        if (receiptEntry instanceof File && receiptEntry.size > 0) {
+          receiptFile = receiptEntry;
+        }
+      }
+
+      if (formData.has('receiptMetadata')) {
+        const metadataEntry = formData.get('receiptMetadata');
+        if (typeof metadataEntry === 'string') {
+          try {
+            const parsed = JSON.parse(metadataEntry);
+            if (parsed && typeof parsed === 'object' && typeof parsed.originalFilename === 'string') {
+              preferredFilename = parsed.originalFilename;
+            }
+          } catch (parseError) {
+            console.warn('Failed to parse receipt metadata JSON:', parseError);
+          }
+        }
+      }
+
+      if (formData.has('previousReceiptPath')) {
+        const previousPathEntry = formData.get('previousReceiptPath');
+        if (typeof previousPathEntry === 'string' && previousPathEntry.trim().length > 0) {
+          previousReceiptPath = previousPathEntry;
+        }
+      }
+
+      if (formData.has('removeReceipt')) {
+        const removeEntry = formData.get('removeReceipt');
+        if (typeof removeEntry === 'string') {
+          removeReceiptFlag = removeEntry === 'true';
+        }
+      }
+
+      if (formData.has('receiptPath')) {
+        hasReceiptPathField = true;
+        const pathEntry = formData.get('receiptPath');
+        if (typeof pathEntry === 'string' && pathEntry.trim().length > 0) {
+          providedReceiptPath = pathEntry;
+        } else {
+          providedReceiptPath = null;
+        }
+      }
+    } else {
+      const body = await request.json();
+
+      // 4. Validate input data
+      const validation = expenseUpdateSchema.safeParse(body);
+      if (!validation.success) {
+        return NextResponse.json({ error: 'Invalid input data', details: validation.error.errors }, { status: 400 });
+      }
+      const data = validation.data;
+
+      if (data.amount !== undefined) {
+        hasAmountField = true;
+        amountValue = data.amount;
+      }
+      if (data.expenseDate !== undefined) {
+        hasExpenseDateField = true;
+        expenseDateValue = data.expenseDate;
+      }
+      if (data.category !== undefined) {
+        hasCategoryField = true;
+        categoryValue = data.category;
+      }
+      if (data.vendor !== undefined) {
+        hasVendorField = true;
+        vendorValue = data.vendor ?? null;
+      }
+      if (data.description !== undefined) {
+        hasDescriptionField = true;
+        descriptionValue = data.description ?? null;
+      }
+      if (data.receiptPath !== undefined) {
+        hasReceiptPathField = true;
+        providedReceiptPath = data.receiptPath ?? null;
+        removeReceiptFlag = data.receiptPath === null;
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+
+    if (hasAmountField) {
+      if (amountValue === undefined || Number.isNaN(amountValue) || amountValue <= 0) {
+        return NextResponse.json({ error: 'Invalid amount provided.' }, { status: 400 });
+      }
+      updateData.amount = amountValue;
+    }
+
+    if (hasExpenseDateField) {
+      if (!expenseDateValue) {
+        return NextResponse.json({ error: 'Invalid expense date provided.' }, { status: 400 });
+      }
+      const parsedDate = new Date(expenseDateValue);
+      if (Number.isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid expense date provided.' }, { status: 400 });
+      }
+      updateData.expenseDate = parsedDate;
+    }
+
+    if (hasCategoryField && categoryValue) {
+      updateData.category = categoryValue;
+    }
+
+    if (hasVendorField) {
+      updateData.vendor = vendorValue ?? null;
+    }
+
+    if (hasDescriptionField) {
+      updateData.description = descriptionValue ?? null;
+    }
+
+    let newReceiptPath: string | null | undefined;
+    let newReceiptUrl: string | null | undefined;
+
+    if (receiptFile) {
+      try {
+        const uploadResult = await uploadReceipt({
+          file: receiptFile,
+          orgId,
+          userId,
+          preferredName: preferredFilename,
+        });
+        newReceiptPath = uploadResult.receiptPath;
+        newReceiptUrl = uploadResult.receiptUrl;
+
+        const pathToDelete = previousReceiptPath ?? existingExpense.receiptPath;
+        if (pathToDelete) {
+          await removeReceipt(pathToDelete);
+        }
+      } catch (uploadError) {
+        console.error('Receipt upload failed during update:', uploadError);
+        return NextResponse.json(
+          { error: uploadError instanceof Error ? uploadError.message : 'Failed to upload new receipt.' },
+          { status: 500 }
+        );
+      }
+    } else if (removeReceiptFlag) {
+      const pathToDelete = previousReceiptPath ?? existingExpense.receiptPath;
+      if (pathToDelete) {
+        await removeReceipt(pathToDelete);
+      }
+      newReceiptPath = null;
+      newReceiptUrl = null;
+    } else if (hasReceiptPathField) {
+      newReceiptPath = providedReceiptPath ?? null;
+      if (providedReceiptPath === null) {
+        newReceiptUrl = null;
+      }
+    }
+
+    if (newReceiptPath !== undefined) {
+      updateData.receiptPath = newReceiptPath;
+    }
+    if (newReceiptUrl !== undefined) {
+      updateData.receiptUrl = newReceiptUrl;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No valid fields provided for update.' }, { status: 400 });
     }
 
     // 5. Perform the update using updateMany to ensure org boundary
@@ -129,7 +411,7 @@ export async function PATCH(
         // submitterId: userId, 
         // status: 'PENDING' 
       },
-      data: dataToUpdate,
+      data: updateData as any,
     });
 
     // Invalidate dashboard cache after updating expense

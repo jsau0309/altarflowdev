@@ -1,10 +1,17 @@
 import OpenAI from 'openai';
 import { serverEnv } from '@/lib/env';
+import { captureLLMEvent } from '@/lib/posthog/server';
 
 // Initialize AI client
 const openai = new OpenAI({
   apiKey: serverEnv.OPENAI_API_KEY,
 });
+
+export interface AITrackingContext {
+  distinctId: string;
+  traceId?: string;
+  orgId?: string;
+}
 
 export type ToneOption = 'friendly' | 'formal' | 'urgent' | 'celebratory' | 'informative';
 
@@ -27,6 +34,7 @@ interface GenerateSubjectLinesParams {
   tone: ToneOption;
   eventType?: string;
   currentSubject?: string;
+  trackingContext?: AITrackingContext;
 }
 
 interface GenerateEmailSuggestionsParams {
@@ -36,6 +44,7 @@ interface GenerateEmailSuggestionsParams {
   churchName: string;
   tone: ToneOption;
   language?: 'en' | 'es';
+  trackingContext?: AITrackingContext;
 }
 
 export interface EmailSuggestion {
@@ -52,7 +61,9 @@ export class AIService {
     tone,
     eventType,
     currentSubject,
+    trackingContext,
   }: GenerateSubjectLinesParams): Promise<SubjectLineSuggestion[]> {
+    const startTime = performance.now();
     try {
       const toneDescriptions = {
         friendly: 'warm, welcoming, and conversational',
@@ -95,6 +106,31 @@ Return only a JSON array of 5 suggestions.`;
         temperature: 0.8,
         max_tokens: 1000,
       });
+
+      // Track LLM usage with PostHog
+      if (trackingContext && response.usage) {
+        const latencyMs = performance.now() - startTime;
+        // GPT-4o-mini pricing: $0.150 per 1M input tokens, $0.600 per 1M output tokens
+        const inputCost = (response.usage.prompt_tokens / 1_000_000) * 0.150;
+        const outputCost = (response.usage.completion_tokens / 1_000_000) * 0.600;
+
+        captureLLMEvent({
+          distinctId: trackingContext.distinctId,
+          traceId: trackingContext.traceId || `email_subject_${Date.now()}`,
+          model: 'gpt-4o-mini',
+          provider: 'openai',
+          inputTokens: response.usage.prompt_tokens,
+          outputTokens: response.usage.completion_tokens,
+          totalCostUsd: inputCost + outputCost,
+          latencyMs,
+          properties: {
+            feature: 'email_subject_lines',
+            tone,
+            event_type: eventType,
+          },
+          groups: trackingContext.orgId ? { company: trackingContext.orgId } : undefined,
+        });
+      }
 
       const content = response.choices[0]?.message?.content;
       if (!content) throw new Error('No response from OpenAI');
@@ -149,8 +185,10 @@ Return only a JSON array of 5 suggestions.`;
     churchName,
     tone,
     language = 'en',
+    trackingContext,
   }: GenerateEmailSuggestionsParams): Promise<EmailSuggestion[]> {
-    try {
+    const startTime = performance.now();
+    try{
       const toneDescriptions = {
         en: {
           friendly: 'warm, welcoming, and conversational',
@@ -232,17 +270,41 @@ ${language === 'es' ? 'Devuelve EXACTAMENTE este formato JSON con 5 sugerencias 
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini', // Better quality for marketing suggestions
-        messages: [{ 
-          role: 'system', 
+        messages: [{
+          role: 'system',
           content: 'You are an expert church marketing consultant who creates compelling, emotionally resonant email campaigns.'
-        }, { 
-          role: 'user', 
-          content: prompt + prompt2 + (language === 'es' ? '\n\nIMPORTANTE: Todas las sugerencias deben estar en español.' : '') 
+        }, {
+          role: 'user',
+          content: prompt + prompt2 + (language === 'es' ? '\n\nIMPORTANTE: Todas las sugerencias deben estar en español.' : '')
         }],
         temperature: 0.9, // Higher creativity
         max_tokens: 1000,
         response_format: { type: "json_object" },
       });
+
+      // Track LLM usage with PostHog
+      if (trackingContext && response.usage) {
+        const latencyMs = performance.now() - startTime;
+        const inputCost = (response.usage.prompt_tokens / 1_000_000) * 0.150;
+        const outputCost = (response.usage.completion_tokens / 1_000_000) * 0.600;
+
+        captureLLMEvent({
+          distinctId: trackingContext.distinctId,
+          traceId: trackingContext.traceId || `email_suggestions_${Date.now()}`,
+          model: 'gpt-4o-mini',
+          provider: 'openai',
+          inputTokens: response.usage.prompt_tokens,
+          outputTokens: response.usage.completion_tokens,
+          totalCostUsd: inputCost + outputCost,
+          latencyMs,
+          properties: {
+            feature: 'email_campaign_suggestions',
+            tone,
+            language,
+          },
+          groups: trackingContext.orgId ? { company: trackingContext.orgId } : undefined,
+        });
+      }
 
       const content = response.choices[0]?.message?.content;
       if (!content) throw new Error('No response from OpenAI');
