@@ -14,6 +14,42 @@ const SIGNED_URL_TTL_SECONDS = 86_400; // 24 hours
 const sanitizeFilename = (filename: string) =>
   filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
 
+const MAX_RECEIPT_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_RECEIPT_MIME_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+];
+
+type ReceiptValidationResult =
+  | { ok: true }
+  | { ok: false; status: number; error: string };
+
+function validateReceiptFileForUpload(file: File): ReceiptValidationResult {
+  if (file.size > MAX_RECEIPT_FILE_SIZE) {
+    return {
+      ok: false,
+      status: 413,
+      error: 'File too large. Maximum size is 10MB.',
+    };
+  }
+
+  const contentType = file.type || 'application/octet-stream';
+
+  if (!ALLOWED_RECEIPT_MIME_TYPES.includes(contentType)) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Invalid file type. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed.',
+    };
+  }
+
+  return { ok: true };
+}
+
 async function uploadReceipt({
   file,
   orgId,
@@ -215,6 +251,14 @@ export async function POST(request: NextRequest) {
     let receiptUrl: string | null = null;
 
     if (receiptFile) {
+      const validationResult = validateReceiptFileForUpload(receiptFile);
+      if (!validationResult.ok) {
+        return NextResponse.json(
+          { error: validationResult.error },
+          { status: validationResult.status }
+        );
+      }
+
       try {
         const uploadResult = await uploadReceipt({
           file: receiptFile,

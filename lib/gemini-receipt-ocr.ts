@@ -148,7 +148,14 @@ async function callGemini({
     },
   });
 
-  const text = response.text;
+  const text =
+    response.text ??
+    response.candidates?.[0]?.content?.parts?.reduce((acc, part) => {
+      if (typeof part.text === 'string' && part.text.length > 0) {
+        return acc + part.text;
+      }
+      return acc;
+    }, '');
 
   if (!text) {
     throw new Error('Gemini OCR response was empty.');
