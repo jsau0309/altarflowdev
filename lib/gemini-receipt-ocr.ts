@@ -17,10 +17,26 @@ export interface GeminiTrackingContext {
 const receiptSchema = {
   type: Type.OBJECT,
   properties: {
-    vendor: { type: Type.STRING, description: 'Merchant/vendor name' },
-    total: { type: Type.NUMBER, description: 'Final total amount (numeric only)' },
-    date: { type: Type.STRING, description: 'Transaction date in YYYY-MM-DD format' },
-    confidence: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
+    vendor: {
+      type: Type.STRING,
+      description: 'Merchant/vendor name',
+      nullable: true,
+    },
+    total: {
+      type: Type.NUMBER,
+      description: 'Final total amount (numeric only)',
+      nullable: true,
+    },
+    date: {
+      type: Type.STRING,
+      description: 'Transaction date in YYYY-MM-DD format',
+      nullable: true,
+    },
+    confidence: {
+      type: Type.STRING,
+      enum: ['high', 'medium', 'low'],
+      nullable: true,
+    },
   },
   required: ['vendor', 'total', 'date'],
 };
