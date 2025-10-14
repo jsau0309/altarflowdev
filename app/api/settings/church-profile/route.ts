@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         phone: true,
         address: true,
         website: true,
+        preferredLanguage: true,
       },
     });
 
@@ -81,12 +82,22 @@ export async function PUT(request: NextRequest) {
   }
 
     // 4. Prepare data for update
+    // Validate preferredLanguage if provided
+    let preferredLanguageToSet: string | undefined = undefined;
+    if (typeof churchData.preferredLanguage === 'string') {
+      const lowerLang = churchData.preferredLanguage.toLowerCase();
+      if (lowerLang === 'en' || lowerLang === 'es') {
+        preferredLanguageToSet = lowerLang;
+      }
+    }
+
     const dataToUpdate = {
       name: churchData.name,
       email: churchData.email || null,
       phone: churchData.phone || null, 
       address: churchData.address || null,
       website: churchData.website || null,
+      ...(preferredLanguageToSet ? { preferredLanguage: preferredLanguageToSet } : {}),
     };
 
     // 5. Update the church details using clerkOrgId (or create if doesn't exist yet)
@@ -109,6 +120,7 @@ export async function PUT(request: NextRequest) {
         phone: true,
         address: true,
         website: true,
+        preferredLanguage: true,
       },
     });
 
