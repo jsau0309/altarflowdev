@@ -329,6 +329,14 @@ export function ReportsPage() {
                   loading={isLoading || isFilterLoading}
                 />
               </div>
+              {/* Campaign Performance placeholder for v1 */}
+              {activeTab === 'donations' && (
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+                    {t('reports:campaignPerformance.soon', 'Campaign Performance coming soon (v1 minimal API available).')}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </TabsContent>

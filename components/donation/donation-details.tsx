@@ -113,7 +113,7 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
         </Button>
       </div>
 
-      {/* REPLACED the old campaign Select with this new one for Donation Types */}
+      {/* Group defaults and active campaigns */}
       <div className="space-y-2">
         <Label htmlFor="donationTypeSelect" className="text-gray-900">{t('donations:donationDetails.selectFundLabel', 'Select a Fund')}</Label>
         <select
@@ -129,16 +129,37 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
           }}
           className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <option value="">{/* Intentionally empty for no visible placeholder text */}</option>
-          {donationTypes.map((type) => {
-            // Generate a key from the fund name (e.g., "General Fund" -> "general_fund")
-            const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
-            return (
-              <option key={type.id} value={type.id}>
-                {t(`donations:funds.${fundKey}`, type.name) /* Translate, fallback to original name */}
-              </option>
-            );
-          })}
+          <option value=""></option>
+          {/* General Giving */}
+          {donationTypes.some(dt => !dt.isCampaign) && (
+            <optgroup label={t('donations:donationDetails.generalGiving', 'General Giving')}>
+              {donationTypes
+                .filter(dt => !dt.isCampaign)
+                .map((type) => {
+                  const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
+                  return (
+                    <option key={type.id} value={type.id}>
+                      {t(`donations:funds.${fundKey}`, type.name)}
+                    </option>
+                  );
+                })}
+            </optgroup>
+          )}
+          {/* Active Campaigns */}
+          {donationTypes.some(dt => dt.isCampaign && dt.isActive) && (
+            <optgroup label={t('donations:donationDetails.activeCampaigns', 'Active Campaigns')}>
+              {donationTypes
+                .filter(dt => dt.isCampaign && dt.isActive)
+                .map((type) => {
+                  const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
+                  return (
+                    <option key={type.id} value={type.id}>
+                      {t(`donations:funds.${fundKey}`, type.name)}
+                    </option>
+                  );
+                })}
+            </optgroup>
+          )}
           {donationTypes.length === 0 && (
             <option value="no-types" disabled>
               {t('donations:donationDetails.noFundsAvailable', 'No funds available')}
