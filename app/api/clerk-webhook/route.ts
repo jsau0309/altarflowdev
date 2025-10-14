@@ -215,12 +215,16 @@ export async function POST(req: Request) {
             description: "Regular giving to support the church's mission and ministries.",
             churchId: newChurch.id, // Link to the newly created church
             isRecurringAllowed: true,
+            isCampaign: false,
+            isActive: true,
           },
           {
             name: "Offering",
             description: "General contributions and special one-time gifts.",
             churchId: newChurch.id, // Link to the newly created church
             isRecurringAllowed: true,
+            isCampaign: false,
+            isActive: true,
           },
         ];
 

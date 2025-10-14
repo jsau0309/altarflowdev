@@ -89,6 +89,16 @@ model DonationType {
   name               String
   description        String?
   isRecurringAllowed Boolean               @default(true)
+  // Campaign fields: default types have isCampaign=false
+  isCampaign         Boolean               @default(false)
+  // Active flag primarily for campaigns; defaults remain active
+  isActive           Boolean               @default(true)
+  // End conditions
+  goalAmount         Decimal?              @db.Decimal(10, 2)
+  endDate            DateTime?
+  // Control visibility window and ordering
+  startDate          DateTime?             @default(now())
+  displayOrder       Int                   @default(0)
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   donations          DonationTransaction[]
@@ -96,6 +106,7 @@ model DonationType {
 
   @@unique([churchId, name])
   @@index([churchId])
+  @@index([churchId, isActive, isCampaign])
 }
 
 model DonationTransaction {
