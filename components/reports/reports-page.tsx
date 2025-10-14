@@ -15,6 +15,7 @@ import LoaderOne from "@/components/ui/loader-one"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 import { FinancialAnalysisContent } from "./financial/financial-analysis-content"
+import { CampaignAnalytics } from "./campaign-analytics"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -329,6 +330,14 @@ export function ReportsPage() {
                   loading={isLoading || isFilterLoading}
                 />
               </div>
+              
+              {/* Show campaign analytics only on donations tab */}
+              {activeTab === 'donations' && organization && (
+                <CampaignAnalytics 
+                  organizationId={organization.id}
+                  dateRange={dateRange}
+                />
+              )}
             </>
           )}
         </TabsContent>

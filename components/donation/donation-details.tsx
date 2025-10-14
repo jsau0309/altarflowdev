@@ -130,15 +130,38 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
           className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="">{/* Intentionally empty for no visible placeholder text */}</option>
-          {donationTypes.map((type) => {
-            // Generate a key from the fund name (e.g., "General Fund" -> "general_fund")
-            const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
-            return (
-              <option key={type.id} value={type.id}>
-                {t(`donations:funds.${fundKey}`, type.name) /* Translate, fallback to original name */}
-              </option>
-            );
-          })}
+          
+          {/* Group default types */}
+          {donationTypes.some(type => !type.isCampaign) && (
+            <optgroup label={t('donations:donationDetails.generalGiving', 'General Giving')}>
+              {donationTypes
+                .filter(type => !type.isCampaign)
+                .map((type) => {
+                  const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
+                  return (
+                    <option key={type.id} value={type.id}>
+                      {t(`donations:funds.${fundKey}`, type.name)}
+                    </option>
+                  );
+                })}
+            </optgroup>
+          )}
+          
+          {/* Group campaigns */}
+          {donationTypes.some(type => type.isCampaign) && (
+            <optgroup label={t('donations:donationDetails.activeCampaigns', 'Active Campaigns')}>
+              {donationTypes
+                .filter(type => type.isCampaign)
+                .map((type) => {
+                  return (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  );
+                })}
+            </optgroup>
+          )}
+          
           {donationTypes.length === 0 && (
             <option value="no-types" disabled>
               {t('donations:donationDetails.noFundsAvailable', 'No funds available')}

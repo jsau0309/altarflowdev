@@ -89,6 +89,19 @@ model DonationType {
   name               String
   description        String?
   isRecurringAllowed Boolean               @default(true)
+  
+  // Campaign fields
+  isCampaign         Boolean               @default(false)  // true = campaign, false = default type
+  isActive           Boolean               @default(true)   // For campaigns only (defaults always active)
+  
+  // End conditions: EITHER goalAmount OR endDate (both can be set)
+  goalAmount         Decimal?              @db.Decimal(10, 2) // End when this amount is reached
+  endDate            DateTime?                                // End on this date
+  // Note: If BOTH set, campaign ends when FIRST condition is met
+  
+  startDate          DateTime?             @default(now())    // Campaign starts
+  displayOrder       Int                   @default(0)        // Control display order
+  
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   donations          DonationTransaction[]
@@ -96,6 +109,7 @@ model DonationType {
 
   @@unique([churchId, name])
   @@index([churchId])
+  @@index([churchId, isActive, isCampaign])
 }
 
 model DonationTransaction {

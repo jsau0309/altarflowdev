@@ -1,30 +1,53 @@
-"use server";
-
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { Church, DonationType } from "@prisma/client";
 
-interface ChurchData {
-  church: Church;
-  donationTypes: DonationType[];
-}
-
-export async function getChurchBySlug(slug: string): Promise<ChurchData | null> {
+// GET - Get active donation types/campaigns for donation form (public endpoint)
+export async function GET(req: NextRequest) {
   try {
-    const church = await prisma.church.findUnique({
-      where: { slug },
+    // Get churchId from query params
+    const { searchParams } = new URL(req.url);
+    const churchId = searchParams.get('churchId');
+
+    if (!churchId) {
+      return NextResponse.json(
+        { error: 'Church ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get church by clerkOrgId or UUID
+    let church;
+    
+    // Try to find by clerkOrgId first
+    church = await prisma.church.findUnique({
+      where: { clerkOrgId: churchId },
+      select: { id: true },
     });
 
+    // If not found, try by UUID
     if (!church) {
-      return null;
+      church = await prisma.church.findUnique({
+        where: { id: churchId },
+        select: { id: true },
+      });
+    }
+
+    if (!church) {
+      return NextResponse.json(
+        { error: 'Church not found' },
+        { status: 404 }
+      );
     }
 
     const now = new Date();
 
-    // Fetch only active donation types and campaigns
+    // Get active donation types and campaigns
     // Active means:
     // 1. isActive = true
     // 2. For campaigns: startDate <= now
     // 3. For campaigns with endDate: endDate >= now
+    // 4. For campaigns with goalAmount: total raised < goalAmount
+    
     const donationTypes = await prisma.donationType.findMany({
       where: {
         churchId: church.id,
@@ -54,7 +77,7 @@ export async function getChurchBySlug(slug: string): Promise<ChurchData | null> 
       ],
     });
 
-    // Filter out campaigns that have reached their goal
+    // For campaigns with goal amounts, check if goal is reached
     const activeDonationTypes = [];
     
     for (const type of donationTypes) {
@@ -85,34 +108,15 @@ export async function getChurchBySlug(slug: string): Promise<ChurchData | null> 
       }
     }
 
-    return { church, donationTypes: activeDonationTypes };
-  } catch (error) {
-    console.error(`Error fetching church by slug "${slug}":`, error);
-    // Optionally, rethrow or handle more gracefully
-    return null; 
-  }
-}
-
-export async function getChurchById(id: string): Promise<Church | null> {
-  try {
-    const church = await prisma.church.findUnique({
-      where: { id }
+    return NextResponse.json({
+      success: true,
+      data: activeDonationTypes,
     });
-    return church;
   } catch (error) {
-    console.error(`Error fetching church by ID "${id}":`, error);
-    return null;
-  }
-}
-
-export async function getChurchByClerkOrgId(clerkOrgId: string): Promise<Church | null> {
-  try {
-    const church = await prisma.church.findUnique({
-      where: { clerkOrgId } // Query by clerkOrgId
-    });
-    return church;
-  } catch (error) {
-    console.error(`Error fetching church by Clerk Org ID "${clerkOrgId}":`, error);
-    return null;
+    console.error('Error fetching active donation types:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch active donation types' },
+      { status: 500 }
+    );
   }
 }
