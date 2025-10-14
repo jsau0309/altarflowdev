@@ -58,6 +58,7 @@ model Church {
   serviceTimesJson     Json?                 @db.Json
   settingsJson         Json?                 @db.Json
   slug                 String                @unique
+  preferredLanguage    String                @default("en")
   // Onboarding fields
   onboardingCompleted  Boolean               @default(false)
   onboardingStep       Int                   @default(1)
