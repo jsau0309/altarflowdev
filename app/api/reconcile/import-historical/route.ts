@@ -222,7 +222,7 @@ export async function POST(req: Request) {
  * 
  * Get information about what would be imported
  */
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const { userId, orgId } = await auth();
     
@@ -270,7 +270,7 @@ export async function GET(req: Request) {
         oldestPayout = new Date(Math.min(...dates.map(d => d.getTime())));
         newestPayout = new Date(Math.max(...dates.map(d => d.getTime())));
       }
-    } catch (error) {
+    } catch (_error) {
       console.log('[Import] No payouts available in Stripe account yet');
     }
     

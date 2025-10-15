@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from '@/lib/db';
-import { z } from "zod";
+import { Prisma } from "@prisma/client";
+import { z, type ZodType } from "zod";
+
+const jsonValueSchema: ZodType<Prisma.InputJsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(jsonValueSchema),
+  ])
+);
 
 const updateCampaignSchema = z.object({
   subject: z.string().min(1).optional(),
   previewText: z.string().optional(),
   content: z.string().optional(),
-  design: z.any().optional(),
+  design: jsonValueSchema.optional(),
   recipientIds: z.array(z.string()).optional(),
   recipientType: z.enum(["all", "selected", "filtered"]).optional(),
   recipientFilters: z.object({
@@ -19,7 +31,7 @@ const updateCampaignSchema = z.object({
 });
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -160,7 +172,7 @@ export async function PATCH(
     const { recipientIds, design, content, status, scheduledAt, recipientType, recipientFilters, ...campaignData } = validation.data;
 
     // Prepare update data
-    const updateData: any = { ...campaignData };
+    const updateData: Prisma.EmailCampaignUpdateInput = { ...campaignData };
     if (design !== undefined) {
       updateData.contentJson = design;
     }
@@ -192,12 +204,12 @@ export async function PATCH(
         });
 
         // Handle different recipient types
-        let actualRecipientIds = recipientIds;
-        
+        let actualRecipientIds = [...recipientIds];
+
         if (recipientType === "all") {
           // Get all members with email addresses
           const allMembers = await tx.member.findMany({
-            where: { 
+            where: {
               churchId: church.id,
               email: { not: null }
             },
@@ -206,11 +218,11 @@ export async function PATCH(
           actualRecipientIds = allMembers.map(m => m.id);
         } else if (recipientType === "filtered" && recipientFilters) {
           // Fetch members based on filters
-          const whereClause: any = { 
+          const whereClause: Prisma.MemberWhereInput = {
             churchId: church.id,
             email: { not: null } // Only include members with email
           };
-          
+
           if (recipientFilters.status && recipientFilters.status !== "all") {
             whereClause.membershipStatus = recipientFilters.status;
           }

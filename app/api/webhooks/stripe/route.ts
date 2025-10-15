@@ -7,7 +7,7 @@ import Stripe from 'stripe';
 import { getStripeWebhookSecret } from '@/lib/stripe-server';
 import { headers } from 'next/headers';
 import * as Sentry from '@sentry/nextjs';
-import { captureWebhookEvent, capturePaymentError, withApiSpan, logger, withStripeSpan } from '@/lib/sentry';
+import { captureWebhookEvent, capturePaymentError, withApiSpan, logger } from '@/lib/sentry';
 import { format } from 'date-fns';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
 import { generateDonationReceiptHtml, DonationReceiptData } from '@/lib/email/templates/donation-receipt';
@@ -655,24 +655,17 @@ export async function POST(req: Request) {
           
           await prisma.$transaction(async (tx) => {
             // Update church subscription status AND mark onboarding as complete
-            const updateData: any = {
+            const updateData: Prisma.ChurchUpdateInput = {
               subscriptionStatus: 'active',
-              subscriptionId: subscriptionId || session.id,
+              subscriptionId: subscriptionId ?? session.id,
               subscriptionPlan: plan,
               stripeCustomerId: session.customer as string,
               // Mark onboarding as complete if this happens during onboarding
               onboardingCompleted: true,
               onboardingStep: 6, // Set to final step
+              subscriptionEndsAt: subscriptionEnd,
             };
-            
-            // Only set subscriptionEndsAt if we have a valid date (for canceled subscriptions)
-            if (subscriptionEnd !== null) {
-              updateData.subscriptionEndsAt = subscriptionEnd;
-            } else {
-              // Explicitly set to null for active subscriptions
-              updateData.subscriptionEndsAt = null;
-            }
-            
+
             await tx.church.update({
               where: { clerkOrgId: orgId },
               data: updateData
@@ -1362,9 +1355,9 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
 
   const donorName = donationTransaction.donorName || `${donationTransaction.donor?.firstName || ''} ${donationTransaction.donor?.lastName || ''}`.trim() || 'Valued Donor';
 
-  let donorAddressParts = [];
+  const donorAddressParts: string[] = [];
   if (donationTransaction.donor?.addressLine1) donorAddressParts.push(donationTransaction.donor.addressLine1);
-  let cityStateZipParts = [];
+  const cityStateZipParts: string[] = [];
   if (donationTransaction.donor?.city) cityStateZipParts.push(donationTransaction.donor.city);
   if (donationTransaction.donor?.state) cityStateZipParts.push(donationTransaction.donor.state);
   if (donationTransaction.donor?.postalCode) cityStateZipParts.push(donationTransaction.donor.postalCode);
