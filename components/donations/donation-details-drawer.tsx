@@ -109,11 +109,40 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
       case 'succeeded':
         return 'default'
       case 'pending':
+      case 'processing':
         return 'secondary'
       case 'failed':
+      case 'refunded':
+      case 'partially_refunded':
+      case 'disputed':
         return 'destructive'
+      case 'canceled':
+        return 'outline'
       default:
         return 'outline'
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'succeeded':
+        return 'Succeeded'
+      case 'processing':
+        return 'Processing'
+      case 'pending':
+        return 'Pending'
+      case 'failed':
+        return 'Failed'
+      case 'canceled':
+        return t('donations:statuses.cancelled', 'Canceled')
+      case 'refunded':
+        return 'Refunded'
+      case 'partially_refunded':
+        return 'Partial Refund'
+      case 'disputed':
+        return 'Disputed'
+      default:
+        return status
     }
   }
 
@@ -202,7 +231,9 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.status')}</span>
                   <Badge variant={getStatusBadgeVariant(donation.status)}>
-                    {donation.status}
+                    {donation.source === 'manual' && donation.status === 'succeeded'
+                      ? t('donations:statuses.completed', 'Completed')
+                      : getStatusLabel(donation.status)}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">

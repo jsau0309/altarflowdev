@@ -562,6 +562,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                                           donation.status === 'failed' ? 'destructive' :
                                           donation.status === 'refunded' ? 'destructive' :
                                           donation.status === 'partially_refunded' ? 'destructive' :
+                                          donation.status === 'canceled' ? 'outline' :
                                           donation.status === 'disputed' ? 'destructive' : 'secondary'
                                         }
                                         className="text-xs"
@@ -574,6 +575,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                                          donation.status === 'processing' ? 'Processing' :
                                          donation.status === 'pending' ? 'Pending' :
                                          donation.status === 'failed' ? 'Failed' :
+                                         donation.status === 'canceled' ? t('donations:statuses.cancelled', 'Canceled') :
                                          donation.status}
                                       </Badge>
                                       {/* Show dispute status badge if there's an active dispute */}

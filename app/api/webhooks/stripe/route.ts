@@ -135,6 +135,7 @@ export async function POST(req: Request) {
     'payment_intent.succeeded',
     'payment_intent.processing',
     'payment_intent.payment_failed',
+    'payment_intent.canceled',
     'account.updated',
     'checkout.session.completed',
     'customer.subscription.created',
@@ -426,6 +427,31 @@ export async function POST(req: Request) {
         } catch (error) {
             console.error(`[Stripe Webhook] Error updating DonationTransaction to failed for PI: ${paymentIntentFailed.id}`, error);
             return NextResponse.json({ error: 'Failed to update transaction to failed status.' }, { status: 500 });
+        }
+        break;
+
+      case 'payment_intent.canceled':
+        const paymentIntentCanceled = event.data.object as Stripe.PaymentIntent;
+        console.log(`[Stripe Webhook] Processing payment_intent.canceled for PI: ${paymentIntentCanceled.id}`);
+        try {
+          await prisma.donationTransaction.update({
+            where: { stripePaymentIntentId: paymentIntentCanceled.id },
+            data: {
+              status: 'canceled',
+              processedAt: paymentIntentCanceled.canceled_at
+                ? new Date(paymentIntentCanceled.canceled_at * 1000)
+                : new Date(),
+            },
+          });
+          console.log(
+            `[Stripe Webhook] Updated transaction status to canceled for PI: ${paymentIntentCanceled.id}. Reason: ${paymentIntentCanceled.cancellation_reason ?? 'not provided'}`
+          );
+        } catch (error) {
+          console.error(
+            `[Stripe Webhook] Error updating DonationTransaction to canceled for PI: ${paymentIntentCanceled.id}`,
+            error
+          );
+          return NextResponse.json({ error: 'Failed to update transaction to canceled status.' }, { status: 500 });
         }
         break;
 
