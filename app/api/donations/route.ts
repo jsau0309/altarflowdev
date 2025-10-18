@@ -13,7 +13,7 @@ const donationCreateSchema = z.object({
   donorLastName: z.string().nullable().optional(),
   donorEmail: z.string().email().nullable().optional(),
   memberId: z.string().uuid({ message: "Invalid Member ID format" }).nullable().optional(), 
-  campaignId: z.string().uuid({ message: "Invalid Campaign ID format" }).nullable().optional(), 
+  donationTypeId: z.string().uuid({ message: "Invalid Donation Type ID format" }).nullable().optional(), 
   // stripePaymentIntentId will be added later during Stripe integration
 });
 
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         donorEmail: donationData.donorEmail,
         // Connect relations if IDs are provided
         ...(donationData.memberId && { member: { connect: { id: donationData.memberId } } }),
-        ...(donationData.campaignId && { campaign: { connect: { id: donationData.campaignId } } }),
+        ...(donationData.donationTypeId && { donationType: { connect: { id: donationData.donationTypeId } } }),
         // Connect the church relation using the Clerk orgId
         church: {
           connect: { clerkOrgId: orgId }

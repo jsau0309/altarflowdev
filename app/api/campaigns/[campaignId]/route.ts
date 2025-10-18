@@ -11,6 +11,7 @@ const campaignUpdateSchema = z.object({
   goalAmount: z.number().positive().nullable().optional(),
   startDate: z.string().datetime().nullable().optional(),
   endDate: z.string().datetime().nullable().optional(),
+  isActive: z.boolean().optional(),
 }).partial(); // Make all fields optional for PATCH
 
 // GET /api/campaigns/[campaignId] - Fetch a single campaign from the active organization
@@ -33,10 +34,11 @@ export async function GET(
     // campaignId already extracted from await params
 
     // 2. Fetch campaign only if it belongs to the active org
-    const campaign = await prisma.campaign.findFirst({
+    const campaign = await prisma.donationType.findFirst({
       where: { 
         id: campaignId, 
-        church: { clerkOrgId: orgId } 
+        church: { clerkOrgId: orgId },
+        isCampaign: true,
       },
     });
 
@@ -93,7 +95,7 @@ export async function PATCH(
     const campaignData = validation.data;
 
     // 3. Prepare data for update
-    const dataToUpdate: Prisma.CampaignUpdateInput = {}; // Use Prisma type for better safety
+    const dataToUpdate: Prisma.DonationTypeUpdateInput = {};
     if (campaignData.name !== undefined) dataToUpdate.name = campaignData.name;
     if (campaignData.description !== undefined) dataToUpdate.description = campaignData.description;
     if (campaignData.startDate !== undefined) {
@@ -103,8 +105,10 @@ export async function PATCH(
       dataToUpdate.endDate = campaignData.endDate ? new Date(campaignData.endDate) : null;
     }
     if (campaignData.goalAmount !== undefined) {
-      // Ensure null is handled correctly if goalAmount is optional & nullable
-      dataToUpdate.goalAmount = campaignData.goalAmount === null ? null : campaignData.goalAmount; 
+      dataToUpdate.goalAmount = campaignData.goalAmount === null ? null : new Prisma.Decimal(campaignData.goalAmount.toFixed(2)); 
+    }
+    if (campaignData.isActive !== undefined) {
+      dataToUpdate.isActive = campaignData.isActive;
     }
 
     // Check if there's actually anything to update
@@ -113,10 +117,11 @@ export async function PATCH(
     }
 
     // 4. Perform the update using updateMany to ensure org boundary
-    const updateResult = await prisma.campaign.updateMany({
+    const updateResult = await prisma.donationType.updateMany({
       where: { 
         id: campaignId, 
-        church: { clerkOrgId: orgId } // Ensure update only happens for the correct org
+        church: { clerkOrgId: orgId },
+        isCampaign: true,
       },
       data: dataToUpdate,
     });
@@ -127,10 +132,11 @@ export async function PATCH(
     }
 
     // 6. Fetch the updated campaign to return it
-    const updatedCampaign = await prisma.campaign.findFirst({
+    const updatedCampaign = await prisma.donationType.findFirst({
        where: { 
          id: campaignId, 
-         church: { clerkOrgId: orgId } 
+         church: { clerkOrgId: orgId },
+         isCampaign: true,
        }
     });
 
@@ -170,20 +176,35 @@ export async function DELETE(
     // Remove initial existence check
 
     // 2. Use deleteMany with compound where clause to ensure ownership
-    const deleteResult = await prisma.campaign.deleteMany({
-      where: { 
-        id: campaignId, 
-        church: { clerkOrgId: orgId } // Ensure deletion only happens for the correct org
+    const existing = await prisma.donationType.findFirst({
+      where: {
+        id: campaignId,
+        church: { clerkOrgId: orgId },
+        isCampaign: true,
       },
     });
 
-    // 3. Check if a record was actually deleted
-    if (deleteResult.count === 0) {
-      // Not found or doesn't belong to this org - considered success for idempotency
-      return new NextResponse(null, { status: 204 }); 
+    if (!existing) {
+      return new NextResponse(null, { status: 204 });
     }
 
-    console.log(`Campaign ${campaignId} deleted successfully by user ${userId} (org ${orgId})`);
+    const transactionCount = await prisma.donationTransaction.count({
+      where: {
+        donationTypeId: campaignId,
+        church: { clerkOrgId: orgId },
+      },
+    });
+
+    if (transactionCount > 0) {
+      await prisma.donationType.update({
+        where: { id: campaignId },
+        data: { isActive: false },
+      });
+    } else {
+      await prisma.donationType.delete({ where: { id: campaignId } });
+    }
+
+    console.log(`Campaign ${campaignId} deleted (soft=${transactionCount > 0}) by user ${userId} (org ${orgId})`);
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {

@@ -117,6 +117,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
     trackEvent('donation_initiated', {
       amount: displayAmount,
       donation_type: formData.donationTypeName || 'Unknown',
+      donation_type_category: formData.donationTypeIsCampaign ? 'campaign' : 'fund',
       church_slug: churchSlug,
       covers_fees: formData.coverFees || false,
     });
@@ -145,7 +146,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
     } else if (paymentIntent && paymentIntent.status === 'succeeded') {
       // Payment succeeded but redirect didn't happen automatically (e.g., in WebView)
       // Clear the session storage to allow future donations
-      const donationKey = `donation_${churchSlug}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${formData.campaignId || 'no-campaign'}`;
+      const donationKey = `donation_${churchSlug}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${formData.donationTypeIsCampaign ? 'campaign' : 'fund'}`;
       sessionStorage.removeItem(donationKey);
       
       // Manually redirect to success page
@@ -214,8 +215,9 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
   // Create a stable session key for this specific donation configuration
   // Don't include timestamp so it remains the same across remounts
   const donationSessionKey = useMemo(() => {
-    return `donation_${churchId}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${formData.campaignId || 'no-campaign'}`;
-  }, [churchId, formData.donationTypeId, formData.amount, formData.coverFees, formData.campaignId]);
+    const category = formData.donationTypeIsCampaign ? 'campaign' : 'fund';
+    return `donation_${churchId}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${category}`;
+  }, [churchId, formData.donationTypeId, formData.amount, formData.coverFees, formData.donationTypeIsCampaign]);
 
   // Function to initiate payment - called once when component mounts with valid data
   const initiateDonationPayment = useCallback(async () => {
@@ -294,9 +296,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
           ...(formData.state && !formData.isAnonymous && { state: formData.state }),
           ...(formData.zipCode && !formData.isAnonymous && { zipCode: formData.zipCode }), // Matches flat Zod schema field
           ...(formData.country && !formData.isAnonymous && { country: formData.country }),
-
           ...(donorId && { donorId: donorId }), // Include donorId if available
-          ...(formData.campaignId && { campaignId: formData.campaignId }),
         }),
         signal: abortController.signal,
       });

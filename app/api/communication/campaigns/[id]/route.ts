@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from '@/lib/db';
-import { Prisma } from "@prisma/client";
+import { Prisma, MembershipStatus } from "@prisma/client";
 import { z, type ZodType } from "zod";
 
-const jsonValueSchema: ZodType<Prisma.InputJsonValue> = z.lazy(() =>
+const jsonValueSchema: ZodType<Prisma.JsonValue> = z.lazy(() =>
   z.union([
     z.string(),
     z.number(),
@@ -174,7 +174,7 @@ export async function PATCH(
     // Prepare update data
     const updateData: Prisma.EmailCampaignUpdateInput = { ...campaignData };
     if (design !== undefined) {
-      updateData.contentJson = design;
+      updateData.contentJson = design === null ? Prisma.JsonNull : design;
     }
     if (content !== undefined) {
       updateData.htmlContent = content;
@@ -224,7 +224,7 @@ export async function PATCH(
           };
 
           if (recipientFilters.status && recipientFilters.status !== "all") {
-            whereClause.membershipStatus = recipientFilters.status;
+            whereClause.membershipStatus = recipientFilters.status as MembershipStatus;
           }
           
           if (recipientFilters.searchQuery) {

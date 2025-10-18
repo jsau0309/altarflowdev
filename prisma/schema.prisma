@@ -68,7 +68,6 @@ model Church {
   trialEndsAt          DateTime?
   subscriptionEndsAt   DateTime?
   stripeCustomerId     String?               @unique
-  campaigns            Campaign[]
   donations            Donation[]
   donationTransactions DonationTransaction[]
   donationTypes        DonationType[]
@@ -89,20 +88,28 @@ model DonationType {
   name               String
   description        String?
   isRecurringAllowed Boolean               @default(true)
+  isCampaign         Boolean               @default(false)
+  goalAmount         Decimal?              @db.Decimal(10, 2)
+  startDate          DateTime?
+  endDate            DateTime?
+  isActive           Boolean               @default(true)
+  isSystemType       Boolean               @default(false)
+  isDeletable        Boolean               @default(true)
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
-  donations          DonationTransaction[]
-  church             Church                @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  donationTransactions DonationTransaction[]
+  donations            Donation[]          @relation("DonationTypeDonations")
+  church               Church              @relation(fields: [churchId], references: [id], onDelete: Cascade)
 
   @@unique([churchId, name])
   @@index([churchId])
+  @@index([churchId, isCampaign])
 }
 
 model DonationTransaction {
   id                          String       @id @default(cuid())
   churchId                    String       @db.Uuid
   donationTypeId              String
-  campaignId                  String?      @db.Uuid
   donorClerkId                String?
   donorName                   String?
   donorEmail                  String?
@@ -135,12 +142,10 @@ model DonationTransaction {
   disputedAt                  DateTime?
   church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
   donationType                DonationType @relation(fields: [donationTypeId], references: [id])
-  campaign                    Campaign?    @relation(fields: [campaignId], references: [id])
   donor                       Donor?       @relation(fields: [donorId], references: [id])
 
   @@index([churchId])
   @@index([donationTypeId])
-  @@index([campaignId])
   @@index([donorClerkId])
   @@index([stripePaymentIntentId])
   @@index([stripeSubscriptionId])
@@ -203,45 +208,27 @@ model Member {
   @@index([churchId, membershipStatus])
 }
 
-model Campaign {
-  id                   String                @id @default(uuid()) @db.Uuid
-  name                 String
-  description          String?
-  goalAmount           Decimal?              @db.Decimal(10, 2)
-  startDate            DateTime?
-  endDate              DateTime?
-  isActive             Boolean               @default(true)
-  churchId             String                @db.Uuid
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @default(now()) @updatedAt
-  church               Church                @relation(fields: [churchId], references: [id])
-  donations            Donation[]
-  donationTransactions DonationTransaction[]
-
-  @@index([churchId])
-}
-
 model Donation {
-  id                    String    @id @default(uuid()) @db.Uuid
-  amount                Decimal   @db.Decimal(10, 2)
-  currency              String    @default("USD")
-  donationDate          DateTime  @default(now())
+  id                    String        @id @default(uuid()) @db.Uuid
+  amount                Decimal       @db.Decimal(10, 2)
+  currency              String        @default("USD")
+  donationDate          DateTime      @default(now())
   donorFirstName        String?
   donorLastName         String?
   donorEmail            String?
-  memberId              String?   @db.Uuid
-  campaignId            String?   @db.Uuid
-  churchId              String    @db.Uuid
-  stripePaymentIntentId String?   @unique
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @default(now()) @updatedAt
-  campaign              Campaign? @relation(fields: [campaignId], references: [id])
-  church                Church    @relation(fields: [churchId], references: [id])
-  member                Member?   @relation(fields: [memberId], references: [id])
+  memberId              String?       @db.Uuid
+  donationTypeId        String?       @db.Uuid
+  churchId              String        @db.Uuid
+  stripePaymentIntentId String?       @unique
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @default(now()) @updatedAt
+  church                Church        @relation(fields: [churchId], references: [id])
+  member                Member?       @relation(fields: [memberId], references: [id])
+  donationType          DonationType? @relation("DonationTypeDonations", fields: [donationTypeId], references: [id])
 
   @@index([memberId])
-  @@index([campaignId])
   @@index([churchId])
+  @@index([donationTypeId])
 }
 
 model Expense {

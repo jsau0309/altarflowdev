@@ -192,7 +192,8 @@ export async function editManualDonation(params: EditDonationParams): Promise<Ed
       include: {
         donationType: {
           select: {
-            name: true
+            name: true,
+            isCampaign: true,
           }
         }
       }
@@ -204,6 +205,7 @@ export async function editManualDonation(params: EditDonationParams): Promise<Ed
       churchId: updatedDonation.churchId,
       donationTypeId: updatedDonation.donationTypeId,
       donationTypeName: updatedDonation.donationType.name,
+      donationTypeIsCampaign: updatedDonation.donationType.isCampaign,
       donorClerkId: updatedDonation.donorClerkId,
       donorName: updatedDonation.donorName ?? undefined,
       donorEmail: updatedDonation.donorEmail ?? undefined,

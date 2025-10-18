@@ -11,6 +11,7 @@ const campaignCreateSchema = z.object({
   goalAmount: z.number().positive().nullable().optional(),
   startDate: z.string().datetime({ message: "Invalid start date format" }).nullable().optional(),
   endDate: z.string().datetime({ message: "Invalid end date format" }).nullable().optional(),
+  isActive: z.boolean().optional(),
 });
 
 // GET /api/campaigns - Fetch all campaigns for the active organization
@@ -27,11 +28,12 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Fetch campaigns ONLY for the user's active organization
-    const campaigns = await prisma.campaign.findMany({
+    const campaigns = await prisma.donationType.findMany({
       where: {
-        church: { // Filter by the related church
-          clerkOrgId: orgId // Using the Clerk Org ID
-        }
+        church: {
+          clerkOrgId: orgId
+        },
+        isCampaign: true,
       },
       orderBy: {
         createdAt: 'desc', // Show newest first
@@ -78,20 +80,26 @@ export async function POST(request: NextRequest) {
     const campaignData = validation.data;
 
     // 3. Prepare data for creation - connect church via clerkOrgId
-    const dataToCreate: Prisma.CampaignCreateInput = {
-        ...campaignData,
-        startDate: campaignData.startDate ? new Date(campaignData.startDate) : null,
-        endDate: campaignData.endDate ? new Date(campaignData.endDate) : null,
-        goalAmount: campaignData.goalAmount, // Already parsed by zod
-        church: {
-            connect: {
-                clerkOrgId: orgId // Connect using Clerk Org ID
-            }
+    const dataToCreate: Prisma.DonationTypeCreateInput = {
+      name: campaignData.name,
+      description: campaignData.description ?? null,
+      goalAmount: campaignData.goalAmount != null ? new Prisma.Decimal(campaignData.goalAmount.toFixed(2)) : null,
+      startDate: campaignData.startDate ? new Date(campaignData.startDate) : null,
+      endDate: campaignData.endDate ? new Date(campaignData.endDate) : null,
+      isActive: campaignData.isActive ?? true,
+      isCampaign: true,
+      isRecurringAllowed: false,
+      isSystemType: false,
+      isDeletable: true,
+      church: {
+        connect: {
+          clerkOrgId: orgId
         }
+      }
     };
 
     // 4. Create the campaign
-    const newCampaign = await prisma.campaign.create({
+    const newCampaign = await prisma.donationType.create({
       data: dataToCreate,
     });
 

@@ -21,7 +21,7 @@ interface GetDonationTransactionsParams {
   donationTypes?: string[];
   donorIds?: string[];
   paymentMethods?: string[]; // Added paymentMethods as it's used in donations-content.tsx
-  // Add other filter params as needed: campaignId, etc.
+  // Add other filter params as needed
 }
 
 interface GetDonationTransactionsResult {
@@ -36,7 +36,6 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
     id: true;
     churchId: true;
     donationTypeId: true;
-    campaignId: true;
     donorClerkId: true;
     donorName: true;
     donorEmail: true;
@@ -61,11 +60,7 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
     donationType: {
       select: {
         name: true;
-      };
-    };
-    campaign: {
-      select: {
-        name: true;
+        isCampaign: true;
       };
     };
   };
@@ -157,7 +152,6 @@ export async function getDonationTransactions({
         id: true,
         churchId: true,
         donationTypeId: true,
-        campaignId: true,
         donorClerkId: true,
         donorName: true,
         donorEmail: true,
@@ -182,11 +176,7 @@ export async function getDonationTransactions({
         donationType: {
           select: {
             name: true,
-          },
-        },
-        campaign: {
-          select: {
-            name: true,
+            isCampaign: true,
           },
         },
       },
@@ -205,9 +195,8 @@ export async function getDonationTransactions({
       id: t.id,
       churchId: t.churchId,
       donationTypeId: t.donationTypeId,
-      campaignId: t.campaignId || undefined,
       donationTypeName: t.donationType.name,
-      campaignName: t.campaign?.name || undefined,
+      donationTypeIsCampaign: t.donationType.isCampaign,
       donorClerkId: t.donorClerkId,
       donorName: t.donorName ?? undefined,
       donorEmail: t.donorEmail ?? undefined,
@@ -309,7 +298,7 @@ export interface CreateManualDonationParams {
   amount: number; // In cents
   donationDate: Date;
   donorId: string; // ID of an existing Donor record
-  donationTypeName: string; // e.g., "Tithe", "Offering"
+  donationTypeName: string; // e.g., "Tithe", "Offering" (campaigns included)
   paymentMethod: string; // e.g., "Cash", "Check"
   notes?: string | null;
 }
@@ -461,6 +450,7 @@ export async function createManualDonation(
         donationType: {
           select: {
             name: true,
+            isCampaign: true,
           },
         },
       },
@@ -472,6 +462,7 @@ export async function createManualDonation(
       churchId: newTransaction.churchId,
       donationTypeId: newTransaction.donationTypeId,
       donationTypeName: newTransaction.donationType.name,
+      donationTypeIsCampaign: newTransaction.donationType.isCampaign,
       donorClerkId: newTransaction.donorClerkId,
       donorName: newTransaction.donorName ?? undefined,
       donorEmail: newTransaction.donorEmail ?? undefined,

@@ -123,6 +123,7 @@ export function logEmailOperation(
   operation: 'send' | 'queue' | 'bounce' | 'delivered',
   context: {
     campaignId?: string;
+    donationTypeId?: string;
     recipientCount?: number;
     churchId?: string;
     error?: string;

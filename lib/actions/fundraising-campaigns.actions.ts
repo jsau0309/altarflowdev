@@ -68,13 +68,16 @@ export async function listFundraisingCampaigns(params: ListParams): Promise<{ ca
   const skip = (Math.max(1, page) - 1) * limit;
 
   const [rows, totalCount] = await Promise.all([
-    prisma.campaign.findMany({
-      where: { churchId },
+    prisma.donationType.findMany({
+      where: {
+        churchId,
+        isCampaign: true,
+      },
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
     }),
-    prisma.campaign.count({ where: { churchId } }),
+    prisma.donationType.count({ where: { churchId, isCampaign: true } }),
   ]);
 
   const campaigns: FundraisingCampaignFE[] = await Promise.all(rows.map(async (c) => {
@@ -83,7 +86,7 @@ export async function listFundraisingCampaigns(params: ListParams): Promise<{ ca
       where: {
         churchId,
         status: 'succeeded',
-        campaignId: c.id,
+        donationTypeId: c.id,
       },
     });
     const raised = (agg._sum.amount ?? 0) / 100;
@@ -130,27 +133,32 @@ export async function createFundraisingCampaign(input: UpsertInput): Promise<{ s
   }
   const churchId = await getChurchUuid(input.clerkOrgId);
 
-  const data: Prisma.CampaignCreateInput = {
+  const data: Prisma.DonationTypeCreateInput = {
     name: input.name,
     description: input.description ?? null,
     goalAmount: input.goalAmount != null ? new Prisma.Decimal(input.goalAmount.toFixed(2)) : null,
     startDate: parseDateOnly(input.startDate ?? null),
     endDate: parseDateOnly(input.endDate ?? null),
+    isCampaign: true,
+    isRecurringAllowed: false,
+    isSystemType: false,
+    isDeletable: true,
+    isActive: input.isActive ?? true,
     church: { connect: { id: churchId } },
   };
 
-  const created = await prisma.campaign.create({ data, select: { id: true } });
+  const created = await prisma.donationType.create({ data, select: { id: true } });
   return { success: true, id: created.id };
 }
 
 export async function getFundraisingCampaignById(clerkOrgId: string, id: string): Promise<FundraisingCampaignFE | null> {
   const churchId = await getChurchUuid(clerkOrgId);
-  const c = await prisma.campaign.findFirst({ where: { id, churchId } });
+  const c = await prisma.donationType.findFirst({ where: { id, churchId, isCampaign: true } });
   if (!c) return null;
 
   const agg = await prisma.donationTransaction.aggregate({
     _sum: { amount: true },
-    where: { churchId, status: 'succeeded', campaignId: id }
+    where: { churchId, status: 'succeeded', donationTypeId: id }
   });
   const raised = (agg._sum.amount ?? 0) / 100;
   const goal = c.goalAmount ? Number(c.goalAmount) : null;
@@ -173,7 +181,7 @@ export async function getFundraisingCampaignById(clerkOrgId: string, id: string)
 export async function updateFundraisingCampaign(clerkOrgId: string, id: string, input: Omit<UpsertInput, 'clerkOrgId'>): Promise<{ success: boolean }>{
   const churchId = await getChurchUuid(clerkOrgId);
   // Ensure ownership
-  const existing = await prisma.campaign.findFirst({ where: { id, churchId }, select: { id: true } });
+  const existing = await prisma.donationType.findFirst({ where: { id, churchId, isCampaign: true }, select: { id: true } });
   if (!existing) throw new Error('Campaign not found');
 
   const parsed = upsertSchema.safeParse({ clerkOrgId, ...input });
@@ -186,7 +194,7 @@ export async function updateFundraisingCampaign(clerkOrgId: string, id: string, 
     return { success: false as const, ...(fieldErrors && { fieldErrors }) } as any;
   }
 
-  await prisma.campaign.update({
+  await prisma.donationType.update({
     where: { id },
     data: {
       name: input.name,
@@ -195,6 +203,10 @@ export async function updateFundraisingCampaign(clerkOrgId: string, id: string, 
       startDate: parseDateOnly(input.startDate ?? null),
       endDate: parseDateOnly(input.endDate ?? null),
       ...(input.isActive !== undefined && { isActive: input.isActive }),
+      isCampaign: true,
+      isRecurringAllowed: false,
+      isSystemType: false,
+      isDeletable: true,
     }
   });
   return { success: true };
@@ -202,8 +214,24 @@ export async function updateFundraisingCampaign(clerkOrgId: string, id: string, 
 
 export async function deleteFundraisingCampaign(clerkOrgId: string, id: string): Promise<{ success: boolean }>{
   const churchId = await getChurchUuid(clerkOrgId);
-  const existing = await prisma.campaign.findFirst({ where: { id, churchId }, select: { id: true } });
+  const existing = await prisma.donationType.findFirst({ where: { id, churchId, isCampaign: true } });
   if (!existing) throw new Error('Campaign not found');
-  await prisma.campaign.delete({ where: { id } });
+
+  const hasTransactions = await prisma.donationTransaction.count({
+    where: {
+      churchId,
+      donationTypeId: id,
+    },
+  });
+
+  if (hasTransactions > 0) {
+    await prisma.donationType.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  } else {
+    await prisma.donationType.delete({ where: { id } });
+  }
+
   return { success: true };
 }

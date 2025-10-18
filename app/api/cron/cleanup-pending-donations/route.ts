@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
+import type Stripe from "stripe";
 import type { Prisma } from "@prisma/client";
 
 // Stripe statuses that indicate the payment was abandoned or cannot be completed
@@ -60,8 +61,13 @@ export async function GET() {
       }
 
       try {
-        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-        const stripeStatus = paymentIntent.status;
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+          expand: ["charges"],
+        });
+        const paymentIntentData = paymentIntent as Stripe.PaymentIntent & {
+          charges?: Stripe.ApiList<Stripe.Charge>;
+        };
+        const stripeStatus = paymentIntentData.status;
 
         let targetStatus: string | null = null;
         if (stripeStatus === "succeeded") {
@@ -88,11 +94,11 @@ export async function GET() {
         };
 
         if (targetStatus === "canceled") {
-          updateData.processedAt = paymentIntent.canceled_at
-            ? new Date(paymentIntent.canceled_at * 1000)
+          updateData.processedAt = paymentIntentData.canceled_at
+            ? new Date(paymentIntentData.canceled_at * 1000)
             : new Date();
         } else if (targetStatus === "succeeded") {
-          const latestCharge = paymentIntent.charges?.data?.[0];
+          const latestCharge = paymentIntentData.charges?.data?.[0];
           updateData.processedAt = latestCharge?.created
             ? new Date(latestCharge.created * 1000)
             : new Date();

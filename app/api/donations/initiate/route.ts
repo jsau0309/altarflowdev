@@ -16,7 +16,6 @@ const initiateDonationSchema = z.object({
   donationTypeId: z.string().trim().min(1), 
   baseAmount: z.number().int().positive(), 
   currency: z.string().length(3).toLowerCase().default('usd'), 
-  campaignId: z.string().uuid().optional(),
   // isRecurring: z.boolean().default(false), // Removed
   firstName: z.string().optional(),
   lastName: z.string().optional(),
@@ -85,7 +84,6 @@ export async function POST(request: Request) {
         donorClerkId,
         coverFees,
         donorId,
-        campaignId,
       } = validation.data;
       
       // Assign to outer scope variables for error handling
@@ -411,7 +409,6 @@ export async function POST(request: Request) {
       metadata: {
         dbChurchId: church.id,
         dbDonationTypeId: donationTypeId,
-        ...(campaignId ? { dbCampaignId: campaignId } : {}),
         dbDonorClerkId: donorClerkId || 'guest',
         transactionType: 'one-time',
       },
@@ -453,7 +450,6 @@ export async function POST(request: Request) {
         churchId: church.id,
         donorId: donorId,
         donationTypeId: donationTypeId,
-        campaignId: campaignId,
         donorClerkId: donorClerkId,
         donorName: donorDisplayNameForDb,
         donorEmail: donorEmailForDb,

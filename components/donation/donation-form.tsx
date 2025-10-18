@@ -22,13 +22,9 @@ interface DonationFormProps {
 // Updated DonationFormData type
 export type DonationFormData = {
   amount: number;
-  // donationType: "one-time" | "recurring"; // Removed: All donations are one-time
-  donationTypeId: string; // ID of the selected specific donation type/fund
-  donationTypeName?: string; // NAME of the selected specific donation type/fund
-  campaignId?: string; // Optional: selected campaign
-  campaignName?: string; // Optional: selected campaign name
-  // frequency?: "weekly" | "monthly" | "quarterly" | "annually"; // Removed
-  // startDate?: string; // Removed (related to recurring)
+  donationTypeId: string; // ID of the selected specific donation type/campaign
+  donationTypeName?: string; // NAME of the selected specific donation type/campaign
+  donationTypeIsCampaign?: boolean; // Flag to differentiate campaigns from general funds
   firstName?: string;
   lastName?: string;
   isAnonymous?: boolean;
@@ -60,11 +56,9 @@ export type PhoneVerificationStage =
 function DonationForm({ churchId, churchName, donationTypes, churchSlug }: DonationFormProps) {
   const [formData, setFormData] = useState<DonationFormData>({
     amount: 0,
-    // donationType: "one-time", // Removed
     donationTypeId: "",
     donationTypeName: "",
-    // frequency: "monthly", // Removed
-    // startDate: undefined, // Removed
+    donationTypeIsCampaign: false,
     firstName: "",
     lastName: "",
     isAnonymous: false,

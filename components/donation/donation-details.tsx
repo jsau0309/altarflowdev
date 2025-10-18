@@ -5,8 +5,6 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
 import { Label } from "@/components/ui/label"
 import type { DonationFormData } from "./donation-form"
 import { useTranslation } from 'react-i18next'
@@ -38,7 +36,7 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
   const [loadingCampaigns, setLoadingCampaigns] = useState<boolean>(false);
   const [campaignsError, setCampaignsError] = useState<string | null>(null);
 
-  const isFundOrCampaignSelected = !!formData.donationTypeId || !!formData.campaignId;
+  const isFundOrCampaignSelected = !!formData.donationTypeId;
   const isAmountValid = (Number.parseFloat(amount) || 0) > 0;
   const canProceed = isFundOrCampaignSelected && isAmountValid;
 
@@ -151,42 +149,34 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
         <select
           id="fundCampaignSelect"
           value={
-            formData.campaignId
-              ? `campaign:${formData.campaignId}`
-              : formData.donationTypeId
-                ? `fund:${formData.donationTypeId}`
-                : ''
+            formData.donationTypeId
+              ? `${formData.donationTypeIsCampaign ? 'campaign' : 'fund'}:${formData.donationTypeId}`
+              : ''
           }
           onChange={(e) => {
             const selectedValue = e.target.value;
 
             if (selectedValue.startsWith('campaign:')) {
-              // User selected a campaign
-              const campaignId = selectedValue.replace('campaign:', '');
-              const selected = campaigns.find(c => c.id === campaignId);
+              const donationTypeId = selectedValue.replace('campaign:', '');
+              const selected = campaigns.find(c => c.id === donationTypeId);
               updateFormData({
-                campaignId: selected ? selected.id : undefined,
-                campaignName: selected ? selected.name : undefined,
-                donationTypeId: '', // Clear donation type when campaign is selected
-                donationTypeName: undefined,
+                donationTypeId,
+                donationTypeName: selected ? selected.name : undefined,
+                donationTypeIsCampaign: true,
               });
             } else if (selectedValue.startsWith('fund:')) {
-              // User selected a donation type (fund)
               const donationTypeId = selectedValue.replace('fund:', '');
               const selectedDonationType = donationTypes.find(dt => dt.id === donationTypeId);
               updateFormData({
-                donationTypeId: donationTypeId,
+                donationTypeId,
                 donationTypeName: selectedDonationType ? selectedDonationType.name : undefined,
-                campaignId: undefined, // Clear campaign when fund is selected
-                campaignName: undefined,
+                donationTypeIsCampaign: false,
               });
             } else {
-              // Empty selection
               updateFormData({
                 donationTypeId: '',
                 donationTypeName: undefined,
-                campaignId: undefined,
-                campaignName: undefined,
+                donationTypeIsCampaign: undefined,
               });
             }
           }}

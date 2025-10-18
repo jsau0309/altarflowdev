@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import type { Campaign } from '@prisma/client';
+import type { DonationType } from '@prisma/client';
 import { toDateOnly, getTodayUTC } from '@/lib/date-utils';
 import * as Sentry from '@sentry/nextjs';
 
 // Simple in-memory cache for active campaigns
 // Reduces database load by caching results for 5 minutes
+type PublicCampaign = {
+  id: string;
+  name: string;
+  description: string | null;
+  goalAmount: number | null;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  raised: number;
+  progressPct: number | null;
+};
+
 type CacheEntry = {
-  data: any[];
+  data: PublicCampaign[];
   timestamp: number;
 };
 
@@ -58,23 +72,23 @@ export async function GET(
       });
     }
 
-    // Fetch campaigns for the church
-    const campaigns = await prisma.campaign.findMany({
-      where: { churchId: church.id },
+    // Fetch campaign donation types for the church
+    const campaigns = await prisma.donationType.findMany({
+      where: { churchId: church.id, isCampaign: true },
       orderBy: { createdAt: 'desc' },
     });
 
     const todayUTC = getTodayUTC();
 
-    // For each campaign, compute raised from DonationTransaction linked to campaignId
+    // For each campaign, compute raised from DonationTransaction linked to donationTypeId
     const results = await Promise.all(
-      campaigns.map(async (c: Campaign) => {
+      campaigns.map(async (c: DonationType) => {
         const raisedCents = await prisma.donationTransaction.aggregate({
           _sum: { amount: true },
           where: {
             churchId: church.id,
             status: 'succeeded',
-            campaignId: c.id,
+            donationTypeId: c.id,
           },
         });
 

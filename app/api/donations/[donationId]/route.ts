@@ -4,13 +4,13 @@ import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 
-// Update schema validation if Member/Campaign IDs are UUIDs
+// Update schema validation if Member/Donation Type IDs are UUIDs
 const donationUpdateSchema = z.object({
   donorFirstName: z.string().nullable().optional(),
   donorLastName: z.string().nullable().optional(),
   donorEmail: z.string().email().nullable().optional(),
   memberId: z.string().uuid({ message: "Invalid Member ID format" }).nullable().optional(), // Assuming UUID
-  campaignId: z.string().uuid({ message: "Invalid Campaign ID format" }).nullable().optional(), // Assuming UUID
+  donationTypeId: z.string().uuid({ message: "Invalid Donation Type ID format" }).nullable().optional(), // Assuming UUID
 }).partial(); 
 
 // GET /api/donations/[donationId] - Fetch a single donation from the active organization
@@ -108,15 +108,15 @@ export async function PATCH(
       }
     }
     
-    if (donationData.campaignId) {
-      const campaign = await prisma.campaign.findFirst({
+    if (donationData.donationTypeId) {
+      const donationType = await prisma.donationType.findFirst({
         where: {
-          id: donationData.campaignId,
+          id: donationData.donationTypeId,
           church: { clerkOrgId: orgId }
         }
       });
-      if (!campaign) {
-        return NextResponse.json({ error: 'Invalid campaign ID or campaign does not belong to your organization' }, { status: 400 });
+      if (!donationType) {
+        return NextResponse.json({ error: 'Invalid donation type ID or donation type does not belong to your organization' }, { status: 400 });
       }
     }
     
@@ -129,9 +129,9 @@ export async function PATCH(
       member: donationData.memberId === null 
         ? { disconnect: true } 
         : (donationData.memberId ? { connect: { id: donationData.memberId } } : undefined),
-      campaign: donationData.campaignId === null
+      donationType: donationData.donationTypeId === null
         ? { disconnect: true }
-        : (donationData.campaignId ? { connect: { id: donationData.campaignId } } : undefined),
+        : (donationData.donationTypeId ? { connect: { id: donationData.donationTypeId } } : undefined),
     };
 
     // Check if there's actually anything to update
