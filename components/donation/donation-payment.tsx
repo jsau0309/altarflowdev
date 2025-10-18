@@ -145,7 +145,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
     } else if (paymentIntent && paymentIntent.status === 'succeeded') {
       // Payment succeeded but redirect didn't happen automatically (e.g., in WebView)
       // Clear the session storage to allow future donations
-      const donationKey = `donation_${churchSlug}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}`;
+      const donationKey = `donation_${churchSlug}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${formData.campaignId || 'no-campaign'}`;
       sessionStorage.removeItem(donationKey);
       
       // Manually redirect to success page
@@ -214,8 +214,8 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
   // Create a stable session key for this specific donation configuration
   // Don't include timestamp so it remains the same across remounts
   const donationSessionKey = useMemo(() => {
-    return `donation_${churchId}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}`;
-  }, [churchId, formData.donationTypeId, formData.amount, formData.coverFees]);
+    return `donation_${churchId}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${formData.campaignId || 'no-campaign'}`;
+  }, [churchId, formData.donationTypeId, formData.amount, formData.coverFees, formData.campaignId]);
 
   // Function to initiate payment - called once when component mounts with valid data
   const initiateDonationPayment = useCallback(async () => {
@@ -296,6 +296,7 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
           ...(formData.country && !formData.isAnonymous && { country: formData.country }),
 
           ...(donorId && { donorId: donorId }), // Include donorId if available
+          ...(formData.campaignId && { campaignId: formData.campaignId }),
         }),
         signal: abortController.signal,
       });

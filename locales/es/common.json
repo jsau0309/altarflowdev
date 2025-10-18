@@ -74,7 +74,8 @@
     "invalidEmailFormat": "Por favor, ingrese un formato de correo electrónico válido.",
     "fetchFailed": "Error al cargar datos. Por favor, inténtalo de nuevo.",
     "errorTitle": "Error",
-    "default": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo."
+    "default": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
+    "churchId_not_found": "ID de la iglesia no encontrado. Asegúrate de haber iniciado sesión y estar asociado a una iglesia."
   },
   "success": {
     "donationCreated": "Donación registrada exitosamente",

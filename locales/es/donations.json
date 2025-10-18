@@ -64,7 +64,8 @@
     "donationsContent": {
       "subtitle": "Rastrea y administra tus donaciones de la iglesia",
       "tabs": {
-        "allDonations": "Todas las Donaciones"
+        "allDonations": "Todas las Donaciones",
+        "campaigns": "Campañas de Donación"
       },
       "allDonations": {
         "title": "Todas las Donaciones",
@@ -80,6 +81,90 @@
         "title": "No se encontraron donaciones",
         "adjustFilters": "Intenta ajustar tu búsqueda o filtros.",
         "addFirst": "Agrega tu primera donación para comenzar."
+      },
+      "campaigns": {
+        "title": "Campañas de Donación",
+        "description": "Crea, rastrea y administra campañas de recaudación",
+        "new": "Nueva Campaña",
+        "empty": "No hay campañas todavía",
+        "emptyDescription": "Crea tu primera campaña para comenzar a rastrear metas de recaudación.",
+        "deleteConfirm": "¿Eliminar esta campaña? Esta acción no se puede deshacer.",
+        "deleteConfirmTitle": "Confirmar Eliminación",
+        "deleteConfirmDescription": "¿Estás seguro de que quieres eliminar esta campaña? Esta acción no se puede deshacer.",
+        "deleteSuccess": "Campaña eliminada",
+        "deleteSuccessDescription": "La campaña ha sido eliminada exitosamente.",
+        "deleteError": "Error al eliminar la campaña. Por favor, inténtalo de nuevo.",
+        "deleteCancelled": "Se canceló la eliminación de la campaña.",
+        "createSuccess": "Campaña creada",
+        "createSuccessDescription": "Tu campaña ha sido creada exitosamente.",
+        "updateSuccess": "Campaña actualizada",
+        "updateSuccessDescription": "Tu campaña ha sido actualizada exitosamente.",
+        "headers": {
+          "name": "Nombre",
+          "dates": "Fechas",
+          "goal": "Meta",
+          "raised": "Recaudado",
+          "status": "Estado"
+        },
+        "status": {
+          "inactive": "Inactiva"
+        },
+        "raised": "recaudado",
+        "zeroRaised": "$0.00 recaudado",
+        "ends": "Termina",
+        "noEndDate": "Sin fecha de fin",
+        "created": "Creado",
+        "deactivate": "Desactivar",
+        "activate": "Activar",
+        "deactivateConfirmTitle": "Desactivar Campaña",
+        "activateConfirmTitle": "Activar Campaña",
+        "deactivateConfirmDescription": "Esta campaña se ocultará del formulario público de donación pero todos los datos se conservarán.",
+        "activateConfirmDescription": "Esta campaña se mostrará nuevamente en el formulario público de donación.",
+        "deactivateSuccess": "Campaña desactivada",
+        "deactivateSuccessDescription": "La campaña ha sido desactivada.",
+        "activateSuccess": "Campaña activada",
+        "activateSuccessDescription": "La campaña ha sido activada.",
+        "actionError": "Error al procesar la acción. Por favor, inténtalo de nuevo.",
+        "form": {
+          "titleNew": "Nueva Campaña",
+          "titleEdit": "Editar Campaña",
+          "descriptionNew": "Lanza una campaña de recaudación para rastrear donaciones y el progreso hacia tu meta.",
+          "descriptionEdit": "Actualiza los detalles de la campaña y rastrea el progreso hacia tu meta de recaudación.",
+          "campaignName": "Nombre de la Campaña",
+          "name": "Nombre",
+          "namePlaceholder": "ej., Renovación del Centro Comunitario 2025",
+          "description": "Descripción Interna",
+          "descriptionPlaceholder": "Agrega notas internas sobre esta campaña (propósito, audiencia objetivo, estrategia, etc.)",
+          "descriptionHelper": "Opcional: Notas internas para tu equipo. No visible para los donantes.",
+          "goal": "Monto de la Meta (USD)",
+          "goalHelper": "Opcional: Deja en blanco para campañas sin una meta específica.",
+          "noGoalCheckbox": "Esta campaña no tiene una meta específica de recaudación",
+          "noGoalCheckedHelper": "Las donaciones aún se rastrearán, pero no se mostrará un porcentaje de progreso.",
+          "goalRequiredHelper": "Ingresa un monto de meta arriba, o marca esta casilla para campañas sin una meta específica.",
+          "sectionBasicInfo": "Información Básica",
+          "sectionBasicInfoDesc": "Proporciona un nombre y notas internas para tu campaña.",
+          "sectionGoal": "Meta Financiera",
+          "sectionGoalDesc": "Establece una meta de recaudación para esta campaña.",
+          "sectionDuration": "Duración de la Campaña",
+          "sectionDurationDesc": "Establece las fechas de inicio y fin para tu campaña.",
+          "durationHelper": "Opcional: Deja en blanco para campañas continuas.",
+          "thankYouMessage": "Mensaje de Agradecimiento Personalizado",
+          "thankYouPlaceholder": "¡Gracias por apoyar nuestra campaña! Tu contribución hace la diferencia.",
+          "thankYouHelper": "Opcional: Personaliza el mensaje que los donantes ven después de contribuir.",
+          "createButton": "Crear Campaña",
+          "nameLockedHelper": "El nombre de la campaña no se puede cambiar después de recibir donaciones.",
+          "startDateLockedHelper": "La fecha de inicio no se puede cambiar después de recibir donaciones."
+        },
+        "errors": {
+          "notFound": "Campaña no encontrada",
+          "nameRequired": "El nombre es requerido",
+          "goalRequired": "El monto de la meta es requerido (o marca la casilla abajo)",
+          "invalidGoal": "Ingrese un monto de meta válido (> 0, máximo 2 decimales)",
+          "startDatePast": "La fecha de inicio no puede estar en el pasado",
+          "endDatePast": "La fecha de fin no puede estar en el pasado",
+          "startAfterEnd": "La fecha de fin debe ser igual o posterior a la fecha de inicio",
+          "goalLessThanRaisedWarning": "El monto de la meta es menor al monto ya recaudado para esta campaña. Esto no bloqueará el guardado, pero por favor confirme que es lo que desea."
+        }
       }
     },
     
@@ -105,6 +190,9 @@
     "donationDetails": {
       "amountPrompt": "Ingresa una cantidad o haz una selección rápida abajo",
       "selectFundLabel": "Selecciona un Fondo",
+      "selectFundPlaceholder": "-- Elige un Fondo --",
+      "funds": "Fondos",
+      "campaigns": "Campañas",
       "noFundsAvailable": "No hay fondos disponibles",
       "coverFeesLabel": "Me gustaría ayudar a cubrir las tarifas de procesamiento.",
       "processingFee": "Tarifa de Procesamiento:",

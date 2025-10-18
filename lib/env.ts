@@ -39,7 +39,6 @@ const serverEnvSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   
   // Receipt Scanning
-  MINDEE_API_KEY: z.string().optional(),
   
   // Cron Jobs
   CRON_SECRET: z.string().optional(),

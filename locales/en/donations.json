@@ -62,7 +62,8 @@
   "donationsContent": {
     "subtitle": "Track and manage your church donations",
     "tabs": {
-      "allDonations": "All Donations"
+      "allDonations": "All Donations",
+      "campaigns": "Donation Campaigns"
     },
     "allDonations": {
       "title": "All Donations",
@@ -78,6 +79,90 @@
       "title": "No donations found",
       "adjustFilters": "Try adjusting your search or filters.",
       "addFirst": "Add your first donation to get started."
+    },
+    "campaigns": {
+      "title": "Donation Campaigns",
+      "description": "Create, track, and manage fundraising campaigns",
+      "new": "New Campaign",
+      "empty": "No campaigns yet",
+      "emptyDescription": "Create your first campaign to start tracking fundraising goals.",
+      "deleteConfirm": "Delete this campaign? This cannot be undone.",
+      "deleteConfirmTitle": "Confirm Deletion",
+      "deleteConfirmDescription": "Are you sure you want to delete this campaign? This action cannot be undone.",
+      "deleteSuccess": "Campaign deleted",
+      "deleteSuccessDescription": "The campaign has been successfully deleted.",
+      "deleteError": "Failed to delete campaign. Please try again.",
+      "deleteCancelled": "Campaign deletion was cancelled.",
+      "createSuccess": "Campaign created",
+      "createSuccessDescription": "Your campaign has been created successfully.",
+      "updateSuccess": "Campaign updated",
+      "updateSuccessDescription": "Your campaign has been updated successfully.",
+      "headers": {
+        "name": "Name",
+        "dates": "Dates",
+        "goal": "Goal",
+        "raised": "Raised",
+        "status": "Status"
+      },
+      "status": {
+        "inactive": "Inactive"
+      },
+      "raised": "raised",
+      "zeroRaised": "$0.00 raised",
+      "ends": "Ends",
+      "noEndDate": "No end date",
+      "created": "Created",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "deactivateConfirmTitle": "Deactivate Campaign",
+      "activateConfirmTitle": "Activate Campaign",
+      "deactivateConfirmDescription": "This campaign will be hidden from the public donation form but all data will be preserved.",
+      "activateConfirmDescription": "This campaign will be shown on the public donation form again.",
+      "deactivateSuccess": "Campaign deactivated",
+      "deactivateSuccessDescription": "The campaign has been deactivated.",
+      "activateSuccess": "Campaign activated",
+      "activateSuccessDescription": "The campaign has been activated.",
+      "actionError": "Failed to process action. Please try again.",
+      "form": {
+        "titleNew": "New Campaign",
+        "titleEdit": "Edit Campaign",
+        "descriptionNew": "Launch a fundraising campaign to track donations and progress toward your goal.",
+        "descriptionEdit": "Update campaign details and track progress toward your fundraising goal.",
+        "campaignName": "Campaign Name",
+        "name": "Name",
+        "namePlaceholder": "e.g., Community Center Renovation 2025",
+        "description": "Internal Description",
+        "descriptionPlaceholder": "Add internal notes about this campaign (purpose, target audience, strategy, etc.)",
+        "descriptionHelper": "Optional: Internal notes for your team. Not visible to donors.",
+        "goal": "Goal Amount (USD)",
+        "goalHelper": "Optional: Leave blank for campaigns without a specific target.",
+        "noGoalCheckbox": "This campaign does not have a specific fundraising goal",
+        "noGoalCheckedHelper": "Donations will still be tracked, but no progress percentage will be shown.",
+        "goalRequiredHelper": "Enter a goal amount above, or check this box for campaigns without a specific target.",
+        "sectionBasicInfo": "Basic Information",
+        "sectionBasicInfoDesc": "Provide a name and internal notes for your campaign.",
+        "sectionGoal": "Financial Goal",
+        "sectionGoalDesc": "Set a fundraising target for this campaign.",
+        "sectionDuration": "Campaign Duration",
+        "sectionDurationDesc": "Set the start and end dates for your campaign.",
+        "durationHelper": "Optional: Leave blank for ongoing campaigns.",
+        "thankYouMessage": "Custom Thank You Message",
+        "thankYouPlaceholder": "Thank you for supporting our campaign! Your contribution makes a difference.",
+        "thankYouHelper": "Optional: Personalize the message donors see after contributing.",
+        "createButton": "Create Campaign",
+        "nameLockedHelper": "Campaign name cannot be changed after receiving donations.",
+        "startDateLockedHelper": "Start date cannot be changed after receiving donations."
+      },
+      "errors": {
+        "notFound": "Campaign not found",
+        "nameRequired": "Name is required",
+        "goalRequired": "Goal amount is required (or check the box below)",
+        "invalidGoal": "Enter a valid goal amount (> 0, max 2 decimals)",
+        "startDatePast": "Start date cannot be in the past",
+        "endDatePast": "End date cannot be in the past",
+        "startAfterEnd": "End date must be on or after start date",
+        "goalLessThanRaisedWarning": "Goal amount is less than the amount already raised for this campaign. This will not block saving, but please confirm this is intended."
+      }
     }
   },
   "donationPayment": {
@@ -100,6 +185,9 @@
   "donationDetails": {
     "amountPrompt": "Enter an amount or make a quick selection below",
     "selectFundLabel": "Select a Fund",
+    "selectFundPlaceholder": "-- Choose Fund --",
+    "funds": "Funds",
+    "campaigns": "Campaigns",
     "noFundsAvailable": "No funds available",
     "coverFeesLabel": "I'd like to help cover the processing fees.",
     "processingFee": "Processing Fee:",

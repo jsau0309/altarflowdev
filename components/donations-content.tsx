@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Filter, Plus, Users, X, DollarSign, ChevronsUpDown, Check, Edit3, Lock } from "lucide-react"
+import { Search, Filter, Plus, Users, X, DollarSign, ChevronsUpDown, Check, Edit3, Lock, ArrowLeft } from "lucide-react"
 import { format, parseISO } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -44,6 +44,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
   const [showModal, setShowModal] = useState(false)
   const [showDonorModal, setShowDonorModal] = useState(false)
   const [activeTab, setActiveTab] = useState("all-donations")
+  const [campaignsView, setCampaignsView] = useState<'list' | 'create' | { mode: 'edit', id: string }>('list')
   const [donorSearchTerm, setDonorSearchTerm] = useState("")
   const [showEditDonorModal, setShowEditDonorModal] = useState(false)
   const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null)
@@ -155,7 +156,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search)
       const tabParam = params.get("tab")
-      if (tabParam && ["all-donations", "donors"].includes(tabParam)) {
+      if (tabParam && ["all-donations", "donors", "campaigns"].includes(tabParam)) {
         setActiveTab(tabParam)
       }
     }
@@ -367,9 +368,10 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="all-donations">{t('donations:donationsContent.tabs.allDonations', 'All Donations')}</TabsTrigger>
           <TabsTrigger value="donors">{t('donations:donor', 'Donors')}</TabsTrigger>
+          <TabsTrigger value="campaigns">{t('donations:donationsContent.tabs.campaigns', 'Donation Campaigns')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all-donations">
@@ -688,6 +690,54 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="campaigns">
+          {campaignsView === 'list' && (
+            <>
+              {/* List with inline actions */}
+              {/* eslint-disable-next-line @typescript-eslint/no-var-requires */}
+              {(() => {
+                const CampaignList = require('@/components/donations/campaigns/campaign-list').default;
+                return (
+                  <CampaignList
+                    onNew={() => setCampaignsView('create')}
+                    onEdit={(id: string) => setCampaignsView({ mode: 'edit', id })}
+                  />
+                );
+              })()}
+            </>
+          )}
+          {campaignsView === 'create' && (
+            <div>
+              {(() => {
+                const CampaignForm = require('@/components/donations/campaigns/campaign-form').default;
+                return (
+                  <div className="space-y-4">
+                    <Button variant="ghost" size="icon" onClick={() => setCampaignsView('list')} className="h-8 w-8">
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <CampaignForm mode="create" onSuccess={() => setCampaignsView('list')} />
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          {typeof campaignsView === 'object' && campaignsView.mode === 'edit' && (
+            <div>
+              {(() => {
+                const CampaignForm = require('@/components/donations/campaigns/campaign-form').default;
+                return (
+                  <div className="space-y-4">
+                    <Button variant="ghost" size="icon" onClick={() => setCampaignsView('list')} className="h-8 w-8">
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <CampaignForm mode="edit" campaignId={campaignsView.id} onSuccess={() => setCampaignsView('list')} />
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

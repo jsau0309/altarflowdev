@@ -102,6 +102,7 @@ model DonationTransaction {
   id                          String       @id @default(cuid())
   churchId                    String       @db.Uuid
   donationTypeId              String
+  campaignId                  String?      @db.Uuid
   donorClerkId                String?
   donorName                   String?
   donorEmail                  String?
@@ -134,10 +135,12 @@ model DonationTransaction {
   disputedAt                  DateTime?
   church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
   donationType                DonationType @relation(fields: [donationTypeId], references: [id])
+  campaign                    Campaign?    @relation(fields: [campaignId], references: [id])
   donor                       Donor?       @relation(fields: [donorId], references: [id])
 
   @@index([churchId])
   @@index([donationTypeId])
+  @@index([campaignId])
   @@index([donorClerkId])
   @@index([stripePaymentIntentId])
   @@index([stripeSubscriptionId])
@@ -201,17 +204,19 @@ model Member {
 }
 
 model Campaign {
-  id          String     @id @default(uuid()) @db.Uuid
-  name        String
-  description String?
-  goalAmount  Decimal?   @db.Decimal(10, 2)
-  startDate   DateTime?
-  endDate     DateTime?
-  churchId    String     @db.Uuid
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @default(now()) @updatedAt
-  church      Church     @relation(fields: [churchId], references: [id])
-  donations   Donation[]
+  id                   String                @id @default(uuid()) @db.Uuid
+  name                 String
+  description          String?
+  goalAmount           Decimal?              @db.Decimal(10, 2)
+  startDate            DateTime?
+  endDate              DateTime?
+  isActive             Boolean               @default(true)
+  churchId             String                @db.Uuid
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
+  church               Church                @relation(fields: [churchId], references: [id])
+  donations            Donation[]
+  donationTransactions DonationTransaction[]
 
   @@index([churchId])
 }
