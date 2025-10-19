@@ -21,7 +21,7 @@ interface GetDonationTransactionsParams {
   donationTypes?: string[];
   donorIds?: string[];
   paymentMethods?: string[]; // Added paymentMethods as it's used in donations-content.tsx
-  // Add other filter params as needed: campaignId, etc.
+  // Add other filter params as needed
 }
 
 interface GetDonationTransactionsResult {
@@ -57,9 +57,10 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
     disputeStatus: true;
     disputeReason: true;
     disputedAt: true;
-    donationType: {
+    DonationType: {
       select: {
         name: true;
+        isCampaign: true;
       };
     };
   };
@@ -172,9 +173,10 @@ export async function getDonationTransactions({
         disputeStatus: true,
         disputeReason: true,
         disputedAt: true,
-        donationType: {
+        DonationType: {
           select: {
             name: true,
+            isCampaign: true,
           },
         },
       },
@@ -193,7 +195,8 @@ export async function getDonationTransactions({
       id: t.id,
       churchId: t.churchId,
       donationTypeId: t.donationTypeId,
-      donationTypeName: t.donationType.name,
+      donationTypeName: t.DonationType.name,
+      donationTypeIsCampaign: t.DonationType.isCampaign,
       donorClerkId: t.donorClerkId,
       donorName: t.donorName ?? undefined,
       donorEmail: t.donorEmail ?? undefined,
@@ -232,7 +235,8 @@ export async function getDonationTransactions({
   }
 }
 
-export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
+// Get available donation types for filter (includes Tithe, Offering, and all active Campaigns)
+export async function getAvailableDonationTypes(): Promise<string[]> {
   const { orgId } = await auth();
   if (!orgId) {
     return [];
@@ -241,7 +245,7 @@ export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
   // Check cache first
   const cachedChurch = churchIdCache.get(orgId);
   let churchUuid: string;
-  
+
   if (cachedChurch && Date.now() - cachedChurch.timestamp < CACHE_DURATION) {
     churchUuid = cachedChurch.id;
   } else {
@@ -253,7 +257,55 @@ export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
     if (!church) {
       return [];
     }
-    
+
+    churchUuid = church.id;
+    // Cache the result
+    churchIdCache.set(orgId, { id: churchUuid, timestamp: Date.now() });
+  }
+
+  try {
+    const donationTypes = await prisma.donationType.findMany({
+      where: {
+        churchId: churchUuid,
+        isActive: true, // Only show active types
+      },
+      select: {
+        name: true,
+      },
+      orderBy: [
+        { isSystemType: 'desc' }, // System types (Tithe, Offering) first
+        { name: 'asc' },
+      ],
+    });
+
+    return donationTypes.map(dt => dt.name);
+  } catch {
+    return [];
+  }
+}
+
+export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
+  const { orgId } = await auth();
+  if (!orgId) {
+    return [];
+  }
+
+  // Check cache first
+  const cachedChurch = churchIdCache.get(orgId);
+  let churchUuid: string;
+
+  if (cachedChurch && Date.now() - cachedChurch.timestamp < CACHE_DURATION) {
+    churchUuid = cachedChurch.id;
+  } else {
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: orgId },
+      select: { id: true },
+    });
+
+    if (!church) {
+      return [];
+    }
+
     churchUuid = church.id;
     // Cache the result
     churchIdCache.set(orgId, { id: churchUuid, timestamp: Date.now() });
@@ -295,7 +347,7 @@ export interface CreateManualDonationParams {
   amount: number; // In cents
   donationDate: Date;
   donorId: string; // ID of an existing Donor record
-  donationTypeName: string; // e.g., "Tithe", "Offering"
+  donationTypeName: string; // e.g., "Tithe", "Offering" (campaigns included)
   paymentMethod: string; // e.g., "Cash", "Check"
   notes?: string | null;
 }
@@ -425,28 +477,11 @@ export async function createManualDonation(
         // No fee tracking - will use Stripe Reports API when needed
         // notes: notes, // Temporarily removed
       },
-      select: {
-        id: true,
-        churchId: true,
-        donationTypeId: true,
-        donorClerkId: true,
-        donorName: true,
-        donorEmail: true,
-        amount: true,
-        currency: true,
-        status: true,
-        paymentMethodType: true,
-        stripePaymentIntentId: true,
-        stripeSubscriptionId: true,
-        transactionDate: true,
-        processedAt: true,
-        donorId: true,
-        idempotencyKey: true,
-        // notes: true, // Temporarily removed
-        source: true,
-        donationType: {
+      include: {
+        DonationType: {
           select: {
             name: true,
+            isCampaign: true,
           },
         },
       },
@@ -457,7 +492,8 @@ export async function createManualDonation(
       id: newTransaction.id,
       churchId: newTransaction.churchId,
       donationTypeId: newTransaction.donationTypeId,
-      donationTypeName: newTransaction.donationType.name,
+      donationTypeName: newTransaction.DonationType.name,
+      donationTypeIsCampaign: newTransaction.DonationType.isCampaign,
       donorClerkId: newTransaction.donorClerkId,
       donorName: newTransaction.donorName ?? undefined,
       donorEmail: newTransaction.donorEmail ?? undefined,

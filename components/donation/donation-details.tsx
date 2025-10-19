@@ -5,8 +5,6 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
 import { Label } from "@/components/ui/label"
 import type { DonationFormData } from "./donation-form"
 import { useTranslation } from 'react-i18next'
@@ -16,29 +14,27 @@ interface DonationDetailsProps {
   formData: DonationFormData;
   updateFormData: (data: Partial<DonationFormData>) => void;
   onNext: () => void;
-  donationTypes: DonationType[]; // Added new prop
+  donationTypes: DonationType[]; // All donation types including campaigns
+  churchSlug: string; // Keeping for potential future use
 }
 
-export default function DonationDetails({ formData, updateFormData, onNext, donationTypes }: DonationDetailsProps) { // Destructure donationTypes
+export default function DonationDetails({ formData, updateFormData, onNext, donationTypes, churchSlug }: DonationDetailsProps) { // Destructure donationTypes
   const [amount, setAmount] = useState<string>(formData.amount === 0 ? "" : (formData.amount?.toString() || ""));
   const { t } = useTranslation(['donations', 'common']);
   const [calculatedFee, setCalculatedFee] = useState<number>(0);
   const [totalWithFees, setTotalWithFees] = useState<number>(0);
 
-  const isFundSelected = !!formData.donationTypeId;
+  const isFundOrCampaignSelected = !!formData.donationTypeId;
   const isAmountValid = (Number.parseFloat(amount) || 0) > 0;
-  const canProceed = isFundSelected && isAmountValid;
-
-  const oneTimeText = t('donations:types.oneTime', 'One Time');
-  const recurringText = t('donations:types.recurring', 'Recurring');
+  const canProceed = isFundOrCampaignSelected && isAmountValid;
 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Double-check conditions, though button should be disabled
     if (!canProceed) {
-      console.warn('Attempted to submit with invalid form data. Fund selected:', isFundSelected, 'Amount valid:', isAmountValid);
-      return; 
+      console.warn('Attempted to submit with invalid form data. Fund/Campaign selected:', isFundOrCampaignSelected, 'Amount valid:', isAmountValid);
+      return;
     }
     updateFormData({ amount: Number.parseFloat(amount) || 0 });
     onNext();
@@ -54,8 +50,6 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
   const handleQuickAmount = (quickAmount: number) => {
     setAmount(quickAmount.toString());
   };
-
-  // REMOVED handleCampaignChange function
 
   useEffect(() => {
     const numericAmount = Number.parseFloat(amount) || 0; // This is in dollars
@@ -113,34 +107,46 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
         </Button>
       </div>
 
-      {/* REPLACED the old campaign Select with this new one for Donation Types */}
+      {/* Donation Type Selection (includes both system types and campaigns) */}
       <div className="space-y-2">
         <Label htmlFor="donationTypeSelect" className="text-gray-900">{t('donations:donationDetails.selectFundLabel', 'Select a Fund')}</Label>
         <select
           id="donationTypeSelect"
-          value={formData.donationTypeId}
+          value={formData.donationTypeId || ''}
           onChange={(e) => {
-            const selectedId = e.target.value;
-            const selectedDonationType = donationTypes.find(dt => dt.id === selectedId);
-            updateFormData({
-              donationTypeId: selectedId,
-              donationTypeName: selectedDonationType ? selectedDonationType.name : undefined
-            });
+            const selectedValue = e.target.value;
+            if (selectedValue) {
+              const selectedDonationType = donationTypes.find(dt => dt.id === selectedValue);
+              updateFormData({
+                donationTypeId: selectedValue,
+                donationTypeName: selectedDonationType ? selectedDonationType.name : undefined,
+                donationTypeIsCampaign: selectedDonationType?.isCampaign || false,
+              });
+            } else {
+              updateFormData({
+                donationTypeId: '',
+                donationTypeName: undefined,
+                donationTypeIsCampaign: undefined,
+              });
+            }
           }}
           className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <option value="">{/* Intentionally empty for no visible placeholder text */}</option>
-          {donationTypes.map((type) => {
-            // Generate a key from the fund name (e.g., "General Fund" -> "general_fund")
-            const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
-            return (
-              <option key={type.id} value={type.id}>
-                {t(`donations:funds.${fundKey}`, type.name) /* Translate, fallback to original name */}
-              </option>
-            );
-          })}
-          {donationTypes.length === 0 && (
-            <option value="no-types" disabled>
+          <option value="">
+            {t('donations:donationDetails.selectFundPlaceholder', '-- Choose Fund --')}
+          </option>
+
+          {donationTypes.length > 0 ? (
+            donationTypes.map((type) => {
+              const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
+              return (
+                <option key={type.id} value={type.id}>
+                  {t(`donations:funds.${fundKey}`, type.name)}
+                </option>
+              );
+            })
+          ) : (
+            <option value="no-options" disabled>
               {t('donations:donationDetails.noFundsAvailable', 'No funds available')}
             </option>
           )}

@@ -32,7 +32,7 @@ interface NewDonationFormData {
   amount: string;
   donationDate: string;
   memberId: string;
-  campaignId: string | null | undefined;
+  donationTypeId: string | null | undefined;
   paymentMethod: string;
   notes: string;
 }
@@ -41,7 +41,7 @@ const initialLocalFormData: NewDonationFormData = {
   amount: "",
   donationDate: new Date().toISOString().split("T")[0],
   memberId: "",
-  campaignId: "", // Default to empty string for form, can be null/undefined from initialData
+  donationTypeId: "", // Default to empty string for form, can be null/undefined from initialData
   paymentMethod: "",
   notes: "",
 };
@@ -52,7 +52,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
   const { t } = useTranslation('donations')
   const [isLoading, setIsLoading] = useState(false)
   const [members, setMembers] = useState<Member[]>([])
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [donationTypes, setDonationTypes] = useState<Campaign[]>([])
   const [showNewDonorForm, setShowNewDonorForm] = useState(false)
   const [formData, setFormData] = useState<NewDonationFormData>(() => {
     let combinedData = { ...initialLocalFormData };
@@ -60,7 +60,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
       combinedData.amount = initialData.amount?.toString() ?? initialLocalFormData.amount;
       if (initialData.donationDate !== undefined) combinedData.donationDate = initialData.donationDate;
       if (initialData.memberId !== undefined) combinedData.memberId = initialData.memberId ?? ""; 
-      if (initialData.campaignId !== undefined) combinedData.campaignId = initialData.campaignId;
+      if (initialData.donationTypeId !== undefined) combinedData.donationTypeId = initialData.donationTypeId;
       // paymentMethod and notes are not in Donation type, so they are not mapped from initialData
       // If initialData could have them, then Partial<Donation> is not the right type for it, or Donation type needs update.
       // Assuming initialData adheres strictly to Partial<Donation> where notes and paymentMethod are not present.
@@ -90,9 +90,9 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
           //   getCampaigns()
           // ]);
           const fetchedMembers: Member[] = []; // Placeholder
-          const fetchedCampaigns: Campaign[] = []; // Placeholder
+          const fetchedDonationTypes: Campaign[] = []; // Placeholder
           setMembers(fetchedMembers)
-          setCampaigns(fetchedCampaigns)
+          setDonationTypes(fetchedDonationTypes)
         } catch (error) {
           console.error("Error fetching data:", error)
           toast({
@@ -385,21 +385,21 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="campaign">{t('donations:newDonationModal.donationTypeLabel')}</Label>
+              <Label htmlFor="donationType">{t('donations:newDonationModal.donationTypeLabel')}</Label>
               <Select
                 required
-                value={formData.campaignId ?? undefined}
-                onValueChange={(value) => handleSelectChange("campaignId", value)}
+                value={formData.donationTypeId ?? undefined}
+                onValueChange={(value) => handleSelectChange("donationTypeId", value)}
               >
-                <SelectTrigger id="campaign">
+                <SelectTrigger id="donationType">
                   <SelectValue placeholder={t('donations:newDonationModal.selectDonationType')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {campaigns
-                    .filter((campaign) => campaign.isActive)
-                    .map((campaign) => (
-                      <SelectItem key={campaign.id} value={campaign.id}>
-                        {campaign.name}
+                  {donationTypes
+                    .filter((donationType) => donationType.isActive !== false)
+                    .map((donationType) => (
+                      <SelectItem key={donationType.id} value={donationType.id}>
+                        {donationType.name}
                       </SelectItem>
                     ))}
                 </SelectContent>

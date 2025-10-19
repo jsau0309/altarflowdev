@@ -40,6 +40,7 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
         donationType: {
           select: {
             name: true,
+            isCampaign: true,
           },
         },
         donor: {
@@ -61,6 +62,7 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
       churchId: donation.churchId,
       donationTypeId: donation.donationTypeId,
       donationTypeName: donation.donationType.name,
+      donationTypeIsCampaign: donation.donationType.isCampaign,
       donorClerkId: donation.donorClerkId,
       donorName: donation.donorName ?? (donation.donor ? `${donation.donor.firstName} ${donation.donor.lastName}`.trim() : undefined),
       donorEmail: donation.donorEmail ?? undefined,

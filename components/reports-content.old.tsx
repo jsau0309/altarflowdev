@@ -950,7 +950,11 @@ export function ReportsContent({ }: ReportsContentProps) {
                   {(() => {
                     const campaignsWithGoal = campaigns.filter(c => parseFloat(c.goalAmount || '0') > 0);
                     if (campaignsWithGoal.length === 0) return 0;
-                    const totalRaised = donations.filter(d => d.campaignId && campaignsWithGoal.some(c => c.id === d.campaignId)).reduce((sum, d) => sum + parseFloat(d.amount), 0);
+                    const totalRaised = donations
+                      .filter((d) =>
+                        d.donationTypeIsCampaign && campaignsWithGoal.some((c) => c.id === d.donationTypeId)
+                      )
+                      .reduce((sum, d) => sum + parseFloat(d.amount), 0);
                     const totalGoal = campaignsWithGoal.reduce((sum, c) => sum + parseFloat(c.goalAmount || '0'), 0);
                     return totalGoal > 0 ? Math.round((totalRaised / totalGoal) * 100) : 0;
                   })()} 
@@ -972,7 +976,9 @@ export function ReportsContent({ }: ReportsContentProps) {
                  {paginatedCampaigns.length > 0 ? (
                   paginatedCampaigns.map((campaign: Campaign) => {
                     const goal = parseFloat(campaign.goalAmount || '0') || 1;
-                    const raised = donations.filter(d => d.campaignId === campaign.id).reduce((sum, d) => sum + parseFloat(d.amount), 0);
+                    const raised = donations
+                      .filter((d) => d.donationTypeIsCampaign && d.donationTypeId === campaign.id)
+                      .reduce((sum, d) => sum + parseFloat(d.amount), 0);
                     const progress = Math.min(100, Math.round((raised / goal) * 100))
                     return (
                       <div key={campaign.id} className="space-y-2">

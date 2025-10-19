@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { unstable_noStore as noStore, revalidatePath } from 'next/cache';
-import type { Prisma, Donation as PrismaDonation, Campaign as PrismaCampaign, Member as PrismaMember } from '@prisma/client';
+import type { Prisma, Donation as PrismaDonation, Member as PrismaMember } from '@prisma/client';
 import { DonorDetailsData, DonorFE } from '@/lib/types'; // Removed Member type as createDonor will now return Donor
 import { Donor } from '@prisma/client';
 import { DonorFilterItem } from './donations.actions';
@@ -218,12 +218,17 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
             processedAt: true,
             churchId: true,  // Include churchId in selection
             // Only select fields directly on DonationTransaction or needed for mapping
-            donationType: { // This is the campaign
+            donationType: {
               select: {
                 id: true,
                 name: true,
                 description: true,
                 isRecurringAllowed: true,
+                isCampaign: true,
+                goalAmount: true,
+                startDate: true,
+                endDate: true,
+                isActive: true,
                 createdAt: true,
                 updatedAt: true,
               }
@@ -248,7 +253,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
       return null;
     }
 
-    const { transactions, member, ...donorDetails } = donorDataFromPrisma;
+    const { transactions, member, ...donorDetails} = donorDataFromPrisma;
 
     // Define a type for the selected transaction structure for clarity
     type SelectedTransaction = Prisma.DonationTransactionGetPayload<{
@@ -270,6 +275,11 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
             name: true;
             description: true;
             isRecurringAllowed: true; 
+            isCampaign: true;
+            goalAmount: true;
+            startDate: true;
+            endDate: true;
+            isActive: true;
             createdAt: true;
             updatedAt: true;
           }
@@ -301,31 +311,37 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
       updatedAt: donorDetails.updatedAt.toISOString(),
       memberId: member?.id || null,
       linkedMemberName: member ? `${member.firstName} ${member.lastName}`.trim() : null,
-      donations: transactions.map((tx: SelectedTransaction) => ({
-        id: tx.id,
-        amount: (tx.amount / 100).toFixed(2),
-        currency: tx.currency,
-        status: tx.status,  // Include status field
-        donationDate: tx.transactionDate.toISOString(),
-        donorFirstName: tx.donorName?.split(' ')[0] ?? donorDetails.firstName ?? null,
-        donorLastName: tx.donorName?.split(' ').slice(1).join(' ') ?? donorDetails.lastName ?? null,
-        donorEmail: tx.donorEmail ?? donorDetails.email ?? null,
-        memberId: tx.donorId, // Link transaction to a Donor record via donorId
-        campaignId: tx.donationTypeId,
-        stripePaymentIntentId: tx.stripePaymentIntentId,
-        createdAt: tx.transactionDate.toISOString(),
-        updatedAt: tx.processedAt?.toISOString() ?? tx.transactionDate.toISOString(),
-        campaign: tx.donationType ? {
-          id: tx.donationType.id,
-          name: tx.donationType.name,
-          description: tx.donationType.description,
-          goalAmount: null, // Not available on DonationType model
-          startDate: null,  // Not available on DonationType model
-          endDate: null,    // Not available on DonationType model
-          createdAt: tx.donationType.createdAt.toISOString(),
-          updatedAt: tx.donationType.updatedAt.toISOString(),
-        } : null,
-      })),
+      donations: transactions.map((tx: SelectedTransaction) => {
+        return {
+          id: tx.id,
+          amount: (tx.amount / 100).toFixed(2),
+          currency: tx.currency,
+          status: tx.status,  // Include status field
+          donationDate: tx.transactionDate.toISOString(),
+          donorFirstName: tx.donorName?.split(' ')[0] ?? donorDetails.firstName ?? null,
+          donorLastName: tx.donorName?.split(' ').slice(1).join(' ') ?? donorDetails.lastName ?? null,
+          donorEmail: tx.donorEmail ?? donorDetails.email ?? null,
+          memberId: tx.donorId, // Link transaction to a Donor record via donorId
+          donationTypeId: tx.donationTypeId,
+          stripePaymentIntentId: tx.stripePaymentIntentId,
+          createdAt: tx.transactionDate.toISOString(),
+          updatedAt: tx.processedAt?.toISOString() ?? tx.transactionDate.toISOString(),
+          donationType: tx.donationType
+            ? {
+                id: tx.donationType.id,
+                name: tx.donationType.name,
+                description: tx.donationType.description,
+                isCampaign: tx.donationType.isCampaign,
+                isActive: tx.donationType.isActive,
+                goalAmount: tx.donationType.goalAmount ? tx.donationType.goalAmount.toString() : null,
+                startDate: tx.donationType.startDate?.toISOString() ?? null,
+                endDate: tx.donationType.endDate?.toISOString() ?? null,
+                createdAt: tx.donationType.createdAt.toISOString(),
+                updatedAt: tx.donationType.updatedAt.toISOString(),
+              }
+            : null,
+        };
+      }),
     };
   } catch (error) {
     console.error("Failed to fetch donor details:", error);
@@ -427,7 +443,7 @@ export async function createDonor(
         }
       }
     });
-    
+
     const donorFE: DonorFE = {
       id: newDonor.id,
       firstName: newDonor.firstName,

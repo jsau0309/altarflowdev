@@ -7,7 +7,7 @@ export interface Donation {
   id: string;
   // donorId: string; // This refers to memberId in Prisma schema
   memberId?: string | null; // Reflects Prisma schema
-  campaignId?: string | null; // Reflects Prisma schema
+  donationTypeId?: string | null; // Reflects Prisma schema
   amount: string; // Prisma Decimal serializes to string
   donationDate: string; // Reflects Prisma schema and server action (ISO string)
   currency: string; // From Prisma schema
@@ -42,7 +42,7 @@ export interface Campaign {
   // raised: number; // This is a calculated field, not directly in Prisma model
   // isActive: boolean; // Not in Prisma model
   startDate: string | null; // Prisma: DateTime?, serializes to string
-  endDate?: string | null; // Prisma: DateTime?, serializes to string
+  endDate: string | null; // Prisma: DateTime?, serializes to string
   // allowRecurring?: boolean; // Not in Prisma model
   // recurringOptions?: { // Not in Prisma model
   //   frequencies: string[];
@@ -50,6 +50,11 @@ export interface Campaign {
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   isActive?: boolean;
+  isRecurringAllowed?: boolean;
+  isCampaign?: boolean;
+  isSystemType?: boolean;
+  isDeletable?: boolean;
+  churchId?: string | null;
 }
 
 // Member type based on Prisma schema (ensure it stays in sync)
@@ -153,15 +158,17 @@ export type DonorDetailsData = {
     donorLastName: string | null;
     donorEmail: string | null;
     memberId: string | null;
-    campaignId: string | null;
+    donationTypeId: string | null;
     // churchId: string; // Client might not need this for display
     stripePaymentIntentId: string | null;
     createdAt: string; // ISO string
     updatedAt: string; // ISO string
-    campaign: {
+    donationType: {
       id: string;
       name: string;
       description: string | null;
+      isCampaign: boolean;
+      isActive: boolean;
       goalAmount: string | null; // Prisma Decimal serializes to string
       startDate: string | null; // ISO string
       endDate: string | null; // ISO string
@@ -182,9 +189,7 @@ export interface DonationReportData {
 
 export type DonationTransactionFE = Omit<Donation, 'amount'> & {
   amount: string; // amount is a string because Decimal is not supported in client components
-  campaignName?: string;
   donorName?: string;
-  campaignId?: string; // Added to fix lint error
   stripePaymentIntentId: string | null;
   stripeSubscriptionId: string | null;
   transactionDate: string; // ISO string
@@ -195,6 +200,7 @@ export type DonationTransactionFE = Omit<Donation, 'amount'> & {
   paymentMethodType: string;
   donationTypeId: string; // Added: Foreign key to DonationType
   donationTypeName: string;
+  donationTypeIsCampaign?: boolean;
   churchId: string; // Added: ID of the church
   source: string; // Added: 'manual' or 'stripe'
   status: string; // Added: e.g., 'succeeded', 'pending', 'failed', 'refunded', 'disputed'

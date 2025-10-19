@@ -23,7 +23,7 @@ export function CampaignCharts({ donations, expenses, campaigns }: CampaignChart
   const doughnutChartData = activeCampaigns
     .map(campaign => {
       const raised = donations
-        .filter(d => d.campaignId === campaign.id)
+        .filter(d => d.donationTypeId === campaign.id)
         .reduce((sum, d) => sum + parseFloat(d.amount), 0);
       return { name: campaign.name, value: raised };
     })
@@ -31,7 +31,7 @@ export function CampaignCharts({ donations, expenses, campaigns }: CampaignChart
 
   const horizontalBarChartData = activeCampaigns.map((campaign) => {
     const raised = donations
-      .filter(d => d.campaignId === campaign.id)
+      .filter(d => d.donationTypeId === campaign.id)
       .reduce((sum, d) => sum + parseFloat(d.amount), 0);
     const goal = parseFloat(campaign.goalAmount || '0');
     return {

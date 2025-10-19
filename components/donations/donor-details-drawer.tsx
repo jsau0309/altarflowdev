@@ -220,7 +220,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
                       <TableRow key={donation.id}>
                         <TableCell>{format(new Date(donation.donationDate), "MMM d, yyyy")}</TableCell>
                         <TableCell className="font-medium">${parseFloat(donation.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                        <TableCell>{donation.campaign ? donation.campaign.name : "N/A"}</TableCell>
+                        <TableCell>{donation.donationType ? donation.donationType.name : "N/A"}</TableCell>
                         {/* <TableCell>
                           <div className="flex items-center gap-1">
                             <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
