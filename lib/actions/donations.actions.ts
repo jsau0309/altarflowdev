@@ -57,7 +57,7 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
     disputeStatus: true;
     disputeReason: true;
     disputedAt: true;
-    donationType: {
+    DonationType: {
       select: {
         name: true;
         isCampaign: true;
@@ -173,7 +173,7 @@ export async function getDonationTransactions({
         disputeStatus: true,
         disputeReason: true,
         disputedAt: true,
-        donationType: {
+        DonationType: {
           select: {
             name: true,
             isCampaign: true,
@@ -195,8 +195,8 @@ export async function getDonationTransactions({
       id: t.id,
       churchId: t.churchId,
       donationTypeId: t.donationTypeId,
-      donationTypeName: t.donationType.name,
-      donationTypeIsCampaign: t.donationType.isCampaign,
+      donationTypeName: t.DonationType.name,
+      donationTypeIsCampaign: t.DonationType.isCampaign,
       donorClerkId: t.donorClerkId,
       donorName: t.donorName ?? undefined,
       donorEmail: t.donorEmail ?? undefined,
@@ -477,26 +477,8 @@ export async function createManualDonation(
         // No fee tracking - will use Stripe Reports API when needed
         // notes: notes, // Temporarily removed
       },
-      select: {
-        id: true,
-        churchId: true,
-        donationTypeId: true,
-        donorClerkId: true,
-        donorName: true,
-        donorEmail: true,
-        amount: true,
-        currency: true,
-        status: true,
-        paymentMethodType: true,
-        stripePaymentIntentId: true,
-        stripeSubscriptionId: true,
-        transactionDate: true,
-        processedAt: true,
-        donorId: true,
-        idempotencyKey: true,
-        // notes: true, // Temporarily removed
-        source: true,
-        donationType: {
+      include: {
+        DonationType: {
           select: {
             name: true,
             isCampaign: true,
@@ -510,8 +492,8 @@ export async function createManualDonation(
       id: newTransaction.id,
       churchId: newTransaction.churchId,
       donationTypeId: newTransaction.donationTypeId,
-      donationTypeName: newTransaction.donationType.name,
-      donationTypeIsCampaign: newTransaction.donationType.isCampaign,
+      donationTypeName: newTransaction.DonationType.name,
+      donationTypeIsCampaign: newTransaction.DonationType.isCampaign,
       donorClerkId: newTransaction.donorClerkId,
       donorName: newTransaction.donorName ?? undefined,
       donorEmail: newTransaction.donorEmail ?? undefined,

@@ -133,7 +133,7 @@ model DonationType {
   description         String?
   isRecurringAllowed  Boolean               @default(true)
   createdAt           DateTime              @default(now())
-  updatedAt           DateTime
+  updatedAt           DateTime              @updatedAt
   isCampaign          Boolean               @default(false)
   goalAmount          Decimal?              @db.Decimal(10, 2)
   startDate           DateTime?

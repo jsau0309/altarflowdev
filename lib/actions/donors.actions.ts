@@ -253,7 +253,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
       return null;
     }
 
-    const { transactions, member, ...donorDetails } = donorDataFromPrisma;
+    const { transactions, member, ...donorDetails} = donorDataFromPrisma;
 
     // Define a type for the selected transaction structure for clarity
     type SelectedTransaction = Prisma.DonationTransactionGetPayload<{
@@ -443,7 +443,7 @@ export async function createDonor(
         }
       }
     });
-    
+
     const donorFE: DonorFE = {
       id: newDonor.id,
       firstName: newDonor.firstName,

@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       },
       include: {
         submitter: {
-          select: { firstName: true, lastName: true }, 
+          select: { firstName: true, lastName: true },
         },
       },
       orderBy: {
