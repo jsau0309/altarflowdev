@@ -219,14 +219,22 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
               const hasGoal = c.goalAmount && parseFloat(c.goalAmount) > 0;
               const raised = c.raised || 0;
               const goal = hasGoal && c.goalAmount ? parseFloat(c.goalAmount) : 0;
-              const progress = hasGoal && goal > 0 ? Math.min((raised / goal) * 100, 100) : 0;
-              const isComplete = hasGoal && progress >= 100;
+              const progress = hasGoal && goal > 0 ? (raised / goal) * 100 : 0;
+              const isOverGoal = hasGoal && raised > goal;
               const hasRaised = raised > 0;
+
+              // Compute display status based on end date and isActive
+              const isExpired = c.endDate && new Date(c.endDate) < new Date();
+              const displayStatus = isExpired ? 'ended' : (c.isActive ? 'active' : 'inactive');
+              const isInactiveOrEnded = displayStatus === 'inactive' || displayStatus === 'ended';
 
               return (
                 <div
                   key={c.id}
-                  className="rounded-lg border bg-card p-6 transition-all hover:shadow-md"
+                  className={cn(
+                    "rounded-lg border p-6 transition-all hover:shadow-md",
+                    isInactiveOrEnded ? "bg-gray-50 opacity-75" : "bg-card"
+                  )}
                 >
                   {/* Header: Name + Actions */}
                   <div className="flex items-start justify-between mb-4">
@@ -238,18 +246,32 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
                     </div>
                     <div className="flex items-center gap-2 ml-4">
                       {onEdit ? (
-                        <Button variant="outline" size="sm" onClick={() => onEdit(c.id)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onEdit(c.id)}
+                          title={isExpired ? t('donations:donationsContent.campaigns.editToExtend', 'Edit to extend the end date') : undefined}
+                        >
                           {t('common:edit', 'Edit')}
                         </Button>
                       ) : (
-                        <Button variant="outline" size="sm" asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          title={isExpired ? t('donations:donationsContent.campaigns.editToExtend', 'Edit to extend the end date') : undefined}
+                        >
                           <Link href={`/donations/campaigns/${c.id}/edit`}>
                             {t('common:edit', 'Edit')}
                           </Link>
                         </Button>
                       )}
-                      {hasRaised ? (
-                        // Campaign has donations - show Activate/Deactivate
+                      {/* Action button logic based on status */}
+                      {isExpired ? (
+                        // Expired campaign - prompt to edit and extend
+                        null // Edit button above is enough with tooltip
+                      ) : hasRaised ? (
+                        // Active campaign with donations - show Activate/Deactivate
                         <Button
                           variant={c.isActive ? "secondary" : "default"}
                           size="sm"
@@ -290,6 +312,11 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
                           <span className="text-sm font-medium">
                             ${raised.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${goal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
+                          {isOverGoal && (
+                            <Badge variant="default" className="bg-amber-500 text-white hover:bg-amber-600">
+                              {progress.toFixed(0)}% {t('donations:donationsContent.campaigns.overGoal', 'Over Goal')}
+                            </Badge>
+                          )}
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
@@ -302,7 +329,7 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
                           </span>
                         </div>
                       )}
-                      {hasGoal && (
+                      {hasGoal && !isOverGoal && (
                         <span className="text-sm text-muted-foreground">{progress.toFixed(0)}%</span>
                       )}
                     </div>
@@ -312,16 +339,17 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
                       <div
                         className={cn(
                           "h-full transition-all duration-500 ease-out",
-                          // No goal - Blue gradient with animation
+                          // No goal - Blue
                           !hasGoal && !hasRaised && "bg-gray-300",
-                          !hasGoal && hasRaised && "bg-gradient-to-r from-blue-500 to-blue-600 animate-gradient-x",
-                          // Has goal - Green or Gold
+                          !hasGoal && hasRaised && "bg-gradient-to-r from-blue-500 to-blue-600",
+                          // Has goal but not over - Green
                           hasGoal && !hasRaised && "bg-gray-300",
-                          hasGoal && hasRaised && !isComplete && "bg-gradient-to-r from-green-500 to-green-600",
-                          hasGoal && isComplete && "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 animate-shimmer"
+                          hasGoal && hasRaised && !isOverGoal && "bg-gradient-to-r from-green-500 to-green-600",
+                          // Over goal - Gold
+                          hasGoal && isOverGoal && "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600"
                         )}
                         style={{
-                          width: hasGoal ? `${progress}%` : '100%'
+                          width: hasGoal ? `${Math.min(progress, 100)}%` : '100%'
                         }}
                       />
                     </div>
@@ -330,8 +358,22 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
                   {/* Footer: Status + Dates */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <Badge variant={c.isActive ? "default" : "secondary"}>
-                        {c.isActive ? t('common:active', 'Active') : t('donations:donationsContent.campaigns.status.inactive', 'Inactive')}
+                      <Badge
+                        variant={
+                          displayStatus === 'ended' ? 'destructive' :
+                          displayStatus === 'active' ? 'default' :
+                          'secondary'
+                        }
+                        className={displayStatus === 'ended' ? 'text-white' : ''}
+                        title={
+                          displayStatus === 'ended' ?
+                            t('donations:donationsContent.campaigns.endedTooltip', 'This campaign has ended. Edit to extend the end date.') :
+                            undefined
+                        }
+                      >
+                        {displayStatus === 'ended' && t('donations:donationsContent.campaigns.status.ended', 'Ended')}
+                        {displayStatus === 'active' && t('common:active', 'Active')}
+                        {displayStatus === 'inactive' && t('donations:donationsContent.campaigns.status.inactive', 'Inactive')}
                       </Badge>
                       {c.endDate && (
                         <div className="flex items-center gap-1">

@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Filter, Plus, Users, X, DollarSign, ChevronsUpDown, Check, Edit3, Lock, ArrowLeft } from "lucide-react"
-import { format, parseISO } from "date-fns"
+import { Filter, Plus, Users, X, DollarSign, Edit3, Lock, ArrowLeft, Calendar as CalendarIcon } from "lucide-react"
+import { format, parseISO, startOfMonth, endOfMonth, subMonths } from "date-fns"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
@@ -22,24 +21,21 @@ import LoaderOne from "@/components/ui/loader-one";
 import { getDonors } from "@/lib/actions/donors.actions";
 import { DonorsTable } from "@/components/donors-table";
 import { DonationDetailsDrawer } from "@/components/donations/donation-details-drawer";
-import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { DateRange } from "react-day-picker"
+import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils"
 import { DonorDetailsDrawer } from "@/components/donations/donor-details-drawer";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { safeStorage } from "@/lib/safe-storage";
 import { DonorFE, DonationTransactionFE, DonorDetailsData } from "@/lib/types";
-import { DonorFilterItem } from "@/lib/actions/donations.actions";
 import { useTranslation } from 'react-i18next';
 import { ManualDonationDialog } from "@/components/modals/manual-donation-dialog";
 
 
 interface DonationsContentProps {
-  propDonors: DonorFilterItem[];
+  propDonationTypes: string[]; // Changed from propDonors to propDonationTypes
 }
 
-export default function DonationsContent({ propDonors }: DonationsContentProps) {
+export default function DonationsContent({ propDonationTypes }: DonationsContentProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [showDonorModal, setShowDonorModal] = useState(false)
@@ -54,9 +50,19 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
   const [selectedDonorIdForDetails, setSelectedDonorIdForDetails] = useState<string | null>(null)
   const [selectedDonorObjectForModal, setSelectedDonorObjectForModal] = useState<DonorDetailsData | null>(null)
 
-  const [date, setDate] = useState<DateRange | undefined>(undefined)
+  // Date range state for the date filter button
+  interface DateRangeState {
+    from: Date | null
+    to: Date | null
+  }
+  const [dateRange, setDateRange] = useState<DateRangeState>({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // First day of current month
+    to: new Date() // Today
+  })
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
+  const [tempDateRange, setTempDateRange] = useState<DateRangeState>(dateRange)
+
   const [selectedDonationMethods, setSelectedDonationMethods] = useState<string[]>([])
-  const [selectedDonors, setSelectedDonors] = useState<string[]>([])
   const [selectedDonationTypes, setSelectedDonationTypes] = useState<string[]>([])
 
   const [donations, setDonations] = useState<DonationTransactionFE[]>([])
@@ -120,15 +126,15 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
     }
 
     try {
-      const { donations: fetchedDonations, totalCount: fetchedTotal } = await getDonationTransactions({
+      const { donations: fetchedDonations, totalCount: fetchedTotal} = await getDonationTransactions({
         clerkOrgId: churchIdFromStorage,
         page: currentPage,
         limit: itemsPerPage,
-        startDate: date?.from,
-        endDate: date?.to,
+        startDate: dateRange.from || undefined,
+        endDate: dateRange.to || undefined,
         donationTypes: selectedDonationTypes,
         paymentMethods: selectedDonationMethods,
-        donorIds: selectedDonors,
+        donorIds: [], // Donor filter removed
       });
       if (fetchedDonations) {
         setDonations(fetchedDonations)
@@ -150,7 +156,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
     if (activeTab === 'all-donations') {
       fetchDonations();
     }
-  }, [activeTab, currentPage, itemsPerPage, date, selectedDonationTypes, selectedDonationMethods, selectedDonors]);
+  }, [activeTab, currentPage, itemsPerPage, dateRange, selectedDonationTypes, selectedDonationMethods]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -162,15 +168,8 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
     }
   }, [])
 
-  const filteredDonors = propDonors.filter((donor: DonorFilterItem) => {
-    if (!donorSearchTerm) return true;
-    return donor.name.toLowerCase().includes(donorSearchTerm.toLowerCase());
-  })
-
-  const getDonorName = (donorId: string) => {
-    const donor = propDonors.find((d: DonorFilterItem) => d.id === donorId);
-    return donor ? donor.name : t('common:unknownDonor', 'Unknown Donor');
-  }
+  // filteredDonors removed - donor filter removed
+  // getDonorName removed - donor filter removed
 
   const handleNewDonationClick = () => {
     setShowModal(true)
@@ -235,7 +234,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
     });
   };
 
-  const handleDonorUpdated = (updatedDonor: DonorDetailsData) => {
+  const handleDonorUpdated = () => {
     fetchDonors();
   };
 
@@ -262,16 +261,12 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
   };
 
 
-  const handleDonorFilterChange = (donorId: string) => {
-    setSelectedDonors(prev =>
-      prev.includes(donorId) ? prev.filter(id => id !== donorId) : [...prev, donorId]
-    );
-  };
+  // handleDonorFilterChange removed - donor filter removed
 
   const clearFilters = () => {
-    setDate(undefined);
+    // Date filter removed - now in separate button
+    // Donor filter removed
     setSelectedDonationMethods([]);
-    setSelectedDonors([]);
     setSelectedDonationTypes([]);
   };
 
@@ -296,9 +291,9 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
 
   const getActiveFilterCount = () => {
     let count = 0;
-    if (date) count++;
+    // Date filter removed - now in separate button
+    // Donor filter removed - only showed manual donors
     if (selectedDonationMethods.length > 0) count++;
-    if (selectedDonors.length > 0) count++;
     if (selectedDonationTypes.length > 0) count++;
     return count;
   };
@@ -306,16 +301,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
   const renderFilterBadges = () => {
     const badges = [];
 
-    if (date) {
-      badges.push(
-        <Badge key="date" variant="secondary" className="flex items-center gap-1">
-          {format(date.from!, 'LLL dd, y')} - {date.to ? format(date.to, 'LLL dd, y') : ''}
-          <button onClick={() => setDate(undefined)} className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      );
-    }
+    // Date badge removed - now shown in separate date filter button
 
     if (selectedDonationTypes.length > 0) {
       badges.push(
@@ -330,7 +316,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
 
     if (selectedDonationMethods.length > 0) {
       badges.push(
-        <Badge key="methods" variant="secondary" className="flex items-center gap-1">
+        <Badge key="methods" variant="secondary" className="flex items-center gap-2">
           {t('donations:method', 'Method')}: {selectedDonationMethods.join(', ')}
           <button onClick={() => setSelectedDonationMethods([])} className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
             <X className="h-3 w-3" />
@@ -339,16 +325,7 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
       );
     }
 
-    if (selectedDonors.length > 0) {
-      badges.push(
-        <Badge key="donors" variant="secondary" className="flex items-center gap-1">
-          {t('donations:donor', 'Donor')}: {selectedDonors.map(getDonorName).join(', ')}
-          <button onClick={() => setSelectedDonors([])} className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      );
-    }
+    // Donor filter removed - only showed manual donors, not universal donors
 
     return badges;
   };
@@ -388,6 +365,171 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
               </div>
               
               <div className="flex gap-2">
+                {/* Date Filter - Matches Expenses page pattern */}
+                <Popover open={isDateFilterOpen} onOpenChange={(open) => {
+                  if (open) setTempDateRange(dateRange)
+                  setIsDateFilterOpen(open)
+                }}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {(() => {
+                        if (!dateRange.from || !dateRange.to) return t('reports:selectDateRange', 'Select Date Range')
+
+                        // If selecting a whole month (first day to last day of same month)
+                        const fromDate = dateRange.from
+                        const toDate = dateRange.to
+
+                        if (fromDate.getMonth() === toDate.getMonth() &&
+                            fromDate.getFullYear() === toDate.getFullYear() &&
+                            fromDate.getDate() === 1) {
+                          // Check if toDate is the last day of the month
+                          const lastDayOfMonth = new Date(toDate.getFullYear(), toDate.getMonth() + 1, 0)
+                          if (toDate.getDate() === lastDayOfMonth.getDate()) {
+                            return format(fromDate, 'MMMM yyyy')
+                          }
+                        }
+
+                        return `${format(fromDate, 'MMM d')} - ${format(toDate, 'MMM d, yyyy')}`
+                      })()}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <div className="p-4 space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">{t('reports:dateRange', 'Date Range')}</h4>
+
+                        {/* Quick month selection */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const now = new Date()
+                              setTempDateRange({
+                                from: startOfMonth(now),
+                                to: endOfMonth(now)
+                              })
+                            }}
+                          >
+                            {t('reports:timeFrames.thisMonth', 'This Month')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const lastMonth = subMonths(new Date(), 1)
+                              setTempDateRange({
+                                from: startOfMonth(lastMonth),
+                                to: endOfMonth(lastMonth)
+                              })
+                            }}
+                          >
+                            {t('reports:timeFrames.lastMonth', 'Last Month')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const now = new Date()
+                              const yearStart = new Date(now.getFullYear(), 0, 1)
+                              setTempDateRange({
+                                from: yearStart,
+                                to: now
+                              })
+                            }}
+                          >
+                            YTD
+                          </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-sm text-muted-foreground">{t('common:from', 'From')}</label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !tempDateRange.from && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {tempDateRange.from ? format(tempDateRange.from, "PPP") : t('reports:pickDate', 'Pick a date')}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={tempDateRange.from || undefined}
+                                  onSelect={(date) => setTempDateRange(prev => ({ ...prev, from: date || null }))}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-muted-foreground">{t('common:to', 'To')}</label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !tempDateRange.to && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {tempDateRange.to ? format(tempDateRange.to, "PPP") : t('reports:pickDate', 'Pick a date')}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={tempDateRange.to || undefined}
+                                  onSelect={(date) => setTempDateRange(prev => ({ ...prev, to: date || null }))}
+                                  initialFocus
+                                  disabled={(date) => tempDateRange.from ? date < tempDateRange.from : false}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const defaultRange = {
+                              from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                              to: new Date()
+                            }
+                            setTempDateRange(defaultRange)
+                            setDateRange(defaultRange)
+                            setIsDateFilterOpen(false)
+                          }}
+                        >
+                          {t('common:reset', 'Reset')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setDateRange(tempDateRange)
+                            setIsDateFilterOpen(false)
+                          }}
+                        >
+                          {t('common:apply', 'Apply')}
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Other Filters (Type, Method) */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="flex items-center gap-2">
@@ -396,36 +538,33 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                       {getActiveFilterCount() > 0 && <Badge>{getActiveFilterCount()}</Badge>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80" align="end">
-                    <div className="p-4">
-                      <div className="mb-4">
-                        <h4 className="font-medium leading-none">{t('donations:donationsContent.filter.title', 'Filter Donations')}</h4>
-                      </div>
-                      <ScrollArea className="h-[400px] pr-4">
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <div className="p-4 space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">{t('donations:donationsContent.filter.title', 'Filter Donations')}</h4>
                         <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label>{t('donations:dateRange', 'Date Range')}</Label>
-                            <DatePickerCalendar
-                              initialFocus
-                              mode="range"
-                              defaultMonth={date?.from}
-                              selected={date}
-                              onSelect={setDate}
-                              numberOfMonths={1}
-                            />
-                          </div>
+                          {/* Date filter removed - now in separate button */}
                           <div className="space-y-2">
                             <Label>{t('donations:type', 'Type')}</Label>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <Checkbox id="tithe" checked={selectedDonationTypes.includes('Tithe')} onCheckedChange={() => handleDonationTypeFilterChange('Tithe')} />
-                                <Label htmlFor="tithe">{t('donations:types.tithe', 'Tithe')}</Label>
+                            <ScrollArea className="max-h-[200px]">
+                              <div className="space-y-1 pr-4">
+                                {propDonationTypes.map((typeName) => (
+                                  <div key={typeName} className="flex items-center gap-2">
+                                    <Checkbox
+                                      id={`type-${typeName}`}
+                                      checked={selectedDonationTypes.includes(typeName)}
+                                      onCheckedChange={() => handleDonationTypeFilterChange(typeName)}
+                                    />
+                                    <Label htmlFor={`type-${typeName}`} className="cursor-pointer">
+                                      {typeName}
+                                    </Label>
+                                  </div>
+                                ))}
+                                {propDonationTypes.length === 0 && (
+                                  <p className="text-sm text-muted-foreground">{t('common:noOptions', 'No options available')}</p>
+                                )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Checkbox id="offering" checked={selectedDonationTypes.includes('Offering')} onCheckedChange={() => handleDonationTypeFilterChange('Offering')} />
-                                <Label htmlFor="offering">{t('donations:types.offering', 'Offering')}</Label>
-                              </div>
-                            </div>
+                            </ScrollArea>
                           </div>
                           <div className="space-y-2">
                             <Label>{t('donations:method', 'Method')}</Label>
@@ -452,51 +591,12 @@ export default function DonationsContent({ propDonors }: DonationsContentProps) 
                               </div>
                             </div>
                           </div>
-                          <div className="space-y-2">
-                            <Label>{t('donations:donor', 'Donor')}</Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  className="w-full justify-between"
-                                >
-                                  {selectedDonors.length > 0
-                                    ? `${selectedDonors.length} ${t('common:selected', 'selected')}`
-                                    : t('donations:selectDonor', 'Select a donor...')}
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[300px] p-0">
-                                <Command>
-                                  <CommandInput placeholder={t('donations:searchDonor', 'Search for a donor...')} />
-                                  <CommandEmpty>{t('donations:noDonorFound', 'No donor found.')}</CommandEmpty>
-                                  <CommandGroup>
-                                    <ScrollArea className="h-48">
-                                      {propDonors.map((donor) => (
-                                        <CommandItem
-                                          key={donor.id}
-                                          onSelect={() => handleDonorFilterChange(donor.id)}
-                                        >
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4",
-                                              selectedDonors.includes(donor.id) ? "opacity-100" : "opacity-0"
-                                            )}
-                                          />
-                                          {donor.name}
-                                        </CommandItem>
-                                      ))}
-                                    </ScrollArea>
-                                  </CommandGroup>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
+                          {/* Donor filter removed - only shows manual donors, not universal donors from Stripe */}
                         </div>
-                      </ScrollArea>
-                      <div className="flex justify-end pt-4 border-t mt-4">
-                        <Button variant="ghost" onClick={clearFilters}>{t('donations:donationsContent.filter.clear', 'Clear')}</Button>
+                      </div>
+
+                      <div className="flex justify-end pt-2 border-t">
+                        <Button variant="ghost" size="sm" onClick={clearFilters}>{t('donations:donationsContent.filter.clear', 'Clear')}</Button>
                       </div>
                     </div>
                   </PopoverContent>

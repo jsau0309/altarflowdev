@@ -117,7 +117,7 @@ export async function GET(
           updatedAt: c.updatedAt.toISOString(),
           isActive,
           raised,
-          progressPct: goal ? Math.min(100, Math.round((raised / goal) * 100)) : null,
+          progressPct: (goal && goal > 0) ? Math.min(100, Math.round((raised / goal) * 100)) : null,
         };
       })
     );

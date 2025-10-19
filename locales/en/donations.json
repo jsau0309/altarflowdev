@@ -105,10 +105,14 @@
         "status": "Status"
       },
       "status": {
-        "inactive": "Inactive"
+        "inactive": "Inactive",
+        "ended": "Ended"
       },
+      "editToExtend": "Edit to extend the end date",
+      "endedTooltip": "This campaign has ended. Edit to extend the end date.",
       "raised": "raised",
       "zeroRaised": "$0.00 raised",
+      "overGoal": "Over Goal",
       "ends": "Ends",
       "noEndDate": "No end date",
       "created": "Created",
@@ -151,13 +155,16 @@
         "thankYouHelper": "Optional: Personalize the message donors see after contributing.",
         "createButton": "Create Campaign",
         "nameLockedHelper": "Campaign name cannot be changed after receiving donations.",
-        "startDateLockedHelper": "Start date cannot be changed after receiving donations."
+        "startDateLockedHelper": "Start date cannot be changed after receiving donations.",
+        "goalEditHelper": "Already raised: ${{raised}}. You can increase the goal or set it to \"no goal\"."
       },
       "errors": {
         "notFound": "Campaign not found",
         "nameRequired": "Name is required",
         "goalRequired": "Goal amount is required (or check the box below)",
         "invalidGoal": "Enter a valid goal amount (> 0, max 2 decimals)",
+        "goalBelowRaised": "Goal cannot be less than amount already raised (${{raised}}). You can increase the goal or set it to \"no goal\".",
+        "startDateRequired": "Start date is required",
         "startDatePast": "Start date cannot be in the past",
         "endDatePast": "End date cannot be in the past",
         "startAfterEnd": "End date must be on or after start date",

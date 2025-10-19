@@ -9,105 +9,72 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model IdempotencyCache {
-  key          String   @id @db.VarChar(255)
-  responseData String
-  expiresAt    DateTime
-
-  @@index([expiresAt])
-  @@map("idempotency_cache")
-}
-
-model Donor {
-  id               String                @id @default(cuid())
-  firstName        String?
-  lastName         String?
-  email            String?               @unique
-  addressLine1     String?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
-  addressLine2     String?
-  city             String?
-  country          String?
-  isPhoneVerified  Boolean               @default(false)
-  phone            String?               @unique
-  postalCode       String?
-  state            String?
-  stripeCustomerId String?
-  memberId         String?               @db.Uuid
-  churchId         String?               @db.Uuid
-  transactions     DonationTransaction[]
-  church           Church?               @relation("DonorToChurch", fields: [churchId], references: [id])
-  member           Member?               @relation("DonorToMember", fields: [memberId], references: [id])
-
-  @@index([memberId])
-  @@index([churchId])
-}
-
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Church {
-  id                   String                @id @default(uuid()) @db.Uuid
+  id                   String                @id @db.Uuid
   name                 String
   address              String?
   phone                String?
   email                String?
   website              String?
   createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @default(now()) @updatedAt
+  updatedAt            DateTime              @default(now())
   clerkOrgId           String?               @unique
   ministriesJson       Json?                 @db.Json
   serviceTimesJson     Json?                 @db.Json
   settingsJson         Json?                 @db.Json
   slug                 String                @unique
-  // Onboarding fields
   onboardingCompleted  Boolean               @default(false)
   onboardingStep       Int                   @default(1)
-  // Billing fields for Stripe integration
-  subscriptionId       String?               @unique
-  subscriptionStatus   String                @default("pending_payment") // pending_payment, active, past_due, canceled
-  subscriptionPlan     String?               // monthly, annual
-  trialEndsAt          DateTime?
-  subscriptionEndsAt   DateTime?
   stripeCustomerId     String?               @unique
-  donations            Donation[]
-  donationTransactions DonationTransaction[]
-  donationTypes        DonationType[]
-  donors               Donor[]               @relation("DonorToChurch")
-  expenses             Expense[]
-  flows                Flow[]
-  members              Member[]
-  stripeConnectAccount StripeConnectAccount?
-  emailCampaigns       EmailCampaign[]
-  emailQuota           EmailQuota[]
-  emailSettings        EmailSettings?
-  payoutSummaries      PayoutSummary[]
+  subscriptionEndsAt   DateTime?
+  subscriptionId       String?               @unique
+  subscriptionPlan     String?
+  subscriptionStatus   String                @default("pending_payment")
+  trialEndsAt          DateTime?
+  Donation             Donation[]
+  DonationTransaction  DonationTransaction[]
+  DonationType         DonationType[]
+  Donor                Donor[]
+  EmailCampaign        EmailCampaign[]
+  EmailQuota           EmailQuota[]
+  EmailSettings        EmailSettings?
+  Expense              Expense[]
+  Flow                 Flow[]
+  Member               Member[]
+  PayoutSummary        PayoutSummary[]
+  StripeConnectAccount StripeConnectAccount?
+
+  @@index([clerkOrgId])
+  @@index([slug])
+  @@index([subscriptionStatus])
 }
 
-model DonationType {
-  id                 String                @id @default(cuid())
-  churchId           String                @db.Uuid
-  name               String
-  description        String?
-  isRecurringAllowed Boolean               @default(true)
-  isCampaign         Boolean               @default(false)
-  goalAmount         Decimal?              @db.Decimal(10, 2)
-  startDate          DateTime?
-  endDate            DateTime?
-  isActive           Boolean               @default(true)
-  isSystemType       Boolean               @default(false)
-  isDeletable        Boolean               @default(true)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  donationTransactions DonationTransaction[]
-  donations            Donation[]          @relation("DonationTypeDonations")
-  church               Church              @relation(fields: [churchId], references: [id], onDelete: Cascade)
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Donation {
+  id                    String   @id @db.Uuid
+  amount                Decimal  @db.Decimal(10, 2)
+  currency              String   @default("USD")
+  donationDate          DateTime @default(now())
+  donorFirstName        String?
+  donorLastName         String?
+  donorEmail            String?
+  memberId              String?  @db.Uuid
+  campaignId            String?  @db.Uuid
+  churchId              String   @db.Uuid
+  stripePaymentIntentId String?  @unique
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  Church                Church   @relation(fields: [churchId], references: [id])
+  Member                Member?  @relation(fields: [memberId], references: [id])
 
-  @@unique([churchId, name])
   @@index([churchId])
-  @@index([churchId, isCampaign])
+  @@index([memberId])
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model DonationTransaction {
-  id                          String       @id @default(cuid())
+  id                          String       @id
   churchId                    String       @db.Uuid
   donationTypeId              String
   donorClerkId                String?
@@ -133,46 +100,226 @@ model DonationTransaction {
   lastEditedAt                DateTime?
   lastEditedBy                String?
   originalAmount              Int?
-  // Refund tracking fields
   refundedAmount              Int?         @default(0)
   refundedAt                  DateTime?
-  // Dispute tracking fields
   disputeStatus               String?
   disputeReason               String?
   disputedAt                  DateTime?
-  church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  donationType                DonationType @relation(fields: [donationTypeId], references: [id])
-  donor                       Donor?       @relation(fields: [donorId], references: [id])
+  amountReceived              Int?
+  paymentMethodDetails        Json?
+  stripeFee                   Int?
+  stripePayoutId              String?
+  Church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  DonationType                DonationType @relation(fields: [donationTypeId], references: [id])
+  Donor                       Donor?       @relation(fields: [donorId], references: [id])
 
   @@index([churchId])
-  @@index([donationTypeId])
-  @@index([donorClerkId])
-  @@index([stripePaymentIntentId])
-  @@index([stripeSubscriptionId])
-  @@index([donorId])
   @@index([churchId, transactionDate])
-  @@index([paymentMethodType])
-  @@index([status])
-  @@index([refundedAt])
   @@index([disputeStatus])
+  @@index([donationTypeId])
+  @@index([donorId])
+  @@index([paymentMethodType])
+  @@index([stripePaymentIntentId], map: "idx_donation_transaction_stripe")
+  @@index([churchId, createdAt(sort: Desc)], map: "idx_donations_church_date")
+  @@index([churchId, donationTypeId, createdAt(sort: Desc)], map: "idx_donations_church_fund_date")
 }
 
-model Profile {
-  id                 String    @id
-  firstName          String?
-  lastName           String?
-  churchName         String?
-  role               Role      @default(STAFF)
-  onboardingComplete Boolean   @default(false)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @default(now()) @updatedAt
-  email              String?
-  approvedExpenses   Expense[] @relation("ApprovedExpenses")
-  submittedExpenses  Expense[] @relation("SubmittedExpenses")
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model DonationType {
+  id                  String                @id
+  churchId            String                @db.Uuid
+  name                String
+  description         String?
+  isRecurringAllowed  Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  isCampaign          Boolean               @default(false)
+  goalAmount          Decimal?              @db.Decimal(10, 2)
+  startDate           DateTime?
+  endDate             DateTime?
+  isActive            Boolean               @default(true)
+  isSystemType        Boolean               @default(false)
+  isDeletable         Boolean               @default(true)
+  DonationTransaction DonationTransaction[]
+  Church              Church                @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([churchId, name])
+  @@index([churchId, isCampaign])
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Donor {
+  id                  String                @id
+  firstName           String?
+  lastName            String?
+  email               String?               @unique
+  addressLine1        String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  addressLine2        String?
+  city                String?
+  country             String?
+  isPhoneVerified     Boolean               @default(false)
+  phone               String?               @unique
+  postalCode          String?
+  state               String?
+  stripeCustomerId    String?
+  memberId            String?               @db.Uuid
+  churchId            String?               @db.Uuid
+  DonationTransaction DonationTransaction[]
+  Church              Church?               @relation(fields: [churchId], references: [id])
+  Member              Member?               @relation(fields: [memberId], references: [id])
+
+  @@index([churchId])
+  @@index([memberId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model EmailCampaign {
+  id                String           @id
+  churchId          String           @db.Uuid
+  subject           String
+  previewText       String?
+  contentJson       Json
+  htmlContent       String?
+  status            EmailStatus      @default(DRAFT)
+  scheduledFor      DateTime?
+  sentAt            DateTime?
+  sentBy            String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime
+  totalRecipients   Int              @default(0)
+  sentCount         Int              @default(0)
+  deliveredCount    Int              @default(0)
+  bouncedCount      Int              @default(0)
+  unsubscribedCount Int              @default(0)
+  Church            Church           @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  EmailRecipient    EmailRecipient[]
+
+  @@index([churchId, createdAt])
+  @@index([churchId])
+  @@index([scheduledFor])
+  @@index([status])
+  @@index([churchId, status], map: "idx_campaigns_church_status")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model EmailPreference {
+  id               String    @id
+  memberId         String    @unique @db.Uuid
+  email            String
+  isSubscribed     Boolean   @default(true)
+  unsubscribedAt   DateTime?
+  unsubscribeToken String    @unique
+  bounceCount      Int       @default(0)
+  lastBouncedAt    DateTime?
+  isEmailValid     Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime
+  Member           Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([unsubscribeToken])
+  @@index([memberId], map: "idx_email_prefs_member")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model EmailQuota {
+  id         String   @id
+  churchId   String   @db.Uuid
+  monthYear  String
+  emailsSent Int      @default(0)
+  quotaLimit Int      @default(4)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  Church     Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([churchId, monthYear])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model EmailRecipient {
+  id             String          @id
+  campaignId     String
+  memberId       String          @db.Uuid
+  email          String
+  status         RecipientStatus @default(PENDING)
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  bouncedAt      DateTime?
+  bounceReason   String?
+  unsubscribedAt DateTime?
+  resendEmailId  String?
+  failureReason  String?
+  EmailCampaign  EmailCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  Member         Member          @relation(fields: [memberId], references: [id])
+
+  @@unique([campaignId, memberId])
+  @@index([memberId])
+  @@index([campaignId, status], map: "idx_email_recipients_campaign_status")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model EmailSettings {
+  id            String   @id
+  churchId      String   @unique @db.Uuid
+  timezone      String   @default("America/New_York")
+  footerAddress String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+  replyToEmail  String?
+  senderName    String?
+  Church        Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Expense {
+  id                                   String        @id
+  amount                               Decimal       @db.Decimal(10, 2)
+  currency                             String        @default("USD")
+  expenseDate                          DateTime
+  category                             String
+  vendor                               String?
+  description                          String?
+  receiptUrl                           String?
+  receiptPath                          String?
+  status                               ExpenseStatus @default(PENDING)
+  submitterId                          String
+  approverId                           String?
+  churchId                             String        @db.Uuid
+  createdAt                            DateTime      @default(now())
+  updatedAt                            DateTime      @default(now())
+  Profile_Expense_approverIdToProfile  Profile?      @relation("Expense_approverIdToProfile", fields: [approverId], references: [id])
+  Church                               Church        @relation(fields: [churchId], references: [id])
+  Profile_Expense_submitterIdToProfile Profile       @relation("Expense_submitterIdToProfile", fields: [submitterId], references: [id])
+
+  @@index([churchId, expenseDate])
+  @@index([churchId])
+  @@index([submitterId])
+  @@index([churchId, expenseDate(sort: Desc)], map: "idx_expenses_church_date")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Flow {
+  id         String       @id
+  name       String
+  type       FlowType     @default(NEW_MEMBER)
+  slug       String       @unique
+  configJson Json
+  isEnabled  Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime
+  churchId   String       @db.Uuid
+  customSlug String?      @unique
+  Church     Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  Submission Submission[]
+
+  @@unique([churchId, type])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Member {
-  id                         String            @id @default(uuid()) @db.Uuid
+  id                         String            @id @db.Uuid
   firstName                  String
   lastName                   String
   email                      String?
@@ -188,141 +335,119 @@ model Member {
   language                   String?
   churchId                   String            @db.Uuid
   createdAt                  DateTime          @default(now())
-  updatedAt                  DateTime          @default(now()) @updatedAt
+  updatedAt                  DateTime          @default(now())
   lastSubmittedConnectFormAt DateTime?
   membershipStatus           MembershipStatus?
   notes                      String?
   life_stage                 String?
   ministry_interests         String[]          @default([])
   preferred_service_times    String[]          @default([])
-  donations                  Donation[]
-  linkedDonors               Donor[]           @relation("DonorToMember")
-  church                     Church            @relation(fields: [churchId], references: [id])
-  submissions                Submission[]
-  emailRecipients            EmailRecipient[]
-  emailPreference            EmailPreference?
+  Donation                   Donation[]
+  Donor                      Donor[]
+  EmailPreference            EmailPreference?
+  EmailRecipient             EmailRecipient[]
+  Church                     Church            @relation(fields: [churchId], references: [id])
+  Submission                 Submission[]
 
   @@unique([churchId, email])
   @@index([churchId])
   @@index([churchId, joinDate])
-  @@index([churchId, membershipStatus])
+  @@index([churchId, email], map: "idx_members_church_email")
+  @@index([churchId, membershipStatus], map: "idx_members_church_status")
 }
 
-model Donation {
-  id                    String        @id @default(uuid()) @db.Uuid
-  amount                Decimal       @db.Decimal(10, 2)
-  currency              String        @default("USD")
-  donationDate          DateTime      @default(now())
-  donorFirstName        String?
-  donorLastName         String?
-  donorEmail            String?
-  memberId              String?       @db.Uuid
-  donationTypeId        String?       @db.Uuid
-  churchId              String        @db.Uuid
-  stripePaymentIntentId String?       @unique
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @default(now()) @updatedAt
-  church                Church        @relation(fields: [churchId], references: [id])
-  member                Member?       @relation(fields: [memberId], references: [id])
-  donationType          DonationType? @relation("DonationTypeDonations", fields: [donationTypeId], references: [id])
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model PayoutSummary {
+  id               String    @id
+  stripePayoutId   String    @unique
+  churchId         String    @db.Uuid
+  payoutDate       DateTime
+  arrivalDate      DateTime
+  amount           Int
+  currency         String    @default("usd")
+  transactionCount Int       @default(0)
+  grossVolume      Int       @default(0)
+  totalFees        Int       @default(0)
+  totalRefunds     Int       @default(0)
+  totalDisputes    Int       @default(0)
+  netAmount        Int
+  status           String
+  failureReason    String?
+  payoutSchedule   String?
+  reconciledAt     DateTime?
+  bankReference    String?
+  metadata         Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime
+  Church           Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
 
-  @@index([memberId])
-  @@index([churchId])
-  @@index([donationTypeId])
+  @@index([churchId, payoutDate])
+  @@index([payoutDate])
 }
 
-model Expense {
-  id          String        @id @default(cuid())
-  amount      Decimal       @db.Decimal(10, 2)
-  currency    String        @default("USD")
-  expenseDate DateTime
-  category    String
-  vendor      String?
-  description String?
-  receiptUrl  String?
-  receiptPath String?
-  status      ExpenseStatus @default(PENDING)
-  submitterId String
-  approverId  String?
-  churchId    String        @db.Uuid
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @default(now()) @updatedAt
-  approver    Profile?      @relation("ApprovedExpenses", fields: [approverId], references: [id])
-  church      Church        @relation(fields: [churchId], references: [id])
-  submitter   Profile       @relation("SubmittedExpenses", fields: [submitterId], references: [id])
-
-  @@index([submitterId])
-  @@index([approverId])
-  @@index([churchId])
-  @@index([churchId, expenseDate])
-  @@index([status])
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Profile {
+  id                                   String    @id
+  firstName                            String?
+  lastName                             String?
+  churchName                           String?
+  role                                 Role      @default(STAFF)
+  onboardingComplete                   Boolean   @default(false)
+  createdAt                            DateTime  @default(now())
+  updatedAt                            DateTime  @default(now())
+  email                                String?
+  Expense_Expense_approverIdToProfile  Expense[] @relation("Expense_approverIdToProfile")
+  Expense_Expense_submitterIdToProfile Expense[] @relation("Expense_submitterIdToProfile")
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model StripeConnectAccount {
-  id                         String    @id @default(uuid()) @db.Uuid
+  id                         String    @id @db.Uuid
   stripeAccountId            String    @unique
   churchId                   String    @unique
   chargesEnabled             Boolean   @default(false)
   detailsSubmitted           Boolean   @default(false)
   payoutsEnabled             Boolean   @default(false)
   createdAt                  DateTime  @default(now())
-  updatedAt                  DateTime  @updatedAt
+  updatedAt                  DateTime
   metadata                   Json?     @db.Json
   requirementsCurrentlyDue   String[]  @default([])
   requirementsDisabledReason String?
   requirementsEventuallyDue  String[]  @default([])
   tosAcceptanceDate          DateTime?
   verificationStatus         String    @default("unverified")
-  // Payment method domain registration tracking
   paymentDomainsRegistered   Boolean   @default(false)
   paymentDomainsRegisteredAt DateTime?
   registeredDomains          String[]  @default([])
-  church                     Church    @relation(fields: [churchId], references: [clerkOrgId], onDelete: Cascade)
-
-  @@index([churchId])
+  Church                     Church    @relation(fields: [churchId], references: [clerkOrgId], onDelete: Cascade)
 }
 
-model Flow {
-  id          String       @id @default(cuid())
-  name        String
-  type        FlowType     @default(NEW_MEMBER)
-  slug        String       @unique
-  customSlug  String?      @unique
-  configJson  Json
-  isEnabled   Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  churchId    String       @db.Uuid
-  church      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  submissions Submission[]
-
-  @@unique([churchId, type], name: "church_flow_type_unique")
-  @@index([churchId])
-  @@index([churchId, slug])
-}
-
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Submission {
-  id           String   @id @default(cuid())
+  id           String   @id
   submittedAt  DateTime @default(now())
   formDataJson Json
   memberId     String?  @db.Uuid
   flowId       String
-  flow         Flow     @relation(fields: [flowId], references: [id], onDelete: Cascade)
-  member       Member?  @relation(fields: [memberId], references: [id])
+  Flow         Flow     @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  Member       Member?  @relation(fields: [memberId], references: [id])
 
   @@index([flowId])
-  @@index([memberId])
 }
 
-enum MembershipStatus {
-  Visitor
-  Member
-  Inactive
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model idempotency_cache {
+  key          String   @id @db.VarChar(255)
+  responseData String
+  expiresAt    DateTime
 }
 
-enum Role {
-  ADMIN
-  STAFF
+enum EmailStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
 }
 
 enum ExpenseStatus {
@@ -337,114 +462,10 @@ enum FlowType {
   SURVEY
 }
 
-// Email Communication Models
-
-model EmailCampaign {
-  id                String              @id @default(cuid())
-  churchId          String              @db.Uuid
-  subject           String
-  previewText       String?
-  contentJson       Json                // Unlayer design JSON
-  htmlContent       String?             // Generated HTML
-  status            EmailStatus         @default(DRAFT)
-  scheduledFor      DateTime?
-  sentAt            DateTime?
-  sentBy            String              // Clerk user ID
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
-  // Analytics
-  totalRecipients   Int                 @default(0)
-  sentCount         Int                 @default(0)
-  deliveredCount    Int                 @default(0)
-  bouncedCount      Int                 @default(0)
-  unsubscribedCount Int                 @default(0)
-  
-  church            Church              @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  recipients        EmailRecipient[]
-  
-  @@index([churchId])
-  @@index([churchId, createdAt])
-  @@index([status])
-  @@index([scheduledFor])
-}
-
-model EmailRecipient {
-  id              String           @id @default(cuid())
-  campaignId      String
-  memberId        String           @db.Uuid
-  email           String
-  status          RecipientStatus  @default(PENDING)
-  sentAt          DateTime?
-  deliveredAt     DateTime?
-  bouncedAt       DateTime?
-  bounceReason    String?
-  unsubscribedAt  DateTime?
-  failureReason   String?          // Reason for send failure
-  resendEmailId   String?          // Resend tracking ID
-  
-  campaign        EmailCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  member          Member           @relation(fields: [memberId], references: [id])
-  
-  @@unique([campaignId, memberId])
-  @@index([campaignId])
-  @@index([memberId])
-  @@index([email])
-}
-
-model EmailPreference {
-  id                String    @id @default(cuid())
-  memberId          String    @db.Uuid @unique
-  email             String
-  isSubscribed      Boolean   @default(true)
-  unsubscribedAt    DateTime?
-  unsubscribeToken  String    @unique @default(cuid())
-  bounceCount       Int       @default(0)
-  lastBouncedAt     DateTime?
-  isEmailValid      Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  member            Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  
-  @@index([email])
-  @@index([unsubscribeToken])
-}
-
-model EmailQuota {
-  id              String    @id @default(cuid())
-  churchId        String    @db.Uuid
-  monthYear       String    // Format: "2025-01"
-  emailsSent      Int       @default(0) // Actually tracks campaigns sent, not individual emails
-  quotaLimit      Int       @default(4) // 4 campaigns for free, 10000 for paid
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  church          Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  
-  @@unique([churchId, monthYear])
-  @@index([churchId])
-}
-
-model EmailSettings {
-  id              String    @id @default(cuid())
-  churchId        String    @db.Uuid @unique
-  senderName      String?   // e.g., "First Baptist Church"
-  replyToEmail    String?   // Where replies should go
-  timezone        String    @default("America/New_York")
-  footerAddress   String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  church          Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
-}
-
-enum EmailStatus {
-  DRAFT
-  SCHEDULED
-  SENDING
-  SENT
-  FAILED
+enum MembershipStatus {
+  Visitor
+  Member
+  Inactive
 }
 
 enum RecipientStatus {
@@ -456,34 +477,7 @@ enum RecipientStatus {
   FAILED
 }
 
-// Payout tracking for reconciliation
-model PayoutSummary {
-  id                  String       @id @default(cuid())
-  stripePayoutId      String       @unique
-  churchId            String       @db.Uuid
-  payoutDate          DateTime     // When Stripe initiated the payout
-  arrivalDate         DateTime     // Expected bank arrival date
-  amount              Int          // Total payout amount in cents
-  currency            String       @default("usd")
-  transactionCount    Int          @default(0)
-  grossVolume         Int          @default(0) // Total charges before fees
-  totalFees           Int          @default(0) // Stripe fees
-  totalRefunds        Int          @default(0) // Refunds deducted
-  totalDisputes       Int          @default(0) // Disputes deducted
-  netAmount           Int          // What actually gets deposited
-  status              String       // pending/in_transit/paid/failed/canceled
-  failureReason       String?      // If payout failed
-  payoutSchedule      String?      // daily/weekly/monthly/manual
-  reconciledAt        DateTime?    // When we reconciled with bank
-  bankReference       String?      // Bank transaction reference
-  metadata            Json?        // Additional Stripe metadata
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-  
-  church              Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  
-  @@index([churchId])
-  @@index([payoutDate])
-  @@index([status])
-  @@index([churchId, payoutDate])
+enum Role {
+  ADMIN
+  STAFF
 }

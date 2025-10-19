@@ -105,7 +105,7 @@ export async function PATCH(
       dataToUpdate.endDate = campaignData.endDate ? new Date(campaignData.endDate) : null;
     }
     if (campaignData.goalAmount !== undefined) {
-      dataToUpdate.goalAmount = campaignData.goalAmount === null ? null : new Prisma.Decimal(campaignData.goalAmount.toFixed(2)); 
+      dataToUpdate.goalAmount = campaignData.goalAmount === null ? null : new Prisma.Decimal(Number(campaignData.goalAmount).toFixed(2));
     }
     if (campaignData.isActive !== undefined) {
       dataToUpdate.isActive = campaignData.isActive;
@@ -182,10 +182,19 @@ export async function DELETE(
         church: { clerkOrgId: orgId },
         isCampaign: true,
       },
+      select: { id: true, isSystemType: true, isDeletable: true }
     });
 
     if (!existing) {
       return new NextResponse(null, { status: 204 });
+    }
+
+    // Prevent deletion of system types
+    if (!existing.isDeletable || existing.isSystemType) {
+      return NextResponse.json(
+        { error: 'This donation type cannot be deleted' },
+        { status: 400 }
+      );
     }
 
     const transactionCount = await prisma.donationTransaction.count({

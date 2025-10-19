@@ -14,34 +14,19 @@ interface DonationDetailsProps {
   formData: DonationFormData;
   updateFormData: (data: Partial<DonationFormData>) => void;
   onNext: () => void;
-  donationTypes: DonationType[]; // Added new prop
-  churchSlug: string;
+  donationTypes: DonationType[]; // All donation types including campaigns
+  churchSlug: string; // Keeping for potential future use
 }
-
-type PublicCampaign = {
-  id: string;
-  name: string;
-  description?: string | null;
-  goalAmount?: number | null;
-  raised?: number;
-  progressPct?: number | null;
-};
 
 export default function DonationDetails({ formData, updateFormData, onNext, donationTypes, churchSlug }: DonationDetailsProps) { // Destructure donationTypes
   const [amount, setAmount] = useState<string>(formData.amount === 0 ? "" : (formData.amount?.toString() || ""));
   const { t } = useTranslation(['donations', 'common']);
   const [calculatedFee, setCalculatedFee] = useState<number>(0);
   const [totalWithFees, setTotalWithFees] = useState<number>(0);
-  const [campaigns, setCampaigns] = useState<PublicCampaign[]>([]);
-  const [loadingCampaigns, setLoadingCampaigns] = useState<boolean>(false);
-  const [campaignsError, setCampaignsError] = useState<string | null>(null);
 
   const isFundOrCampaignSelected = !!formData.donationTypeId;
   const isAmountValid = (Number.parseFloat(amount) || 0) > 0;
   const canProceed = isFundOrCampaignSelected && isAmountValid;
-
-  const oneTimeText = t('donations:types.oneTime', 'One Time');
-  const recurringText = t('donations:types.recurring', 'Recurring');
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -65,27 +50,6 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
   const handleQuickAmount = (quickAmount: number) => {
     setAmount(quickAmount.toString());
   };
-
-  useEffect(() => {
-    let active = true;
-    async function fetchCampaigns() {
-      if (!churchSlug) return;
-      try {
-        setLoadingCampaigns(true);
-        setCampaignsError(null);
-        const res = await fetch(`/api/public/campaigns/${encodeURIComponent(churchSlug)}/active`, { cache: 'no-store' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || 'Failed to load campaigns');
-        if (active) setCampaigns(Array.isArray(data) ? data : []);
-      } catch (e: any) {
-        if (active) setCampaignsError(e.message || 'Failed to load campaigns');
-      } finally {
-        if (active) setLoadingCampaigns(false);
-      }
-    }
-    fetchCampaigns();
-    return () => { active = false };
-  }, [churchSlug]);
 
   useEffect(() => {
     const numericAmount = Number.parseFloat(amount) || 0; // This is in dollars
@@ -143,34 +107,20 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
         </Button>
       </div>
 
-      {/* Combined Fund/Campaign Selection with Grouped Options */}
+      {/* Donation Type Selection (includes both system types and campaigns) */}
       <div className="space-y-2">
-        <Label htmlFor="fundCampaignSelect" className="text-gray-900">{t('donations:donationDetails.selectFundLabel', 'Select a Fund')}</Label>
+        <Label htmlFor="donationTypeSelect" className="text-gray-900">{t('donations:donationDetails.selectFundLabel', 'Select a Fund')}</Label>
         <select
-          id="fundCampaignSelect"
-          value={
-            formData.donationTypeId
-              ? `${formData.donationTypeIsCampaign ? 'campaign' : 'fund'}:${formData.donationTypeId}`
-              : ''
-          }
+          id="donationTypeSelect"
+          value={formData.donationTypeId || ''}
           onChange={(e) => {
             const selectedValue = e.target.value;
-
-            if (selectedValue.startsWith('campaign:')) {
-              const donationTypeId = selectedValue.replace('campaign:', '');
-              const selected = campaigns.find(c => c.id === donationTypeId);
+            if (selectedValue) {
+              const selectedDonationType = donationTypes.find(dt => dt.id === selectedValue);
               updateFormData({
-                donationTypeId,
-                donationTypeName: selected ? selected.name : undefined,
-                donationTypeIsCampaign: true,
-              });
-            } else if (selectedValue.startsWith('fund:')) {
-              const donationTypeId = selectedValue.replace('fund:', '');
-              const selectedDonationType = donationTypes.find(dt => dt.id === donationTypeId);
-              updateFormData({
-                donationTypeId,
+                donationTypeId: selectedValue,
                 donationTypeName: selectedDonationType ? selectedDonationType.name : undefined,
-                donationTypeIsCampaign: false,
+                donationTypeIsCampaign: selectedDonationType?.isCampaign || false,
               });
             } else {
               updateFormData({
@@ -180,55 +130,27 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
               });
             }
           }}
-          disabled={loadingCampaigns}
           className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="">
-            {loadingCampaigns ? t('common:loading', 'Loading...') : t('donations:donationDetails.selectFundPlaceholder', '-- Choose Fund --')}
+            {t('donations:donationDetails.selectFundPlaceholder', '-- Choose Fund --')}
           </option>
 
-          {/* Donation Funds Group - First */}
-          {donationTypes.length > 0 && (
-            <optgroup label={`📂 ${t('donations:donationDetails.funds', 'Funds')}`}>
-              {donationTypes.map((type) => {
-                const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
-                return (
-                  <option key={type.id} value={`fund:${type.id}`}>
-                    {t(`donations:funds.${fundKey}`, type.name)}
-                  </option>
-                );
-              })}
-            </optgroup>
-          )}
-
-          {/* Active Campaigns Group - Second */}
-          {campaigns.length > 0 && (
-            <optgroup label={`🎯 ${t('donations:donationDetails.campaigns', 'Campaigns')}`}>
-              {campaigns.map((c) => {
-                const progressText = c.goalAmount
-                  ? ` ($${c.raised?.toLocaleString() || 0} / $${c.goalAmount.toLocaleString()})`
-                  : c.raised
-                    ? ` ($${c.raised.toLocaleString()} ${t('donations:donationsContent.campaigns.raised', 'raised')})`
-                    : '';
-                return (
-                  <option key={c.id} value={`campaign:${c.id}`}>
-                    {c.name}{progressText}
-                  </option>
-                );
-              })}
-            </optgroup>
-          )}
-
-          {donationTypes.length === 0 && campaigns.length === 0 && (
+          {donationTypes.length > 0 ? (
+            donationTypes.map((type) => {
+              const fundKey = type.name.toLowerCase().replace(/\s+/g, '_');
+              return (
+                <option key={type.id} value={type.id}>
+                  {t(`donations:funds.${fundKey}`, type.name)}
+                </option>
+              );
+            })
+          ) : (
             <option value="no-options" disabled>
               {t('donations:donationDetails.noFundsAvailable', 'No funds available')}
             </option>
           )}
         </select>
-
-        {campaignsError && (
-          <p className="text-xs text-red-600">{campaignsError}</p>
-        )}
       </div>
 
       <div className="items-top flex space-x-2">

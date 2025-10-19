@@ -107,10 +107,14 @@
           "status": "Estado"
         },
         "status": {
-          "inactive": "Inactiva"
+          "inactive": "Inactiva",
+          "ended": "Finalizada"
         },
+        "editToExtend": "Editar para extender la fecha de finalización",
+        "endedTooltip": "Esta campaña ha finalizado. Edite para extender la fecha de finalización.",
         "raised": "recaudado",
         "zeroRaised": "$0.00 recaudado",
+        "overGoal": "Sobre la Meta",
         "ends": "Termina",
         "noEndDate": "Sin fecha de fin",
         "created": "Creado",
@@ -153,13 +157,16 @@
           "thankYouHelper": "Opcional: Personaliza el mensaje que los donantes ven después de contribuir.",
           "createButton": "Crear Campaña",
           "nameLockedHelper": "El nombre de la campaña no se puede cambiar después de recibir donaciones.",
-          "startDateLockedHelper": "La fecha de inicio no se puede cambiar después de recibir donaciones."
+          "startDateLockedHelper": "La fecha de inicio no se puede cambiar después de recibir donaciones.",
+          "goalEditHelper": "Ya recaudado: ${{raised}}. Puede aumentar la meta o configurarla como \"sin meta\"."
         },
         "errors": {
           "notFound": "Campaña no encontrada",
           "nameRequired": "El nombre es requerido",
           "goalRequired": "El monto de la meta es requerido (o marca la casilla abajo)",
           "invalidGoal": "Ingrese un monto de meta válido (> 0, máximo 2 decimales)",
+          "goalBelowRaised": "La meta no puede ser menor que el monto ya recaudado (${{raised}}). Puede aumentar la meta o configurarla como \"sin meta\".",
+          "startDateRequired": "La fecha de inicio es requerida",
           "startDatePast": "La fecha de inicio no puede estar en el pasado",
           "endDatePast": "La fecha de fin no puede estar en el pasado",
           "startAfterEnd": "La fecha de fin debe ser igual o posterior a la fecha de inicio",

@@ -59,8 +59,23 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
         setDescription(data.description || '');
         setGoalAmount(data.goalAmount || '');
         setNoGoalCheckbox(!data.goalAmount); // Set checkbox if no goal amount
-        setStartDate(data.startDate ? new Date(data.startDate) : undefined);
-        setEndDate(data.endDate ? new Date(data.endDate) : undefined);
+
+        // Parse dates as local calendar dates (ignore timezone)
+        // Server returns "YYYY-MM-DD" format, parse as local date
+        if (data.startDate) {
+          const [year, month, day] = data.startDate.split('-').map(Number);
+          setStartDate(new Date(year, month - 1, day)); // month is 0-indexed
+        } else {
+          setStartDate(undefined);
+        }
+
+        if (data.endDate) {
+          const [year, month, day] = data.endDate.split('-').map(Number);
+          setEndDate(new Date(year, month - 1, day)); // month is 0-indexed
+        } else {
+          setEndDate(undefined);
+        }
+
         setRaised(data.raised || 0);
       } catch (e: any) {
         setError(e.message || t('common:errors.fetchFailed', 'Failed to load data. Please try again.'));
@@ -89,6 +104,12 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
           if (num !== two) {
             errs.goalAmount = t('donations:donationsContent.campaigns.errors.invalidGoal', 'Enter a valid goal amount (> 0, max 2 decimals)');
           }
+
+          // If campaign has raised money, new goal must be >= raised amount
+          if (hasRaisedMoney && num < raised) {
+            errs.goalAmount = t('donations:donationsContent.campaigns.errors.goalBelowRaised',
+              `Goal cannot be less than amount already raised ($${raised.toFixed(2)}). You can increase the goal or set it to "no goal".`);
+          }
         }
       }
     }
@@ -97,7 +118,12 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Strip time for date-only comparison
 
-    if (startDate) {
+    // Start date is REQUIRED for all campaigns
+    if (!startDate) {
+      errs.startDate = t('donations:donationsContent.campaigns.errors.startDateRequired', 'Start date is required');
+    } else if (!hasRaisedMoney) {
+      // Only validate start date for create mode or edit mode without donations
+      // When campaign has donations, start date is locked and shouldn't be validated
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
       if (start < today) {
@@ -138,7 +164,14 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
         g = false;
       } else {
         const num = Number(goalAmount);
-        g = Number.isFinite(num) && num > 0 && num === Number(num.toFixed(2));
+        const validNumber = Number.isFinite(num) && num > 0 && num === Number(num.toFixed(2));
+
+        // If campaign has raised money, ensure new goal >= raised amount
+        if (hasRaisedMoney && num < raised) {
+          g = false;
+        } else {
+          g = validNumber;
+        }
       }
     }
 
@@ -149,7 +182,8 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
     let d = true;
 
     // Check if start date is not in the past
-    if (startDate) {
+    // Skip validation if campaign has donations (start date is locked and can't be changed)
+    if (startDate && !hasRaisedMoney) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
       if (start < today) d = false;
@@ -172,7 +206,7 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
     }
 
     return n && g && d;
-  }, [name, goalAmount, noGoalCheckbox, startDate, endDate]);
+  }, [name, goalAmount, noGoalCheckbox, startDate, endDate, hasRaisedMoney, raised]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,6 +387,12 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
                   aria-describedby={fieldErrors.goalAmount ? 'goal-error' : undefined}
                   className={cn(noGoalCheckbox && "bg-muted/50 cursor-not-allowed")}
                 />
+                {hasRaisedMoney && raised > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('donations:donationsContent.campaigns.form.goalEditHelper',
+                      `Already raised: $${raised.toFixed(2)}. You can increase the goal or set it to "no goal".`)}
+                  </p>
+                )}
                 {fieldErrors.goalAmount && (<p id="goal-error" className="text-sm text-red-600" role="alert">{t(fieldErrors.goalAmount as any, fieldErrors.goalAmount)}</p>)}
 
                 {/* Checkbox for campaigns without specific goal */}
@@ -522,7 +562,7 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
             * {t('common:requiredFields', 'Required fields')}
           </p>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
+            <Button type="button" variant="outline" onClick={() => onSuccess?.()} disabled={loading}>
               {t('common:cancel', 'Cancel')}
             </Button>
             <Button type="submit" disabled={loading || !isValid}>

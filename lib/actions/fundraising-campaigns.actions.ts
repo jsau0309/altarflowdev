@@ -97,12 +97,12 @@ export async function listFundraisingCampaigns(params: ListParams): Promise<{ ca
       name: c.name,
       description: c.description ?? null,
       goalAmount: c.goalAmount ? c.goalAmount.toString() : null,
-      startDate: c.startDate?.toISOString() ?? null,
-      endDate: c.endDate?.toISOString() ?? null,
+      startDate: c.startDate ? c.startDate.toISOString().split('T')[0] : null,
+      endDate: c.endDate ? c.endDate.toISOString().split('T')[0] : null,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
       raised,
-      progressPct: goal ? Math.min(100, Math.round((raised / goal) * 100)) : null,
+      progressPct: (goal && goal > 0) ? Math.min(100, Math.round((raised / goal) * 100)) : null,
       isActive: c.isActive,
     };
   }));
@@ -168,21 +168,29 @@ export async function getFundraisingCampaignById(clerkOrgId: string, id: string)
     name: c.name,
     description: c.description ?? null,
     goalAmount: c.goalAmount ? c.goalAmount.toString() : null,
-    startDate: c.startDate?.toISOString() ?? null,
-    endDate: c.endDate?.toISOString() ?? null,
+    startDate: c.startDate ? c.startDate.toISOString().split('T')[0] : null,
+    endDate: c.endDate ? c.endDate.toISOString().split('T')[0] : null,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
     raised,
-    progressPct: goal ? Math.min(100, Math.round((raised / goal) * 100)) : null,
+    progressPct: (goal && goal > 0) ? Math.min(100, Math.round((raised / goal) * 100)) : null,
     isActive: c.isActive,
   };
 }
 
 export async function updateFundraisingCampaign(clerkOrgId: string, id: string, input: Omit<UpsertInput, 'clerkOrgId'>): Promise<{ success: boolean }>{
   const churchId = await getChurchUuid(clerkOrgId);
-  // Ensure ownership
-  const existing = await prisma.donationType.findFirst({ where: { id, churchId, isCampaign: true }, select: { id: true } });
+  // Ensure ownership and check system type protection
+  const existing = await prisma.donationType.findFirst({
+    where: { id, churchId, isCampaign: true },
+    select: { id: true, isSystemType: true, isDeletable: true }
+  });
   if (!existing) throw new Error('Campaign not found');
+
+  // Prevent modification of system types
+  if (existing.isSystemType) {
+    throw new Error('System donation types cannot be modified');
+  }
 
   const parsed = upsertSchema.safeParse({ clerkOrgId, ...input });
   if (!parsed.success) {
@@ -214,24 +222,38 @@ export async function updateFundraisingCampaign(clerkOrgId: string, id: string, 
 
 export async function deleteFundraisingCampaign(clerkOrgId: string, id: string): Promise<{ success: boolean }>{
   const churchId = await getChurchUuid(clerkOrgId);
-  const existing = await prisma.donationType.findFirst({ where: { id, churchId, isCampaign: true } });
-  if (!existing) throw new Error('Campaign not found');
-
-  const hasTransactions = await prisma.donationTransaction.count({
-    where: {
-      churchId,
-      donationTypeId: id,
-    },
+  const existing = await prisma.donationType.findFirst({
+    where: { id, churchId, isCampaign: true },
+    select: { id: true, isDeletable: true, isSystemType: true }
   });
 
-  if (hasTransactions > 0) {
-    await prisma.donationType.update({
-      where: { id },
-      data: { isActive: false },
-    });
-  } else {
-    await prisma.donationType.delete({ where: { id } });
+  if (!existing) throw new Error('Campaign not found');
+
+  // Prevent deletion of system types
+  if (!existing.isDeletable || existing.isSystemType) {
+    throw new Error('This donation type cannot be deleted');
   }
+
+  // Use transaction for atomicity
+  await prisma.$transaction(async (tx) => {
+    const hasTransactions = await tx.donationTransaction.count({
+      where: {
+        churchId,
+        donationTypeId: id,
+      },
+    });
+
+    if (hasTransactions > 0) {
+      // Soft delete if transactions exist
+      await tx.donationType.update({
+        where: { id },
+        data: { isActive: false },
+      });
+    } else {
+      // Hard delete if no transactions
+      await tx.donationType.delete({ where: { id } });
+    }
+  });
 
   return { success: true };
 }

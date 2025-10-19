@@ -235,7 +235,8 @@ export async function getDonationTransactions({
   }
 }
 
-export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
+// Get available donation types for filter (includes Tithe, Offering, and all active Campaigns)
+export async function getAvailableDonationTypes(): Promise<string[]> {
   const { orgId } = await auth();
   if (!orgId) {
     return [];
@@ -244,7 +245,7 @@ export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
   // Check cache first
   const cachedChurch = churchIdCache.get(orgId);
   let churchUuid: string;
-  
+
   if (cachedChurch && Date.now() - cachedChurch.timestamp < CACHE_DURATION) {
     churchUuid = cachedChurch.id;
   } else {
@@ -256,7 +257,55 @@ export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
     if (!church) {
       return [];
     }
-    
+
+    churchUuid = church.id;
+    // Cache the result
+    churchIdCache.set(orgId, { id: churchUuid, timestamp: Date.now() });
+  }
+
+  try {
+    const donationTypes = await prisma.donationType.findMany({
+      where: {
+        churchId: churchUuid,
+        isActive: true, // Only show active types
+      },
+      select: {
+        name: true,
+      },
+      orderBy: [
+        { isSystemType: 'desc' }, // System types (Tithe, Offering) first
+        { name: 'asc' },
+      ],
+    });
+
+    return donationTypes.map(dt => dt.name);
+  } catch {
+    return [];
+  }
+}
+
+export async function getDistinctDonorsForFilter(): Promise<DonorFilterItem[]> {
+  const { orgId } = await auth();
+  if (!orgId) {
+    return [];
+  }
+
+  // Check cache first
+  const cachedChurch = churchIdCache.get(orgId);
+  let churchUuid: string;
+
+  if (cachedChurch && Date.now() - cachedChurch.timestamp < CACHE_DURATION) {
+    churchUuid = cachedChurch.id;
+  } else {
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: orgId },
+      select: { id: true },
+    });
+
+    if (!church) {
+      return [];
+    }
+
     churchUuid = church.id;
     // Cache the result
     churchIdCache.set(orgId, { id: churchUuid, timestamp: Date.now() });
