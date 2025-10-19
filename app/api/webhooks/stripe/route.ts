@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
 import { generateDonationReceiptHtml, DonationReceiptData } from '@/lib/email/templates/donation-receipt';
 import { isWebhookProcessed } from '@/lib/rate-limit';
+import { randomUUID } from 'crypto';
 
 // Disable body parsing, we need the raw body for webhook signature verification
 export const runtime = 'nodejs';
@@ -851,10 +852,12 @@ export async function POST(req: Request) {
               // Create new quota
               await prisma.emailQuota.create({
                 data: {
+                  id: randomUUID(),
                   churchId: church.id,
                   monthYear: currentMonthYear,
                   quotaLimit: newQuotaLimit,
                   emailsSent: 0,
+                  updatedAt: new Date(),
                 },
               });
               console.log(`[Stripe Webhook] Created email quota for church ${church.id}: ${newQuotaLimit} campaigns/month`);

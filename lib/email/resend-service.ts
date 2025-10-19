@@ -6,6 +6,7 @@ import { getQuotaLimit } from '@/lib/subscription-helpers';
 import { sanitizeEmailHtml, sanitizeEmailSubject } from './sanitize-html';
 import { validateEmail } from './validate-email';
 import { serverEnv } from '@/lib/env';
+import { randomUUID } from 'crypto';
 
 // Initialize Resend client
 const resend = new Resend(serverEnv.RESEND_API_KEY);
@@ -65,9 +66,11 @@ export class ResendEmailService {
 
       quota = await prisma.emailQuota.create({
         data: {
+          id: randomUUID(),
           churchId,
           monthYear,
           quotaLimit,
+          updatedAt: new Date(),
         },
       });
     }
@@ -184,10 +187,12 @@ export class ResendEmailService {
 
           quota = await tx.emailQuota.create({
             data: {
+              id: randomUUID(),
               churchId,
               monthYear,
               quotaLimit,
               emailsSent: 0,
+              updatedAt: new Date(),
             },
           });
         }

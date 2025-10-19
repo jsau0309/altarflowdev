@@ -1,8 +1,8 @@
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
-import { 
-  WebhookEvent, 
-  OrganizationMembershipWebhookEvent 
+import {
+  WebhookEvent,
+  OrganizationMembershipWebhookEvent
 } from '@clerk/nextjs/server'
 
 // Import Prisma client
@@ -10,6 +10,7 @@ import { prisma } from '@/lib/db'; // Use named import
 import { Role } from '@prisma/client'; // Import the Role enum
 import { format } from 'date-fns';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
+import { randomUUID } from 'crypto';
 
 export async function POST(req: Request) {
 
@@ -197,13 +198,15 @@ export async function POST(req: Request) {
         // Create initial email quota for the new church
         const currentMonthYear = format(new Date(), 'yyyy-MM');
         const quotaLimit = getQuotaLimit(newChurch); // Will return 4 for free churches
-        
+
         await prisma.emailQuota.create({
           data: {
+            id: randomUUID(),
             churchId: newChurch.id,
             monthYear: currentMonthYear,
             quotaLimit,
             emailsSent: 0, // Tracks campaigns sent, not individual emails
+            updatedAt: new Date(),
           },
         });
         console.log(`Successfully created email quota for church ID: ${newChurch.id} with limit: ${quotaLimit} campaigns/month`);

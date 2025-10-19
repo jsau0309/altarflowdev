@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from '@/lib/db';
 import { format } from "date-fns";
 import { getQuotaLimit } from "@/lib/subscription-helpers";
+import { randomUUID } from 'crypto';
 
 // This endpoint creates email quotas for churches that don't have one yet
 // Useful for migration or fixing churches created before the quota system
@@ -51,13 +52,15 @@ export async function POST() {
       if (!existingQuota) {
         // Create quota based on subscription status
         const quotaLimit = getQuotaLimit(church);
-        
+
         await prisma.emailQuota.create({
           data: {
+            id: randomUUID(),
             churchId: church.id,
             monthYear: currentMonthYear,
             quotaLimit,
             emailsSent: 0,
+            updatedAt: new Date(),
           },
         });
         

@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { prisma } from '@/lib/db';
 import { format } from "date-fns";
 import { getQuotaLimit } from "@/lib/subscription-helpers";
+import { randomUUID } from 'crypto';
 
 // This cron job runs on the 1st of each month to reset email quotas
 // It can be called by Vercel Cron or manually
@@ -54,13 +55,15 @@ export async function GET() {
       if (!existingQuota) {
         // Determine quota limit based on subscription status
         const quotaLimit = getQuotaLimit(church);
-        
+
         await prisma.emailQuota.create({
           data: {
+            id: randomUUID(),
             churchId: church.id,
             monthYear: currentMonthYear,
             quotaLimit,
             emailsSent: 0,
+            updatedAt: new Date(),
           },
         });
         quotasCreated++;

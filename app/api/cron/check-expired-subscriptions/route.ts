@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prisma } from '@/lib/db';
 import { format } from "date-fns";
+import { randomUUID } from 'crypto';
 
 // This cron job runs daily to check for expired subscriptions and update quotas
 // It handles grace period expiration and subscription end dates
@@ -90,10 +91,12 @@ export async function GET() {
           // Create quota if it doesn't exist
           await prisma.emailQuota.create({
             data: {
+              id: randomUUID(),
               churchId: church.id,
               monthYear: currentMonthYear,
               quotaLimit: 4,
               emailsSent: 0,
+              updatedAt: new Date(),
             },
           });
           quotasUpdated++;
