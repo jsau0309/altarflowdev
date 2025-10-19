@@ -11,11 +11,16 @@ import { DonationType } from "@prisma/client"; // Added import
 import * as Sentry from '@sentry/nextjs';
 import { trackUserInteraction } from '@/lib/sentry-ui';
 
+// Serialized version for client components (goalAmount as string)
+type SerializedDonationType = Omit<DonationType, 'goalAmount'> & {
+  goalAmount: string | null;
+};
+
 // New props interface
 interface DonationFormProps {
   churchId: string;
   churchName: string; // Will be available if needed inside the form
-  donationTypes: DonationType[];
+  donationTypes: SerializedDonationType[];
   churchSlug: string; // <<< Add this
 }
 
