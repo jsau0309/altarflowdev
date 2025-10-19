@@ -10,11 +10,16 @@ import type { DonationFormData } from "./donation-form"
 import { useTranslation } from 'react-i18next'
 import { DonationType } from "@prisma/client"; // Added import
 
+// Serialized version for client components (goalAmount as string)
+type SerializedDonationType = Omit<DonationType, 'goalAmount'> & {
+  goalAmount: string | null;
+};
+
 interface DonationDetailsProps {
   formData: DonationFormData;
   updateFormData: (data: Partial<DonationFormData>) => void;
   onNext: () => void;
-  donationTypes: DonationType[]; // All donation types including campaigns
+  donationTypes: SerializedDonationType[]; // All donation types including campaigns
   churchSlug: string; // Keeping for potential future use
 }
 
