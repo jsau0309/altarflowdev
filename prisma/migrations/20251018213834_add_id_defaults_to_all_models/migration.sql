@@ -1,13 +1,12 @@
 -- Migration: Add ID defaults to all models
 -- This migration adds @default() directives to all id fields in the Prisma schema
--- For UUID fields: adds gen_random_uuid()::text as database default
+-- For UUID fields: adds gen_random_uuid() as database default
 -- For CUID fields: Prisma client will auto-generate on create (no database default needed)
 
--- Add defaults to UUID id fields
-ALTER TABLE "Church" ALTER COLUMN "id" SET DEFAULT gen_random_uuid()::text;
-ALTER TABLE "Donation" ALTER COLUMN "id" SET DEFAULT gen_random_uuid()::text;
-ALTER TABLE "Member" ALTER COLUMN "id" SET DEFAULT gen_random_uuid()::text;
-ALTER TABLE "StripeConnectAccount" ALTER COLUMN "id" SET DEFAULT gen_random_uuid()::text;
+-- Add defaults to UUID id fields (note: Donation table was already dropped, so we skip it)
+ALTER TABLE "Church" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();
+ALTER TABLE "Member" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();
+ALTER TABLE "StripeConnectAccount" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();
 
 -- CUID fields (DonationTransaction, Donor, EmailCampaign, EmailPreference, EmailQuota,
 -- EmailRecipient, EmailSettings, Expense, Flow, PayoutSummary, Profile, Submission)
