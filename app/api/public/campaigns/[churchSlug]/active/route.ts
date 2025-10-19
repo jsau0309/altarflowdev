@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import type { DonationType } from '@prisma/client';
 import { toDateOnly, getTodayUTC } from '@/lib/date-utils';
 import * as Sentry from '@sentry/nextjs';
+import { rateLimit } from '@/lib/rate-limit';
 
 // Simple in-memory cache for active campaigns
 // Reduces database load by caching results for 5 minutes
@@ -29,7 +30,7 @@ const campaignCache = new Map<string, CacheEntry>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Cache cleanup: Remove expired entries every 10 minutes
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of campaignCache.entries()) {
     if (now - entry.timestamp > CACHE_TTL) {
@@ -38,13 +39,42 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
+// Clear interval on process termination to prevent memory leak
+if (typeof process !== 'undefined') {
+  process.on('SIGTERM', () => {
+    clearInterval(cleanupInterval);
+  });
+  process.on('SIGINT', () => {
+    clearInterval(cleanupInterval);
+  });
+}
+
+// Rate limiter: 30 requests per minute per IP
+const publicCampaignLimiter = rateLimit({ windowMs: 60000, max: 30 });
+
 // GET /api/public/campaigns/[churchSlug]/active
 // Returns active campaigns for the church identified by slug, with basic progress metrics
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ churchSlug: string }> }
 ) {
   try {
+    // Apply rate limiting
+    const rateLimitResult = await publicCampaignLimiter(request);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+            'X-RateLimit-Limit': '30',
+            'X-RateLimit-Remaining': '0',
+          }
+        }
+      );
+    }
+
     const { churchSlug } = await params;
     if (!churchSlug) {
       return NextResponse.json({ error: 'Missing church slug' }, { status: 400 });

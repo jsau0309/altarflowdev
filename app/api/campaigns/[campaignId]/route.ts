@@ -35,9 +35,9 @@ export async function GET(
 
     // 2. Fetch campaign only if it belongs to the active org
     const campaign = await prisma.donationType.findFirst({
-      where: { 
-        id: campaignId, 
-        church: { clerkOrgId: orgId },
+      where: {
+        id: campaignId,
+        Church: { clerkOrgId: orgId },
         isCampaign: true,
       },
     });
@@ -118,9 +118,9 @@ export async function PATCH(
 
     // 4. Perform the update using updateMany to ensure org boundary
     const updateResult = await prisma.donationType.updateMany({
-      where: { 
-        id: campaignId, 
-        church: { clerkOrgId: orgId },
+      where: {
+        id: campaignId,
+        Church: { clerkOrgId: orgId },
         isCampaign: true,
       },
       data: dataToUpdate,
@@ -133,9 +133,9 @@ export async function PATCH(
 
     // 6. Fetch the updated campaign to return it
     const updatedCampaign = await prisma.donationType.findFirst({
-       where: { 
-         id: campaignId, 
-         church: { clerkOrgId: orgId },
+       where: {
+         id: campaignId,
+         Church: { clerkOrgId: orgId },
          isCampaign: true,
        }
     });
@@ -179,7 +179,7 @@ export async function DELETE(
     const existing = await prisma.donationType.findFirst({
       where: {
         id: campaignId,
-        church: { clerkOrgId: orgId },
+        Church: { clerkOrgId: orgId },
         isCampaign: true,
       },
       select: { id: true, isSystemType: true, isDeletable: true }
@@ -197,23 +197,36 @@ export async function DELETE(
       );
     }
 
-    const transactionCount = await prisma.donationTransaction.count({
-      where: {
-        donationTypeId: campaignId,
-        church: { clerkOrgId: orgId },
-      },
+    // Use transaction to prevent race condition
+    await prisma.$transaction(async (tx) => {
+      const transactionCount = await tx.donationTransaction.count({
+        where: {
+          donationTypeId: campaignId,
+          Church: { clerkOrgId: orgId },
+        },
+      });
+
+      if (transactionCount > 0) {
+        // Soft delete if donations exist
+        await tx.donationType.update({
+          where: { id: campaignId },
+          data: { isActive: false },
+        });
+      } else {
+        // Hard delete if no donations
+        try {
+          await tx.donationType.delete({ where: { id: campaignId } });
+        } catch (e) {
+          // Fallback to soft delete on constraint error
+          await tx.donationType.update({
+            where: { id: campaignId },
+            data: { isActive: false },
+          });
+        }
+      }
     });
 
-    if (transactionCount > 0) {
-      await prisma.donationType.update({
-        where: { id: campaignId },
-        data: { isActive: false },
-      });
-    } else {
-      await prisma.donationType.delete({ where: { id: campaignId } });
-    }
-
-    console.log(`Campaign ${campaignId} deleted (soft=${transactionCount > 0}) by user ${userId} (org ${orgId})`);
+    console.log(`Campaign ${campaignId} deleted by user ${userId} (org ${orgId})`);
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {

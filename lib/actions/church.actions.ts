@@ -23,7 +23,10 @@ export async function getChurchBySlug(slug: string): Promise<ChurchData | null> 
       return null;
     }
 
+    // Use UTC midnight for consistent date comparisons (database stores dates at UTC midnight)
     const now = new Date();
+    now.setUTCHours(0, 0, 0, 0); // Reset to UTC midnight for date-only comparison
+
     const donationTypes = await prisma.donationType.findMany({
       where: {
         churchId: church.id,

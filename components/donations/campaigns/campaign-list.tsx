@@ -224,7 +224,10 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
               const hasRaised = raised > 0;
 
               // Compute display status based on end date and isActive
-              const isExpired = c.endDate && new Date(c.endDate) < new Date();
+              // Use UTC midnight for consistent date-only comparison
+              const now = new Date();
+              now.setUTCHours(0, 0, 0, 0);
+              const isExpired = c.endDate && new Date(c.endDate) < now;
               const displayStatus = isExpired ? 'ended' : (c.isActive ? 'active' : 'inactive');
               const isInactiveOrEnded = displayStatus === 'inactive' || displayStatus === 'ended';
 

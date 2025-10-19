@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { parseDateOnly } from '@/lib/date-utils';
+import DOMPurify from 'isomorphic-dompurify';
 
 type ListParams = {
   clerkOrgId: string;
@@ -133,9 +134,18 @@ export async function createFundraisingCampaign(input: UpsertInput): Promise<{ s
   }
   const churchId = await getChurchUuid(input.clerkOrgId);
 
+  // Sanitize inputs to prevent XSS
+  const sanitizedName = DOMPurify.sanitize(input.name, { ALLOWED_TAGS: [] }).trim();
+  const sanitizedDescription = input.description
+    ? DOMPurify.sanitize(input.description, {
+        ALLOWED_TAGS: ['b', 'i', 'u', 'br', 'p', 'strong', 'em'],
+        ALLOWED_ATTR: []
+      }).trim()
+    : null;
+
   const data: Prisma.DonationTypeCreateInput = {
-    name: input.name,
-    description: input.description ?? null,
+    name: sanitizedName,
+    description: sanitizedDescription,
     goalAmount: input.goalAmount != null ? new Prisma.Decimal(input.goalAmount.toFixed(2)) : null,
     startDate: parseDateOnly(input.startDate ?? null),
     endDate: parseDateOnly(input.endDate ?? null),
@@ -202,11 +212,20 @@ export async function updateFundraisingCampaign(clerkOrgId: string, id: string, 
     return { success: false as const, ...(fieldErrors && { fieldErrors }) } as any;
   }
 
+  // Sanitize inputs to prevent XSS
+  const sanitizedName = input.name ? DOMPurify.sanitize(input.name, { ALLOWED_TAGS: [] }).trim() : undefined;
+  const sanitizedDescription = input.description
+    ? DOMPurify.sanitize(input.description, {
+        ALLOWED_TAGS: ['b', 'i', 'u', 'br', 'p', 'strong', 'em'],
+        ALLOWED_ATTR: []
+      }).trim()
+    : null;
+
   await prisma.donationType.update({
     where: { id },
     data: {
-      name: input.name,
-      description: input.description ?? null,
+      name: sanitizedName,
+      description: sanitizedDescription,
       goalAmount: input.goalAmount != null ? new Prisma.Decimal(input.goalAmount.toFixed(2)) : null,
       startDate: parseDateOnly(input.startDate ?? null),
       endDate: parseDateOnly(input.endDate ?? null),
