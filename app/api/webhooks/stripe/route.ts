@@ -212,7 +212,7 @@ export async function POST(req: Request) {
               where: { id: existingTransaction.churchId },
               select: { clerkOrgId: true }
             });
-            
+
             if (transactionChurch?.clerkOrgId) {
               const connectAccount = await tx.stripeConnectAccount.findUnique({
                 where: { churchId: transactionChurch.clerkOrgId },
@@ -686,6 +686,7 @@ export async function POST(req: Request) {
                 monthYear: currentMonthYear,
                 quotaLimit,
                 emailsSent: 0,
+                updatedAt: new Date(),
               }
             });
           });
@@ -744,7 +745,7 @@ export async function POST(req: Request) {
               console.log(`[Stripe Webhook] Found church by customer ID, updating subscription ID`);
               await prisma.church.update({
                 where: { id: church.id },
-                data: { 
+                data: {
                   subscriptionId: subscription.id,
                   subscriptionStatus: 'active',
                   // Mark onboarding as complete if this is during onboarding
@@ -933,8 +934,8 @@ export async function POST(req: Request) {
                 stripePaymentIntentId: charge.payment_intent as string 
               },
               include: {
-                church: true,
-                donationType: true,
+                Church: true,
+                DonationType: true,
               }
             });
             
@@ -963,7 +964,7 @@ export async function POST(req: Request) {
             
             // TODO: Send notification email to church admin
             // This will be implemented when we have the email notification system ready
-            console.log(`[Stripe Webhook] TODO: Send refund notification to church ${transaction.church.name}`);
+            console.log(`[Stripe Webhook] TODO: Send refund notification to church ${transaction.Church.name}`);
           });
           
         } catch (error) {
@@ -994,8 +995,8 @@ export async function POST(req: Request) {
                 stripePaymentIntentId: dispute.payment_intent as string 
               },
               include: {
-                church: true,
-                donationType: true,
+                Church: true,
+                DonationType: true,
               }
             });
             
@@ -1054,7 +1055,7 @@ export async function POST(req: Request) {
                 dispute.status === 'warning_needs_response' || 
                 dispute.status === 'needs_response') {
               // TODO: Send urgent notification email to church admin
-              console.log(`[Stripe Webhook] URGENT: Dispute needs response for church ${transaction.church.name}`);
+              console.log(`[Stripe Webhook] URGENT: Dispute needs response for church ${transaction.Church.name}`);
               console.log(`[Stripe Webhook] Dispute amount: $${(dispute.amount / 100).toFixed(2)}`);
               console.log(`[Stripe Webhook] Response deadline: ${dispute.evidence_details?.due_by ? new Date(dispute.evidence_details.due_by * 1000).toISOString() : 'N/A'}`);
             }
@@ -1091,7 +1092,7 @@ export async function POST(req: Request) {
             // Find the church by Stripe account ID
             const stripeAccount = await tx.stripeConnectAccount.findUnique({
               where: { stripeAccountId: accountId },
-              include: { church: true }
+              include: { Church: true }
             });
             
             if (!stripeAccount) {
@@ -1121,7 +1122,7 @@ export async function POST(req: Request) {
               await tx.payoutSummary.create({
                 data: {
                   stripePayoutId: payout.id,
-                  churchId: stripeAccount.church.id,
+                  churchId: stripeAccount.Church.id,
                   payoutDate: new Date(payout.created * 1000),
                   arrivalDate: payout.arrival_date ? new Date(payout.arrival_date * 1000) : new Date(payout.created * 1000),
                   amount: payout.amount,
@@ -1130,7 +1131,8 @@ export async function POST(req: Request) {
                   failureReason: payout.failure_message || null,
                   payoutSchedule: payout.automatic ? 'automatic' : 'manual',
                   netAmount: payout.amount, // Initially set to payout amount
-                  metadata: payout.metadata || undefined
+                  metadata: payout.metadata || undefined,
+                  updatedAt: new Date()
                 }
               });
               console.log(`[Stripe Webhook] Created payout record for ${payout.id}`);
@@ -1200,8 +1202,8 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   const donationTransaction = await prisma.donationTransaction.findUnique({
     where: { stripePaymentIntentId: paymentIntent.id },
     include: {
-      donationType: true,
-      donor: true,
+      DonationType: true,
+      Donor: true,
     },
   });
 
@@ -1350,22 +1352,22 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     console.warn(`[Receipt] Stripe Account object for ${connectedStripeAccountId} is null (likely due to retrieval failure). EIN retrieval and account detail update skipped. Using defaults/DB values for receipt.`);
   }
 
-  const donorEmail = donationTransaction.donorEmail || donationTransaction.donor?.email;
+  const donorEmail = donationTransaction.donorEmail || donationTransaction.Donor?.email;
   if (!donorEmail) {
     console.error(`[Receipt] No donor email found for transaction ${donationTransaction.id}. Cannot send receipt.`);
     return;
   }
 
-  const donorName = donationTransaction.donorName || `${donationTransaction.donor?.firstName || ''} ${donationTransaction.donor?.lastName || ''}`.trim() || 'Valued Donor';
+  const donorName = donationTransaction.donorName || `${donationTransaction.Donor?.firstName || ''} ${donationTransaction.Donor?.lastName || ''}`.trim() || 'Valued Donor';
 
   const donorAddressParts: string[] = [];
-  if (donationTransaction.donor?.addressLine1) donorAddressParts.push(donationTransaction.donor.addressLine1);
+  if (donationTransaction.Donor?.addressLine1) donorAddressParts.push(donationTransaction.Donor.addressLine1);
   const cityStateZipParts: string[] = [];
-  if (donationTransaction.donor?.city) cityStateZipParts.push(donationTransaction.donor.city);
-  if (donationTransaction.donor?.state) cityStateZipParts.push(donationTransaction.donor.state);
-  if (donationTransaction.donor?.postalCode) cityStateZipParts.push(donationTransaction.donor.postalCode);
+  if (donationTransaction.Donor?.city) cityStateZipParts.push(donationTransaction.Donor.city);
+  if (donationTransaction.Donor?.state) cityStateZipParts.push(donationTransaction.Donor.state);
+  if (donationTransaction.Donor?.postalCode) cityStateZipParts.push(donationTransaction.Donor.postalCode);
   if (cityStateZipParts.length > 0) donorAddressParts.push(cityStateZipParts.join(' '));
-  if (donationTransaction.donor?.country) donorAddressParts.push(donationTransaction.donor.country);
+  if (donationTransaction.Donor?.country) donorAddressParts.push(donationTransaction.Donor.country);
   const donorAddress = donorAddressParts.length > 0 ? donorAddressParts.join('\n') : 'N/A';
 
   const churchAddressString = [
@@ -1408,8 +1410,8 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     donorName: donorName,
     donorEmail: donorEmail,
     donorAddress: donorAddress,
-    donorPhone: donationTransaction.donor?.phone || undefined,
-    donationCampaign: donationTransaction.donationType?.name || 'Tithes & Offerings',
+    donorPhone: donationTransaction.Donor?.phone || undefined,
+    donationCampaign: donationTransaction.DonationType?.name || 'Tithes & Offerings',
     donationFrequency: 'one-time', // TODO: Update when recurring donations are implemented
     disclaimer: `No goods or services were provided in exchange for this contribution. ${churchRegisteredName} is a 501(c)(3) non-profit organization. EIN: ${ein}`
   };

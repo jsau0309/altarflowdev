@@ -37,13 +37,13 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
         churchId: church.id, // Ensure it belongs to this church
       },
       include: {
-        donationType: {
+        DonationType: {
           select: {
             name: true,
             isCampaign: true,
           },
         },
-        donor: {
+        Donor: {
           select: {
             firstName: true,
             lastName: true,
@@ -61,10 +61,10 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
       id: donation.id,
       churchId: donation.churchId,
       donationTypeId: donation.donationTypeId,
-      donationTypeName: donation.donationType.name,
-      donationTypeIsCampaign: donation.donationType.isCampaign,
+      donationTypeName: donation.DonationType.name,
+      donationTypeIsCampaign: donation.DonationType.isCampaign,
       donorClerkId: donation.donorClerkId,
-      donorName: donation.donorName ?? (donation.donor ? `${donation.donor.firstName} ${donation.donor.lastName}`.trim() : undefined),
+      donorName: donation.donorName ?? (donation.Donor ? `${donation.Donor.firstName} ${donation.Donor.lastName}`.trim() : undefined),
       donorEmail: donation.donorEmail ?? undefined,
       amount: (donation.amount / 100).toFixed(2),
       currency: donation.currency,

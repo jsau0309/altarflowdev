@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { unstable_noStore as noStore, revalidatePath } from 'next/cache';
-import type { Prisma, Donation as PrismaDonation, Member as PrismaMember } from '@prisma/client';
+import type { Prisma, Member as PrismaMember } from '@prisma/client';
 import { DonorDetailsData, DonorFE } from '@/lib/types'; // Removed Member type as createDonor will now return Donor
 import { Donor } from '@prisma/client';
 import { DonorFilterItem } from './donations.actions';
@@ -114,7 +114,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
         createdAt: 'desc',
       },
       include: {
-        member: {
+        Member: {
           select: {
             id: true,
             firstName: true,
@@ -139,9 +139,9 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
         zipCode: donor.postalCode,
         createdAt: donor.createdAt.toISOString(),
         updatedAt: donor.updatedAt.toISOString(),
-        memberId: donor.member?.id || null,
-        linkedMemberName: donor.member ? `${donor.member.firstName || ''} ${donor.member.lastName || ''}`.trim() : null,
-        churchId: donor.member?.churchId || null,
+        memberId: donor.Member?.id || null,
+        linkedMemberName: donor.Member ? `${donor.Member.firstName || ''} ${donor.Member.lastName || ''}`.trim() : null,
+        churchId: donor.Member?.churchId || null,
     }));
 
     return {
@@ -199,7 +199,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
         isPhoneVerified: true,
         createdAt: true,
         updatedAt: true,
-        transactions: {
+        DonationTransaction: {
           where: {
             ...(effectiveChurchId ? { churchId: effectiveChurchId } : {}),
             status: 'succeeded'  // Only fetch successful donations
@@ -218,7 +218,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
             processedAt: true,
             churchId: true,  // Include churchId in selection
             // Only select fields directly on DonationTransaction or needed for mapping
-            donationType: {
+            DonationType: {
               select: {
                 id: true,
                 name: true,
@@ -238,7 +238,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
             transactionDate: 'desc',
           },
         },
-        member: { // Include linked member details
+        Member: { // Include linked member details
           select: {
             id: true,
             firstName: true,
@@ -253,7 +253,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
       return null;
     }
 
-    const { transactions, member, ...donorDetails} = donorDataFromPrisma;
+    const { DonationTransaction: transactions, Member: member, ...donorDetails} = donorDataFromPrisma;
 
     // Define a type for the selected transaction structure for clarity
     type SelectedTransaction = Prisma.DonationTransactionGetPayload<{
@@ -269,12 +269,12 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
         donationTypeId: true;
         stripePaymentIntentId: true;
         processedAt: true;
-        donationType: { 
+        DonationType: {
           select: {
             id: true;
             name: true;
             description: true;
-            isRecurringAllowed: true; 
+            isRecurringAllowed: true;
             isCampaign: true;
             goalAmount: true;
             startDate: true;
@@ -326,18 +326,18 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
           stripePaymentIntentId: tx.stripePaymentIntentId,
           createdAt: tx.transactionDate.toISOString(),
           updatedAt: tx.processedAt?.toISOString() ?? tx.transactionDate.toISOString(),
-          donationType: tx.donationType
+          donationType: tx.DonationType
             ? {
-                id: tx.donationType.id,
-                name: tx.donationType.name,
-                description: tx.donationType.description,
-                isCampaign: tx.donationType.isCampaign,
-                isActive: tx.donationType.isActive,
-                goalAmount: tx.donationType.goalAmount ? tx.donationType.goalAmount.toString() : null,
-                startDate: tx.donationType.startDate?.toISOString() ?? null,
-                endDate: tx.donationType.endDate?.toISOString() ?? null,
-                createdAt: tx.donationType.createdAt.toISOString(),
-                updatedAt: tx.donationType.updatedAt.toISOString(),
+                id: tx.DonationType.id,
+                name: tx.DonationType.name,
+                description: tx.DonationType.description,
+                isCampaign: tx.DonationType.isCampaign,
+                isActive: tx.DonationType.isActive,
+                goalAmount: tx.DonationType.goalAmount ? tx.DonationType.goalAmount.toString() : null,
+                startDate: tx.DonationType.startDate?.toISOString() ?? null,
+                endDate: tx.DonationType.endDate?.toISOString() ?? null,
+                createdAt: tx.DonationType.createdAt.toISOString(),
+                updatedAt: tx.DonationType.updatedAt.toISOString(),
               }
             : null,
         };
@@ -427,6 +427,7 @@ export async function createDonor(
         ...donorData,
         churchId: church.id, // Associate donor with the church
         memberId: memberId || undefined, // Link to member if provided
+        updatedAt: new Date(),
       },
     });
 
@@ -434,7 +435,7 @@ export async function createDonor(
     const donorWithMember = await prisma.donor.findUnique({
       where: { id: newDonor.id },
       include: {
-        member: {
+        Member: {
           select: {
             id: true,
             firstName: true,
@@ -456,8 +457,8 @@ export async function createDonor(
       zipCode: newDonor.postalCode,
       createdAt: newDonor.createdAt.toISOString(),
       updatedAt: newDonor.updatedAt.toISOString(),
-      memberId: donorWithMember?.member?.id || null,
-      linkedMemberName: donorWithMember?.member ? `${donorWithMember.member.firstName} ${donorWithMember.member.lastName}`.trim() : null,
+      memberId: donorWithMember?.Member?.id || null,
+      linkedMemberName: donorWithMember?.Member ? `${donorWithMember.Member.firstName} ${donorWithMember.Member.lastName}`.trim() : null,
       churchId: newDonor.churchId,
     };
 
@@ -594,9 +595,9 @@ export async function updateDonorDetails(
     // Handle memberId linking/unlinking
     if (payload.memberId !== undefined) {
       if (payload.memberId === null) {
-        dataToUpdate.member = { disconnect: true };
+        dataToUpdate.Member = { disconnect: true };
       } else {
-        dataToUpdate.member = { connect: { id: payload.memberId } };
+        dataToUpdate.Member = { connect: { id: payload.memberId } };
       }
     }
     

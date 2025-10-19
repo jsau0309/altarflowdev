@@ -29,24 +29,24 @@ export async function POST(req: Request) {
     // Find the church and its Stripe account
     const church = await prisma.church.findUnique({
       where: { clerkOrgId: orgId },
-      include: { stripeConnectAccount: true }
+      include: { StripeConnectAccount: true }
     });
-    
+
     if (!church) {
       return NextResponse.json(
         { error: 'Church not found' },
         { status: 404 }
       );
     }
-    
-    if (!church.stripeConnectAccount) {
+
+    if (!church.StripeConnectAccount) {
       return NextResponse.json(
         { error: 'No Stripe Connect account found. Please complete onboarding first.' },
         { status: 400 }
       );
     }
-    
-    const stripeAccountId = church.stripeConnectAccount.stripeAccountId;
+
+    const stripeAccountId = church.StripeConnectAccount.stripeAccountId;
     console.log(`[Import] Fetching payouts for account: ${stripeAccountId}`);
     
     // Build query parameters
@@ -155,7 +155,8 @@ export async function POST(req: Request) {
               grossVolume: 0,
               totalFees: 0,
               totalRefunds: 0,
-              totalDisputes: 0
+              totalDisputes: 0,
+              updatedAt: new Date()
             }
           });
           
@@ -236,10 +237,10 @@ export async function GET() {
     // Find the church and its Stripe account
     const church = await prisma.church.findUnique({
       where: { clerkOrgId: orgId },
-      include: { stripeConnectAccount: true }
+      include: { StripeConnectAccount: true }
     });
-    
-    if (!church?.stripeConnectAccount) {
+
+    if (!church?.StripeConnectAccount) {
       return NextResponse.json({
         hasStripeAccount: false,
         message: 'No Stripe Connect account found. Complete onboarding first.'
@@ -259,7 +260,7 @@ export async function GET() {
     try {
       const stripePayouts = await stripe.payouts.list(
         { limit: 100 },
-        { stripeAccount: church.stripeConnectAccount.stripeAccountId }
+        { stripeAccount: church.StripeConnectAccount.stripeAccountId }
       );
       
       availableInStripe = stripePayouts.data.length;

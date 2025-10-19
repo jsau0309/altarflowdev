@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       create: {
         phone: phoneNumber, // Correct: Use 'phone' for the create clause
         ...donorData,
+        updatedAt: new Date(),
       },
     });
 

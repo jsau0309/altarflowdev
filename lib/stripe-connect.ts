@@ -50,6 +50,7 @@ export async function createStripeConnectAccount(churchId: string, email: string
       data: {
         stripeAccountId: account.id,
         churchId: validated.churchId,
+        updatedAt: new Date(),
       },
       select: {
         id: true,

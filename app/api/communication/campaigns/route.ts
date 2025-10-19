@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
         htmlContent,
         status,
         sentBy: userId,
+        updatedAt: new Date(),
       },
     });
 

@@ -32,7 +32,7 @@ export async function getMonthlyDonationSummary(
     
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        church: { clerkOrgId: churchId },
+        Church: { clerkOrgId: churchId },
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -97,7 +97,7 @@ export async function getDonationCategoryBreakdown(
     
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        church: { clerkOrgId: churchId },
+        Church: { clerkOrgId: churchId },
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -109,7 +109,7 @@ export async function getDonationCategoryBreakdown(
       select: {
         amount: true,
         processingFeeCoveredByDonor: true,
-        donationType: {
+        DonationType: {
           select: {
             name: true
           }
@@ -120,7 +120,7 @@ export async function getDonationCategoryBreakdown(
 
     // Group by category (using GROSS amounts)
     const categoryTotals = donations.reduce((acc, donation) => {
-      const category = donation.donationType.name
+      const category = donation.DonationType.name
       if (!acc[category]) {
         acc[category] = 0
       }
@@ -155,7 +155,7 @@ export async function getDonationSummary(
   try {
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        church: { clerkOrgId: churchId },
+        Church: { clerkOrgId: churchId },
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -201,7 +201,7 @@ export async function getMonthlyExpenseSummary(
   try {
     const expenses = await prisma.expense.findMany({
       where: {
-        church: { clerkOrgId: churchId },
+        Church: { clerkOrgId: churchId },
         expenseDate: {
           gte: startDate,
           lte: endDate
@@ -261,7 +261,7 @@ export async function getExpenseCategoryBreakdown(
   try {
     const expenses = await prisma.expense.findMany({
       where: {
-        church: { clerkOrgId: churchId },
+        Church: { clerkOrgId: churchId },
         expenseDate: {
           gte: startDate,
           lte: endDate
@@ -311,7 +311,7 @@ export async function getExpenseSummary(
   try {
     const expenses = await prisma.expense.findMany({
       where: {
-        church: { clerkOrgId: churchId },
+        Church: { clerkOrgId: churchId },
         expenseDate: {
           gte: startDate,
           lte: endDate
@@ -327,7 +327,7 @@ export async function getExpenseSummary(
 
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        church: { clerkOrgId: churchId },
+        Church: { clerkOrgId: churchId },
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -368,7 +368,7 @@ export async function getTransactionsForExport(
     if (type === 'donations') {
       const donations = await prisma.donationTransaction.findMany({
         where: {
-          church: { clerkOrgId: churchId },
+          Church: { clerkOrgId: churchId },
           transactionDate: {
             gte: startDate,
             lte: endDate
@@ -378,8 +378,8 @@ export async function getTransactionsForExport(
         }
         },
         include: {
-          donationType: true,
-          donor: true
+          DonationType: true,
+          Donor: true
         },
         orderBy: {
           transactionDate: 'desc'
@@ -393,8 +393,8 @@ export async function getTransactionsForExport(
         
         return {
           date: d.transactionDate,
-          description: d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : d.donorName || 'Anonymous',
-          category: d.donationType.name,
+          description: d.Donor ? `${d.Donor.firstName} ${d.Donor.lastName}` : d.donorName || 'Anonymous',
+          category: d.DonationType.name,
           amount: grossAmount, // Use GROSS amount for exports
           paymentMethod: d.paymentMethodType
         }
@@ -402,7 +402,7 @@ export async function getTransactionsForExport(
     } else {
       const expenses = await prisma.expense.findMany({
         where: {
-          church: { clerkOrgId: churchId },
+          Church: { clerkOrgId: churchId },
           expenseDate: {
             gte: startDate,
             lte: endDate
@@ -551,13 +551,13 @@ export async function getBiggestDonationThisMonth(churchId: string) {
         amount: 'desc'
       },
       include: {
-        donor: {
+        Donor: {
           select: {
             firstName: true,
             lastName: true
           }
         },
-        donationType: {
+        DonationType: {
           select: {
             name: true
           }
@@ -569,10 +569,10 @@ export async function getBiggestDonationThisMonth(churchId: string) {
     
     return {
       amount: parseFloat(biggestDonation.amount.toString()) / 100,
-      donorName: biggestDonation.donor 
-        ? `${biggestDonation.donor.firstName} ${biggestDonation.donor.lastName}`
+      donorName: biggestDonation.Donor
+        ? `${biggestDonation.Donor.firstName} ${biggestDonation.Donor.lastName}`
         : biggestDonation.donorName || 'Anonymous',
-      donationType: biggestDonation.donationType.name,
+      donationType: biggestDonation.DonationType.name,
       date: biggestDonation.transactionDate,
       paymentMethod: biggestDonation.paymentMethodType
     }
@@ -668,7 +668,7 @@ export async function getDonationTrendData(churchId: string) {
         transactionDate: true,
         amount: true,
         isRecurring: true,
-        donationType: {
+        DonationType: {
           select: {
             name: true
           }
@@ -699,7 +699,7 @@ export async function getDonationTrendData(churchId: string) {
         monthlyData[monthKey].recurringCount += 1
       }
       
-      const typeName = donation.donationType.name
+      const typeName = donation.DonationType.name
       if (!monthlyData[monthKey].types[typeName]) {
         monthlyData[monthKey].types[typeName] = 0
       }

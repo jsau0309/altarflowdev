@@ -126,7 +126,7 @@ export async function getDonationTransactions({
     }
 
     if (donationTypes && donationTypes.length > 0) {
-      whereClause.donationType = {
+      whereClause.DonationType = {
         name: {
           in: donationTypes,
         },
@@ -403,7 +403,7 @@ export async function createManualDonation(
           { churchId: actualChurchUuid }, // Manual donor
           {
             churchId: null, // Universal donor
-            member: {
+            Member: {
               // Prisma requires relation filters to use the `is` wrapper for one-to-one relations
               is: {
                 churchId: actualChurchUuid, // Linked to a member of this church
@@ -417,7 +417,7 @@ export async function createManualDonation(
         lastName: true,
         email: true,
         churchId: true,
-        member: {
+        Member: {
           select: { churchId: true }
         }
       },

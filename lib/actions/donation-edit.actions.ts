@@ -106,8 +106,8 @@ export async function editManualDonation(params: EditDonationParams): Promise<Ed
     const existingDonation = await prisma.donationTransaction.findUnique({
       where: { id: donationId },
       include: {
-        donationType: true,
-        donor: true
+        DonationType: true,
+        Donor: true
       }
     });
 
@@ -161,7 +161,7 @@ export async function editManualDonation(params: EditDonationParams): Promise<Ed
       changes: {
         amount: existingDonation.amount !== amount ? { from: existingDonation.amount, to: amount } : null,
         donorId: existingDonation.donorId !== donorId ? { from: existingDonation.donorId, to: donorId } : null,
-        donationType: existingDonation.donationTypeId !== donationType.id ? { from: existingDonation.donationType.name, to: donationTypeName } : null,
+        donationType: existingDonation.donationTypeId !== donationType.id ? { from: existingDonation.DonationType.name, to: donationTypeName } : null,
         paymentMethod: existingDonation.paymentMethodType !== paymentMethod ? { from: existingDonation.paymentMethodType, to: paymentMethod } : null,
         date: existingDonation.transactionDate.toISOString() !== donationDate.toISOString() ? { from: existingDonation.transactionDate.toISOString(), to: donationDate.toISOString() } : null
       },
@@ -190,7 +190,7 @@ export async function editManualDonation(params: EditDonationParams): Promise<Ed
         editHistory: updatedHistory
       },
       include: {
-        donationType: {
+        DonationType: {
           select: {
             name: true,
             isCampaign: true,
@@ -204,8 +204,8 @@ export async function editManualDonation(params: EditDonationParams): Promise<Ed
       id: updatedDonation.id,
       churchId: updatedDonation.churchId,
       donationTypeId: updatedDonation.donationTypeId,
-      donationTypeName: updatedDonation.donationType.name,
-      donationTypeIsCampaign: updatedDonation.donationType.isCampaign,
+      donationTypeName: updatedDonation.DonationType.name,
+      donationTypeIsCampaign: updatedDonation.DonationType.isCampaign,
       donorClerkId: updatedDonation.donorClerkId,
       donorName: updatedDonation.donorName ?? undefined,
       donorEmail: updatedDonation.donorEmail ?? undefined,

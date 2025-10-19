@@ -138,9 +138,9 @@ export async function GET(
 
     // 2. Fetch the expense only if it belongs to the active org
     const expense = await prisma.expense.findFirst({
-      where: { 
-        id: expenseId, 
-        church: { clerkOrgId: orgId } 
+      where: {
+        id: expenseId,
+        Church: { clerkOrgId: orgId }
       },
       // Include submitter info if needed for auth check below
       // include: { submitter: { select: { id: true } } } // Not strictly needed if using expense.submitterId
@@ -189,7 +189,7 @@ export async function PATCH(
     const existingExpense = await prisma.expense.findFirst({
       where: { 
         id: expenseId, 
-        church: { clerkOrgId: orgId } 
+        Church: { clerkOrgId: orgId } 
       },
       select: { submitterId: true, status: true, receiptPath: true } // Select only needed fields
     });
@@ -450,7 +450,7 @@ export async function PATCH(
     const updateResult = await prisma.expense.updateMany({
       where: { 
         id: expenseId,
-        church: { clerkOrgId: orgId },
+        Church: { clerkOrgId: orgId },
         // Optional: Add status/submitter checks again for extra safety, though checked above
         // submitterId: userId, 
         // status: 'PENDING' 
@@ -474,7 +474,7 @@ export async function PATCH(
     const updatedExpense = await prisma.expense.findFirst({
       where: {
         id: expenseId,
-        church: { clerkOrgId: orgId } 
+        Church: { clerkOrgId: orgId } 
       }
     });
 
@@ -512,7 +512,7 @@ export async function DELETE(
     const existingExpense = await prisma.expense.findFirst({
       where: { 
         id: expenseId, 
-        church: { clerkOrgId: orgId } 
+        Church: { clerkOrgId: orgId } 
       },
       select: { submitterId: true, receiptPath: true } // Select needed fields
     });
@@ -564,7 +564,7 @@ export async function DELETE(
     const deleteResult = await prisma.expense.deleteMany({
       where: { 
         id: expenseId, 
-        church: { clerkOrgId: orgId },
+        Church: { clerkOrgId: orgId },
         // Optional: Add submitter check again for extra safety
         // submitterId: userId 
       },

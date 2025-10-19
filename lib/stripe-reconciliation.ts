@@ -188,10 +188,10 @@ export async function reconcilePendingPayouts(churchId: string): Promise<void> {
     // Find the church's Stripe account
     const church = await prisma.church.findUnique({
       where: { id: churchId },
-      include: { stripeConnectAccount: true }
+      include: { StripeConnectAccount: true }
     });
-    
-    if (!church?.stripeConnectAccount) {
+
+    if (!church?.StripeConnectAccount) {
       console.error(`[Reconciliation] No Stripe account found for church ${churchId}`);
       return;
     }
@@ -211,7 +211,7 @@ export async function reconcilePendingPayouts(churchId: string): Promise<void> {
     for (const payout of pendingPayouts) {
       await reconcilePayout(
         payout.stripePayoutId,
-        church.stripeConnectAccount.stripeAccountId
+        church.StripeConnectAccount.stripeAccountId
       );
       
       // Add a small delay to avoid rate limiting
@@ -236,7 +236,7 @@ export async function reconcileAllPendingPayouts(): Promise<void> {
     // Find all churches with pending reconciliations
     const churchesWithPendingPayouts = await prisma.church.findMany({
       where: {
-        payoutSummaries: {
+        PayoutSummary: {
           some: {
             status: 'paid',
             reconciledAt: null

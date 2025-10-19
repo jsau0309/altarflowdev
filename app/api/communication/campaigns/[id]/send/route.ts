@@ -61,13 +61,13 @@ export async function POST(
         churchId: church.id,
       },
       include: {
-        recipients: {
+        EmailRecipient: {
           select: {
             id: true,
             email: true,
             memberId: true,
             status: true,
-            member: {
+            Member: {
               select: {
                 id: true,
                 firstName: true,
@@ -92,7 +92,7 @@ export async function POST(
     }
 
     // Check if campaign has recipients
-    if (campaign.recipients.length === 0) {
+    if (campaign.EmailRecipient.length === 0) {
       return NextResponse.json(
         { error: "Campaign has no recipients" },
         { status: 400 }
@@ -107,13 +107,13 @@ export async function POST(
           where: { id: id },
           data: {
             status: "SENDING",
-            totalRecipients: campaign.recipients.length,
+            totalRecipients: campaign.EmailRecipient.length,
           },
         }),
         // Fix N+1 query: Get all email preferences in one optimized query
         tx.emailPreference.findMany({
           where: {
-            memberId: { in: campaign.recipients.map(r => r.memberId) }
+            memberId: { in: campaign.EmailRecipient.map(r => r.memberId) }
           },
           select: {
             id: true,
@@ -132,17 +132,20 @@ export async function POST(
       );
 
       // Batch create missing email preferences efficiently
-      const recipientsNeedingPreferences = campaign.recipients.filter(
+      const recipientsNeedingPreferences = campaign.EmailRecipient.filter(
         recipient => !preferencesMap.has(recipient.memberId)
       );
 
       if (recipientsNeedingPreferences.length > 0) {
         // Use createMany for bulk insert (much faster than individual creates)
+        const { v4: uuidv4 } = require('uuid');
         await tx.emailPreference.createMany({
           data: recipientsNeedingPreferences.map(recipient => ({
             memberId: recipient.memberId,
             email: recipient.email,
             isSubscribed: true,
+            unsubscribeToken: uuidv4(),
+            updatedAt: new Date(),
           })),
           skipDuplicates: true,
         });
@@ -202,7 +205,7 @@ export async function POST(
     const invalidEmailRecipients: InvalidEmailRecipient[] = [];
 
     // Process all recipients in parallel batches for better performance
-    const processBatch = (recipients: typeof campaign.recipients) => {
+    const processBatch = (recipients: typeof campaign.EmailRecipient) => {
       const batch = {
         emails: [] as EmailToSend[],
         unsubscribed: [] as string[],
@@ -256,7 +259,7 @@ export async function POST(
     };
 
     // Process recipients (could be parallelized further if needed)
-    const result = processBatch(campaign.recipients);
+    const result = processBatch(campaign.EmailRecipient);
     emailsToSend.push(...result.emails);
     unsubscribedRecipients.push(...result.unsubscribed);
     invalidEmailRecipients.push(...result.invalid);
@@ -284,7 +287,7 @@ export async function POST(
         // Batch update invalid email recipients
         if (invalidEmailRecipients.length > 0) {
           const invalidRecipientIds = invalidEmailRecipients.map(r => r.recipientId);
-          const invalidMemberIds = campaign.recipients
+          const invalidMemberIds = campaign.EmailRecipient
             .filter(r => invalidEmailRecipients.some(ir => ir.recipientId === r.id))
             .map(r => r.memberId);
 

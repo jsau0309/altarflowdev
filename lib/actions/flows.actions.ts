@@ -130,10 +130,10 @@ export async function getFlowConfiguration(
 
     try {
         const flow = await prisma.flow.findFirst({
-            where: { 
-                type: flowType, 
-                church: { 
-                    clerkOrgId: orgId 
+            where: {
+                type: flowType,
+                Church: {
+                    clerkOrgId: orgId
                 }
              },
             select: {
@@ -236,6 +236,7 @@ export async function saveFlowConfiguration(
                 slug: flowSlug,
                 configJson: configToSave as unknown as Prisma.JsonObject,
                 isEnabled: true,
+                updatedAt: new Date(),
             },
             select: { id: true }
         });
@@ -301,7 +302,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
             select: {
                 id: true,
                 configJson: true,
-                church: { select: { name: true } }
+                Church: { select: { name: true } }
             },
         });
         
@@ -312,7 +313,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
                 select: {
                     id: true,
                     configJson: true,
-                    church: { select: { name: true } }
+                    Church: { select: { name: true } }
                 },
             });
         }
@@ -321,14 +322,14 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
             console.log(`getPublicFlowBySlug: Flow not found or not enabled for slug: ${slug}`);
             return null;
         }
-        if (!flow.church) {
+        if (!flow.Church) {
             console.error(`getPublicFlowBySlug: Flow ${flow.id} found, but related church is missing for slug: ${slug}`);
             return null;
         }
         return {
             id: flow.id,
             configJson: flow.configJson,
-            churchName: flow.church.name,
+            churchName: flow.Church.name,
         };
     } catch (error) {
         console.error(`Error fetching public flow configuration for slug ${slug}:`, error);
@@ -515,17 +516,17 @@ export async function submitFlow(
     try {
         const flow = await prisma.flow.findUniqueOrThrow({
             where: { id: flowId },
-            select: { 
-                churchId: true, 
-                configJson: true, 
-                church: { 
-                    select: { 
+            select: {
+                churchId: true,
+                configJson: true,
+                Church: {
+                    select: {
                         name: true,
                         email: true,
                         phone: true,
                         address: true
-                    } 
-                } 
+                    }
+                }
             }
         });
         churchId = flow.churchId;
@@ -589,14 +590,14 @@ export async function submitFlow(
             sendWelcomeEmail(
                 validatedFormData.email,
                 validatedFormData.firstName,
-                flow.church.name,
+                flow.Church.name,
                 validatedFormData.language, // Pass language
                 churchLogoUrl,
                 activeServiceTimes,
                 activeMinistries,
-                flow.church.email || undefined,
-                flow.church.phone || undefined,
-                flow.church.address || undefined
+                flow.Church.email || undefined,
+                flow.Church.phone || undefined,
+                flow.Church.address || undefined
             ).catch(emailError => {
                 // Catch any unhandled promise rejection from sendWelcomeEmail itself, though it already logs.
                 console.error("[SubmitFlow] Error from sendWelcomeEmail promise:", emailError);
@@ -626,7 +627,7 @@ export async function submitFlow(
               validatedFormData.email,
               validatedFormData.phone,
               validatedFormData.prayerRequest,
-              flow.church.name,
+              flow.Church.name,
               validatedFormData.language as 'en' | 'es',
               churchLogoUrl
             ).catch(emailError => {

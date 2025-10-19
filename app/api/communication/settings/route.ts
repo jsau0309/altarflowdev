@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
         replyToEmail,
         timezone,
         footerAddress,
+        updatedAt: new Date(),
       },
     });
 

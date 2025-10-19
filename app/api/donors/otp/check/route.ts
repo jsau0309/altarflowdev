@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
           data: {
             phone: phoneNumber,
             isPhoneVerified: true, // Phone is verified through OTP
+            updatedAt: new Date(),
             // churchId is intentionally not set - donors are global
           },
         });

@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const expense = await prisma.expense.findFirst({
       where: { 
         id: expenseId, 
-        church: { clerkOrgId: orgId } 
+        Church: { clerkOrgId: orgId } 
       },
       select: { id: true, submitterId: true, receiptPath: true } // Select only needed fields
     });
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     const updateResult = await prisma.expense.updateMany({
       where: { 
         id: expenseId,
-        church: { clerkOrgId: orgId } // Ensure org match during update
+        Church: { clerkOrgId: orgId } // Ensure org match during update
       },
       data: { receiptUrl }, // This will be the newly generated signed URL
     });

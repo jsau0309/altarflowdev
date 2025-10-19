@@ -69,9 +69,9 @@ export async function GET(
         churchId: church.id,
       },
       include: {
-        recipients: {
+        EmailRecipient: {
           include: {
-            member: {
+            Member: {
               select: {
                 id: true,
                 firstName: true,
@@ -91,9 +91,9 @@ export async function GET(
     // Transform the response to include recipient IDs and design
     const campaignData = {
       ...campaign,
-      recipientIds: campaign.recipients.map((r) => r.memberId),
+      recipientIds: campaign.EmailRecipient.map((r) => r.memberId),
       design: campaign.contentJson, // Map contentJson to design for frontend compatibility
-      recipients: campaign.status !== "DRAFT" ? campaign.recipients : undefined, // Include full recipient details for non-draft campaigns
+      recipients: campaign.status !== "DRAFT" ? campaign.EmailRecipient : undefined, // Include full recipient details for non-draft campaigns
     };
 
     return NextResponse.json(campaignData);
@@ -298,7 +298,7 @@ export async function PATCH(
       const updatedCampaignData = await tx.emailCampaign.findUnique({
         where: { id: id },
         include: {
-          recipients: {
+          EmailRecipient: {
             select: {
               memberId: true,
             },
@@ -312,7 +312,7 @@ export async function PATCH(
     // Transform the response to include recipient IDs
     const responseData = {
       ...updatedCampaign,
-      recipientIds: updatedCampaign?.recipients.map((r) => r.memberId) || [],
+      recipientIds: updatedCampaign?.EmailRecipient.map((r) => r.memberId) || [],
     };
 
     return NextResponse.json(responseData);

@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Find the email preference by token
     const emailPreference = await prisma.emailPreference.findUnique({
       where: { unsubscribeToken: token },
-      include: { member: true },
+      include: { Member: true },
     });
 
     if (!emailPreference) {

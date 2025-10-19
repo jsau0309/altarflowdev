@@ -31,9 +31,9 @@ export async function POST(req: Request) {
       // Verify the payout belongs to the user's church
       const payout = await prisma.payoutSummary.findUnique({
         where: { stripePayoutId: payoutId },
-        include: { 
-          church: {
-            include: { stripeConnectAccount: true }
+        include: {
+          Church: {
+            include: { StripeConnectAccount: true }
           }
         }
       });
@@ -46,25 +46,25 @@ export async function POST(req: Request) {
       }
       
       // Check if user has access to this church
-      if (payout.church.clerkOrgId !== orgId) {
+      if (payout.Church.clerkOrgId !== orgId) {
         return NextResponse.json(
           { error: 'Access denied' },
           { status: 403 }
         );
       }
-      
-      if (!payout.church.stripeConnectAccount) {
+
+      if (!payout.Church.StripeConnectAccount) {
         return NextResponse.json(
           { error: 'Stripe account not connected' },
           { status: 400 }
         );
       }
-      
+
       // Import the specific reconcile function
       const { reconcilePayout } = await import('@/lib/stripe-reconciliation');
       const result = await reconcilePayout(
         payoutId,
-        payout.church.stripeConnectAccount.stripeAccountId
+        payout.Church.StripeConnectAccount.stripeAccountId
       );
       
       if (!result.success) {

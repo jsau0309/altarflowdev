@@ -154,7 +154,7 @@ export async function createFundraisingCampaign(input: UpsertInput): Promise<{ s
     isSystemType: false,
     isDeletable: true,
     isActive: input.isActive ?? true,
-    church: { connect: { id: churchId } },
+    Church: { connect: { id: churchId } },
   };
 
   const created = await prisma.donationType.create({ data, select: { id: true } });

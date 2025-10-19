@@ -11,7 +11,7 @@ datasource db {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Church {
-  id                   String                @id @db.Uuid
+  id                   String                @id @default(uuid()) @db.Uuid
   name                 String
   address              String?
   phone                String?
@@ -32,7 +32,6 @@ model Church {
   subscriptionPlan     String?
   subscriptionStatus   String                @default("pending_payment")
   trialEndsAt          DateTime?
-  Donation             Donation[]
   DonationTransaction  DonationTransaction[]
   DonationType         DonationType[]
   Donor                Donor[]
@@ -51,30 +50,8 @@ model Church {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model Donation {
-  id                    String   @id @db.Uuid
-  amount                Decimal  @db.Decimal(10, 2)
-  currency              String   @default("USD")
-  donationDate          DateTime @default(now())
-  donorFirstName        String?
-  donorLastName         String?
-  donorEmail            String?
-  memberId              String?  @db.Uuid
-  campaignId            String?  @db.Uuid
-  churchId              String   @db.Uuid
-  stripePaymentIntentId String?  @unique
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @default(now())
-  Church                Church   @relation(fields: [churchId], references: [id])
-  Member                Member?  @relation(fields: [memberId], references: [id])
-
-  @@index([churchId])
-  @@index([memberId])
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model DonationTransaction {
-  id                          String       @id
+  id                          String       @id @default(cuid())
   churchId                    String       @db.Uuid
   donationTypeId              String
   donorClerkId                String?
@@ -150,7 +127,7 @@ model DonationType {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Donor {
-  id                  String                @id
+  id                  String                @id @default(cuid())
   firstName           String?
   lastName            String?
   email               String?               @unique
@@ -177,7 +154,7 @@ model Donor {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model EmailCampaign {
-  id                String           @id
+  id                String           @id @default(cuid())
   churchId          String           @db.Uuid
   subject           String
   previewText       String?
@@ -206,7 +183,7 @@ model EmailCampaign {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model EmailPreference {
-  id               String    @id
+  id               String    @id @default(cuid())
   memberId         String    @unique @db.Uuid
   email            String
   isSubscribed     Boolean   @default(true)
@@ -225,7 +202,7 @@ model EmailPreference {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model EmailQuota {
-  id         String   @id
+  id         String   @id @default(cuid())
   churchId   String   @db.Uuid
   monthYear  String
   emailsSent Int      @default(0)
@@ -239,7 +216,7 @@ model EmailQuota {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model EmailRecipient {
-  id             String          @id
+  id             String          @id @default(cuid())
   campaignId     String
   memberId       String          @db.Uuid
   email          String
@@ -261,7 +238,7 @@ model EmailRecipient {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model EmailSettings {
-  id            String   @id
+  id            String   @id @default(cuid())
   churchId      String   @unique @db.Uuid
   timezone      String   @default("America/New_York")
   footerAddress String?
@@ -274,7 +251,7 @@ model EmailSettings {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Expense {
-  id                                   String        @id
+  id                                   String        @id @default(cuid())
   amount                               Decimal       @db.Decimal(10, 2)
   currency                             String        @default("USD")
   expenseDate                          DateTime
@@ -301,7 +278,7 @@ model Expense {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Flow {
-  id         String       @id
+  id         String       @id @default(cuid())
   name       String
   type       FlowType     @default(NEW_MEMBER)
   slug       String       @unique
@@ -319,7 +296,7 @@ model Flow {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Member {
-  id                         String            @id @db.Uuid
+  id                         String            @id @default(uuid()) @db.Uuid
   firstName                  String
   lastName                   String
   email                      String?
@@ -342,7 +319,6 @@ model Member {
   life_stage                 String?
   ministry_interests         String[]          @default([])
   preferred_service_times    String[]          @default([])
-  Donation                   Donation[]
   Donor                      Donor[]
   EmailPreference            EmailPreference?
   EmailRecipient             EmailRecipient[]
@@ -358,7 +334,7 @@ model Member {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model PayoutSummary {
-  id               String    @id
+  id               String    @id @default(cuid())
   stripePayoutId   String    @unique
   churchId         String    @db.Uuid
   payoutDate       DateTime
@@ -387,7 +363,7 @@ model PayoutSummary {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Profile {
-  id                                   String    @id
+  id                                   String    @id @default(cuid())
   firstName                            String?
   lastName                             String?
   churchName                           String?
@@ -402,7 +378,7 @@ model Profile {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model StripeConnectAccount {
-  id                         String    @id @db.Uuid
+  id                         String    @id @default(uuid()) @db.Uuid
   stripeAccountId            String    @unique
   churchId                   String    @unique
   chargesEnabled             Boolean   @default(false)
@@ -424,7 +400,7 @@ model StripeConnectAccount {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Submission {
-  id           String   @id
+  id           String   @id @default(cuid())
   submittedAt  DateTime @default(now())
   formDataJson Json
   memberId     String?  @db.Uuid

@@ -30,16 +30,16 @@ export async function POST(request: Request) {
     if (churchId) {
       const church = await prisma.church.findUnique({
         where: { id: churchId },
-        include: { stripeConnectAccount: true }
+        include: { StripeConnectAccount: true }
       });
 
-      if (!church?.stripeConnectAccount) {
-        return NextResponse.json({ 
-          error: 'Church or Stripe account not found' 
+      if (!church?.StripeConnectAccount) {
+        return NextResponse.json({
+          error: 'Church or Stripe account not found'
         }, { status: 404 });
       }
 
-      await disableStripeAutomaticReceipts(church.stripeConnectAccount.stripeAccountId);
+      await disableStripeAutomaticReceipts(church.StripeConnectAccount.stripeAccountId);
       return NextResponse.json({ 
         success: true, 
         message: `Disabled receipts for ${church.name}` 

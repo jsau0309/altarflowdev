@@ -42,13 +42,13 @@ export async function GET(request: NextRequest) {
 
     // 2. Fetch members ONLY for the active organization with email preferences
     const members = await prisma.member.findMany({
-      where: { 
-        church: { // Filter via the related Church model
+      where: {
+        Church: { // Filter via the related Church model
           clerkOrgId: orgId // Use the Clerk Organization ID
-        } 
+        }
       },
       include: {
-        emailPreference: {
+        EmailPreference: {
           select: {
             isSubscribed: true,
             unsubscribedAt: true,
@@ -120,8 +120,8 @@ export async function POST(request: NextRequest) {
     const newMember = await prisma.member.create({
       data: {
         ...dataToCreate,
-        church: { 
-          connect: { 
+        Church: {
+          connect: {
             clerkOrgId: orgId // orgId is guaranteed to be a string here
           }
         }

@@ -44,7 +44,7 @@ export async function GET(
     const member = await prisma.member.findFirst({
       where: {
         id: memberId,
-        church: { // Check the relation
+        Church: { // Check the relation
           clerkOrgId: orgId
         }
       },
@@ -119,7 +119,7 @@ export async function PATCH(
     const updateResult = await prisma.member.updateMany({
       where: { 
         id: memberId,
-        church: { // Ensure update only happens for the correct org
+        Church: { // Ensure update only happens for the correct org
           clerkOrgId: orgId
         }
       },
@@ -139,7 +139,7 @@ export async function PATCH(
     const updatedMember = await prisma.member.findFirst({
       where: {
         id: memberId,
-        church: { clerkOrgId: orgId }
+        Church: { clerkOrgId: orgId }
       }
     });
 
@@ -201,16 +201,14 @@ export async function DELETE(
         where: { memberId }
       });
 
-      // Delete related Donation records
-      await tx.donation.deleteMany({
-        where: { memberId }
-      });
+      // Note: Donation table was removed - it was replaced by DonationTransaction
+      // DonationTransaction uses donorId, not memberId, so no cleanup needed here
 
       // Finally delete the member with compound where clause to ensure ownership
       return await tx.member.deleteMany({
         where: { 
           id: memberId, 
-          church: { // Ensure deletion only happens for the correct org
+          Church: { // Ensure deletion only happens for the correct org
             clerkOrgId: orgId
           }
         },

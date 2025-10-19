@@ -114,12 +114,12 @@ export async function GET(request: NextRequest) {
     // 2. Fetch expenses associated with the active organization
     const expenses = await prisma.expense.findMany({
       where: {
-        church: { // Filter by the related church using clerkOrgId
+        Church: { // Filter by the related church using clerkOrgId
           clerkOrgId: orgId
         }
       },
       include: {
-        submitter: {
+        Profile_Expense_submitterIdToProfile: {
           select: { firstName: true, lastName: true },
         },
       },
@@ -277,7 +277,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Create the expense, connecting church via clerkOrgId
+    // 3. Get the church UUID from clerkOrgId
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: orgId },
+      select: { id: true },
+    });
+
+    if (!church) {
+      return NextResponse.json(
+        { error: 'Church configuration not found.' },
+        { status: 404 }
+      );
+    }
+
+    // 4. Create the expense with the church UUID
     const newExpense = await prisma.expense.create({
       data: {
         amount: amountValue,
@@ -287,14 +300,10 @@ export async function POST(request: NextRequest) {
         description: descriptionValue,
         receiptUrl,
         receiptPath,
-        status: 'PENDING', 
-        currency: 'USD',   
-        submitter: {
-          connect: { id: userId }, // Connect submitter using Clerk userId
-        },
-        church: {
-          connect: { clerkOrgId: orgId }, // Connect church using Clerk orgId
-        },
+        status: 'PENDING',
+        currency: 'USD',
+        submitterId: userId, // Set submitter using Clerk userId
+        churchId: church.id, // Use the church UUID directly
       },
     });
 

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     // 2. Fetch campaigns ONLY for the user's active organization
     const campaigns = await prisma.donationType.findMany({
       where: {
-        church: {
+        Church: {
           clerkOrgId: orgId
         },
         isCampaign: true,
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       isRecurringAllowed: false,
       isSystemType: false,
       isDeletable: true,
-      church: {
+      Church: {
         connect: {
           clerkOrgId: orgId
         }

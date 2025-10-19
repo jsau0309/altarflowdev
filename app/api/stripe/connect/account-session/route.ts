@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       },
       select: {
         id: true,
-        stripeConnectAccount: {
+        StripeConnectAccount: {
           select: {
             stripeAccountId: true,
           },
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     // Check if we need to create an account
     let stripeConnectAccountId: string;
     
-    if (!church.stripeConnectAccount || !church.stripeConnectAccount.stripeAccountId) {
+    if (!church.StripeConnectAccount || !church.StripeConnectAccount.stripeAccountId) {
       // Check if this is an explicit request to start onboarding
       const body = await req.json().catch(() => ({}));
       const startOnboarding = body.startOnboarding === true;
@@ -74,6 +74,7 @@ export async function POST(req: Request) {
           chargesEnabled: false,
           payoutsEnabled: false,
           verificationStatus: 'unverified',
+          updatedAt: new Date(),
         },
         update: {
           stripeAccountId: account.id,
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
       
       stripeConnectAccountId = account.id;
     } else {
-      stripeConnectAccountId = church.stripeConnectAccount.stripeAccountId;
+      stripeConnectAccountId = church.StripeConnectAccount.stripeAccountId;
     }
 
     // Create an Account Session

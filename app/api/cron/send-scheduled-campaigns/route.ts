@@ -31,12 +31,12 @@ export async function GET(request: NextRequest) {
         },
       },
       include: {
-        recipients: {
+        EmailRecipient: {
           include: {
-            member: true,
+            Member: true,
           },
         },
-        church: true,
+        Church: true,
       },
     });
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
           where: { id: campaign.id },
           data: {
             status: "SENDING",
-            totalRecipients: campaign.recipients.length,
+            totalRecipients: campaign.EmailRecipient.length,
           },
         });
 
@@ -60,18 +60,21 @@ export async function GET(request: NextRequest) {
         const unsubscribedRecipients = [];
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
 
-        for (const recipient of campaign.recipients) {
+        for (const recipient of campaign.EmailRecipient) {
           // Get or create email preference
           let emailPreference = await prisma.emailPreference.findUnique({
             where: { memberId: recipient.memberId },
           });
 
           if (!emailPreference) {
+            const { v4: uuidv4 } = require('uuid');
             emailPreference = await prisma.emailPreference.create({
               data: {
                 memberId: recipient.memberId,
                 email: recipient.email,
                 isSubscribed: true,
+                unsubscribeToken: uuidv4(),
+                updatedAt: new Date(),
               },
             });
           }
@@ -96,9 +99,9 @@ export async function GET(request: NextRequest) {
           const unsubscribeFooter = `
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; text-align: center; font-size: 12px; color: #666;">
               <p style="margin: 0 0 8px 0;">
-                <strong>${campaign.church.name}</strong>
+                <strong>${campaign.Church.name}</strong>
               </p>
-              ${campaign.church.address ? `<p style="margin: 0 0 8px 0;">${campaign.church.address}</p>` : ''}
+              ${campaign.Church.address ? `<p style="margin: 0 0 8px 0;">${campaign.Church.address}</p>` : ''}
               <p style="margin: 0;">
                 <a href="${unsubscribeUrl}" style="color: #666; text-decoration: underline;">Unsubscribe</a>
               </p>

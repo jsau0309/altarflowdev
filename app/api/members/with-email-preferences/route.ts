@@ -32,7 +32,7 @@ export async function GET() {
         lastName: true,
         email: true,
         membershipStatus: true,
-        emailPreference: {
+        EmailPreference: {
           select: {
             isSubscribed: true,
           },
@@ -51,7 +51,7 @@ export async function GET() {
       lastName: member.lastName,
       email: member.email,
       membershipStatus: member.membershipStatus,
-      isSubscribed: member.emailPreference?.isSubscribed ?? true, // Default to subscribed if no preference
+      isSubscribed: member.EmailPreference?.isSubscribed ?? true, // Default to subscribed if no preference
     }));
 
     return NextResponse.json({ members: membersWithPreferences });

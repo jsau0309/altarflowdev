@@ -61,7 +61,7 @@ async function withIdempotency(
   const cacheKey = `${keyPrefix}${idempotencyKey}`;
   
   // Check if we've seen this request before
-  const cachedResponse = await prisma.idempotencyCache.findUnique({
+  const cachedResponse = await prisma.idempotency_cache.findUnique({
     where: { key: cacheKey },
   });
   
@@ -109,7 +109,7 @@ async function withIdempotency(
   console.log(`[DEBUG] Idempotency: Caching response with body length: ${bodyText.length}, status: ${response.status}`);
 
   try {
-    await prisma.idempotencyCache.create({
+    await prisma.idempotency_cache.create({
       data: {
         key: cacheKey,
         responseData: JSON.stringify(responseToCache),
@@ -434,7 +434,8 @@ async function handleCreateAccount(
     await prisma.stripeConnectAccount.create({
       data: {
         stripeAccountId: newStripeAccount.id,
-        churchId: clerkOrgId, 
+        churchId: clerkOrgId,
+        updatedAt: new Date(),
       }
     });
     console.log(`[DEBUG] StripeConnectAccount record inserted into DB for new Stripe Account ID: ${newStripeAccount.id} and Church (clerkOrgId): ${clerkOrgId}`);
