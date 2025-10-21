@@ -80,6 +80,10 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
       donationDate: donation.transactionDate.toISOString(),
       createdAt: donation.createdAt.toISOString(),
       updatedAt: donation.lastEditedAt?.toISOString() ?? donation.createdAt.toISOString(),
+      // Include anonymous/international donor fields
+      isAnonymous: donation.isAnonymous,
+      isInternational: donation.isInternational,
+      donorCountry: donation.donorCountry,
       // Include edit tracking fields
       editReason: donation.editReason,
       lastEditedBy: donation.lastEditedBy,

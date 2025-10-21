@@ -335,10 +335,17 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
                   <span className="text-sm text-muted-foreground">Name</span>
                   <span>{donation.donorName || t('common:anonymous', 'Anonymous')}</span>
                 </div>
-                {donation.donorEmail && (
+                {/* Hide email for anonymous donors to maintain privacy */}
+                {donation.donorEmail && !donation.isAnonymous && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Email</span>
                     <span className="text-sm">{donation.donorEmail}</span>
+                  </div>
+                )}
+                {donation.isInternational && donation.donorCountry && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Country</span>
+                    <span className="text-sm">{donation.donorCountry}</span>
                   </div>
                 )}
               </div>
