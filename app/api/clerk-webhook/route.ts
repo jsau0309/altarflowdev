@@ -11,6 +11,7 @@ import { Role } from '@prisma/client'; // Import the Role enum
 import { format } from 'date-fns';
 import { getQuotaLimit } from '@/lib/subscription-helpers';
 import { randomUUID } from 'crypto';
+import type { Prisma } from '@prisma/client';
 
 export async function POST(req: Request) {
 
@@ -331,6 +332,53 @@ export async function POST(req: Request) {
     } // End inner type check
   }
 
+  if (eventType === 'organization.updated') {
+    if (evt.type === 'organization.updated') {
+      const { id: orgId, name } = evt.data;
+
+      if (!orgId) {
+        console.error('organization.updated event missing organization id');
+        return new Response('Error occurred -- missing organization id', { status: 400 });
+      }
+
+      console.log(`Processing organization.updated for Org ID: ${orgId}`);
+
+      try {
+        const church = await prisma.church.findUnique({
+          where: { clerkOrgId: orgId },
+        });
+
+        if (!church) {
+          console.warn(`Church not found for Org ID: ${orgId} during organization.updated. Returning 202 for retry.`);
+          return new Response('Accepted - retry later', { status: 202 });
+        }
+
+        const updateData: Prisma.ChurchUpdateInput = {
+          updatedAt: new Date(),
+        };
+
+        if (typeof name === 'string' && name.trim().length > 0 && church.name !== name) {
+          updateData.name = name;
+        }
+
+        if (Object.keys(updateData).length === 1) {
+          console.log(`No changes needed for church ${church.id} on organization.updated`);
+          return new Response('', { status: 200 });
+        }
+
+        await prisma.church.update({
+          where: { id: church.id },
+          data: updateData,
+        });
+
+        console.log(`Successfully updated church ${church.id} from organization.updated event`);
+      } catch (error) {
+        console.error(`Error processing organization.updated for Org ID ${orgId}:`, error);
+        return new Response('Error occurred -- processing organization.updated', { status: 500 });
+      }
+    }
+  }
+
   // Handle organization membership updates (role changes)
   if (eventType === 'organizationMembership.updated') {
     // Explicitly check the type again for TypeScript narrowing
@@ -425,7 +473,7 @@ export async function POST(req: Request) {
   }
   
   // TODO: Handle user.deleted event if needed later
-  // TODO: Handle organization.updated/deleted events if needed
+  // TODO: Handle organization.deleted event if needed
 
   // Return 200 OK to Clerk to acknowledge receipt
   return new Response('', { status: 200 })

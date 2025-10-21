@@ -1352,10 +1352,24 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     console.warn(`[Receipt] Stripe Account object for ${connectedStripeAccountId} is null (likely due to retrieval failure). EIN retrieval and account detail update skipped. Using defaults/DB values for receipt.`);
   }
 
+  // Get donor email for receipt
+  // This works for:
+  // 1. Verified donors: email from Donor record or transaction
+  // 2. Anonymous donors: email stored in donationTransaction.donorEmail (for receipt only)
+  // 3. International donors: email stored in donationTransaction.donorEmail
   const donorEmail = donationTransaction.donorEmail || donationTransaction.Donor?.email;
   if (!donorEmail) {
     console.error(`[Receipt] No donor email found for transaction ${donationTransaction.id}. Cannot send receipt.`);
     return;
+  }
+
+  // Log receipt type for debugging
+  if (donationTransaction.isAnonymous && donationTransaction.isInternational) {
+    console.log(`[Receipt] Sending receipt to anonymous international donor (${donationTransaction.donorCountry || 'unknown'})`);
+  } else if (donationTransaction.isAnonymous) {
+    console.log(`[Receipt] Sending receipt to anonymous US donor`);
+  } else if (donationTransaction.isInternational) {
+    console.log(`[Receipt] Sending receipt to international donor (${donationTransaction.donorCountry || 'unknown'})`);
   }
 
   const donorName = donationTransaction.donorName || `${donationTransaction.Donor?.firstName || ''} ${donationTransaction.Donor?.lastName || ''}`.trim() || 'Valued Donor';

@@ -284,12 +284,15 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
           currency: 'usd', // Assuming USD, make dynamic if needed
           coverFees: formData.coverFees,
           isAnonymous: formData.isAnonymous,
-          ...(formData.firstName && !formData.isAnonymous && { firstName: formData.firstName }),
-          ...(formData.lastName && !formData.isAnonymous && { lastName: formData.lastName }),
-          ...(formData.email && !formData.isAnonymous && { donorEmail: formData.email }), // API expects donorEmail
+          isInternational: formData.isInternational || false,
+          // For anonymous/international donors, we NEED name and email for receipts
+          ...(formData.firstName && { firstName: formData.firstName }),
+          ...(formData.lastName && { lastName: formData.lastName }),
+          ...(formData.email && { donorEmail: formData.email }), // API expects donorEmail
           ...(formData.phone && !formData.isAnonymous && { phone: formData.phone }),
+          ...(formData.donorCountry && { donorCountry: formData.donorCountry }), // Country code for international donors
 
-          // Address info (conditionally added, now flat)
+          // Address info (only for non-anonymous donors)
           ...(formData.street && !formData.isAnonymous && { street: formData.street }),
           ...(formData.addressLine2 && !formData.isAnonymous && { addressLine2: formData.addressLine2 }),
           ...(formData.city && !formData.isAnonymous && { city: formData.city }),

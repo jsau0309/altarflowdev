@@ -96,24 +96,119 @@ TWILIO_*               # SMS verification
 - No bypass flags in production
 - Email content escaping
 
-## Database Migration Best Practices
-**ALWAYS use migrations to track schema changes:**
+## 🚨 PRODUCTION SAFETY: Prisma Schema Changes
+
+**⚠️ CRITICAL: We have REAL USERS and REAL DATA in production!**
+
+Any Prisma schema change can cause:
+- Production deployment failures
+- Data loss or corruption
+- Service downtime
+- TypeScript build errors
+
+### Required Reading Before ANY Schema Change
+**📖 MUST READ:** `/docs/PRISMA_PRODUCTION_WORKFLOW.md`
+
+This comprehensive guide covers:
+- Safe development workflow
+- Migration review checklist
+- Production deployment procedures
+- Emergency rollback procedures
+- Team coordination guidelines
+
+### Quick Safety Rules (Production Environment)
+
+**❌ NEVER DO:**
+1. **NEVER use `npx prisma db push`** - Only for local prototyping!
+2. **NEVER remove `@default()` from id fields** - Causes TypeScript errors
+3. **NEVER modify schema without creating migration** - Causes drift
+4. **NEVER deploy schema changes on Fridays** - Weekend incidents are bad
+5. **NEVER skip migration SQL review** - Destructive changes are permanent
+6. **NEVER deploy without team notification** - Coordinate changes
+7. **NEVER skip production backup** - Last safety net
+
+**✅ ALWAYS DO:**
+1. **ALWAYS backup production** before schema changes (Supabase dashboard)
+2. **ALWAYS use `npx prisma migrate dev`** to create tracked migrations
+3. **ALWAYS review generated SQL** before committing
+4. **ALWAYS add `@default()` to new id fields**:
+   ```prisma
+   id String @id @default(uuid()) @db.Uuid  // For UUID
+   id String @id @default(cuid())           // For CUID
+   ```
+5. **ALWAYS use `@updatedAt` for update timestamps**:
+   ```prisma
+   updatedAt DateTime @updatedAt
+   ```
+6. **ALWAYS use PascalCase for relation names** (matches model names):
+   ```prisma
+   model DonationTransaction {
+     Church Church @relation(...)           // ✅ PascalCase
+     DonationType DonationType @relation(...)
+   }
+   ```
+7. **ALWAYS run TypeScript build** before pushing:
+   ```bash
+   npx tsc --noEmit && npm run build
+   ```
+8. **ALWAYS commit both schema AND migration files** together
+9. **ALWAYS test migrations locally first**
+10. **ALWAYS have a rollback plan** documented in PR
+
+### Pre-Deployment Checklist (Required)
+
+Before pushing ANY Prisma schema change to production:
+- [ ] Read `/docs/PRISMA_PRODUCTION_WORKFLOW.md`
+- [ ] Created production backup (Supabase → Database → Backups)
+- [ ] Migration tested in local development
+- [ ] TypeScript compiles without errors (`npx tsc --noEmit`)
+- [ ] Full build succeeds (`npm run build`)
+- [ ] Migration SQL reviewed for safety
+- [ ] Team notified about pending deployment
+- [ ] Rollback procedure documented in PR
+- [ ] Deployment scheduled during low-traffic period
+
+### Database Migration Best Practices
+
+**Standard workflow:**
 1. Modify the Prisma schema file (`prisma/schema.prisma`)
-2. Create a migration: `npx prisma migrate dev --name descriptive_name`
-3. This creates a migration file in `/prisma/migrations/` and applies it
-4. Commit both the schema changes AND the migration file to git
+2. Create migration: `npx prisma migrate dev --name descriptive_name`
+3. Review generated SQL in `prisma/migrations/[timestamp]_name/migration.sql`
+4. Test locally: `npm run build` and verify functionality
+5. Commit both schema changes AND migration file to git
+6. Create PR with migration safety checklist
+7. Get code review approval
+8. Deploy during low-traffic period
+9. Monitor deployment and verify success
 
 **If you encounter drift errors:**
 1. Check status: `npx prisma migrate status`
 2. If changes were made without migrations, create a baseline migration
 3. Mark it as applied: `npx prisma migrate resolve --applied "migration_name"`
+4. Document why drift occurred to prevent future issues
 
-**NEVER use `npx prisma db push` in production code** - it doesn't create migration files and loses change history!
+**Migration naming conventions:**
+- `add_table_name` - Creating new tables
+- `update_table_add_field` - Adding fields
+- `remove_unused_table` - Dropping tables
+- `fix_constraint_issue` - Fixing problems
+- Always use descriptive names that explain the change
 
 ## Common Gotchas
-- Prisma import is from `@/lib/db`, not `@/lib/prisma`
+
+### Prisma-Specific
+- **Prisma import** is from `@/lib/db`, not `@/lib/prisma`
+- **Relation names** must be PascalCase (e.g., `Church`, not `church`) - causes TypeScript errors if wrong
+- **ID defaults** must always have `@default(uuid())` or `@default(cuid())` - missing causes TypeScript to require manual IDs
+- **TypeScript types** regenerate when running `npx prisma generate` - always regenerate after schema changes
+- **Migration drift** happens when using `db push` or modifying database manually - always use migrations
+- **Schema conflicts** during merges often remove `@default()` - always review Prisma schema in PR diffs
+- **UUID vs Text** - PostgreSQL UUID columns don't need `::text` cast when setting defaults (use `gen_random_uuid()` not `gen_random_uuid()::text`)
+
+### Application-Specific
 - Date timezone issues: Use noon local time for date-only fields
 - Email campaign status must be DRAFT or SCHEDULED to send
 - Stripe webhooks require signature verification
 - Twilio client must be initialized inside request handlers
-- Always create Prisma migrations - never use `db push` except for quick prototypes
+- Church creation relies on Clerk organization webhooks - test with real Clerk flow
+- Multi-tenant queries MUST filter by `churchId` to prevent data leakage

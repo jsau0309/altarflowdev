@@ -57,6 +57,10 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
     disputeStatus: true;
     disputeReason: true;
     disputedAt: true;
+    // Anonymous/International donor fields
+    isAnonymous: true;
+    isInternational: true;
+    donorCountry: true;
     DonationType: {
       select: {
         name: true;
@@ -173,6 +177,10 @@ export async function getDonationTransactions({
         disputeStatus: true,
         disputeReason: true,
         disputedAt: true,
+        // Anonymous/International donor fields
+        isAnonymous: true,
+        isInternational: true,
+        donorCountry: true,
         DonationType: {
           select: {
             name: true,
@@ -221,7 +229,11 @@ export async function getDonationTransactions({
       // Dispute tracking fields
       disputeStatus: t.disputeStatus,
       disputeReason: t.disputeReason,
-      disputedAt: t.disputedAt?.toISOString() || null
+      disputedAt: t.disputedAt?.toISOString() || null,
+      // Anonymous/International donor fields
+      isAnonymous: t.isAnonymous,
+      isInternational: t.isInternational,
+      donorCountry: t.donorCountry
     }));
 
     return { donations: formattedDonations, totalCount };
