@@ -1,140 +1,178 @@
 import type { Metadata } from "next";
 import { notFound } from 'next/navigation';
-import Image from 'next/image'; 
-import DonationForm from "@/components/donation/donation-form";
-import { getChurchBySlug } from '@/lib/actions/church.actions'; 
-import { Lock } from 'lucide-react'; // Added for Secure Transaction icon
+import Image from 'next/image';
+import Link from 'next/link';
+import { getChurchBySlug } from '@/lib/actions/church.actions';
+import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
 import { prisma } from '@/lib/db';
+import { Facebook, Instagram, Twitter, Youtube, Globe } from 'lucide-react';
 
-interface DonatePageProps {
-  params: Promise<{ // params itself is a Promise
+interface LandingPageProps {
+  params: Promise<{
     churchSlug: string;
   }>;
 }
 
-export async function generateMetadata(props: DonatePageProps): Promise<Metadata> {
-  const { churchSlug } = await props.params; // Await props.params
+export async function generateMetadata(props: LandingPageProps): Promise<Metadata> {
+  const { churchSlug } = await props.params;
   const churchData = await getChurchBySlug(churchSlug);
+
   if (!churchData) {
     return {
       title: "Church Not Found | Altarflow",
       description: "The requested church could not be found.",
     };
   }
+
   return {
-    title: `Donate to ${churchData.church.name} | Altarflow`,
-    description: `Support ${churchData.church.name} with your generous donation.`,
+    title: `${churchData.church.name} | Altarflow`,
+    description: `Connect with ${churchData.church.name}`,
   };
 }
 
-export default async function DonatePage(props: DonatePageProps) {
-  const { churchSlug } = await props.params; // Await props.params
+export default async function LandingPage(props: LandingPageProps) {
+  const { churchSlug } = await props.params;
   const churchData = await getChurchBySlug(churchSlug);
 
   if (!churchData) {
     notFound();
   }
 
-  const { church, donationTypes } = churchData;
+  const { church } = churchData;
 
-  // Check if church has a Stripe account and if it's active
-  const stripeAccount = await prisma.stripeConnectAccount.findUnique({
-    where: { churchId: church.clerkOrgId || '' }
+  // Get landing page configuration
+  const landingConfig = await prisma.landingPageConfig.findUnique({
+    where: { churchId: church.id }
   });
 
-  const hasActiveStripeAccount = stripeAccount && 
-    stripeAccount.chargesEnabled && 
-    stripeAccount.payoutsEnabled && 
+  // Check Stripe account status
+  const stripeAccount = church.clerkOrgId
+    ? await prisma.stripeConnectAccount.findUnique({
+        where: { churchId: church.clerkOrgId }
+      })
+    : null;
+
+  const hasActiveStripeAccount = stripeAccount &&
+    stripeAccount.chargesEnabled &&
+    stripeAccount.payoutsEnabled &&
     stripeAccount.detailsSubmitted;
 
-  // Get landing page settings to check if donations are enabled
-  const settings = (church.settingsJson as { landing?: { showDonateButton?: boolean } }) || {};
-  const donationsEnabled = settings.landing?.showDonateButton ?? true;
+  // Check for active flows
+  const activeFlows = await prisma.flow.findMany({
+    where: {
+      churchId: church.id,
+      status: 'PUBLISHED'
+    },
+    select: {
+      slug: true
+    },
+    take: 1
+  });
 
-  // If donations are disabled or no active Stripe account, show error message
-  if (!donationsEnabled || !hasActiveStripeAccount) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>
-        <div className="w-full max-w-md space-y-8">
-          <div className="mt-8 flex flex-col items-center space-y-4 bg-white px-6 py-8 rounded-lg shadow-md">
-            <Image
-              src="/images/Altarflow.svg"
-              alt="Altarflow Logo"
-              width={240}
-              height={80}
-              priority
-            />
-            <h1 className="text-2xl font-bold text-gray-900 text-center">
-              {church.name}
-            </h1>
-            <p className="text-gray-600 text-center">
-              {!hasActiveStripeAccount
-                ? "Donations are not available at this time. Please contact the church for more information."
-                : "This donation page has been temporarily disabled."}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const hasActiveFlow = activeFlows.length > 0;
+  const connectSlug = hasActiveFlow ? activeFlows[0].slug : null;
+
+  // Determine what to show based on config or defaults
+  const showDonateButton = (landingConfig?.showDonateButton ?? false) && hasActiveStripeAccount;
+  const showConnectButton = (landingConfig?.showConnectButton ?? false) && hasActiveFlow;
+
+  const backgroundStyle = landingConfig
+    ? getBackgroundStyle(landingConfig.backgroundType, landingConfig.backgroundValue)
+    : 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)';
+
+  const socialLinks = (landingConfig?.socialLinks as any) || {};
+  const logoUrl = landingConfig?.logoUrl || '/images/Altarflow.svg';
+  const description = landingConfig?.description;
+
+  const socialIcons = [
+    { key: 'facebook', icon: Facebook, url: socialLinks.facebook },
+    { key: 'instagram', icon: Instagram, url: socialLinks.instagram },
+    { key: 'twitter', icon: Twitter, url: socialLinks.twitter },
+    { key: 'youtube', icon: Youtube, url: socialLinks.youtube },
+    { key: 'website', icon: Globe, url: socialLinks.website },
+  ].filter(social => social.url);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}>
-      <div className="w-full max-w-md space-y-8">
-        {/* New Header Structure */}
-        <div className="mt-8 flex flex-col items-center space-y-4 bg-white px-6 py-8 rounded-lg shadow-md">
-          <Image
-            src="/images/Altarflow.svg"
-            alt="Altarflow Logo"
-            width={240}
-            height={80}
-            priority
-          />
-          {/* Church Name Display */}
-          <h1 className="text-2xl font-bold text-gray-900 text-center">
-            {church.name}
-          </h1>
-        </div>
-
-        {/* Donation Form Card */}
-        <div className="bg-white px-6 py-8 rounded-lg shadow-md">
-          <DonationForm
-            churchId={church.id}
-            churchName={church.name} // churchName is still passed to the form if needed internally
-            donationTypes={donationTypes}
-            churchSlug={churchSlug}
-          />
-        </div>
-
-        {/* Footer Sections */}
-        <div className="w-full max-w-md space-y-3 text-center bg-white px-6 py-6 rounded-lg shadow-md">
-          {/* Terms and Privacy */}
-          <p className="text-xs text-gray-500">
-            By continuing, you agree to Altarflow&apos;s{' '}
-            <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700">Terms of Service</a>
-            {' and '}
-            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700">Privacy Policy</a>.
-          </p>
-
-          {/* Powered by Altarflow */}
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-            <span>Powered by</span>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center p-4 text-white"
+      style={{ background: backgroundStyle }}
+    >
+      <div className="bg-white text-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
+        {/* Logo */}
+        <div className="mb-6">
+          <div className="relative w-48 h-48 mx-auto rounded-full overflow-hidden bg-gray-100">
             <Image
-              src="/images/Altarflow.svg"
-              alt="Altarflow Logo"
-              width={70} // Adjusted size for footer
-              height={18} // Adjusted size for footer
+              src={logoUrl}
+              alt={`${church.name} logo`}
+              fill
+              className="object-cover"
+              priority
             />
           </div>
-
-          {/* Secure Transaction */}
-          <div className="flex items-center justify-center space-x-1 text-xs text-gray-500">
-            <Lock className="h-3 w-3" />
-            <span>Secure Transaction</span>
-          </div>
         </div>
 
+        {/* Church Name */}
+        <h1 className="text-3xl font-bold mb-4 text-gray-900">
+          {church.name}
+        </h1>
+
+        {/* Description */}
+        {description && (
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            {description}
+          </p>
+        )}
+
+        {/* Social Links */}
+        {socialIcons.length > 0 && (
+          <div className="flex justify-center gap-4 mb-6">
+            {socialIcons.map(({ key, icon: Icon, url }) => (
+              <a
+                key={key}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                aria-label={key}
+              >
+                <Icon className="h-5 w-5 text-gray-700" />
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          {showDonateButton && (
+            <Link
+              href={`/donate/${churchSlug}`}
+              className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
+            >
+              {landingConfig?.donateButtonText || 'Donate'}
+            </Link>
+          )}
+
+          {showConnectButton && connectSlug && (
+            <Link
+              href={`/connect/${connectSlug}`}
+              className="block w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
+            >
+              {landingConfig?.connectButtonText || 'Connect'}
+            </Link>
+          )}
+
+          {!showDonateButton && !showConnectButton && (
+            <p className="text-gray-500 py-4">
+              Welcome! Check back soon for more ways to connect.
+            </p>
+          )}
+        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="text-center text-xs py-4 text-white text-opacity-80 mt-4">
+        {new Date().getFullYear()} Altarflow. All rights reserved.
+      </footer>
     </div>
   );
 }

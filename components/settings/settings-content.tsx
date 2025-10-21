@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Shield, Globe } from "lucide-react";
 import { GeneralSettings } from "./general-settings";
-import { LandingManager } from "./landing-manager-simple";
+import { LandingManagerEnhanced as LandingManager } from "./landing-manager-enhanced";
 import { AccountManagement } from "./account-management";
 import { useSearchParams } from "next/navigation";
 

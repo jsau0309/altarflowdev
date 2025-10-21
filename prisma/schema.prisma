@@ -43,6 +43,7 @@ model Church {
   Member               Member[]
   PayoutSummary        PayoutSummary[]
   StripeConnectAccount StripeConnectAccount?
+  LandingPageConfig    LandingPageConfig?
 
   @@index([clerkOrgId])
   @@index([slug])
@@ -419,6 +420,46 @@ model idempotency_cache {
   key          String   @id @db.VarChar(255)
   responseData String
   expiresAt    DateTime
+}
+
+/// Landing page customization settings for churches
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model LandingPageConfig {
+  id                String          @id @default(uuid()) @db.Uuid
+  churchId          String          @unique @db.Uuid
+
+  // Branding
+  logoUrl           String?
+  logoPath          String?         // Supabase storage path
+  description       String?         @db.Text
+
+  // Background customization
+  backgroundType    BackgroundType  @default(PRESET)
+  backgroundValue   String?         // Preset ID, hex color, or image URL
+
+  // Social Media Links (stored as JSON for flexibility)
+  socialLinks       Json?           @db.Json
+
+  // Button Settings
+  showDonateButton  Boolean         @default(false)
+  showConnectButton Boolean         @default(false)
+  donateButtonText  String          @default("Donate")
+  connectButtonText String          @default("Connect")
+
+  // Timestamps
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  Church            Church          @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@index([churchId])
+}
+
+enum BackgroundType {
+  PRESET
+  GRADIENT
+  SOLID
+  IMAGE
 }
 
 enum EmailStatus {
