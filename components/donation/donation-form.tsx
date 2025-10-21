@@ -33,6 +33,7 @@ export type DonationFormData = {
   firstName?: string;
   lastName?: string;
   isAnonymous?: boolean;
+  isInternational?: boolean; // International donor (non-US)
   email?: string;
   phone?: string;
   address?: string; // Full formatted address from PlaceKit
@@ -41,7 +42,8 @@ export type DonationFormData = {
   city?: string;
   state?: string; // State or province
   zipCode?: string;
-  country?: string; // Country code (e.g., US)
+  country?: string; // Country code (e.g., US, MX, SV) - required for international donors
+  donorCountry?: string; // Explicit country for donation transaction (for international donors)
   paymentMethod?: "card" | "bank" | "google-pay" | "apple-pay";
   coverFees?: boolean;
   donorId?: string; // ID of the Donor record from OTP flow
@@ -67,6 +69,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
     firstName: "",
     lastName: "",
     isAnonymous: false,
+    isInternational: false,
     email: "",
     phone: "",
     address: "", // Full formatted address
@@ -75,6 +78,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
     state: "",
     zipCode: "",
     country: "",
+    donorCountry: "",
     paymentMethod: undefined,
     coverFees: false,
     donorId: undefined,

@@ -32,16 +32,18 @@ const initiateDonationSchema = z.object({
   // but we will primarily use the flat fields above for Stripe consistency.
   address: z.object({
     line1: z.string().optional(),
-    line2: z.string().optional(), 
+    line2: z.string().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
     postal_code: z.string().optional(),
     country: z.string().optional(),
   }).optional(),
   isAnonymous: z.boolean().default(false),
+  isInternational: z.boolean().default(false),
+  donorCountry: z.string().regex(/^[A-Z]{2}$/, 'Invalid country code').optional(), // ISO country code (e.g., "MX", "SV")
   donorClerkId: z.string().optional(),
-  coverFees: z.boolean().optional(), 
-  donorId: z.string().optional(), 
+  coverFees: z.boolean().optional(),
+  donorId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -84,8 +86,10 @@ export async function POST(request: Request) {
         donorClerkId,
         coverFees,
         donorId,
+        isInternational,
+        donorCountry,
       } = validation.data;
-      
+
       // Assign to outer scope variables for error handling
       churchUUIDFromInput = churchId;
       baseAmount = validation.data.baseAmount;
@@ -431,8 +435,9 @@ export async function POST(request: Request) {
     let donorEmailForDb: string | null = donorEmail || null;
 
     if (isAnonymous) {
+      // Anonymous donors: store "Anonymous Donor" as name, but KEEP email for receipts
       donorDisplayNameForDb = 'Anonymous Donor';
-      donorEmailForDb = null;
+      // donorEmailForDb keeps the email value for receipt purposes
     } else if (firstName || lastName) {
       donorDisplayNameForDb = `${firstName || ''} ${lastName || ''}`.trim();
       if (donorDisplayNameForDb === '') {
@@ -463,6 +468,9 @@ export async function POST(request: Request) {
         stripeCustomerId: stripeCustomerId,
         idempotencyKey: idempotencyKey,
         processingFeeCoveredByDonor: calculatedProcessingFeeInCents,
+        isAnonymous: isAnonymous,
+        isInternational: isInternational || false,
+        donorCountry: donorCountry || null,
       },
     });
     } catch (dbError: unknown) {

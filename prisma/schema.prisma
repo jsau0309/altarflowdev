@@ -86,6 +86,9 @@ model DonationTransaction {
   paymentMethodDetails        Json?
   stripeFee                   Int?
   stripePayoutId              String?
+  isAnonymous                 Boolean      @default(false)
+  isInternational             Boolean      @default(false)
+  donorCountry                String?
   Church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
   DonationType                DonationType @relation(fields: [donationTypeId], references: [id])
   Donor                       Donor?       @relation(fields: [donorId], references: [id])

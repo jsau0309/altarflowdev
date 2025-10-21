@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Filter, Plus, Users, X, DollarSign, Edit3, Lock, ArrowLeft, Calendar as CalendarIcon } from "lucide-react"
+import { Filter, Plus, Users, X, DollarSign, Edit3, Lock, ArrowLeft, Calendar as CalendarIcon, Globe } from "lucide-react"
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getDonationTransactions } from "@/lib/actions/donations.actions";
 import LoaderOne from "@/components/ui/loader-one";
 import { getDonors } from "@/lib/actions/donors.actions";
@@ -650,7 +651,25 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                               return (
                                 <TableRow key={donation.id} onClick={() => handleViewDonationDetails(donation.id)} className="cursor-pointer">
                                   <TableCell>{format(parseISO(donation.transactionDate), 'PP')}</TableCell>
-                                  <TableCell>{donation.donorName}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-1.5">
+                                      {donation.isAnonymous
+                                        ? `Anonymous${donation.isInternational && donation.donorCountry ? ` (${donation.donorCountry})` : ''}`
+                                        : donation.donorName}
+                                      {donation.isInternational && !donation.isAnonymous && donation.donorCountry && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Globe className="h-3.5 w-3.5 text-blue-600" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              <p>{donation.donorCountry}</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+                                    </div>
+                                  </TableCell>
                                   <TableCell>{t(`donations:methods.${getPaymentMethodKey(donation.paymentMethodType)}`, donation.paymentMethodType)}</TableCell>
                                   <TableCell>{donation.donationTypeName}</TableCell>
                                   <TableCell className="text-right">${parseFloat(donation.amount).toFixed(2)}</TableCell>

@@ -212,4 +212,8 @@ export type DonationTransactionFE = Omit<Donation, 'amount'> & {
   disputeStatus?: string | null;
   disputeReason?: string | null;
   disputedAt?: string | null; // ISO string
+  // Anonymous/International donor fields
+  isAnonymous?: boolean;
+  isInternational?: boolean;
+  donorCountry?: string | null;
 };

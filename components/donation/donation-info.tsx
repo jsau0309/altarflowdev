@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import 'react-phone-number-input/style.css';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Check } from 'lucide-react'; // Import Check icon
 import { DonationFormData, PhoneVerificationStage } from './donation-form'; // Import types
+import countryList from 'react-select-country-list';
 
 interface DonationInfoProps {
   formData: DonationFormData;
@@ -44,6 +45,9 @@ export default function DonationInfo({
 }: DonationInfoProps) {
   const { t } = useTranslation(['donations', 'members', 'common']);
 
+  // Get country options from the library
+  const countryOptions = useMemo(() => countryList().getData(), []);
+
   const handleFinalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Potentially add final validation here before calling onNext
@@ -51,15 +55,31 @@ export default function DonationInfo({
   };
 
   const handleAnonymousChange = (checked: boolean) => {
-    updateFormData({ isAnonymous: checked });
     if (checked) {
-      // If checking anonymous, directly go to PII (which will be minimal)
+      // If checking anonymous, uncheck international and go to PII collection
+      updateFormData({ isAnonymous: true, isInternational: false });
       setPhoneVerificationStage('anonymous_selected');
-      // Clear phone and OTP related fields if they were considering verification
-      updateFormData({ phone: '' });
+      // Clear phone, OTP, and country fields
+      updateFormData({ phone: '', donorCountry: '' });
       setEnteredOtp('');
     } else {
       // If unchecking anonymous, go back to initial phone entry stage
+      updateFormData({ isAnonymous: false });
+      setPhoneVerificationStage('initial');
+    }
+  };
+
+  const handleInternationalChange = (checked: boolean) => {
+    if (checked) {
+      // If checking international, uncheck anonymous and skip phone verification
+      updateFormData({ isInternational: true, isAnonymous: false });
+      setPhoneVerificationStage('anonymous_selected');
+      // Clear phone and OTP related fields
+      updateFormData({ phone: '' });
+      setEnteredOtp('');
+    } else {
+      // If unchecking international, go back to initial phone entry stage
+      updateFormData({ isInternational: false, donorCountry: '' });
       setPhoneVerificationStage('initial');
     }
   };
@@ -101,15 +121,27 @@ export default function DonationInfo({
             <Button onClick={handleSendOtp} disabled={isLoadingOtpAction || !formData.phone} className="w-full">
               {isLoadingOtpAction ? t('donations:donationInfo.sendingOtp', 'Sending OTP...') : t('donations:donationInfo.verifyPhone', 'Verify Phone')}
             </Button>
-            <div className="flex items-center space-x-2 pt-2">
-              <Checkbox
-                id="anonymous-initial"
-                checked={formData.isAnonymous || false}
-                onCheckedChange={(checked) => handleAnonymousChange(!!checked)}
-              />
-              <Label htmlFor="anonymous-initial" className="text-sm font-normal text-gray-900">
-                {t('donations:donationInfo.anonymousLabel', 'Donate anonymously')}
-              </Label>
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="anonymous-initial"
+                  checked={formData.isAnonymous || false}
+                  onCheckedChange={(checked) => handleAnonymousChange(!!checked)}
+                />
+                <Label htmlFor="anonymous-initial" className="text-sm font-normal text-gray-900">
+                  {t('donations:donationInfo.anonymousLabel', 'Donate anonymously')}
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="international-initial"
+                  checked={formData.isInternational || false}
+                  onCheckedChange={(checked) => handleInternationalChange(!!checked)}
+                />
+                <Label htmlFor="international-initial" className="text-sm font-normal text-gray-900">
+                  {t('donations:donationInfo.internationalLabel', 'International donor')}
+                </Label>
+              </div>
             </div>
             {apiErrorMessage && <p className="text-sm text-red-600">{apiErrorMessage}</p>}
           </div>
@@ -177,7 +209,6 @@ export default function DonationInfo({
                   value={formData.firstName || ""}
                   onChange={(e) => updateFormData({ firstName: e.target.value })}
                   required
-                  disabled={phoneVerificationStage === 'anonymous_selected' && !formData.isAnonymous}
                   className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
                 />
               </div>
@@ -188,7 +219,6 @@ export default function DonationInfo({
                   value={formData.lastName || ""}
                   onChange={(e) => updateFormData({ lastName: e.target.value })}
                   required
-                  disabled={phoneVerificationStage === 'anonymous_selected' && !formData.isAnonymous}
                   className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
                 />
               </div>
@@ -206,7 +236,27 @@ export default function DonationInfo({
               />
             </div>
 
-            { phoneVerificationStage !== 'anonymous_selected' && (
+            { formData.isInternational && (
+              <div className="space-y-2">
+                <Label htmlFor="donorCountry" className="text-gray-900">{t('members:country', 'Country')} *</Label>
+                <select
+                  id="donorCountry"
+                  value={formData.donorCountry || ""}
+                  onChange={(e) => updateFormData({ donorCountry: e.target.value })}
+                  required
+                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
+                >
+                  <option value="">{t('members:selectCountry', 'Select your country')}</option>
+                  {countryOptions.map((country: {value: string; label: string}) => (
+                    <option key={country.value} value={country.value}>
+                      {country.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            { phoneVerificationStage !== 'anonymous_selected' && !formData.isInternational && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="street" className="text-gray-900">{t('members:address', 'Address (Street)')}</Label>
@@ -241,15 +291,31 @@ export default function DonationInfo({
             )}
             
             { phoneVerificationStage === 'anonymous_selected' && (
-                <div className="flex items-center space-x-2 pt-2">
-                    <Checkbox
-                        id="anonymous-selected-view"
-                        checked={true}
-                        onCheckedChange={(checked) => handleAnonymousChange(!!checked)}
-                    />
-                    <Label htmlFor="anonymous-selected-view" className="text-sm font-normal text-gray-900">
-                        {t('donations:donationInfo.anonymousLabel', 'Donate anonymously')}
-                    </Label>
+                <div className="space-y-2 pt-2">
+                    {formData.isAnonymous && (
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="anonymous-selected-view"
+                                checked={true}
+                                onCheckedChange={(checked) => handleAnonymousChange(!!checked)}
+                            />
+                            <Label htmlFor="anonymous-selected-view" className="text-sm font-normal text-gray-900">
+                                {t('donations:donationInfo.anonymousLabel', 'Donate anonymously')}
+                            </Label>
+                        </div>
+                    )}
+                    {formData.isInternational && (
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="international-selected-view"
+                                checked={true}
+                                onCheckedChange={(checked) => handleInternationalChange(!!checked)}
+                            />
+                            <Label htmlFor="international-selected-view" className="text-sm font-normal text-gray-900">
+                                {t('donations:donationInfo.internationalLabel', 'International donor')}
+                            </Label>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -266,7 +332,8 @@ export default function DonationInfo({
     }
   };
 
-  const areNonAnonymousFieldsFilled = 
+  // Validation for verified donors (phone verified, not anonymous, not international)
+  const areNonAnonymousFieldsFilled =
     !!formData.firstName &&
     !!formData.lastName &&
     !!formData.email &&
@@ -276,10 +343,41 @@ export default function DonationInfo({
     !!formData.zipCode &&
     !!formData.country;
 
+  // Validation for anonymous donors (firstName, lastName, email required)
+  const areAnonymousFieldsFilled =
+    !!formData.firstName &&
+    !!formData.lastName &&
+    !!formData.email;
+
+  // Validation for international donors (firstName, lastName, email, country required)
+  const areInternationalFieldsFilled =
+    !!formData.firstName &&
+    !!formData.lastName &&
+    !!formData.email &&
+    !!formData.donorCountry;
+
   const isNextButtonDisabled =
-    (phoneVerificationStage === 'verified_existing_donor' ||
+    // For verified donors who are not anonymous/international
+    ((phoneVerificationStage === 'verified_existing_donor' ||
       phoneVerificationStage === 'verified_new_donor') &&
-    !areNonAnonymousFieldsFilled;
+      !formData.isAnonymous &&
+      !formData.isInternational &&
+      !areNonAnonymousFieldsFilled) ||
+    // For anonymous donors (US only)
+    (phoneVerificationStage === 'anonymous_selected' &&
+      formData.isAnonymous &&
+      !formData.isInternational &&
+      !areAnonymousFieldsFilled) ||
+    // For international donors (not anonymous)
+    (phoneVerificationStage === 'anonymous_selected' &&
+      !formData.isAnonymous &&
+      formData.isInternational &&
+      !areInternationalFieldsFilled) ||
+    // For anonymous international donors
+    (phoneVerificationStage === 'anonymous_selected' &&
+      formData.isAnonymous &&
+      formData.isInternational &&
+      !areInternationalFieldsFilled);
 
   return (
     <div className="space-y-6">
