@@ -138,7 +138,7 @@ Bring this data to life:
       tools: tools,
       tool_choice: { type: "function", function: { name: "generate_church_summary" } },
       temperature: 0.7, // Increased for more natural, varied responses
-      max_tokens: 1000,
+      max_completion_tokens: 1000, // GPT-5 uses max_completion_tokens instead of max_tokens
     });
 
     const message = response.choices[0].message;
