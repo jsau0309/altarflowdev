@@ -33,6 +33,9 @@ interface LandingConfigUpdateData {
   buttonTextColor?: string;
   buttons?: any; // JSON array of button configurations
   ogBackgroundColor?: string;
+  announcementText?: string | null;
+  announcementLink?: string | null;
+  showAnnouncement?: boolean;
 }
 
 // GET /api/settings/landing-config - Get landing page configuration
@@ -108,6 +111,9 @@ export async function GET() {
           buttonBackgroundColor: '#FFFFFF',
           buttonTextColor: '#1F2937',
           ogBackgroundColor: '#3B82F6',
+          announcementText: null,
+          announcementLink: null,
+          showAnnouncement: false,
           buttons: [
             {
               id: 'donate',
@@ -201,6 +207,9 @@ export async function GET() {
         buttonBackgroundColor: church.LandingPageConfig.buttonBackgroundColor ?? '#FFFFFF',
         buttonTextColor: church.LandingPageConfig.buttonTextColor ?? '#1F2937',
         ogBackgroundColor: church.LandingPageConfig.ogBackgroundColor ?? '#3B82F6',
+        announcementText: church.LandingPageConfig.announcementText ?? null,
+        announcementLink: church.LandingPageConfig.announcementLink ?? null,
+        showAnnouncement: church.LandingPageConfig.showAnnouncement ?? false,
         buttons: buttons,
       },
       churchSlug: church.slug,
@@ -260,6 +269,26 @@ export async function PUT(request: Request) {
           { status: 400 }
         );
       }
+    }
+
+    // Validate announcement text length (max 200 characters)
+    if (body.announcementText && body.announcementText.length > 200) {
+      return NextResponse.json(
+        { error: "Announcement text must be 200 characters or less" },
+        { status: 400 }
+      );
+    }
+
+    // Validate announcement link URL
+    if (body.announcementLink) {
+      const validUrl = validateAndSanitizeUrl(body.announcementLink);
+      if (!validUrl) {
+        return NextResponse.json(
+          { error: "Invalid announcement link URL. Only http:// and https:// protocols are allowed." },
+          { status: 400 }
+        );
+      }
+      body.announcementLink = validUrl;
     }
 
     // Validate and sanitize social links URLs
@@ -341,6 +370,9 @@ export async function PUT(request: Request) {
         buttonBackgroundColor: body.buttonBackgroundColor ?? '#FFFFFF',
         buttonTextColor: body.buttonTextColor ?? '#1F2937',
         ogBackgroundColor: body.ogBackgroundColor ?? '#3B82F6',
+        announcementText: body.announcementText ?? null,
+        announcementLink: body.announcementLink ?? null,
+        showAnnouncement: body.showAnnouncement ?? false,
         buttons: (body.buttons || [
           {
             id: 'donate',
@@ -376,6 +408,9 @@ export async function PUT(request: Request) {
         ...(body.buttonBackgroundColor !== undefined && { buttonBackgroundColor: body.buttonBackgroundColor }),
         ...(body.buttonTextColor !== undefined && { buttonTextColor: body.buttonTextColor }),
         ...(body.ogBackgroundColor !== undefined && { ogBackgroundColor: body.ogBackgroundColor }),
+        ...(body.announcementText !== undefined && { announcementText: body.announcementText }),
+        ...(body.announcementLink !== undefined && { announcementLink: body.announcementLink }),
+        ...(body.showAnnouncement !== undefined && { showAnnouncement: body.showAnnouncement }),
         ...(body.buttons !== undefined && { buttons: body.buttons as any }),
       }
     });

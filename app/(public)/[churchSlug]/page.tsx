@@ -197,6 +197,10 @@ export default async function LandingPage(props: LandingPageProps) {
   const titleSizeClass = getTitleSizeClass(titleSize);
   const displayTitle = customTitle || church.name;
 
+  const announcementText = landingConfig?.announcementText;
+  const announcementLink = landingConfig?.announcementLink;
+  const showAnnouncement = landingConfig?.showAnnouncement || false;
+
   const socialIcons = [
     { key: 'facebook', icon: Facebook, url: socialLinks.facebook },
     { key: 'instagram', icon: Instagram, url: socialLinks.instagram },
@@ -207,9 +211,39 @@ export default async function LandingPage(props: LandingPageProps) {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center p-6 text-white"
+      className={`min-h-screen flex flex-col items-center justify-center p-6 text-white ${showAnnouncement && announcementText ? 'pt-20' : ''}`}
       style={{ background: backgroundStyle }}
     >
+      {/* Announcement Banner */}
+      {showAnnouncement && announcementText && (
+        <div className="fixed top-0 left-0 right-0 z-50 pt-safe">
+          {announcementLink ? (
+            <a
+              href={announcementLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full px-6 py-3 text-center text-sm md:text-base font-medium transition-opacity hover:opacity-90"
+              style={{
+                backgroundColor: buttonBackgroundColor,
+                color: buttonTextColor,
+              }}
+            >
+              {announcementText}
+            </a>
+          ) : (
+            <div
+              className="w-full px-6 py-3 text-center text-sm md:text-base font-medium"
+              style={{
+                backgroundColor: buttonBackgroundColor,
+                color: buttonTextColor,
+              }}
+            >
+              {announcementText}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col items-center space-y-8 w-full max-w-md">
         {/* Logo */}
         <div className="mb-2">

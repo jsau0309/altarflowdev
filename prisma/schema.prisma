@@ -458,6 +458,11 @@ model LandingPageConfig {
   buttonTextColor       String?     @default("#1F2937")
   buttons               Json?       @db.Json // Array of {id, type, label, url?, enabled, order}
 
+  // Announcement Banner
+  announcementText      String?     // Announcement text to display
+  announcementLink      String?     // Optional URL to link to
+  showAnnouncement      Boolean     @default(false) // Show/hide toggle
+
   // Timestamps
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt

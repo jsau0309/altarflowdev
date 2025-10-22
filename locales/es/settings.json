@@ -310,6 +310,18 @@
         "buttonBackgroundColor": "Color de Fondo del Botón",
         "buttonTextColor": "Color de Texto del Botón"
       },
+      "announcement": {
+        "title": "Banner de Anuncios",
+        "description": "Muestra un anuncio en la parte superior de tu página de destino",
+        "showAnnouncement": "Mostrar Anuncio",
+        "announcementText": "Texto del Anuncio",
+        "announcementTextPlaceholder": "¡Servicio especial este domingo a las 10 AM!",
+        "announcementLink": "URL del Enlace (Opcional)",
+        "announcementLinkPlaceholder": "https://ejemplo.com/evento",
+        "characterCount": "{{count}}/200 caracteres",
+        "linkNote": "Agrega una URL para hacer el banner clickeable",
+        "addEmoji": "Agregar emoji"
+      },
       "socialLinks": {
         "title": "Enlaces Sociales",
         "description": "Agrega enlaces a tus perfiles de redes sociales",

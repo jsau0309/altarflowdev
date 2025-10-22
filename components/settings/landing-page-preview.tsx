@@ -45,6 +45,9 @@ interface LandingPagePreviewProps {
   buttons?: ButtonConfig[];
   ogBackgroundColor?: string;
   onOgColorChange?: (color: string) => void;
+  announcementText?: string | null;
+  announcementLink?: string | null;
+  showAnnouncement?: boolean;
 }
 
 export function LandingPagePreview({
@@ -68,6 +71,9 @@ export function LandingPagePreview({
   buttons = [],
   ogBackgroundColor = '#3B82F6',
   onOgColorChange,
+  announcementText = null,
+  announcementLink = null,
+  showAnnouncement = false,
 }: LandingPagePreviewProps) {
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -115,6 +121,36 @@ export function LandingPagePreview({
           className="w-full h-full flex flex-col items-center p-8 pt-12 text-white overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/30"
           style={{ background: backgroundStyle }}
         >
+          {/* Announcement Banner */}
+          {showAnnouncement && announcementText && (
+            <div className="w-full -mx-8 -mt-12 mb-6">
+              {announcementLink ? (
+                <a
+                  href={announcementLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full px-6 py-3 text-center text-sm font-medium transition-opacity hover:opacity-90"
+                  style={{
+                    backgroundColor: buttonBackgroundColor,
+                    color: buttonTextColor,
+                  }}
+                >
+                  {announcementText}
+                </a>
+              ) : (
+                <div
+                  className="w-full px-6 py-3 text-center text-sm font-medium"
+                  style={{
+                    backgroundColor: buttonBackgroundColor,
+                    color: buttonTextColor,
+                  }}
+                >
+                  {announcementText}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Logo */}
           <div className="mb-2">
             <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">

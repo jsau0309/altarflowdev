@@ -20,6 +20,7 @@ import { ColorPicker } from "@/components/settings/color-picker";
 import { LandingPagePreview } from "@/components/settings/landing-page-preview";
 import { ImageDropzone } from "@/components/settings/image-dropzone";
 import { ImageCropperModal } from "@/components/settings/image-cropper-modal";
+import { EmojiPickerPopover } from "@/components/settings/emoji-picker-popover";
 
 interface SocialLinks {
   facebook?: string;
@@ -48,6 +49,9 @@ interface LandingConfig {
   buttonTextColor: string;
   buttons: ButtonConfig[];
   ogBackgroundColor: string;
+  announcementText: string | null;
+  announcementLink: string | null;
+  showAnnouncement: boolean;
 }
 
 export function LandingManagerEnhanced() {
@@ -77,6 +81,9 @@ export function LandingManagerEnhanced() {
     buttonTextColor: '#1F2937',
     buttons: [],
     ogBackgroundColor: '#3B82F6',
+    announcementText: null,
+    announcementLink: null,
+    showAnnouncement: false,
   });
 
   const [hasStripeAccount, setHasStripeAccount] = useState(false);
@@ -424,6 +431,78 @@ export function LandingManagerEnhanced() {
               />
             </CardContent>
           </Card>
+
+          {/* Announcement Banner */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("settings:landing.announcement.title", "Announcement Banner")}</CardTitle>
+              <CardDescription>
+                {t("settings:landing.announcement.description", "Display an announcement at the top of your landing page")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>{t("settings:landing.announcement.showAnnouncement", "Show Announcement")}</Label>
+                </div>
+                <Switch
+                  checked={config.showAnnouncement || false}
+                  onCheckedChange={(checked) => setConfig(prev => ({ ...prev, showAnnouncement: checked }))}
+                />
+              </div>
+
+              {config.showAnnouncement && (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="announcementText">
+                        {t("settings:landing.announcement.announcementText", "Announcement Text")}
+                      </Label>
+                      <EmojiPickerPopover
+                        onEmojiSelect={(emoji) => {
+                          const currentText = config.announcementText || '';
+                          setConfig(prev => ({
+                            ...prev,
+                            announcementText: currentText + emoji
+                          }));
+                        }}
+                        buttonText={t("settings:landing.announcement.addEmoji", "Add emoji")}
+                      />
+                    </div>
+                    <Textarea
+                      id="announcementText"
+                      placeholder={t("settings:landing.announcement.announcementTextPlaceholder", "Special service this Sunday at 10 AM!")}
+                      value={config.announcementText || ''}
+                      onChange={(e) => setConfig(prev => ({ ...prev, announcementText: e.target.value }))}
+                      maxLength={200}
+                      rows={2}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t("settings:landing.announcement.characterCount", "{{count}}/200 characters", {
+                        count: config.announcementText?.length || 0
+                      })}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="announcementLink">
+                      {t("settings:landing.announcement.announcementLink", "Link URL (Optional)")}
+                    </Label>
+                    <Input
+                      id="announcementLink"
+                      type="url"
+                      placeholder={t("settings:landing.announcement.announcementLinkPlaceholder", "https://example.com/event")}
+                      value={config.announcementLink || ''}
+                      onChange={(e) => setConfig(prev => ({ ...prev, announcementLink: e.target.value }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t("settings:landing.announcement.linkNote", "Add a URL to make the banner clickable")}
+                    </p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Appearance Tab */}
@@ -643,6 +722,9 @@ export function LandingManagerEnhanced() {
             buttons={config.buttons}
             ogBackgroundColor={config.ogBackgroundColor}
             onOgColorChange={(color) => setConfig(prev => ({ ...prev, ogBackgroundColor: color }))}
+            announcementText={config.announcementText}
+            announcementLink={config.announcementLink}
+            showAnnouncement={config.showAnnouncement}
           />
         </div>
       </div>
