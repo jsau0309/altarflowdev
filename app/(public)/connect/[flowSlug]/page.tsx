@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import { getPublicFlowBySlug } from '@/lib/actions/flows.actions';
-import ConnectForm from '@/components/connect/connect-form'; // Adjust path if created elsewhere
+import ConnectForm from '@/components/connect/connect-form';
+import { prisma } from '@/lib/db';
+import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
 
 // Ensure page is dynamically rendered
 export const dynamic = "force-dynamic"; 
@@ -24,17 +26,33 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
   // Handle flow not found or disabled
   if (!flowData) {
     console.log(`ConnectFlowPage: Flow not found or disabled for slug: ${flowSlug}`);
-    // You could render a specific "Not Found" component here
-    // or use Next.js notFound() to render the default 404 page.
     notFound();
   }
+
+  // Get church information and landing config
+  const church = await prisma.church.findUnique({
+    where: { id: flowData.churchId },
+    select: {
+      id: true,
+      name: true,
+      LandingPageConfig: true
+    }
+  });
+
+  // Get background style from landing config or use default
+  const backgroundStyle = church?.LandingPageConfig
+    ? getBackgroundStyle(church.LandingPageConfig.backgroundType, church.LandingPageConfig.backgroundValue)
+    : 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)';
+
+  // Get display title - use customTitle from landing config or fall back to church name
+  const displayTitle = church?.LandingPageConfig?.customTitle || church?.name || flowData.churchName;
 
   // TODO: Proper parsing and validation of configJson before passing to client
   let parsedConfig: any;
   try {
     if (typeof flowData.configJson === 'object' && flowData.configJson !== null) {
       // Assuming configJson is already an object from Prisma JSON type
-      parsedConfig = flowData.configJson; 
+      parsedConfig = flowData.configJson;
     } else {
       throw new Error("Invalid configJson format");
     }
@@ -52,17 +70,17 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
   }
 
   return (
-    <div 
-      className="min-h-screen py-8 flex flex-col justify-center sm:py-12" 
-      style={{ background: 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)' }}
+    <div
+      className="min-h-screen py-8 flex flex-col justify-center sm:py-12"
+      style={{ background: backgroundStyle }}
     >
       <div className="container mx-auto">
         {/* Render the new ConnectForm client component, passing required props */}
-        <ConnectForm 
+        <ConnectForm
           flowId={flowData.id}
-          churchName={flowData.churchName}
+          churchName={displayTitle}
           // Pass the parsed config safely
-          config={parsedConfig} 
+          config={parsedConfig}
         />
       </div>
     </div>

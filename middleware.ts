@@ -8,7 +8,10 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',
   '/api/clerk-webhook(.*)',
   '/api/public(.*)',
+  '/api/og(.*)',
   '/(.*)/nfc-landing(.*)',
+  '/donate/(.*)',
+  '/connect/(.*)',
   '/unsubscribe(.*)',
   '/api/communication/unsubscribe(.*)',
   '/api/communication/resubscribe(.*)',
@@ -18,6 +21,33 @@ const isPublicRoute = createRouteMatcher([
   '/privacy-policy',
   '/terms-of-service',
 ])
+
+// Define protected routes (these take precedence over church slug matching)
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/settings(.*)',
+  '/onboarding(.*)',
+  '/invitation-pending',
+  '/after-signup',
+  '/api/settings(.*)',
+  '/api/admin(.*)',
+  '/api/upload(.*)',
+])
+
+// Check if a path could be a church slug (single segment, not a protected route)
+function isLikelyChurchSlugRoute(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean);
+  // Church slug routes are exactly one segment long
+  // and not in the protected/reserved list
+  const reservedPaths = [
+    'dashboard', 'settings', 'onboarding', 'signin', 'signup',
+    'api', '_next', 'invitation-pending', 'after-signup',
+    'waitlist-full', 'book-demo', 'privacy-policy', 'terms-of-service',
+    'unsubscribe', 'connect', 'donate'
+  ];
+
+  return segments.length === 1 && !reservedPaths.includes(segments[0]);
+}
 
 // Define onboarding routes
 const isOnboardingRoute = createRouteMatcher([
@@ -44,6 +74,11 @@ export default clerkMiddleware(async (auth, req) => {
   
   // Skip checks for public routes
   if (isPublicRoute(req)) {
+    return NextResponse.next()
+  }
+
+  // Allow church slug landing pages (e.g., /church-abc)
+  if (isLikelyChurchSlugRoute(req.nextUrl.pathname)) {
     return NextResponse.next()
   }
 

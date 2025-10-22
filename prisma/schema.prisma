@@ -43,6 +43,7 @@ model Church {
   Member               Member[]
   PayoutSummary        PayoutSummary[]
   StripeConnectAccount StripeConnectAccount?
+  LandingPageConfig    LandingPageConfig?
 
   @@index([clerkOrgId])
   @@index([slug])
@@ -419,6 +420,57 @@ model idempotency_cache {
   key          String   @id @db.VarChar(255)
   responseData String
   expiresAt    DateTime
+}
+
+/// Landing page customization settings for churches
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model LandingPageConfig {
+  id                String          @id @default(uuid()) @db.Uuid
+  churchId          String          @unique @db.Uuid
+
+  // Branding
+  logoUrl           String?
+  logoPath          String?         // Supabase storage path
+  description       String?         @db.Text
+
+  // Title Customization
+  customTitle       String?         // Optional override of church name
+  titleFont         String          @default("Modern")
+  titleSize         String          @default("Large")
+  titleColor        String          @default("#1F2937") // Default dark gray
+
+  // Background customization
+  backgroundType    BackgroundType  @default(PRESET)
+  backgroundValue   String?         // Preset ID, hex color, or image URL
+
+  // Social Media Links (stored as JSON for flexibility)
+  socialLinks       Json?           @db.Json
+
+  // Button Settings (Legacy - kept for backward compatibility)
+  showDonateButton  Boolean         @default(false)
+  showConnectButton Boolean         @default(false)
+  donateButtonText  String          @default("Donate")
+  connectButtonText String          @default("Connect")
+
+  // New Button System (Unified & Sortable)
+  buttonBackgroundColor String?     @default("#FFFFFF")
+  buttonTextColor       String?     @default("#1F2937")
+  buttons               Json?       @db.Json // Array of {id, type, label, url?, enabled, order}
+
+  // Timestamps
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  Church            Church          @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@index([churchId])
+}
+
+enum BackgroundType {
+  PRESET
+  GRADIENT
+  SOLID
+  IMAGE
 }
 
 enum EmailStatus {

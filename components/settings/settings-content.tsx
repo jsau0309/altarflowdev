@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Shield, Globe } from "lucide-react";
+import { Settings, Shield } from "lucide-react";
 import { GeneralSettings } from "./general-settings";
-import { LandingManager } from "./landing-manager-simple";
 import { AccountManagement } from "./account-management";
 import { useSearchParams } from "next/navigation";
 
@@ -16,7 +15,7 @@ export function SettingsContent() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["general", "account", "landing"].includes(tab)) {
+    if (tab && ["general", "account"].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -33,18 +32,12 @@ export function SettingsContent() {
       label: t("settings:tabs.account", "Account Management"),
       icon: Shield,
       description: t("settings:tabs.accountDesc", "Manage users and permissions")
-    },
-    {
-      id: "landing",
-      label: t("settings:tabs.landing", "Landing Manager"),
-      icon: Globe,
-      description: t("settings:tabs.landingDesc", "Customize your church's public page")
     }
   ];
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-      <TabsList className="grid grid-cols-1 md:grid-cols-3 gap-2 h-auto">
+      <TabsList className="grid grid-cols-1 md:grid-cols-2 gap-2 h-auto">
         {settingsSections.map((section) => {
           const Icon = section.icon;
           return (
@@ -66,10 +59,6 @@ export function SettingsContent() {
 
       <TabsContent value="account" className="space-y-4">
         <AccountManagement />
-      </TabsContent>
-
-      <TabsContent value="landing" className="space-y-4">
-        <LandingManager />
       </TabsContent>
     </Tabs>
   );
