@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useOrganization } from "@clerk/nextjs";
-import QRCode from "react-qr-code";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -12,10 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Download, QrCode, Eye, Upload, X, Facebook, Instagram, Twitter, Youtube, Globe } from "lucide-react";
+import { X, Facebook, Instagram, Twitter, Youtube, Globe, User, Edit2 } from "lucide-react";
 import LoaderOne from "@/components/ui/loader-one";
 import { BACKGROUND_PRESETS } from "@/lib/landing-page/background-presets";
 import Image from "next/image";
+import { ButtonManager, ButtonConfig } from "@/components/settings/button-manager";
+import { ColorPicker } from "@/components/settings/color-picker";
+import { LandingPagePreview } from "@/components/settings/landing-page-preview";
+import { ImageDropzone } from "@/components/settings/image-dropzone";
+import { ImageCropperModal } from "@/components/settings/image-cropper-modal";
 
 interface SocialLinks {
   facebook?: string;
@@ -29,6 +33,10 @@ interface LandingConfig {
   logoUrl: string | null;
   logoPath: string | null;
   description: string | null;
+  customTitle: string | null;
+  titleFont: string;
+  titleSize: string;
+  titleColor: string;
   backgroundType: string;
   backgroundValue: string | null;
   socialLinks: SocialLinks;
@@ -36,6 +44,9 @@ interface LandingConfig {
   showConnectButton: boolean;
   donateButtonText: string;
   connectButtonText: string;
+  buttonBackgroundColor: string;
+  buttonTextColor: string;
+  buttons: ButtonConfig[];
 }
 
 export function LandingManagerEnhanced() {
@@ -43,15 +54,17 @@ export function LandingManagerEnhanced() {
   const { organization } = useOrganization();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [churchSlug, setChurchSlug] = useState<string>("");
   const [churchName, setChurchName] = useState<string>("");
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
 
   const [config, setConfig] = useState<LandingConfig>({
     logoUrl: null,
     logoPath: null,
     description: null,
+    customTitle: null,
+    titleFont: 'Modern',
+    titleSize: 'Large',
+    titleColor: '#FFFFFF',
     backgroundType: 'PRESET',
     backgroundValue: 'preset-1',
     socialLinks: {},
@@ -59,7 +72,20 @@ export function LandingManagerEnhanced() {
     showConnectButton: false,
     donateButtonText: 'Donate',
     connectButtonText: 'Connect',
+    buttonBackgroundColor: '#FFFFFF',
+    buttonTextColor: '#1F2937',
+    buttons: [],
   });
+
+  const [hasStripeAccount, setHasStripeAccount] = useState(false);
+  const [hasActiveFlow, setHasActiveFlow] = useState(false);
+
+  // Image upload state
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
+  const [isEditingExistingLogo, setIsEditingExistingLogo] = useState(false);
 
   // Load settings
   useEffect(() => {
@@ -75,12 +101,13 @@ export function LandingManagerEnhanced() {
         setChurchSlug(data.churchSlug);
         setChurchName(data.churchName);
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        setQrCodeUrl(`${baseUrl}/${data.churchSlug}`);
-
         if (data.hasConfig) {
           setConfig(data.config);
         }
+
+        // Load Stripe and Flow availability
+        setHasStripeAccount(data.hasStripeAccount || false);
+        setHasActiveFlow(data.hasActiveFlow || false);
 
         setIsLoading(false);
       } catch (error) {
@@ -95,68 +122,48 @@ export function LandingManagerEnhanced() {
     }
   }, [organization, t]);
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 5MB.");
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-      const formData = new FormData();
-      formData.append('logo', file);
-
-      const response = await fetch('/api/upload/landing-logo', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Upload failed');
-      }
-
-      const data = await response.json();
-      setConfig(prev => ({
-        ...prev,
-        logoUrl: data.logoUrl,
-        logoPath: data.logoPath,
-      }));
-
-      toast.success("Logo uploaded successfully");
-    } catch (error) {
-      console.error("Logo upload failed:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to upload logo");
-    } finally {
-      setIsUploading(false);
-    }
+  // Handle image selection from dropzone
+  const handleImageSelected = (file: File) => {
+    setSelectedImage(file);
+    setIsEditingExistingLogo(false); // New upload, not editing
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+      setShowCropper(true);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleRemoveLogo = async () => {
-    if (!config.logoPath) return;
+  // Handle cropped image
+  const handleCropComplete = (croppedBlob: Blob) => {
+    setCroppedImageBlob(croppedBlob);
+    // Create preview URL for the cropped image
+    const previewUrl = URL.createObjectURL(croppedBlob);
+    setConfig(prev => ({
+      ...prev,
+      logoUrl: previewUrl, // Temporary preview
+    }));
+    setShowCropper(false);
+  };
 
-    try {
-      const response = await fetch('/api/upload/landing-logo', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logoPath: config.logoPath }),
-      });
+  // Handle logo removal
+  const handleRemoveLogo = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setCroppedImageBlob(null);
+    setConfig(prev => ({
+      ...prev,
+      logoUrl: null,
+      logoPath: null,
+    }));
+  };
 
-      if (response.ok) {
-        setConfig(prev => ({
-          ...prev,
-          logoUrl: null,
-          logoPath: null,
-        }));
-        toast.success("Logo removed");
-      }
-    } catch (error) {
-      console.error("Failed to remove logo:", error);
-      toast.error("Failed to remove logo");
+  // Handle logo edit (reopen cropper with current logo)
+  const handleEditLogo = () => {
+    if (config.logoUrl) {
+      setImagePreview(config.logoUrl);
+      setIsEditingExistingLogo(true); // Editing existing, not new upload
+      setShowCropper(true);
     }
   };
 
@@ -164,16 +171,56 @@ export function LandingManagerEnhanced() {
     try {
       setIsSaving(true);
 
+      // Step 1: Upload logo if there's a new cropped image
+      let logoUrl = config.logoUrl;
+      let logoPath = config.logoPath;
+
+      if (croppedImageBlob) {
+        const formData = new FormData();
+        formData.append('logo', croppedImageBlob, selectedImage?.name || 'logo.jpg');
+
+        const uploadResponse = await fetch('/api/upload/landing-logo', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          const error = await uploadResponse.json();
+          throw new Error(error.error || 'Logo upload failed');
+        }
+
+        const uploadData = await uploadResponse.json();
+        logoUrl = uploadData.logoUrl;
+        logoPath = uploadData.logoPath;
+      }
+
+      // Step 2: Save all settings including the uploaded logo URL
       const response = await fetch("/api/settings/landing-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
+        body: JSON.stringify({
+          ...config,
+          logoUrl,
+          logoPath,
+        }),
       });
 
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to save settings");
       }
+
+      // Update local state with the real URLs
+      setConfig(prev => ({
+        ...prev,
+        logoUrl,
+        logoPath,
+      }));
+
+      // Clear temporary image state
+      setCroppedImageBlob(null);
+      setSelectedImage(null);
+      setImagePreview(null);
 
       toast.success(t("settings:landing.saved", "Landing page settings saved successfully"));
     } catch (error) {
@@ -188,49 +235,6 @@ export function LandingManagerEnhanced() {
     }
   };
 
-  const handleDownloadQR = () => {
-    const svg = document.getElementById("landing-qr-code");
-    if (!svg) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = 512;
-    canvas.height = 512;
-
-    if (ctx) {
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, 512, 512);
-
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${churchSlug || 'church'}-landing-qr.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }
-        }, 'image/png');
-      };
-
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const svgUrl = URL.createObjectURL(svgBlob);
-      img.src = svgUrl;
-    }
-  };
-
-  const handlePreview = () => {
-    window.open(qrCodeUrl, "_blank");
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -241,16 +245,20 @@ export function LandingManagerEnhanced() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="branding" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="branding">Branding</TabsTrigger>
-          <TabsTrigger value="background">Background</TabsTrigger>
-          <TabsTrigger value="social">Social Links</TabsTrigger>
-          <TabsTrigger value="qr">QR Code</TabsTrigger>
-        </TabsList>
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column: Settings */}
+        <div>
+          <Tabs defaultValue="branding" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="branding">Branding</TabsTrigger>
+              <TabsTrigger value="appearance">Appearance</TabsTrigger>
+              <TabsTrigger value="social">Social</TabsTrigger>
+            </TabsList>
 
         {/* Branding Tab */}
         <TabsContent value="branding" className="space-y-4">
+          {/* Church Branding */}
           <Card>
             <CardHeader>
               <CardTitle>Church Branding</CardTitle>
@@ -260,56 +268,72 @@ export function LandingManagerEnhanced() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Logo Upload */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label>Church Logo</Label>
-                <div className="flex items-center gap-4">
-                  {config.logoUrl ? (
-                    <div className="relative w-32 h-32 rounded-lg overflow-hidden border">
+
+                {config.logoUrl ? (
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-border shadow-md bg-[linear-gradient(45deg,#e5e7eb_25%,transparent_25%,transparent_75%,#e5e7eb_75%,#e5e7eb),linear-gradient(45deg,#e5e7eb_25%,transparent_25%,transparent_75%,#e5e7eb_75%,#e5e7eb)] bg-[length:20px_20px] bg-[position:0_0,10px_10px]">
                       <Image
                         src={config.logoUrl}
                         alt="Church logo"
                         fill
                         className="object-cover"
                       />
-                      <button
-                        onClick={handleRemoveLogo}
-                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
                     </div>
-                  ) : (
-                    <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-                      <Upload className="h-8 w-8 text-gray-400" />
+                    <div className="flex-1 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        {croppedImageBlob ? (
+                          <>Logo ready to upload. Click "Save All Changes" to confirm.</>
+                        ) : (
+                          <>Current logo</>
+                        )}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleEditLogo}
+                          className="flex-1"
+                        >
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemoveLogo}
+                          className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                      id="logo-upload"
-                      disabled={isUploading}
-                    />
-                    <Label htmlFor="logo-upload">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={isUploading}
-                        onClick={() => document.getElementById('logo-upload')?.click()}
-                        asChild
-                      >
-                        <span>
-                          {isUploading ? "Uploading..." : "Upload Logo"}
-                        </span>
-                      </Button>
-                    </Label>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Recommended: Square image, at least 400x400px, max 5MB
-                    </p>
                   </div>
-                </div>
+                ) : (
+                  <ImageDropzone
+                    onImageSelected={handleImageSelected}
+                    disabled={isSaving}
+                  />
+                )}
+              </div>
+
+              {/* Custom Title */}
+              <div className="space-y-2">
+                <Label htmlFor="custom-title">Custom Title (Optional)</Label>
+                <Input
+                  id="custom-title"
+                  placeholder={churchName || "Enter custom title"}
+                  value={config.customTitle || ''}
+                  onChange={(e) => setConfig(prev => ({ ...prev, customTitle: e.target.value }))}
+                  maxLength={50}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Leave empty to use your church name
+                </p>
               </div>
 
               {/* Description */}
@@ -321,77 +345,88 @@ export function LandingManagerEnhanced() {
                   value={config.description || ''}
                   onChange={(e) => setConfig(prev => ({ ...prev, description: e.target.value }))}
                   rows={4}
-                  maxLength={500}
+                  maxLength={160}
                 />
                 <p className="text-sm text-muted-foreground">
-                  {config.description?.length || 0}/500 characters
+                  {config.description?.length || 0}/160 characters
                 </p>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Button Settings */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg border">
-                  <div className="space-y-0.5 flex-1">
-                    <Label htmlFor="donate-toggle">Show Donate Button</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Allow visitors to make donations
-                    </p>
-                  </div>
-                  <Switch
-                    id="donate-toggle"
-                    checked={config.showDonateButton}
-                    onCheckedChange={(checked) =>
-                      setConfig(prev => ({ ...prev, showDonateButton: checked }))
-                    }
-                  />
-                </div>
-
-                {config.showDonateButton && (
-                  <div className="space-y-2 ml-4">
-                    <Label htmlFor="donate-text">Button Text</Label>
-                    <Input
-                      id="donate-text"
-                      value={config.donateButtonText}
-                      onChange={(e) => setConfig(prev => ({ ...prev, donateButtonText: e.target.value }))}
-                      maxLength={20}
-                    />
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between p-4 rounded-lg border">
-                  <div className="space-y-0.5 flex-1">
-                    <Label htmlFor="connect-toggle">Show Connect Button</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Let visitors fill out your member form
-                    </p>
-                  </div>
-                  <Switch
-                    id="connect-toggle"
-                    checked={config.showConnectButton}
-                    onCheckedChange={(checked) =>
-                      setConfig(prev => ({ ...prev, showConnectButton: checked }))
-                    }
-                  />
-                </div>
-
-                {config.showConnectButton && (
-                  <div className="space-y-2 ml-4">
-                    <Label htmlFor="connect-text">Button Text</Label>
-                    <Input
-                      id="connect-text"
-                      value={config.connectButtonText}
-                      onChange={(e) => setConfig(prev => ({ ...prev, connectButtonText: e.target.value }))}
-                      maxLength={20}
-                    />
-                  </div>
-                )}
+          {/* Title Styling */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Title Styling</CardTitle>
+              <CardDescription>
+                Customize how your church name appears
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Font Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="title-font">Font</Label>
+                <select
+                  id="title-font"
+                  value={config.titleFont}
+                  onChange={(e) => setConfig(prev => ({ ...prev, titleFont: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                >
+                  <option value="Modern">Modern</option>
+                  <option value="Elegant">Elegant</option>
+                  <option value="Bold">Bold</option>
+                  <option value="Classic">Classic</option>
+                  <option value="Playful">Playful</option>
+                </select>
               </div>
+
+              {/* Size Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="title-size">Size</Label>
+                <select
+                  id="title-size"
+                  value={config.titleSize}
+                  onChange={(e) => setConfig(prev => ({ ...prev, titleSize: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                >
+                  <option value="Small">Small</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Large">Large</option>
+                  <option value="Extra Large">Extra Large</option>
+                </select>
+              </div>
+
+              {/* Color Selection */}
+              <ColorPicker
+                label="Title Color"
+                color={config.titleColor}
+                onChange={(color) => setConfig(prev => ({ ...prev, titleColor: color }))}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Button Manager */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Buttons</CardTitle>
+              <CardDescription>
+                Manage buttons on your landing page
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ButtonManager
+                buttons={config.buttons}
+                onButtonsChange={(buttons) => setConfig(prev => ({ ...prev, buttons }))}
+                hasStripeAccount={hasStripeAccount}
+                hasActiveFlow={hasActiveFlow}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Background Tab */}
-        <TabsContent value="background" className="space-y-4">
+        {/* Appearance Tab */}
+        <TabsContent value="appearance" className="space-y-4">
+          {/* Background Style */}
           <Card>
             <CardHeader>
               <CardTitle>Background Style</CardTitle>
@@ -400,29 +435,90 @@ export function LandingManagerEnhanced() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {BACKGROUND_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    onClick={() => setConfig(prev => ({
-                      ...prev,
-                      backgroundType: 'PRESET',
-                      backgroundValue: preset.id,
-                    }))}
-                    className={`relative h-24 rounded-lg overflow-hidden border-2 transition-all ${
-                      config.backgroundType === 'PRESET' && config.backgroundValue === preset.id
-                        ? 'border-blue-500 ring-2 ring-blue-200'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                    style={{ background: preset.preview }}
-                  >
-                    <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-opacity" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-2">
-                      {preset.name}
-                    </div>
-                  </button>
-                ))}
+              {/* Preset Backgrounds */}
+              <div className="space-y-2">
+                <Label>Preset Backgrounds</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {BACKGROUND_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => setConfig(prev => ({
+                        ...prev,
+                        backgroundType: 'PRESET',
+                        backgroundValue: preset.id,
+                      }))}
+                      className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                        config.backgroundType === 'PRESET' && config.backgroundValue === preset.id
+                          ? 'border-blue-500 ring-2 ring-blue-200'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      style={{ background: preset.preview }}
+                    >
+                      <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-opacity" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1.5">
+                        {preset.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {/* Solid Color Option */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={config.backgroundType === 'SOLID'}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setConfig(prev => ({
+                          ...prev,
+                          backgroundType: 'SOLID',
+                          backgroundValue: prev.backgroundValue || '#4F46E5',
+                        }));
+                      } else {
+                        setConfig(prev => ({
+                          ...prev,
+                          backgroundType: 'PRESET',
+                          backgroundValue: 'preset-1',
+                        }));
+                      }
+                    }}
+                  />
+                  <Label>Use Solid Color</Label>
+                </div>
+                {config.backgroundType === 'SOLID' && (
+                  <div className="mt-4 p-4 border rounded-lg bg-muted">
+                    <ColorPicker
+                      label="Background Color"
+                      color={config.backgroundValue || '#4F46E5'}
+                      onChange={(color) => setConfig(prev => ({ ...prev, backgroundValue: color }))}
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Button Styling */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Button Styling</CardTitle>
+              <CardDescription>
+                Customize button appearance
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ColorPicker
+                label="Button Background Color"
+                color={config.buttonBackgroundColor}
+                onChange={(color) => setConfig(prev => ({ ...prev, buttonBackgroundColor: color }))}
+              />
+
+              <ColorPicker
+                label="Button Text Color"
+                color={config.buttonTextColor}
+                onChange={(color) => setConfig(prev => ({ ...prev, buttonTextColor: color }))}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -519,55 +615,33 @@ export function LandingManagerEnhanced() {
             </CardContent>
           </Card>
         </TabsContent>
+          </Tabs>
+        </div>
 
-        {/* QR Code Tab */}
-        <TabsContent value="qr" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <QrCode className="h-5 w-5" />
-                Landing Page QR Code
-              </CardTitle>
-              <CardDescription>
-                Share this QR code for quick access to your landing page
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="bg-white p-6 rounded-lg border shadow-sm">
-                  <QRCode
-                    id="landing-qr-code"
-                    value={qrCodeUrl}
-                    size={250}
-                    level="H"
-                    bgColor="#FFFFFF"
-                    fgColor="#000000"
-                  />
-                </div>
-
-                <div className="flex-1 space-y-4">
-                  <div>
-                    <Label>Landing Page URL</Label>
-                    <p className="text-sm text-muted-foreground mt-1 font-mono break-all">{qrCodeUrl}</p>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button onClick={handleDownloadQR} variant="outline" className="gap-2">
-                      <Download className="h-4 w-4" />
-                      Download QR Code
-                    </Button>
-
-                    <Button onClick={handlePreview} variant="outline" className="gap-2">
-                      <Eye className="h-4 w-4" />
-                      Preview Page
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        {/* Right Column: Live Preview */}
+        <div className="lg:block hidden">
+          <LandingPagePreview
+            churchName={churchName}
+            churchSlug={churchSlug}
+            logoUrl={config.logoUrl}
+            description={config.description}
+            customTitle={config.customTitle}
+            titleFont={config.titleFont}
+            titleSize={config.titleSize}
+            titleColor={config.titleColor}
+            backgroundType={config.backgroundType}
+            backgroundValue={config.backgroundValue}
+            socialLinks={config.socialLinks}
+            showDonateButton={config.showDonateButton}
+            showConnectButton={config.showConnectButton}
+            donateButtonText={config.donateButtonText}
+            connectButtonText={config.connectButtonText}
+            buttonBackgroundColor={config.buttonBackgroundColor}
+            buttonTextColor={config.buttonTextColor}
+            buttons={config.buttons}
+          />
+        </div>
+      </div>
 
       {/* Save Button */}
       <div className="flex justify-end">
@@ -579,6 +653,17 @@ export function LandingManagerEnhanced() {
           {isSaving ? "Saving..." : "Save All Changes"}
         </Button>
       </div>
+
+      {/* Image Cropper Modal */}
+      {imagePreview && (
+        <ImageCropperModal
+          open={showCropper}
+          onClose={() => setShowCropper(false)}
+          imageSrc={imagePreview}
+          onCropComplete={handleCropComplete}
+          isEditingExisting={isEditingExistingLogo}
+        />
+      )}
     </div>
   );
 }

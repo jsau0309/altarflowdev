@@ -54,7 +54,10 @@ export default async function DonatePage(props: DonatePageProps) {
     stripeAccount.detailsSubmitted;
 
   // Get landing page settings to check if donations are enabled
-  const donationsEnabled = landingConfig?.showDonateButton ?? true;
+  // Check new button system first, fall back to legacy field
+  const buttons = (landingConfig?.buttons as any[]) ?? [];
+  const donateButton = buttons.find(btn => btn.id === 'donate');
+  const donationsEnabled = donateButton ? donateButton.enabled : (landingConfig?.showDonateButton ?? true);
 
   // Get background style from landing config or use default
   const backgroundStyle = landingConfig
@@ -63,6 +66,9 @@ export default async function DonatePage(props: DonatePageProps) {
 
   // Get church logo from landing config or use default
   const logoUrl = landingConfig?.logoUrl || '/images/Altarflow.svg';
+
+  // Get display title - use customTitle from landing config or fall back to church name
+  const displayTitle = landingConfig?.customTitle || church.name;
 
   // If donations are disabled or no active Stripe account, show error message
   if (!donationsEnabled || !hasActiveStripeAccount) {
@@ -73,14 +79,14 @@ export default async function DonatePage(props: DonatePageProps) {
             <div className="relative w-48 h-24">
               <Image
                 src={logoUrl}
-                alt={`${church.name} logo`}
+                alt={`${displayTitle} logo`}
                 fill
                 className="object-contain"
                 priority
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 text-center">
-              {church.name}
+              {displayTitle}
             </h1>
             <p className="text-gray-600 text-center">
               {!hasActiveStripeAccount
@@ -101,7 +107,7 @@ export default async function DonatePage(props: DonatePageProps) {
           <div className="relative w-48 h-24">
             <Image
               src={logoUrl}
-              alt={`${church.name} logo`}
+              alt={`${displayTitle} logo`}
               fill
               className="object-contain"
               priority
@@ -109,7 +115,7 @@ export default async function DonatePage(props: DonatePageProps) {
           </div>
           {/* Church Name Display */}
           <h1 className="text-2xl font-bold text-gray-900 text-center">
-            {church.name}
+            {displayTitle}
           </h1>
         </div>
 

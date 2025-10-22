@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',
   '/api/clerk-webhook(.*)',
   '/api/public(.*)',
+  '/api/og(.*)',
   '/(.*)/nfc-landing(.*)',
   '/donate/(.*)',
   '/connect/(.*)',

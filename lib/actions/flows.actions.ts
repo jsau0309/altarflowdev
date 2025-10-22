@@ -285,6 +285,7 @@ export async function saveFlowConfiguration(
  */
 export async function getPublicFlowBySlug(slug: string): Promise<{
     id: string;
+    churchId: string;
     configJson: Prisma.JsonValue;
     churchName: string;
 } | null> {
@@ -295,23 +296,25 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
     try {
         // First try to find by customSlug, then fall back to slug
         let flow = await prisma.flow.findFirst({
-            where: { 
-                customSlug: slug, 
-                isEnabled: true 
+            where: {
+                customSlug: slug,
+                isEnabled: true
             },
             select: {
                 id: true,
+                churchId: true,
                 configJson: true,
                 Church: { select: { name: true } }
             },
         });
-        
+
         // If not found by customSlug, try the regular slug
         if (!flow) {
             flow = await prisma.flow.findUnique({
                 where: { slug: slug, isEnabled: true },
                 select: {
                     id: true,
+                    churchId: true,
                     configJson: true,
                     Church: { select: { name: true } }
                 },
@@ -328,6 +331,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
         }
         return {
             id: flow.id,
+            churchId: flow.churchId,
             configJson: flow.configJson,
             churchName: flow.Church.name,
         };

@@ -433,6 +433,12 @@ model LandingPageConfig {
   logoPath          String?         // Supabase storage path
   description       String?         @db.Text
 
+  // Title Customization
+  customTitle       String?         // Optional override of church name
+  titleFont         String          @default("Modern")
+  titleSize         String          @default("Large")
+  titleColor        String          @default("#1F2937") // Default dark gray
+
   // Background customization
   backgroundType    BackgroundType  @default(PRESET)
   backgroundValue   String?         // Preset ID, hex color, or image URL
@@ -440,11 +446,16 @@ model LandingPageConfig {
   // Social Media Links (stored as JSON for flexibility)
   socialLinks       Json?           @db.Json
 
-  // Button Settings
+  // Button Settings (Legacy - kept for backward compatibility)
   showDonateButton  Boolean         @default(false)
   showConnectButton Boolean         @default(false)
   donateButtonText  String          @default("Donate")
   connectButtonText String          @default("Connect")
+
+  // New Button System (Unified & Sortable)
+  buttonBackgroundColor String?     @default("#FFFFFF")
+  buttonTextColor       String?     @default("#1F2937")
+  buttons               Json?       @db.Json // Array of {id, type, label, url?, enabled, order}
 
   // Timestamps
   createdAt         DateTime        @default(now())

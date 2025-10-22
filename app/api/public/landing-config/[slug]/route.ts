@@ -43,12 +43,12 @@ export async function GET(
     const activeFlows = await prisma.flow.findMany({
       where: {
         churchId: church.id,
-        status: 'PUBLISHED'
+        isEnabled: true
       },
       select: {
         id: true,
         slug: true,
-        flowType: true
+        type: true
       },
       take: 1
     });

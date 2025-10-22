@@ -34,6 +34,7 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
     where: { id: flowData.churchId },
     select: {
       id: true,
+      name: true,
       LandingPageConfig: true
     }
   });
@@ -42,6 +43,9 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
   const backgroundStyle = church?.LandingPageConfig
     ? getBackgroundStyle(church.LandingPageConfig.backgroundType, church.LandingPageConfig.backgroundValue)
     : 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)';
+
+  // Get display title - use customTitle from landing config or fall back to church name
+  const displayTitle = church?.LandingPageConfig?.customTitle || church?.name || flowData.churchName;
 
   // TODO: Proper parsing and validation of configJson before passing to client
   let parsedConfig: any;
@@ -72,11 +76,11 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
     >
       <div className="container mx-auto">
         {/* Render the new ConnectForm client component, passing required props */}
-        <ConnectForm 
+        <ConnectForm
           flowId={flowData.id}
-          churchName={flowData.churchName}
+          churchName={displayTitle}
           // Pass the parsed config safely
-          config={parsedConfig} 
+          config={parsedConfig}
         />
       </div>
     </div>

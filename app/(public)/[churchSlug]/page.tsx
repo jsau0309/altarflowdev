@@ -4,8 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getChurchBySlug } from '@/lib/actions/church.actions';
 import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
+import { getTitleFont, getTitleSizeClass } from '@/lib/landing-page/font-config';
 import { prisma } from '@/lib/db';
-import { Facebook, Instagram, Twitter, Youtube, Globe } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Youtube, Globe, User } from 'lucide-react';
 
 interface LandingPageProps {
   params: Promise<{
@@ -24,9 +25,51 @@ export async function generateMetadata(props: LandingPageProps): Promise<Metadat
     };
   }
 
+  const { church } = churchData;
+
+  // Get landing page configuration for custom metadata
+  const landingConfig = await prisma.landingPageConfig.findUnique({
+    where: { churchId: church.id }
+  });
+
+  // Use custom title or fall back to church name
+  const displayTitle = landingConfig?.customTitle || church.name;
+
+  // Use custom description or create a default one
+  const description = landingConfig?.description ||
+    `Connect with ${church.name}. Visit our landing page to learn more about our community.`;
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
+  const pageUrl = `${baseUrl}/${churchSlug}`;
+
+  // Generate dynamic OG image URL (Linktree-style preview card)
+  const ogImageUrl = `${baseUrl}/api/og/${churchSlug}`;
+
   return {
-    title: `${churchData.church.name} | Altarflow`,
-    description: `Connect with ${churchData.church.name}`,
+    title: displayTitle,
+    description: description,
+    openGraph: {
+      title: displayTitle,
+      description: description,
+      url: pageUrl,
+      siteName: 'Altarflow',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${displayTitle} - Share on Altarflow`,
+        }
+      ],
+      locale: 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: displayTitle,
+      description: description,
+      images: [ogImageUrl],
+    },
   };
 }
 
@@ -61,7 +104,7 @@ export default async function LandingPage(props: LandingPageProps) {
   const activeFlows = await prisma.flow.findMany({
     where: {
       churchId: church.id,
-      status: 'PUBLISHED'
+      isEnabled: true
     },
     select: {
       slug: true
@@ -72,17 +115,56 @@ export default async function LandingPage(props: LandingPageProps) {
   const hasActiveFlow = activeFlows.length > 0;
   const connectSlug = hasActiveFlow ? activeFlows[0].slug : null;
 
-  // Determine what to show based on config or defaults
-  const showDonateButton = (landingConfig?.showDonateButton ?? false) && hasActiveStripeAccount;
-  const showConnectButton = (landingConfig?.showConnectButton ?? false) && hasActiveFlow;
+  // Get button configuration
+  const buttonBackgroundColor = landingConfig?.buttonBackgroundColor || '#FFFFFF';
+  const buttonTextColor = landingConfig?.buttonTextColor || '#1F2937';
+  const buttonsConfig = (landingConfig?.buttons as any[]) || [];
+
+  // Process buttons: filter enabled, sort by order, and add URLs
+  const visibleButtons = buttonsConfig
+    .filter(btn => btn.enabled)
+    .sort((a, b) => a.order - b.order)
+    .map(btn => {
+      if (btn.type === 'preset') {
+        if (btn.id === 'donate' && hasActiveStripeAccount) {
+          return {
+            ...btn,
+            url: `/donate/${churchSlug}`,
+            available: true
+          };
+        } else if (btn.id === 'connect' && hasActiveFlow) {
+          return {
+            ...btn,
+            url: `/connect/${connectSlug}`,
+            available: true
+          };
+        }
+        return { ...btn, available: false };
+      } else {
+        // Custom buttons always available if they have a URL
+        return {
+          ...btn,
+          available: !!btn.url
+        };
+      }
+    })
+    .filter(btn => btn.available);
 
   const backgroundStyle = landingConfig
     ? getBackgroundStyle(landingConfig.backgroundType, landingConfig.backgroundValue)
     : 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)';
 
   const socialLinks = (landingConfig?.socialLinks as any) || {};
-  const logoUrl = landingConfig?.logoUrl || '/images/Altarflow.svg';
+  const logoUrl = landingConfig?.logoUrl || null;
   const description = landingConfig?.description;
+  const customTitle = landingConfig?.customTitle;
+  const titleFont = landingConfig?.titleFont || 'Modern';
+  const titleSize = landingConfig?.titleSize || 'Large';
+  const titleColor = landingConfig?.titleColor || '#FFFFFF';
+
+  const titleFontFamily = getTitleFont(titleFont);
+  const titleSizeClass = getTitleSizeClass(titleSize);
+  const displayTitle = customTitle || church.name;
 
   const socialIcons = [
     { key: 'facebook', icon: Facebook, url: socialLinks.facebook },
@@ -94,31 +176,41 @@ export default async function LandingPage(props: LandingPageProps) {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center p-4 text-white"
+      className="min-h-screen flex flex-col items-center justify-center p-6 text-white"
       style={{ background: backgroundStyle }}
     >
-      <div className="bg-white text-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
+      <div className="flex flex-col items-center space-y-8 w-full max-w-md">
         {/* Logo */}
-        <div className="mb-6">
-          <div className="relative w-48 h-48 mx-auto rounded-full overflow-hidden bg-gray-100">
-            <Image
-              src={logoUrl}
-              alt={`${church.name} logo`}
-              fill
-              className="object-cover"
-              priority
-            />
+        <div className="mb-2">
+          <div className="relative w-48 h-48 mx-auto rounded-full overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-2xl">
+            {logoUrl ? (
+              <Image
+                src={logoUrl}
+                alt={`${church.name} logo`}
+                fill
+                className="object-cover"
+                priority
+              />
+            ) : (
+              <User className="w-24 h-24 text-white/70" strokeWidth={1.5} />
+            )}
           </div>
         </div>
 
-        {/* Church Name */}
-        <h1 className="text-3xl font-bold mb-4 text-gray-900">
-          {church.name}
+        {/* Church Title */}
+        <h1
+          className={`${titleSizeClass} font-bold mb-3 text-center drop-shadow-lg`}
+          style={{
+            fontFamily: titleFontFamily,
+            color: titleColor
+          }}
+        >
+          {displayTitle}
         </h1>
 
         {/* Description */}
         {description && (
-          <p className="text-gray-600 mb-6 leading-relaxed">
+          <p className="text-white text-center mb-6 leading-relaxed drop-shadow-md max-w-lg text-sm md:text-base">
             {description}
           </p>
         )}
@@ -132,45 +224,39 @@ export default async function LandingPage(props: LandingPageProps) {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                className="p-3 rounded-full bg-white/30 backdrop-blur-sm hover:bg-white/40 transition-colors shadow-md"
                 aria-label={key}
               >
-                <Icon className="h-5 w-5 text-gray-700" />
+                <Icon className="h-5 w-5 text-white" />
               </a>
             ))}
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="space-y-3">
-          {showDonateButton && (
-            <Link
-              href={`/donate/${churchSlug}`}
-              className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
-            >
-              {landingConfig?.donateButtonText || 'Donate'}
-            </Link>
-          )}
-
-          {showConnectButton && connectSlug && (
-            <Link
-              href={`/connect/${connectSlug}`}
-              className="block w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out"
-            >
-              {landingConfig?.connectButtonText || 'Connect'}
-            </Link>
-          )}
-
-          {!showDonateButton && !showConnectButton && (
-            <p className="text-gray-500 py-4">
-              Welcome! Check back soon for more ways to connect.
-            </p>
-          )}
-        </div>
+        {visibleButtons.length > 0 && (
+          <div className="space-y-4 w-full max-w-sm">
+            {visibleButtons.map((button) => (
+              <Link
+                key={button.id}
+                href={button.url || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center w-full font-semibold py-3 px-6 rounded-full text-base transition shadow-xl hover:shadow-2xl hover:scale-105"
+                style={{
+                  backgroundColor: buttonBackgroundColor,
+                  color: buttonTextColor,
+                }}
+              >
+                {button.label}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
-      <footer className="text-center text-xs py-4 text-white text-opacity-80 mt-4">
+      <footer className="text-center text-sm py-6 text-white/70 mt-8">
         {new Date().getFullYear()} Altarflow. All rights reserved.
       </footer>
     </div>

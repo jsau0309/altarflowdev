@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from "next-themes"
 import {
   BarChart3, CreditCard, DollarSign, LayoutDashboard,
-  Settings, Users, RefreshCcw, FileText, Lock, Mail // Removed HelpCircle and Receipt as they're no longer used
+  Settings, Users, RefreshCcw, FileText, Lock, Globe // Added Globe icon for Landing Manager
 } from "lucide-react"
 
 // Assuming hooks are in lib or similar - adjust path if needed
@@ -270,11 +270,19 @@ const Sidebar = React.forwardRef<
         isPremium: false,
       },
       {
-        name: t('layout:sidebar.communication', 'Communication'),
-        path: "/communication",
-        icon: Mail,
+        name: t('layout:sidebar.landingPage', 'Landing Page'),
+        path: "/landing-page",
+        icon: Globe,
         isPremium: false,
       },
+      // HIDDEN: Communication tab - not used much, costs money to maintain
+      // Uncomment to re-enable or delete permanently if no longer needed
+      // {
+      //   name: t('layout:sidebar.communication', 'Communication'),
+      //   path: "/communication",
+      //   icon: Mail,
+      //   isPremium: false,
+      // },
       {
         name: t('layout:sidebar.settings', 'Settings'),
         path: "/settings",
