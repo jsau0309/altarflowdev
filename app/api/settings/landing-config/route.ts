@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { BackgroundType } from "@prisma/client";
+import { validateAndSanitizeUrl, validateUrlObject } from "@/lib/validation/url-validation";
+import { validateDescription, validateCustomTitle } from "@/lib/validation/input-validation";
+import { validateButtons, safeParseButtons } from "@/lib/validation/button-validation";
 
 interface SocialLinks {
   facebook?: string;
@@ -128,8 +131,8 @@ export async function GET() {
       });
     }
 
-    // Ensure preset buttons always exist with English defaults
-    let buttons = (church.LandingPageConfig.buttons as any[]) ?? [];
+    // Ensure preset buttons always exist with English defaults - using safe parsing
+    let buttons = safeParseButtons(church.LandingPageConfig.buttons);
 
     if (buttons.length === 0) {
       // Initialize with default English labels
@@ -232,6 +235,73 @@ export async function PUT(request: Request) {
         { error: "Invalid background type" },
         { status: 400 }
       );
+    }
+
+    // Validate description length
+    if (body.description) {
+      const descValidation = validateDescription(body.description);
+      if (!descValidation.isValid) {
+        return NextResponse.json(
+          { error: descValidation.error },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate custom title length
+    if (body.customTitle) {
+      const titleValidation = validateCustomTitle(body.customTitle);
+      if (!titleValidation.isValid) {
+        return NextResponse.json(
+          { error: titleValidation.error },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate and sanitize social links URLs
+    if (body.socialLinks) {
+      const validatedLinks = validateUrlObject(body.socialLinks as Record<string, string | null | undefined>);
+
+      // Check if any URLs were invalid
+      for (const [platform, originalUrl] of Object.entries(body.socialLinks)) {
+        if (originalUrl && !validatedLinks[platform]) {
+          return NextResponse.json(
+            { error: `Invalid URL for ${platform}. Only http:// and https:// protocols are allowed.` },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Use validated URLs
+      body.socialLinks = validatedLinks as SocialLinks;
+    }
+
+    // Validate buttons if provided
+    if (body.buttons) {
+      const buttonValidation = validateButtons(body.buttons);
+      if (!buttonValidation.isValid) {
+        return NextResponse.json(
+          { error: `Button validation failed: ${buttonValidation.errors.join(', ')}` },
+          { status: 400 }
+        );
+      }
+
+      // Validate custom button URLs
+      for (const button of buttonValidation.validButtons) {
+        if (button.type === 'custom' && button.url) {
+          const validUrl = validateAndSanitizeUrl(button.url);
+          if (!validUrl) {
+            return NextResponse.json(
+              { error: `Invalid URL for button "${button.label}". Only http:// and https:// protocols are allowed.` },
+              { status: 400 }
+            );
+          }
+          button.url = validUrl;
+        }
+      }
+
+      body.buttons = buttonValidation.validButtons;
     }
 
     const church = await prisma.church.findFirst({

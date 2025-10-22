@@ -118,7 +118,8 @@ export default async function LandingPage(props: LandingPageProps) {
   // Get button configuration
   const buttonBackgroundColor = landingConfig?.buttonBackgroundColor || '#FFFFFF';
   const buttonTextColor = landingConfig?.buttonTextColor || '#1F2937';
-  const buttonsConfig = (landingConfig?.buttons as any[]) || [];
+  const { safeParseButtons } = await import('@/lib/validation/button-validation');
+  const buttonsConfig = safeParseButtons(landingConfig?.buttons);
 
   // Process buttons: filter enabled, sort by order, and add URLs
   const visibleButtons = buttonsConfig
@@ -240,8 +241,8 @@ export default async function LandingPage(props: LandingPageProps) {
               <Link
                 key={button.id}
                 href={button.url || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
+                target={button.type === 'custom' ? '_blank' : undefined}
+                rel={button.type === 'custom' ? 'noopener noreferrer' : undefined}
                 className="flex items-center justify-center w-full font-semibold py-3 px-6 rounded-full text-base transition shadow-xl hover:shadow-2xl hover:scale-105"
                 style={{
                   backgroundColor: buttonBackgroundColor,

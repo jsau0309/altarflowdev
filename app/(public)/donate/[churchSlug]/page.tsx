@@ -44,9 +44,11 @@ export default async function DonatePage(props: DonatePageProps) {
   });
 
   // Check if church has a Stripe account and if it's active
-  const stripeAccount = await prisma.stripeConnectAccount.findUnique({
-    where: { churchId: church.clerkOrgId || '' }
-  });
+  const stripeAccount = church.clerkOrgId
+    ? await prisma.stripeConnectAccount.findUnique({
+        where: { churchId: church.clerkOrgId }
+      })
+    : null;
 
   const hasActiveStripeAccount = stripeAccount &&
     stripeAccount.chargesEnabled &&
@@ -55,7 +57,9 @@ export default async function DonatePage(props: DonatePageProps) {
 
   // Get landing page settings to check if donations are enabled
   // Check new button system first, fall back to legacy field
-  const buttons = (landingConfig?.buttons as any[]) ?? [];
+  // Import the safe parser at the top of the file
+  const { safeParseButtons } = await import('@/lib/validation/button-validation');
+  const buttons = safeParseButtons(landingConfig?.buttons);
   const donateButton = buttons.find(btn => btn.id === 'donate');
   const donationsEnabled = donateButton ? donateButton.enabled : (landingConfig?.showDonateButton ?? true);
 

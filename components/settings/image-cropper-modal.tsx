@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Cropper, { Area } from 'react-easy-crop';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export function ImageCropperModal({
   onCropComplete,
   isEditingExisting = false,
 }: ImageCropperModalProps) {
+  const { t } = useTranslation();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [minZoom, setMinZoom] = useState(0.1);
@@ -36,6 +38,7 @@ export function ImageCropperModal({
     if (!imageSrc || !open) return;
 
     const img = new Image();
+
     img.onload = () => {
       // Crop area is roughly 400px (the circle diameter)
       const cropSize = 400;
@@ -68,7 +71,21 @@ export function ImageCropperModal({
       setZoom(autoFitZoom);
     };
 
+    img.onerror = (error) => {
+      console.error('Failed to load image for cropping:', error);
+    };
+
     img.src = imageSrc;
+
+    // Cleanup: Revoke object URL and clear image reference to prevent memory leak
+    return () => {
+      if (imageSrc.startsWith('blob:')) {
+        URL.revokeObjectURL(imageSrc);
+      }
+      img.onload = null;
+      img.onerror = null;
+      img.src = '';
+    };
   }, [imageSrc, open, isEditingExisting]);
 
   const onCropChange = (location: { x: number; y: number }) => {
@@ -110,7 +127,7 @@ export function ImageCropperModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Edit Image</DialogTitle>
+          <DialogTitle>{t("settings:imageCropper.title", "Edit Image")}</DialogTitle>
         </DialogHeader>
 
         {/* Cropper Area */}
@@ -153,17 +170,17 @@ export function ImageCropperModal({
             </Button>
           </div>
           <p className="text-xs text-center text-muted-foreground">
-            Drag to reposition • Scroll or use slider to zoom • Click reset to fit image
+            {t("settings:imageCropper.instructions", "Drag to reposition • Scroll or use slider to zoom • Click reset to fit image")}
           </p>
         </div>
 
         {/* Footer Actions */}
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} disabled={isCropping}>
-            Cancel
+            {t("settings:imageCropper.cancel", "Cancel")}
           </Button>
           <Button onClick={handleSave} disabled={isCropping}>
-            {isCropping ? 'Saving...' : 'Save'}
+            {isCropping ? t("settings:imageCropper.saving", "Saving...") : t("settings:imageCropper.save", "Save")}
           </Button>
         </DialogFooter>
       </DialogContent>

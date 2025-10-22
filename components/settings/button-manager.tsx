@@ -1,4 +1,5 @@
 "use client";
+import { useTranslation } from 'react-i18next';
 import {
   DndContext,
   closestCenter,
@@ -45,6 +46,7 @@ function SortableButton({
   onUrlChange,
   onDelete,
   statusInfo,
+  t,
 }: {
   button: ButtonConfig;
   onToggle: () => void;
@@ -55,6 +57,7 @@ function SortableButton({
     available: boolean;
     reason?: string;
   };
+  t: any;
 }) {
   const {
     attributes,
@@ -105,7 +108,7 @@ function SortableButton({
           <Input
             value={button.label}
             onChange={(e) => onLabelChange(e.target.value)}
-            placeholder="Button label"
+            placeholder={t("settings:buttonManager.buttonLabel", "Button label")}
             className="font-medium"
             disabled={!button.enabled}
           />
@@ -118,7 +121,7 @@ function SortableButton({
             <Input
               value={button.url || ''}
               onChange={(e) => onUrlChange?.(e.target.value)}
-              placeholder="https://example.com"
+              placeholder={t("settings:buttonManager.urlPlaceholder", "https://example.com")}
               className="text-sm"
               disabled={!button.enabled}
             />
@@ -129,7 +132,7 @@ function SortableButton({
         {isPreset && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-              {button.id === 'donate' ? 'Donate Page' : 'Connect Flow'}
+              {button.id === 'donate' ? t("settings:buttonManager.donatePage", "Donate Page") : t("settings:buttonManager.connectFlow", "Connect Flow")}
             </span>
           </div>
         )}
@@ -140,7 +143,7 @@ function SortableButton({
             {statusInfo.available ? (
               <div className="flex items-center gap-1.5 text-xs text-green-600">
                 <CheckCircle className="h-3.5 w-3.5" />
-                <span>Will show on landing page</span>
+                <span>{t("settings:buttonManager.willShow", "Will show on landing page")}</span>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-xs text-amber-600">
@@ -175,6 +178,7 @@ export function ButtonManager({
   hasStripeAccount = false,
   hasActiveFlow = false,
 }: ButtonManagerProps) {
+  const { t } = useTranslation();
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -188,7 +192,7 @@ export function ButtonManager({
       const hasUrl = !!button.url && button.url.trim().length > 0;
       return {
         available: hasUrl,
-        reason: hasUrl ? undefined : 'Add a URL to make this button visible',
+        reason: hasUrl ? undefined : t("settings:buttonManager.addUrl", "Add a URL to make this button visible"),
       };
     }
 
@@ -198,7 +202,7 @@ export function ButtonManager({
         available: hasStripeAccount,
         reason: hasStripeAccount
           ? undefined
-          : 'Set up Stripe Connect in Banking settings (paid feature)',
+          : t("settings:buttonManager.stripeRequired", "Set up Stripe Connect in Banking settings (paid feature)"),
       };
     }
 
@@ -207,7 +211,7 @@ export function ButtonManager({
         available: hasActiveFlow,
         reason: hasActiveFlow
           ? undefined
-          : 'Create a Flow in Flows settings (free - start here first!)',
+          : t("settings:buttonManager.flowRequired", "Create a Flow in Flows settings (free - start here first!)"),
       };
     }
 
@@ -262,7 +266,7 @@ export function ButtonManager({
     const newButton: ButtonConfig = {
       id: `custom-${Date.now()}`,
       type: 'custom',
-      label: 'New Button',
+      label: t("settings:buttonManager.newButton", "New Button"),
       url: '',
       enabled: true,
       order: buttons.length,
@@ -275,9 +279,9 @@ export function ButtonManager({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <Label className="text-base font-semibold">Button Manager</Label>
+          <Label className="text-base font-semibold">{t("settings:buttonManager.title", "Button Manager")}</Label>
           <p className="text-sm text-muted-foreground mt-1">
-            Drag to reorder, toggle to enable/disable
+            {t("settings:buttonManager.subtitle", "Drag to reorder, toggle to enable/disable")}
           </p>
         </div>
         <Button
@@ -288,7 +292,7 @@ export function ButtonManager({
           className="gap-2"
         >
           <Plus className="h-4 w-4" />
-          Add Custom Button
+          {t("settings:buttonManager.addCustomButton", "Add Custom Button")}
         </Button>
       </div>
 
@@ -321,6 +325,7 @@ export function ButtonManager({
                       : undefined
                   }
                   statusInfo={getButtonStatus(button)}
+                  t={t}
                 />
               ))}
             </div>
@@ -329,7 +334,7 @@ export function ButtonManager({
       ) : (
         <div className="text-center py-8 border-2 border-dashed rounded-lg">
           <p className="text-sm text-muted-foreground mb-3">
-            No buttons yet. Add your first button to get started.
+            {t("settings:buttonManager.noButtons", "No buttons yet. Add your first button to get started.")}
           </p>
           <Button
             type="button"
@@ -339,7 +344,7 @@ export function ButtonManager({
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
-            Add Custom Button
+            {t("settings:buttonManager.addCustomButton", "Add Custom Button")}
           </Button>
         </div>
       )}

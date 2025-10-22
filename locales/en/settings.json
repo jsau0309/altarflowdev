@@ -183,7 +183,52 @@
     "profileReadOnly": "You have view-only access to church settings. Contact an administrator to make changes."
   },
 
+  "imageCropper": {
+    "title": "Edit Image",
+    "instructions": "Drag to reposition • Scroll or use slider to zoom • Click reset to fit image",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving..."
+  },
+
+  "imageDropzone": {
+    "selectFile": "Select file to upload",
+    "dragDrop": "or drag-and-drop file",
+    "dropHere": "Drop image here",
+    "allowedTypes": "Allowed file types: JPEG, PNG, WebP, GIF, SVG",
+    "fileTooLarge": "File too large. Maximum size is 5MB.",
+    "invalidFileType": "Invalid file type. Only images are allowed."
+  },
+
+  "buttonManager": {
+    "title": "Button Manager",
+    "subtitle": "Drag to reorder, toggle to enable/disable",
+    "addCustomButton": "Add Custom Button",
+    "buttonLabel": "Button label",
+    "urlPlaceholder": "https://example.com",
+    "donatePage": "Donate Page",
+    "connectFlow": "Connect Flow",
+    "willShow": "Will show on landing page",
+    "addUrl": "Add a URL to make this button visible",
+    "stripeRequired": "Set up Stripe Connect in Banking settings (paid feature)",
+    "flowRequired": "Create a Flow in Flows settings (free - start here first!)",
+    "noButtons": "No buttons yet. Add your first button to get started.",
+    "newButton": "New Button"
+  },
+
+  "shareModal": {
+    "title": "Share your landing page",
+    "copy": "Copy",
+    "qrCode": "QR code",
+    "downloadQR": "Download QR Code",
+    "linkCopied": "Link copied to clipboard!",
+    "copyFailed": "Failed to copy link",
+    "qrDownloaded": "QR code downloaded!"
+  },
+
   "landing": {
+    "title": "Landing Page Manager",
+    "subtitle": "Customize how your church appears to visitors",
     "qrCode": "Landing Page QR Code",
     "qrCodeDesc": "Print this QR code and place it at your church entrance for easy access",
     "pageUrl": "Landing Page URL",
@@ -205,7 +250,80 @@
     "futureDesc": "In future updates, you'll be able to schedule different buttons to appear at specific times and days of the week.",
     "loadError": "Failed to load settings",
     "saved": "Landing page settings saved successfully",
-    "saveError": "Failed to save settings"
+    "saveError": "Failed to save settings",
+    "tabs": {
+      "branding": "Branding",
+      "appearance": "Appearance",
+      "social": "Social"
+    },
+    "branding": {
+      "title": "Church Branding",
+      "description": "Customize how your church appears on the landing page",
+      "logo": "Church Logo",
+      "logoReady": "Logo ready to upload. Click \"Save All Changes\" to confirm.",
+      "currentLogo": "Current logo",
+      "editButton": "Edit",
+      "removeButton": "Remove",
+      "customTitle": "Custom Title (Optional)",
+      "customTitlePlaceholder": "Enter custom title",
+      "customTitleHint": "Leave empty to use your church name",
+      "description": "Description",
+      "descriptionPlaceholder": "Welcome to our church! We're glad you're here...",
+      "descriptionCount": "{{count}}/160 characters"
+    },
+    "titleStyling": {
+      "title": "Title Styling",
+      "description": "Customize how your church name appears",
+      "font": "Font",
+      "size": "Size",
+      "color": "Title Color",
+      "fonts": {
+        "modern": "Modern",
+        "elegant": "Elegant",
+        "bold": "Bold",
+        "classic": "Classic",
+        "playful": "Playful"
+      },
+      "sizes": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large",
+        "extraLarge": "Extra Large"
+      }
+    },
+    "buttons": {
+      "title": "Buttons",
+      "description": "Manage buttons on your landing page"
+    },
+    "backgroundStyle": {
+      "title": "Background Style",
+      "description": "Choose a background for your landing page",
+      "presetBackgrounds": "Preset Backgrounds",
+      "useSolidColor": "Use Solid Color",
+      "backgroundColor": "Background Color"
+    },
+    "buttonStyling": {
+      "title": "Button Styling",
+      "description": "Customize button appearance",
+      "buttonBackgroundColor": "Button Background Color",
+      "buttonTextColor": "Button Text Color"
+    },
+    "socialLinks": {
+      "title": "Social Links",
+      "description": "Add links to your social media profiles",
+      "facebook": "Facebook URL",
+      "facebookPlaceholder": "https://facebook.com/yourchurch",
+      "instagram": "Instagram URL",
+      "instagramPlaceholder": "https://instagram.com/yourchurch",
+      "twitter": "Twitter/X URL",
+      "twitterPlaceholder": "https://twitter.com/yourchurch",
+      "youtube": "YouTube URL",
+      "youtubePlaceholder": "https://youtube.com/@yourchurch",
+      "website": "Website URL",
+      "websitePlaceholder": "https://yourchurch.com"
+    },
+    "saveButton": "Save All Changes",
+    "saving": "Saving..."
   },
 
   "comingSoon": "Coming soon",

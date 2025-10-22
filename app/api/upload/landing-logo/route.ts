@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { rateLimit } from '@/lib/rate-limit';
 
 const LOGOS_BUCKET = 'landing-logos';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -12,6 +13,9 @@ const ALLOWED_MIME_TYPES = [
   'image/webp',
   'image/svg+xml',
 ];
+
+// Rate limiter: 5 uploads per 15 minutes per organization
+const uploadRateLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5 });
 
 const sanitizeFilename = (filename: string) =>
   filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
@@ -85,6 +89,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized - No organization' },
         { status: 401 }
+      );
+    }
+
+    // Check rate limit
+    const rateLimitResult = await uploadRateLimiter(request);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many uploads. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': '0',
+          },
+        }
       );
     }
 

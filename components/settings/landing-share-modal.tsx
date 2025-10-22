@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Copy, QrCode } from 'lucide-react';
@@ -20,14 +21,35 @@ export function LandingShareModal({
   url,
   churchSlug,
 }: LandingShareModalProps) {
+  const { t } = useTranslation();
   const [showQR, setShowQR] = useState(false);
 
   const handleCopyLink = async () => {
     try {
+      // Check if Clipboard API is available (requires HTTPS in production)
+      if (!navigator.clipboard) {
+        // Fallback for older browsers or non-HTTPS contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          toast.success(t("settings:shareModal.linkCopied", "Link copied to clipboard!"));
+        } catch (err) {
+          toast.error(t("settings:shareModal.copyFailed", "Failed to copy link"));
+        } finally {
+          document.body.removeChild(textArea);
+        }
+        return;
+      }
+
       await navigator.clipboard.writeText(url);
-      toast.success('Link copied to clipboard!');
+      toast.success(t("settings:shareModal.linkCopied", "Link copied to clipboard!"));
     } catch (error) {
-      toast.error('Failed to copy link');
+      toast.error(t("settings:shareModal.copyFailed", "Failed to copy link"));
     }
   };
 
@@ -35,37 +57,62 @@ export function LandingShareModal({
     const svg = document.getElementById('share-qr-code');
     if (!svg) return;
 
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
+    try {
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
 
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
+      if (!ctx) {
+        toast.error('Canvas not supported in this browser');
+        return;
+      }
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
+      const img = new Image();
+
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        // Check if toBlob is supported
+        if (canvas.toBlob) {
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `${churchSlug}-qr-code.png`;
+              link.click();
+              URL.revokeObjectURL(url);
+              toast.success(t("settings:shareModal.qrDownloaded", "QR code downloaded!"));
+            }
+          });
+        } else {
+          // Fallback for browsers without toBlob support
           const link = document.createElement('a');
-          link.href = url;
+          link.href = canvas.toDataURL('image/png');
           link.download = `${churchSlug}-qr-code.png`;
           link.click();
-          URL.revokeObjectURL(url);
-          toast.success('QR code downloaded!');
+          toast.success(t("settings:shareModal.qrDownloaded", "QR code downloaded!"));
         }
-      });
-    };
+      };
 
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+      img.onerror = () => {
+        toast.error('Failed to load QR code image');
+      };
+
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+    } catch (error) {
+      console.error('QR code download error:', error);
+      toast.error('Failed to download QR code');
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Share your landing page</DialogTitle>
+          <DialogTitle>{t("settings:shareModal.title", "Share your landing page")}</DialogTitle>
         </DialogHeader>
 
         {/* URL Copy Section */}
@@ -79,7 +126,7 @@ export function LandingShareModal({
               className="shrink-0"
             >
               <Copy className="h-4 w-4 mr-1" />
-              Copy
+              {t("settings:shareModal.copy", "Copy")}
             </Button>
           </div>
 
@@ -91,7 +138,7 @@ export function LandingShareModal({
             >
               <div className="flex items-center gap-3">
                 <QrCode className="h-5 w-5 text-muted-foreground" />
-                <span className="font-medium">QR code</span>
+                <span className="font-medium">{t("settings:shareModal.qrCode", "QR code")}</span>
               </div>
               <span className="text-muted-foreground">&gt;</span>
             </button>
@@ -115,7 +162,7 @@ export function LandingShareModal({
                 variant="outline"
                 className="w-full"
               >
-                Download QR Code
+                {t("settings:shareModal.downloadQR", "Download QR Code")}
               </Button>
             </div>
           )}

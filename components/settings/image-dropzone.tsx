@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -10,19 +11,20 @@ interface ImageDropzoneProps {
 }
 
 export function ImageDropzone({ onImageSelected, disabled }: ImageDropzoneProps) {
+  const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
 
   const validateFile = (file: File): boolean => {
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 5MB.");
+      toast.error(t("settings:imageDropzone.fileTooLarge", "File too large. Maximum size is 5MB."));
       return false;
     }
 
-    // Validate file type
+    // Validate file type - matches backend validation in upload endpoint
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Invalid file type. Only images are allowed.");
+      toast.error(t("settings:imageDropzone.invalidFileType", "Invalid file type. Only images are allowed."));
       return false;
     }
 
@@ -103,15 +105,18 @@ export function ImageDropzone({ onImageSelected, disabled }: ImageDropzoneProps)
 
         <div className="space-y-1">
           <p className="text-sm font-medium text-gray-900">
-            {isDragging ? 'Drop image here' : 'Select file to upload'}
+            {isDragging
+              ? t("settings:imageDropzone.dropHere", "Drop image here")
+              : t("settings:imageDropzone.selectFile", "Select file to upload")
+            }
           </p>
           <p className="text-xs text-muted-foreground">
-            or drag-and-drop file
+            {t("settings:imageDropzone.dragDrop", "or drag-and-drop file")}
           </p>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Allowed file types: JPEG, PNG, WebP, GIF, AVIF, BMP, HEIC, HEIF
+          {t("settings:imageDropzone.allowedTypes", "Allowed file types: JPEG, PNG, WebP, GIF, SVG")}
         </p>
       </div>
     </div>

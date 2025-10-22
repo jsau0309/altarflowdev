@@ -251,9 +251,9 @@ export function LandingManagerEnhanced() {
         <div>
           <Tabs defaultValue="branding" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="branding">Branding</TabsTrigger>
-              <TabsTrigger value="appearance">Appearance</TabsTrigger>
-              <TabsTrigger value="social">Social</TabsTrigger>
+              <TabsTrigger value="branding">{t("settings:landing.tabs.branding", "Branding")}</TabsTrigger>
+              <TabsTrigger value="appearance">{t("settings:landing.tabs.appearance", "Appearance")}</TabsTrigger>
+              <TabsTrigger value="social">{t("settings:landing.tabs.social", "Social")}</TabsTrigger>
             </TabsList>
 
         {/* Branding Tab */}
@@ -261,15 +261,15 @@ export function LandingManagerEnhanced() {
           {/* Church Branding */}
           <Card>
             <CardHeader>
-              <CardTitle>Church Branding</CardTitle>
+              <CardTitle>{t("settings:landing.branding.title", "Church Branding")}</CardTitle>
               <CardDescription>
-                Customize how your church appears on the landing page
+                {t("settings:landing.branding.description", "Customize how your church appears on the landing page")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Logo Upload */}
               <div className="space-y-3">
-                <Label>Church Logo</Label>
+                <Label>{t("settings:landing.branding.logo", "Church Logo")}</Label>
 
                 {config.logoUrl ? (
                   <div className="flex items-center gap-4">
@@ -284,9 +284,9 @@ export function LandingManagerEnhanced() {
                     <div className="flex-1 space-y-3">
                       <p className="text-sm text-muted-foreground">
                         {croppedImageBlob ? (
-                          <>Logo ready to upload. Click "Save All Changes" to confirm.</>
+                          <>{t("settings:landing.branding.logoReady", "Logo ready to upload. Click \"Save All Changes\" to confirm.")}</>
                         ) : (
-                          <>Current logo</>
+                          <>{t("settings:landing.branding.currentLogo", "Current logo")}</>
                         )}
                       </p>
                       <div className="flex gap-2">
@@ -298,7 +298,7 @@ export function LandingManagerEnhanced() {
                           className="flex-1"
                         >
                           <Edit2 className="h-4 w-4 mr-1" />
-                          Edit
+                          {t("settings:landing.branding.editButton", "Edit")}
                         </Button>
                         <Button
                           type="button"
@@ -308,7 +308,7 @@ export function LandingManagerEnhanced() {
                           className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
                           <X className="h-4 w-4 mr-1" />
-                          Remove
+                          {t("settings:landing.branding.removeButton", "Remove")}
                         </Button>
                       </div>
                     </div>
@@ -323,32 +323,32 @@ export function LandingManagerEnhanced() {
 
               {/* Custom Title */}
               <div className="space-y-2">
-                <Label htmlFor="custom-title">Custom Title (Optional)</Label>
+                <Label htmlFor="custom-title">{t("settings:landing.branding.customTitle", "Custom Title (Optional)")}</Label>
                 <Input
                   id="custom-title"
-                  placeholder={churchName || "Enter custom title"}
+                  placeholder={churchName || t("settings:landing.branding.customTitlePlaceholder", "Enter custom title")}
                   value={config.customTitle || ''}
                   onChange={(e) => setConfig(prev => ({ ...prev, customTitle: e.target.value }))}
                   maxLength={50}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Leave empty to use your church name
+                  {t("settings:landing.branding.customTitleHint", "Leave empty to use your church name")}
                 </p>
               </div>
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t("settings:landing.branding.description", "Description")}</Label>
                 <Textarea
                   id="description"
-                  placeholder="Welcome to our church! We're glad you're here..."
+                  placeholder={t("settings:landing.branding.descriptionPlaceholder", "Welcome to our church! We're glad you're here...")}
                   value={config.description || ''}
                   onChange={(e) => setConfig(prev => ({ ...prev, description: e.target.value }))}
                   rows={4}
                   maxLength={160}
                 />
                 <p className="text-sm text-muted-foreground">
-                  {config.description?.length || 0}/160 characters
+                  {t("settings:landing.branding.descriptionCount", "{{count}}/160 characters", { count: config.description?.length || 0 })}
                 </p>
               </div>
             </CardContent>
@@ -357,48 +357,48 @@ export function LandingManagerEnhanced() {
           {/* Title Styling */}
           <Card>
             <CardHeader>
-              <CardTitle>Title Styling</CardTitle>
+              <CardTitle>{t("settings:landing.titleStyling.title", "Title Styling")}</CardTitle>
               <CardDescription>
-                Customize how your church name appears
+                {t("settings:landing.titleStyling.description", "Customize how your church name appears")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Font Selection */}
               <div className="space-y-2">
-                <Label htmlFor="title-font">Font</Label>
+                <Label htmlFor="title-font">{t("settings:landing.titleStyling.font", "Font")}</Label>
                 <select
                   id="title-font"
                   value={config.titleFont}
                   onChange={(e) => setConfig(prev => ({ ...prev, titleFont: e.target.value }))}
                   className="w-full h-10 px-3 rounded-md border border-input bg-background"
                 >
-                  <option value="Modern">Modern</option>
-                  <option value="Elegant">Elegant</option>
-                  <option value="Bold">Bold</option>
-                  <option value="Classic">Classic</option>
-                  <option value="Playful">Playful</option>
+                  <option value="Modern">{t("settings:landing.titleStyling.fonts.modern", "Modern")}</option>
+                  <option value="Elegant">{t("settings:landing.titleStyling.fonts.elegant", "Elegant")}</option>
+                  <option value="Bold">{t("settings:landing.titleStyling.fonts.bold", "Bold")}</option>
+                  <option value="Classic">{t("settings:landing.titleStyling.fonts.classic", "Classic")}</option>
+                  <option value="Playful">{t("settings:landing.titleStyling.fonts.playful", "Playful")}</option>
                 </select>
               </div>
 
               {/* Size Selection */}
               <div className="space-y-2">
-                <Label htmlFor="title-size">Size</Label>
+                <Label htmlFor="title-size">{t("settings:landing.titleStyling.size", "Size")}</Label>
                 <select
                   id="title-size"
                   value={config.titleSize}
                   onChange={(e) => setConfig(prev => ({ ...prev, titleSize: e.target.value }))}
                   className="w-full h-10 px-3 rounded-md border border-input bg-background"
                 >
-                  <option value="Small">Small</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Large">Large</option>
-                  <option value="Extra Large">Extra Large</option>
+                  <option value="Small">{t("settings:landing.titleStyling.sizes.small", "Small")}</option>
+                  <option value="Medium">{t("settings:landing.titleStyling.sizes.medium", "Medium")}</option>
+                  <option value="Large">{t("settings:landing.titleStyling.sizes.large", "Large")}</option>
+                  <option value="Extra Large">{t("settings:landing.titleStyling.sizes.extraLarge", "Extra Large")}</option>
                 </select>
               </div>
 
               {/* Color Selection */}
               <ColorPicker
-                label="Title Color"
+                label={t("settings:landing.titleStyling.color", "Title Color")}
                 color={config.titleColor}
                 onChange={(color) => setConfig(prev => ({ ...prev, titleColor: color }))}
               />
@@ -408,9 +408,9 @@ export function LandingManagerEnhanced() {
           {/* Button Manager */}
           <Card>
             <CardHeader>
-              <CardTitle>Buttons</CardTitle>
+              <CardTitle>{t("settings:landing.buttons.title", "Buttons")}</CardTitle>
               <CardDescription>
-                Manage buttons on your landing page
+                {t("settings:landing.buttons.description", "Manage buttons on your landing page")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -429,15 +429,15 @@ export function LandingManagerEnhanced() {
           {/* Background Style */}
           <Card>
             <CardHeader>
-              <CardTitle>Background Style</CardTitle>
+              <CardTitle>{t("settings:landing.backgroundStyle.title", "Background Style")}</CardTitle>
               <CardDescription>
-                Choose a background for your landing page
+                {t("settings:landing.backgroundStyle.description", "Choose a background for your landing page")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Preset Backgrounds */}
               <div className="space-y-2">
-                <Label>Preset Backgrounds</Label>
+                <Label>{t("settings:landing.backgroundStyle.presetBackgrounds", "Preset Backgrounds")}</Label>
                 <div className="grid grid-cols-2 gap-3">
                   {BACKGROUND_PRESETS.map((preset) => (
                     <button
@@ -484,12 +484,12 @@ export function LandingManagerEnhanced() {
                       }
                     }}
                   />
-                  <Label>Use Solid Color</Label>
+                  <Label>{t("settings:landing.backgroundStyle.useSolidColor", "Use Solid Color")}</Label>
                 </div>
                 {config.backgroundType === 'SOLID' && (
                   <div className="mt-4 p-4 border rounded-lg bg-muted">
                     <ColorPicker
-                      label="Background Color"
+                      label={t("settings:landing.backgroundStyle.backgroundColor", "Background Color")}
                       color={config.backgroundValue || '#4F46E5'}
                       onChange={(color) => setConfig(prev => ({ ...prev, backgroundValue: color }))}
                     />
@@ -502,20 +502,20 @@ export function LandingManagerEnhanced() {
           {/* Button Styling */}
           <Card>
             <CardHeader>
-              <CardTitle>Button Styling</CardTitle>
+              <CardTitle>{t("settings:landing.buttonStyling.title", "Button Styling")}</CardTitle>
               <CardDescription>
-                Customize button appearance
+                {t("settings:landing.buttonStyling.description", "Customize button appearance")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <ColorPicker
-                label="Button Background Color"
+                label={t("settings:landing.buttonStyling.buttonBackgroundColor", "Button Background Color")}
                 color={config.buttonBackgroundColor}
                 onChange={(color) => setConfig(prev => ({ ...prev, buttonBackgroundColor: color }))}
               />
 
               <ColorPicker
-                label="Button Text Color"
+                label={t("settings:landing.buttonStyling.buttonTextColor", "Button Text Color")}
                 color={config.buttonTextColor}
                 onChange={(color) => setConfig(prev => ({ ...prev, buttonTextColor: color }))}
               />
@@ -527,20 +527,20 @@ export function LandingManagerEnhanced() {
         <TabsContent value="social" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Social Media Links</CardTitle>
+              <CardTitle>{t("settings:landing.socialLinks.title", "Social Links")}</CardTitle>
               <CardDescription>
-                Add links to your social media profiles
+                {t("settings:landing.socialLinks.description", "Add links to your social media profiles")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="facebook" className="flex items-center gap-2">
                   <Facebook className="h-4 w-4" />
-                  Facebook
+                  {t("settings:landing.socialLinks.facebook", "Facebook URL")}
                 </Label>
                 <Input
                   id="facebook"
-                  placeholder="https://facebook.com/yourchurch"
+                  placeholder={t("settings:landing.socialLinks.facebookPlaceholder", "https://facebook.com/yourchurch")}
                   value={config.socialLinks.facebook || ''}
                   onChange={(e) => setConfig(prev => ({
                     ...prev,
@@ -552,11 +552,11 @@ export function LandingManagerEnhanced() {
               <div className="space-y-2">
                 <Label htmlFor="instagram" className="flex items-center gap-2">
                   <Instagram className="h-4 w-4" />
-                  Instagram
+                  {t("settings:landing.socialLinks.instagram", "Instagram URL")}
                 </Label>
                 <Input
                   id="instagram"
-                  placeholder="https://instagram.com/yourchurch"
+                  placeholder={t("settings:landing.socialLinks.instagramPlaceholder", "https://instagram.com/yourchurch")}
                   value={config.socialLinks.instagram || ''}
                   onChange={(e) => setConfig(prev => ({
                     ...prev,
@@ -568,11 +568,11 @@ export function LandingManagerEnhanced() {
               <div className="space-y-2">
                 <Label htmlFor="twitter" className="flex items-center gap-2">
                   <Twitter className="h-4 w-4" />
-                  Twitter/X
+                  {t("settings:landing.socialLinks.twitter", "Twitter/X URL")}
                 </Label>
                 <Input
                   id="twitter"
-                  placeholder="https://twitter.com/yourchurch"
+                  placeholder={t("settings:landing.socialLinks.twitterPlaceholder", "https://twitter.com/yourchurch")}
                   value={config.socialLinks.twitter || ''}
                   onChange={(e) => setConfig(prev => ({
                     ...prev,
@@ -584,11 +584,11 @@ export function LandingManagerEnhanced() {
               <div className="space-y-2">
                 <Label htmlFor="youtube" className="flex items-center gap-2">
                   <Youtube className="h-4 w-4" />
-                  YouTube
+                  {t("settings:landing.socialLinks.youtube", "YouTube URL")}
                 </Label>
                 <Input
                   id="youtube"
-                  placeholder="https://youtube.com/@yourchurch"
+                  placeholder={t("settings:landing.socialLinks.youtubePlaceholder", "https://youtube.com/@yourchurch")}
                   value={config.socialLinks.youtube || ''}
                   onChange={(e) => setConfig(prev => ({
                     ...prev,
@@ -600,11 +600,11 @@ export function LandingManagerEnhanced() {
               <div className="space-y-2">
                 <Label htmlFor="website" className="flex items-center gap-2">
                   <Globe className="h-4 w-4" />
-                  Website
+                  {t("settings:landing.socialLinks.website", "Website URL")}
                 </Label>
                 <Input
                   id="website"
-                  placeholder="https://yourchurch.com"
+                  placeholder={t("settings:landing.socialLinks.websitePlaceholder", "https://yourchurch.com")}
                   value={config.socialLinks.website || ''}
                   onChange={(e) => setConfig(prev => ({
                     ...prev,
@@ -650,7 +650,7 @@ export function LandingManagerEnhanced() {
           disabled={isSaving}
           size="lg"
         >
-          {isSaving ? "Saving..." : "Save All Changes"}
+          {isSaving ? t("settings:landing.saving", "Saving...") : t("settings:landing.saveButton", "Save All Changes")}
         </Button>
       </div>
 

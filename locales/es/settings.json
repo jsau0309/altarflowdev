@@ -182,7 +182,52 @@
       "profileReadOnly": "Tienes acceso de solo lectura a la configuración de la iglesia. Contacta a un administrador para realizar cambios."
     },
 
+    "imageCropper": {
+      "title": "Editar Imagen",
+      "instructions": "Arrastra para reposicionar • Desplaza o usa el control deslizante para hacer zoom • Haz clic en restablecer para ajustar la imagen",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "saving": "Guardando..."
+    },
+
+    "imageDropzone": {
+      "selectFile": "Selecciona un archivo para subir",
+      "dragDrop": "o arrastra y suelta el archivo",
+      "dropHere": "Suelta la imagen aquí",
+      "allowedTypes": "Tipos de archivo permitidos: JPEG, PNG, WebP, GIF, SVG",
+      "fileTooLarge": "Archivo demasiado grande. El tamaño máximo es de 5 MB.",
+      "invalidFileType": "Tipo de archivo no válido. Solo se permiten imágenes."
+    },
+
+    "buttonManager": {
+      "title": "Administrador de Botones",
+      "subtitle": "Arrastra para reordenar, activa/desactiva para habilitar/deshabilitar",
+      "addCustomButton": "Agregar Botón Personalizado",
+      "buttonLabel": "Etiqueta del botón",
+      "urlPlaceholder": "https://ejemplo.com",
+      "donatePage": "Página de Donación",
+      "connectFlow": "Flujo de Conexión",
+      "willShow": "Se mostrará en el portal web",
+      "addUrl": "Agrega una URL para hacer visible este botón",
+      "stripeRequired": "Configura Stripe Connect en la configuración de Banca (función de pago)",
+      "flowRequired": "Crea un Flujo en la configuración de Flujos (gratis - ¡comienza aquí primero!)",
+      "noButtons": "Aún no hay botones. Agrega tu primer botón para comenzar.",
+      "newButton": "Nuevo Botón"
+    },
+
+    "shareModal": {
+      "title": "Comparte portal web",
+      "copy": "Copiar",
+      "qrCode": "Código QR",
+      "downloadQR": "Descargar Código QR",
+      "linkCopied": "¡Enlace copiado al portapapeles!",
+      "copyFailed": "Error al copiar el enlace",
+      "qrDownloaded": "¡Código QR descargado!"
+    },
+
     "landing": {
+      "title": "Administrador de portal web",
+      "subtitle": "Personalice la forma en que su iglesia se muestra a sus miembros",
       "qrCode": "Codigo QR Pagina de Destino",
       "qrCodeDesc": "Imprime este código QR y colócalo en la entrada de tu iglesia para fácil acceso",
       "pageUrl": "URL de la Página de Destino",
@@ -204,7 +249,80 @@
       "futureDesc": "En futuras actualizaciones, podrás programar diferentes botones para que aparezcan en horarios y días específicos de la semana.",
       "loadError": "Error al cargar configuración",
       "saved": "Configuración de página guardada con éxito",
-      "saveError": "Error al guardar configuración"
+      "saveError": "Error al guardar configuración",
+      "tabs": {
+        "branding": "Marca",
+        "appearance": "Apariencia",
+        "social": "Social"
+      },
+      "branding": {
+        "title": "Bio de la Iglesia",
+        "description": "Personaliza cómo aparece tu iglesia en la página de destino",
+        "logo": "Logo de la Iglesia",
+        "logoReady": "Logo listo para subir. Haz clic en \"Guardar Todos los Cambios\" para confirmar.",
+        "currentLogo": "Logo actual",
+        "editButton": "Editar",
+        "removeButton": "Eliminar",
+        "customTitle": "Título Personalizado (Opcional)",
+        "customTitlePlaceholder": "Ingresa título personalizado",
+        "customTitleHint": "Déjalo vacío para usar el nombre de tu iglesia",
+        "description": "Descripción",
+        "descriptionPlaceholder": "¡Bienvenido a nuestra iglesia! Nos alegra que estés aquí...",
+        "descriptionCount": "{{count}}/160 caracteres"
+      },
+      "titleStyling": {
+        "title": "Estilo del Título",
+        "description": "Personaliza cómo aparece el nombre de tu iglesia",
+        "font": "Fuente",
+        "size": "Tamaño",
+        "color": "Color del Título",
+        "fonts": {
+          "modern": "Moderno",
+          "elegant": "Elegante",
+          "bold": "Negrita",
+          "classic": "Clásico",
+          "playful": "Juguetón"
+        },
+        "sizes": {
+          "small": "Pequeño",
+          "medium": "Mediano",
+          "large": "Grande",
+          "extraLarge": "Extra Grande"
+        }
+      },
+      "buttons": {
+        "title": "Botones",
+        "description": "Administra botones en tu página de destino"
+      },
+      "backgroundStyle": {
+        "title": "Estilo de Fondo",
+        "description": "Elige un fondo para tu página de destino",
+        "presetBackgrounds": "Fondos Predefinidos",
+        "useSolidColor": "Usar Color Sólido",
+        "backgroundColor": "Color de Fondo"
+      },
+      "buttonStyling": {
+        "title": "Estilo de Botones",
+        "description": "Personaliza la apariencia de los botones",
+        "buttonBackgroundColor": "Color de Fondo del Botón",
+        "buttonTextColor": "Color de Texto del Botón"
+      },
+      "socialLinks": {
+        "title": "Enlaces Sociales",
+        "description": "Agrega enlaces a tus perfiles de redes sociales",
+        "facebook": "URL de Facebook",
+        "facebookPlaceholder": "https://facebook.com/tuiglesia",
+        "instagram": "URL de Instagram",
+        "instagramPlaceholder": "https://instagram.com/tuiglesia",
+        "twitter": "URL de Twitter/X",
+        "twitterPlaceholder": "https://twitter.com/tuiglesia",
+        "youtube": "URL de YouTube",
+        "youtubePlaceholder": "https://youtube.com/@tuiglesia",
+        "website": "URL del Sitio Web",
+        "websitePlaceholder": "https://tuiglesia.com"
+      },
+      "saveButton": "Guardar Cambios",
+      "saving": "Guardando..."
     },
 
     "comingSoon": "Próximamente",
