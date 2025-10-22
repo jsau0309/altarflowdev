@@ -103,7 +103,7 @@ Return only a JSON array of 5 suggestions.`;
       const response = await openai.chat.completions.create({
         model: 'gpt-5-mini-2025-08-07',
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.8,
+        // GPT-5 only supports temperature: 1 (default), so we omit it
         max_completion_tokens: 1000, // GPT-5 uses max_completion_tokens instead of max_tokens
       });
 
@@ -277,7 +277,7 @@ ${language === 'es' ? 'Devuelve EXACTAMENTE este formato JSON con 5 sugerencias 
           role: 'user',
           content: prompt + prompt2 + (language === 'es' ? '\n\nIMPORTANTE: Todas las sugerencias deben estar en español.' : '')
         }],
-        temperature: 0.9, // Higher creativity
+        // GPT-5 only supports temperature: 1 (default), so we omit it
         max_completion_tokens: 1000, // GPT-5 uses max_completion_tokens instead of max_tokens
         response_format: { type: "json_object" },
       });

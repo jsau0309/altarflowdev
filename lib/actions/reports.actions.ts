@@ -844,7 +844,7 @@ export async function getAiSummaryData(churchId: string) {
       donationsYTD,
       // Expenses this month
       expensesThisMonth,
-      // Expenses last month  
+      // Expenses last month
       expensesLastMonth,
       // Expenses YTD
       expensesYTD,
@@ -853,7 +853,15 @@ export async function getAiSummaryData(churchId: string) {
       // Total active members
       totalActiveMembers,
       // Recent donations for payment method analysis
-      recentDonations
+      recentDonations,
+      // Campaign/donation type breakdown
+      donationTypeBreakdown,
+      // Donation types metadata
+      donationTypes,
+      // Anonymous donor transactions
+      anonymousDonorTransactions,
+      // International donors
+      internationalDonations
     ] = await Promise.all([
       // Donations queries
       prisma.donationTransaction.aggregate({
@@ -940,6 +948,65 @@ export async function getAiSummaryData(churchId: string) {
           isRecurring: true
         },
         take: 100
+      }),
+
+      // Campaign/donation type breakdown
+      prisma.donationTransaction.groupBy({
+        by: ['donationTypeId'],
+        where: {
+          churchId: church.id,
+          transactionDate: { gte: thisMonthStart, lte: thisMonthEnd },
+          status: { in: ['succeeded', 'succeeded\n'] }
+        },
+        _sum: { amount: true },
+        _count: { id: true }
+      }),
+
+      // Get donation type metadata (names, campaign flags, goals)
+      prisma.donationType.findMany({
+        where: { churchId: church.id, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          isCampaign: true,
+          goalAmount: true,
+          startDate: true,
+          endDate: true
+        }
+      }),
+
+      // Anonymous donor transactions (count and amount)
+      prisma.donationTransaction.findMany({
+        where: {
+          churchId: church.id,
+          transactionDate: { gte: thisMonthStart, lte: thisMonthEnd },
+          status: { in: ['succeeded', 'succeeded\n'] },
+          OR: [
+            { donorName: null },
+            { donorName: '' },
+            { donorName: 'Anonymous' }
+          ]
+        },
+        select: {
+          amount: true
+        }
+      }),
+
+      // International donors
+      prisma.donationTransaction.findMany({
+        where: {
+          churchId: church.id,
+          transactionDate: { gte: thisMonthStart, lte: thisMonthEnd },
+          status: { in: ['succeeded', 'succeeded\n'] },
+          isInternational: true
+        },
+        select: {
+          amount: true,
+          donorId: true,
+          donorEmail: true,
+          donorName: true,
+          donorCountry: true
+        }
       })
     ])
     
@@ -962,9 +1029,73 @@ export async function getAiSummaryData(churchId: string) {
     
     // Count recurring donations
     const recurringCount = recentDonations.filter(d => d.isRecurring).length
-    const recurringPercentage = recentDonations.length > 0 ? 
+    const recurringPercentage = recentDonations.length > 0 ?
       Math.round((recurringCount / recentDonations.length) * 100) : 0
-    
+
+    // Process campaign/donation type data
+    const campaignData = donationTypeBreakdown.map(breakdown => {
+      const typeInfo = donationTypes.find(t => t.id === breakdown.donationTypeId)
+      if (!typeInfo) return null
+
+      const amount = (breakdown._sum.amount || 0) / 100
+      const count = breakdown._count.id
+
+      return {
+        id: typeInfo.id,
+        name: typeInfo.name,
+        amount,
+        count,
+        isCampaign: typeInfo.isCampaign,
+        goalAmount: typeInfo.goalAmount ? parseFloat(typeInfo.goalAmount.toString()) : null,
+        percentToGoal: typeInfo.goalAmount ?
+          Math.round((amount / parseFloat(typeInfo.goalAmount.toString())) * 100) : null
+      }
+    }).filter(Boolean)
+
+    // Separate campaigns from regular giving
+    const campaigns = campaignData.filter(d => d!.isCampaign)
+    const regularGiving = campaignData.filter(d => !d!.isCampaign)
+
+    // Process international donor data
+    const internationalDonorMap = new Map()
+    let internationalDonorAmount = 0
+
+    internationalDonations.forEach(donation => {
+      const country = donation.donorCountry
+
+      if (country) {
+        // Create unique key for unverified donors
+        let uniqueKey: string
+        if (donation.donorId) {
+          // Verified donor - use donorId
+          uniqueKey = donation.donorId
+        } else if (donation.donorEmail && donation.donorName) {
+          // Unverified with both email and name - use combination to handle test data
+          uniqueKey = `${donation.donorEmail}|${donation.donorName}`
+        } else if (donation.donorEmail) {
+          // Only email available
+          uniqueKey = donation.donorEmail
+        } else if (donation.donorName) {
+          // Only name available
+          uniqueKey = donation.donorName
+        } else {
+          // Truly anonymous - each donation is unique
+          uniqueKey = `anonymous_${Math.random()}`
+        }
+
+        if (!internationalDonorMap.has(uniqueKey)) {
+          internationalDonorMap.set(uniqueKey, country)
+        }
+        internationalDonorAmount += (donation.amount || 0) / 100
+      }
+    })
+
+    const uniqueInternationalCountries = Array.from(new Set(internationalDonorMap.values()))
+
+    // Calculate anonymous donor count and amount
+    const anonymousDonorCount = anonymousDonorTransactions.length
+    const anonymousDonorAmount = anonymousDonorTransactions.reduce((sum, d) => sum + (d.amount / 100), 0)
+
     return {
       churchName: church.name,
       currentMonth: format(now, 'MMMM yyyy'),
@@ -985,7 +1116,16 @@ export async function getAiSummaryData(churchId: string) {
           count: donationsYTD._count.id
         },
         recurringPercentage,
-        paymentMethods: paymentMethodCounts
+        paymentMethods: paymentMethodCounts,
+        campaigns,
+        regularGiving,
+        anonymousDonorCount,
+        anonymousDonorAmount,
+        internationalDonors: {
+          count: internationalDonorMap.size,
+          countries: uniqueInternationalCountries,
+          amount: internationalDonorAmount
+        }
       },
       expenses: {
         thisMonth: {

@@ -64,8 +64,10 @@ TONE GUIDELINES:
 - Stable periods: Highlight consistency and faithful stewardship
 - Always end sections with forward momentum
 
-FORMATTING:
-- Currency: Use $ with commas (e.g., $5,300)
+FORMATTING RULES:
+- Currency: ALWAYS format as $ with commas (e.g., $5,300) - NEVER use raw numbers
+- Changes from last month: Format as natural language (e.g., "an increase of $2,230" NOT "differenceFromLastMonth of 2230")
+- NEVER use JSON key names like "differenceFromLastMonth", "changeFromLastMonth" in your output
 - Language: Write entirely in ${targetLanguage}
 - Length: Keep each section concise but meaningful (2-3 sentences)
 
@@ -75,7 +77,7 @@ overall_metrics:
 Write a compelling opening that captures ${monthYear}'s story in 1-2 sentences. What's the headline? What should leadership notice first?
 
 donation_summary:
-Tell the generosity story. Don't just report totals - help them understand what this means for ministry. Include the change from last month naturally in the narrative. If recurring giving is strong (>30%), highlight this as a sign of community commitment.
+Tell the generosity story. Don't just report totals - help them understand what this means for ministry. Include the change from last month naturally in the narrative. If recurring giving is strong (>30%), highlight this as a sign of community commitment. When campaign donations or international donors are present in the data, mention them to celebrate global reach and focused giving efforts.
 
 expense_summary:
 Frame spending through the lens of ministry impact. What did these expenses enable? Connect the numbers to real ministry work when possible. If expenses were low or zero, position this thoughtfully.
@@ -92,7 +94,8 @@ ${JSON.stringify(summaryData, null, 2)}
 
 Bring this data to life:
 - Tell the story behind the numbers
-- Use the exact differenceFromLastMonth values, but weave them naturally into your narrative
+- When describing changes from last month, use natural phrases like "an increase of $X" or "up $X from last month" - NEVER use raw field names
+- Format ALL dollar amounts with $ symbol and commas
 - Speak directly to church leaders ("your community," "you welcomed," etc.)
 - End each section with an encouraging note or gentle suggestion
 - Make every sentence count - be concise but warm`;
@@ -137,8 +140,8 @@ Bring this data to life:
       ],
       tools: tools,
       tool_choice: { type: "function", function: { name: "generate_church_summary" } },
-      temperature: 0.7, // Increased for more natural, varied responses
-      max_completion_tokens: 1000, // GPT-5 uses max_completion_tokens instead of max_tokens
+      // GPT-5 only supports temperature: 1 (default), so we omit it
+      max_completion_tokens: 6000, // GPT-5 needs room for reasoning tokens + structured output
     });
 
     const message = response.choices[0].message;
