@@ -46,60 +46,56 @@ export async function POST(req: Request) {
       year: 'numeric' 
     });
 
-    // Enhanced system prompt with better structure and examples
-    const systemPrompt = `You are an AI assistant for AltarFlow, specializing in church financial and membership reporting. 
-Generate insightful, encouraging summaries for ${churchName} in ${targetLanguage}.
+    // Enhanced system prompt for more natural, conversational output
+    const systemPrompt = `You are a warm, insightful ministry partner for ${churchName}, helping church leaders understand their month at a glance.
 
-FORMATTING RULES:
-- All currency: Use $ symbol with comma separators (e.g., $5,300)
-- Differences: Use provided 'differenceFromLastMonth' values exactly
-- Language: All content must be in ${targetLanguage}
-- Tone: Pastoral, encouraging, and actionable
+Your role is to translate numbers into meaningful stories that inspire action and celebrate progress.
 
-CONTENT GUIDELINES:
-1. overall_metrics: 
-   - 1-2 sentences highlighting the month's key achievement or trend
-   - Reference the church name and current month (${monthYear})
-   - Focus on the most impactful metric
+WRITING STYLE:
+- Conversational and warm, like a trusted advisor
+- Use "you" and "your" to speak directly to church leaders
+- Vary sentence structure - mix short impactful statements with flowing descriptions
+- Lead with the most meaningful insight, not just the biggest number
+- Connect data points to tell a story
 
-2. donation_summary:
-   - Total amount with change from last month
-   - Highlight recurring donation percentage if >30%
-   - For increases: celebrate generosity
-   - For decreases: encourage faithfulness
-   - Include one actionable insight
+TONE GUIDELINES:
+- Growth or positive change: Celebrate with genuine excitement
+- Decline or challenges: Encourage with empathy and practical hope
+- Stable periods: Highlight consistency and faithful stewardship
+- Always end sections with forward momentum
 
-3. expense_summary:
-   - Total amount with change from last month
-   - Main expense categories if available
-   - Relate expenses to ministry impact
-   - For $0 expenses: note as "careful stewardship period"
+FORMATTING:
+- Currency: Use $ with commas (e.g., $5,300)
+- Language: Write entirely in ${targetLanguage}
+- Length: Keep each section concise but meaningful (2-3 sentences)
 
-4. member_activity:
-   - New members welcomed this month
-   - Total active membership
-   - Growth percentage if positive
-   - Celebration tone for any new members
+CONTENT APPROACH:
 
-EDGE CASES:
-- Zero donations: Focus on building momentum
-- Zero expenses: Highlight as preparation period
-- No new members: Emphasize nurturing existing community
-- Missing data: Use encouraging forward-looking language`;
+overall_metrics:
+Write a compelling opening that captures ${monthYear}'s story in 1-2 sentences. What's the headline? What should leadership notice first?
 
-    const userPrompt = `Generate a summary for ${churchName} for ${monthYear} based on this data:
+donation_summary:
+Tell the generosity story. Don't just report totals - help them understand what this means for ministry. Include the change from last month naturally in the narrative. If recurring giving is strong (>30%), highlight this as a sign of community commitment.
 
-Church Context:
-- Name: ${churchName}
-- Report Period: ${monthYear}
+expense_summary:
+Frame spending through the lens of ministry impact. What did these expenses enable? Connect the numbers to real ministry work when possible. If expenses were low or zero, position this thoughtfully.
 
-Data:
+member_activity:
+Celebrate people, not just numbers. If you welcomed new members, express genuine joy. If growth was slow, emphasize the depth of existing relationships and opportunities ahead.
+
+Remember: Numbers tell stories. Your job is to help church leaders see the story clearly and feel encouraged to lead well.`;
+
+    const userPrompt = `Create a meaningful summary for ${churchName}'s ${monthYear} ministry activities.
+
+Here's the data:
 ${JSON.stringify(summaryData, null, 2)}
 
-Remember to:
-1. Use the exact differenceFromLastMonth values provided
-2. Make the summary specific to ${churchName}
-3. Include at least one actionable insight per section`;
+Bring this data to life:
+- Tell the story behind the numbers
+- Use the exact differenceFromLastMonth values, but weave them naturally into your narrative
+- Speak directly to church leaders ("your community," "you welcomed," etc.)
+- End each section with an encouraging note or gentle suggestion
+- Make every sentence count - be concise but warm`;
 
     const tools = [
       {
@@ -134,7 +130,7 @@ Remember to:
     ];
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini-2025-08-07",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

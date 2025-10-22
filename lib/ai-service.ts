@@ -101,7 +101,7 @@ For each subject line, provide a JSON object with:
 
 Return only a JSON array of 5 suggestions.`;
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini-2025-08-07',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.8,
         max_tokens: 1000,
@@ -117,7 +117,7 @@ Return only a JSON array of 5 suggestions.`;
         captureLLMEvent({
           distinctId: trackingContext.distinctId,
           traceId: trackingContext.traceId || `email_subject_${Date.now()}`,
-          model: 'gpt-4o-mini',
+          model: 'gpt-5-mini-2025-08-07',
           provider: 'openai',
           inputTokens: response.usage.prompt_tokens,
           outputTokens: response.usage.completion_tokens,
@@ -269,7 +269,7 @@ ${language === 'es' ? 'Devuelve EXACTAMENTE este formato JSON con 5 sugerencias 
 }`;
 
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini', // Better quality for marketing suggestions
+        model: 'gpt-5-mini-2025-08-07', // GPT-5 mini for better quality marketing suggestions
         messages: [{
           role: 'system',
           content: 'You are an expert church marketing consultant who creates compelling, emotionally resonant email campaigns.'
@@ -291,7 +291,7 @@ ${language === 'es' ? 'Devuelve EXACTAMENTE este formato JSON con 5 sugerencias 
         captureLLMEvent({
           distinctId: trackingContext.distinctId,
           traceId: trackingContext.traceId || `email_suggestions_${Date.now()}`,
-          model: 'gpt-4o-mini',
+          model: 'gpt-5-mini-2025-08-07',
           provider: 'openai',
           inputTokens: response.usage.prompt_tokens,
           outputTokens: response.usage.completion_tokens,
