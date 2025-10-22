@@ -119,7 +119,37 @@ export default async function LandingPage(props: LandingPageProps) {
   const buttonBackgroundColor = landingConfig?.buttonBackgroundColor || '#FFFFFF';
   const buttonTextColor = landingConfig?.buttonTextColor || '#1F2937';
   const { safeParseButtons } = await import('@/lib/validation/button-validation');
-  const buttonsConfig = safeParseButtons(landingConfig?.buttons);
+  let buttonsConfig = safeParseButtons(landingConfig?.buttons);
+
+  // MIGRATION: Fall back to legacy button flags if new button system is empty
+  // This preserves existing landing pages that were created before the button manager feature
+  if (buttonsConfig.length === 0 && landingConfig) {
+    const legacyButtons = [];
+
+    // Add donate button if legacy flag is true
+    if (landingConfig.showDonateButton) {
+      legacyButtons.push({
+        id: 'donate',
+        type: 'preset' as const,
+        label: landingConfig.donateButtonText || 'Donate',
+        enabled: true,
+        order: 0
+      });
+    }
+
+    // Add connect button if legacy flag is true
+    if (landingConfig.showConnectButton) {
+      legacyButtons.push({
+        id: 'connect',
+        type: 'preset' as const,
+        label: landingConfig.connectButtonText || 'Connect',
+        enabled: true,
+        order: 1
+      });
+    }
+
+    buttonsConfig = legacyButtons;
+  }
 
   // Process buttons: filter enabled, sort by order, and add URLs
   const visibleButtons = buttonsConfig
