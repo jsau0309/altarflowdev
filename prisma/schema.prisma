@@ -442,6 +442,7 @@ model LandingPageConfig {
   // Background customization
   backgroundType    BackgroundType  @default(PRESET)
   backgroundValue   String?         // Preset ID, hex color, or image URL
+  ogBackgroundColor String?         @default("#3B82F6") // Solid color for OG image (Linktree style)
 
   // Social Media Links (stored as JSON for flexibility)
   socialLinks       Json?           @db.Json

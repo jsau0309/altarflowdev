@@ -288,6 +288,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
     churchId: string;
     configJson: Prisma.JsonValue;
     churchName: string;
+    name: string;
 } | null> {
     if (!slug) {
         console.log("getPublicFlowBySlug: No slug provided.");
@@ -304,6 +305,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
                 id: true,
                 churchId: true,
                 configJson: true,
+                name: true,
                 Church: { select: { name: true } }
             },
         });
@@ -316,6 +318,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
                     id: true,
                     churchId: true,
                     configJson: true,
+                    name: true,
                     Church: { select: { name: true } }
                 },
             });
@@ -334,10 +337,11 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
             churchId: flow.churchId,
             configJson: flow.configJson,
             churchName: flow.Church.name,
+            name: flow.name,
         };
     } catch (error) {
         console.error(`Error fetching public flow configuration for slug ${slug}:`, error);
-        return null; 
+        return null;
     }
 }
 

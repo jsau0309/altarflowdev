@@ -218,8 +218,11 @@
     "shareModal": {
       "title": "Comparte portal web",
       "copy": "Copiar",
+      "open": "Abrir",
       "qrCode": "Código QR",
       "downloadQR": "Descargar Código QR",
+      "customizeColor": "Personalizar color para compartir",
+      "ogBackgroundColor": "Color de Fondo de Tarjeta para Compartir",
       "linkCopied": "¡Enlace copiado al portapapeles!",
       "copyFailed": "Error al copiar el enlace",
       "qrDownloaded": "¡Código QR descargado!"

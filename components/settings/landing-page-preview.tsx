@@ -43,6 +43,8 @@ interface LandingPagePreviewProps {
   buttonBackgroundColor?: string;
   buttonTextColor?: string;
   buttons?: ButtonConfig[];
+  ogBackgroundColor?: string;
+  onOgColorChange?: (color: string) => void;
 }
 
 export function LandingPagePreview({
@@ -64,6 +66,8 @@ export function LandingPagePreview({
   buttonBackgroundColor = '#FFFFFF',
   buttonTextColor = '#1F2937',
   buttons = [],
+  ogBackgroundColor = '#3B82F6',
+  onOgColorChange,
 }: LandingPagePreviewProps) {
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -191,6 +195,10 @@ export function LandingPagePreview({
         onClose={() => setShowShareModal(false)}
         url={landingUrl}
         churchSlug={churchSlug}
+        churchName={displayTitle}
+        logoUrl={logoUrl}
+        ogBackgroundColor={ogBackgroundColor}
+        onOgColorChange={onOgColorChange || (() => {})}
       />
     </div>
   );

@@ -271,8 +271,8 @@ export default async function LandingPage(props: LandingPageProps) {
               <Link
                 key={button.id}
                 href={button.url || '#'}
-                target={button.type === 'custom' ? '_blank' : undefined}
-                rel={button.type === 'custom' ? 'noopener noreferrer' : undefined}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center justify-center w-full font-semibold py-3 px-6 rounded-full text-base transition shadow-xl hover:shadow-2xl hover:scale-105"
                 style={{
                   backgroundColor: buttonBackgroundColor,

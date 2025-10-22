@@ -47,6 +47,7 @@ interface LandingConfig {
   buttonBackgroundColor: string;
   buttonTextColor: string;
   buttons: ButtonConfig[];
+  ogBackgroundColor: string;
 }
 
 export function LandingManagerEnhanced() {
@@ -75,6 +76,7 @@ export function LandingManagerEnhanced() {
     buttonBackgroundColor: '#FFFFFF',
     buttonTextColor: '#1F2937',
     buttons: [],
+    ogBackgroundColor: '#3B82F6',
   });
 
   const [hasStripeAccount, setHasStripeAccount] = useState(false);
@@ -639,6 +641,8 @@ export function LandingManagerEnhanced() {
             buttonBackgroundColor={config.buttonBackgroundColor}
             buttonTextColor={config.buttonTextColor}
             buttons={config.buttons}
+            ogBackgroundColor={config.ogBackgroundColor}
+            onOgColorChange={(color) => setConfig(prev => ({ ...prev, ogBackgroundColor: color }))}
           />
         </div>
       </div>

@@ -32,6 +32,7 @@ interface LandingConfigUpdateData {
   buttonBackgroundColor?: string;
   buttonTextColor?: string;
   buttons?: any; // JSON array of button configurations
+  ogBackgroundColor?: string;
 }
 
 // GET /api/settings/landing-config - Get landing page configuration
@@ -106,6 +107,7 @@ export async function GET() {
           connectButtonText: 'Connect',
           buttonBackgroundColor: '#FFFFFF',
           buttonTextColor: '#1F2937',
+          ogBackgroundColor: '#3B82F6',
           buttons: [
             {
               id: 'donate',
@@ -198,6 +200,7 @@ export async function GET() {
         connectButtonText: church.LandingPageConfig.connectButtonText ?? 'Connect',
         buttonBackgroundColor: church.LandingPageConfig.buttonBackgroundColor ?? '#FFFFFF',
         buttonTextColor: church.LandingPageConfig.buttonTextColor ?? '#1F2937',
+        ogBackgroundColor: church.LandingPageConfig.ogBackgroundColor ?? '#3B82F6',
         buttons: buttons,
       },
       churchSlug: church.slug,
@@ -337,6 +340,7 @@ export async function PUT(request: Request) {
         connectButtonText: body.connectButtonText ?? 'Connect',
         buttonBackgroundColor: body.buttonBackgroundColor ?? '#FFFFFF',
         buttonTextColor: body.buttonTextColor ?? '#1F2937',
+        ogBackgroundColor: body.ogBackgroundColor ?? '#3B82F6',
         buttons: (body.buttons || [
           {
             id: 'donate',
@@ -371,6 +375,7 @@ export async function PUT(request: Request) {
         ...(body.connectButtonText !== undefined && { connectButtonText: body.connectButtonText }),
         ...(body.buttonBackgroundColor !== undefined && { buttonBackgroundColor: body.buttonBackgroundColor }),
         ...(body.buttonTextColor !== undefined && { buttonTextColor: body.buttonTextColor }),
+        ...(body.ogBackgroundColor !== undefined && { ogBackgroundColor: body.ogBackgroundColor }),
         ...(body.buttons !== undefined && { buttons: body.buttons as any }),
       }
     });

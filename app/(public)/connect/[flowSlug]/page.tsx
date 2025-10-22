@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from 'next/navigation';
 import { getPublicFlowBySlug } from '@/lib/actions/flows.actions';
 import ConnectForm from '@/components/connect/connect-form';
@@ -5,12 +6,86 @@ import { prisma } from '@/lib/db';
 import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
 
 // Ensure page is dynamically rendered
-export const dynamic = "force-dynamic"; 
+export const dynamic = "force-dynamic";
 
 interface ConnectPageProps {
   params: Promise<{
     flowSlug: string;
   }>;
+}
+
+export async function generateMetadata(props: ConnectPageProps): Promise<Metadata> {
+  const { flowSlug } = await props.params;
+
+  if (!flowSlug) {
+    return {
+      title: "Connect Flow Not Found | Altarflow",
+      description: "The requested connect flow could not be found.",
+    };
+  }
+
+  const flowData = await getPublicFlowBySlug(flowSlug);
+
+  if (!flowData) {
+    return {
+      title: "Connect Flow Not Found | Altarflow",
+      description: "The requested connect flow could not be found or has been disabled.",
+    };
+  }
+
+  // Get church information and landing config
+  const church = await prisma.church.findUnique({
+    where: { id: flowData.churchId },
+    select: {
+      id: true,
+      name: true,
+      LandingPageConfig: true
+    }
+  });
+
+  const displayTitle = church?.LandingPageConfig?.customTitle || church?.name || flowData.churchName;
+
+  // Use flow name or create a generic title
+  const pageTitle = flowData.name ? `${flowData.name} - ${displayTitle}` : `Connect with ${displayTitle}`;
+  const pageDescription = `Stay connected with ${displayTitle}. Fill out this form to get in touch with us.`;
+
+  // Build absolute URLs - use church slug for OG image (same Linktree-style image as landing page)
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://altarflow.com';
+  const churchSlug = await prisma.church.findUnique({
+    where: { id: flowData.churchId },
+    select: { slug: true }
+  });
+  const ogImageUrl = churchSlug?.slug ? `${baseUrl}/api/og/${churchSlug.slug}` : `${baseUrl}/images/Altarflow.svg`;
+
+  return {
+    title: pageTitle,
+    description: pageDescription,
+    openGraph: {
+      title: pageTitle,
+      description: pageDescription,
+      type: 'website',
+      url: `${baseUrl}/connect/${flowSlug}`,
+      siteName: 'Altarflow',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${displayTitle} - Connect on Altarflow`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: pageTitle,
+      description: pageDescription,
+      images: [ogImageUrl],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
 
 export default async function ConnectFlowPage({ params }: ConnectPageProps) {
