@@ -16,6 +16,43 @@ import { getUserSubscriptionPlan } from "@/lib/stripe/subscription";
 // import type { User } from "@clerk/backend"; // Not used in this endpoint
 import { getChurchByClerkOrgId } from '@/lib/actions/church.actions';
 
+// Type definitions for trend data
+interface ExpenseTrendItem {
+    month: string;
+    totalExpenses: number;
+    expenseCount: number;
+    topCategory: string;
+    categories: Record<string, number>;
+}
+
+interface DonationTrendItem {
+    month: string;
+    totalDonations: number;
+    donationCount: number;
+    recurringPercentage: number;
+    topType: string;
+    types: Record<string, number>;
+}
+
+// Type guards
+function isExpenseTrendData(data: unknown): data is ExpenseTrendItem[] {
+    return Array.isArray(data) && data.every(item =>
+        typeof item === 'object' &&
+        item !== null &&
+        'totalExpenses' in item &&
+        typeof item.totalExpenses === 'number'
+    );
+}
+
+function isDonationTrendData(data: unknown): data is DonationTrendItem[] {
+    return Array.isArray(data) && data.every(item =>
+        typeof item === 'object' &&
+        item !== null &&
+        'totalDonations' in item &&
+        typeof item.totalDonations === 'number'
+    );
+}
+
 const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
 });
@@ -82,7 +119,8 @@ export async function POST(req: NextRequest) {
                 fetchedData = await getExpenseTrendData(church.id);
                 questionTextForLLM = language === 'es' ? "¿Cuál es la tendencia de gastos en los últimos 6 meses?" : "What is the expense trend over the last 6 months?";
                 noDataMessage = language === 'es' ? "No hay suficientes datos de gastos para determinar una tendencia en los últimos 6 meses. Con más datos en el futuro, podremos ofrecer un análisis de tendencias más claro." : "There isn't enough expense data to determine a trend for the last 6 months yet. As more data becomes available over time, we'll be able to provide a clearer trend analysis.";
-                if (!fetchedData || (Array.isArray(fetchedData) && (fetchedData.length === 0 || fetchedData.every((d: { totalExpenses: number }) => d.totalExpenses === 0)))) {
+                // Type-safe validation with type guard
+                if (!fetchedData || !isExpenseTrendData(fetchedData) || fetchedData.length === 0 || fetchedData.every(d => d.totalExpenses === 0)) {
                     return new NextResponse(noDataMessage, { status: 200 });
                 }
                 break;
@@ -90,7 +128,8 @@ export async function POST(req: NextRequest) {
                 fetchedData = await getDonationTrendData(church.id);
                 questionTextForLLM = language === 'es' ? "¿Cuál es la tendencia de donaciones en los últimos 6 meses?" : "What is the donation trend over the last 6 months?";
                 noDataMessage = language === 'es' ? "No hay suficientes datos de donaciones para determinar una tendencia en los últimos 6 meses. Con más datos en el futuro, podremos ofrecer un análisis de tendencias más claro." : "There isn't enough donation data to determine a trend for the last 6 months yet. As more data becomes available over time, we'll be able to provide a clearer trend analysis.";
-                 if (!fetchedData || (Array.isArray(fetchedData) && (fetchedData.length === 0 || fetchedData.every((d: { totalDonations: number }) => d.totalDonations === 0)))) {
+                // Type-safe validation with type guard
+                if (!fetchedData || !isDonationTrendData(fetchedData) || fetchedData.length === 0 || fetchedData.every(d => d.totalDonations === 0)) {
                     return new NextResponse(noDataMessage, { status: 200 });
                 }
                 break;
@@ -114,42 +153,48 @@ export async function POST(req: NextRequest) {
                 return new NextResponse('Invalid question key', { status: 400 });
         }
 
-        // Enhanced prompt for Claude with better context and instructions
+        // Enhanced prompt for more natural, conversational responses
         const churchName = church?.name || "the church";
-        const systemPrompt = `You are a warm, insightful AI assistant for AltarFlow, helping ${churchName} understand their ministry data.
+        const systemPrompt = `You are a trusted ministry advisor for ${churchName}, helping leaders understand what the data reveals about their community and ministry.
 
-KEY INSTRUCTIONS:
-- Language: Respond entirely in ${language === 'es' ? 'Spanish' : 'English'}
-- Tone: Pastoral, encouraging, and conversational
-- Length: 2-3 paragraphs maximum
-- Numbers: Always use $ for currency (e.g., $1,500)
-- Focus: Provide insights, not just data repetition
+CONVERSATION STYLE:
+- Speak like a wise friend, not a report generator
+- Use "you," "your," and the church's name naturally
+- Ask rhetorical questions that prompt reflection
+- Vary your sentence structure - some short, some flowing
+- Lead with insight, not just numbers
+- End with encouragement and a forward-looking thought
 
-WHEN ANALYZING DATA:
-1. Look for patterns and their meaning
-2. Connect numbers to ministry impact
-3. Offer gentle, actionable suggestions
-4. Celebrate positives, encourage through challenges
-5. If data is limited, acknowledge it gracefully
+LANGUAGE & TONE:
+- Write entirely in ${language === 'es' ? 'Spanish' : 'English'}
+- Be warm and pastoral, celebrating wins and empathizing with challenges
+- Keep it conversational (2-3 paragraphs max)
+- Use $ for all currency amounts (e.g., $1,500)
 
-FOR TRENDS:
-- Interpret what changes might signify
-- Consider seasonal patterns
-- Suggest practical next steps
-- Frame challenges as opportunities
+ANALYTICAL APPROACH:
+- Patterns: What story do these numbers tell?
+- Context: Consider timing, seasons, and ministry rhythms
+- Impact: Connect data to real people and ministry outcomes
+- Action: Gently suggest 1-2 practical next steps
+- Hope: Even in challenges, point toward possibilities
 
-REMEMBER: You're speaking to church leaders who care deeply about their community. Be their thoughtful partner in understanding how data reflects their ministry's health and opportunities.`;
+When you analyze trends:
+- "This upward pattern suggests..." not "The data shows an increase"
+- "Your community's giving reflects..." not "Donations increased by..."
+- Frame setbacks as learning opportunities or seasonal shifts
 
-        const userPrompt = `Based on the following data, please answer the question: "${questionTextForLLM}"
+Remember: Church leaders don't just want numbers explained - they want to understand what God might be doing in their community and how they can steward it well. Be that insightful partner.`;
 
-Data:
+        const userPrompt = `The leadership team at ${churchName} wants to understand: "${questionTextForLLM}"
+
+Here's the relevant data:
 ${JSON.stringify(fetchedData, null, 2)}
 
-Answer directly and conversationally.`;
+Help them see what this data reveals. Tell the story, provide context, and offer your thoughtful perspective. Make it feel like a conversation, not a data dump.`;
 
         const startTime = performance.now();
         const stream = await anthropic.messages.create({
-            model: 'claude-3-haiku-20240307', // Fast, cost-effective for conversational responses
+            model: 'claude-haiku-4-5-20251001', // Claude Haiku 4.5 - fastest, most cost-effective with excellent coding
             stream: true,
             system: systemPrompt,
             messages: [
@@ -191,14 +236,14 @@ Answer directly and conversationally.`;
 
                     // Track LLM usage after stream completes
                     const latencyMs = performance.now() - startTime;
-                    // Claude 3 Haiku pricing: $0.25 per 1M input tokens, $1.25 per 1M output tokens
-                    const inputCost = (inputTokens / 1_000_000) * 0.25;
-                    const outputCost = (outputTokens / 1_000_000) * 1.25;
+                    // Claude Haiku 4.5 pricing: $1.00 per 1M input tokens, $5.00 per 1M output tokens
+                    const inputCost = (inputTokens / 1_000_000) * 1.00;
+                    const outputCost = (outputTokens / 1_000_000) * 5.00;
 
                     captureLLMEvent({
                         distinctId: userId,
                         traceId: `report_follow_up_${Date.now()}_${userId}`,
-                        model: 'claude-3-haiku-20240307',
+                        model: 'claude-haiku-4-5-20251001',
                         provider: 'anthropic',
                         inputTokens,
                         outputTokens,

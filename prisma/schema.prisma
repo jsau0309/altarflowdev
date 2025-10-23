@@ -442,6 +442,7 @@ model LandingPageConfig {
   // Background customization
   backgroundType    BackgroundType  @default(PRESET)
   backgroundValue   String?         // Preset ID, hex color, or image URL
+  ogBackgroundColor String?         @default("#3B82F6") // Solid color for OG image (Linktree style)
 
   // Social Media Links (stored as JSON for flexibility)
   socialLinks       Json?           @db.Json
@@ -456,6 +457,11 @@ model LandingPageConfig {
   buttonBackgroundColor String?     @default("#FFFFFF")
   buttonTextColor       String?     @default("#1F2937")
   buttons               Json?       @db.Json // Array of {id, type, label, url?, enabled, order}
+
+  // Announcement Banner
+  announcementText      String?     // Announcement text to display
+  announcementLink      String?     // Optional URL to link to
+  showAnnouncement      Boolean     @default(false) // Show/hide toggle
 
   // Timestamps
   createdAt         DateTime        @default(now())

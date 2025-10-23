@@ -219,8 +219,11 @@
   "shareModal": {
     "title": "Share your landing page",
     "copy": "Copy",
+    "open": "Open",
     "qrCode": "QR code",
     "downloadQR": "Download QR Code",
+    "customizeColor": "Customize share color",
+    "ogBackgroundColor": "Share Card Background Color",
     "linkCopied": "Link copied to clipboard!",
     "copyFailed": "Failed to copy link",
     "qrDownloaded": "QR code downloaded!"
@@ -307,6 +310,18 @@
       "description": "Customize button appearance",
       "buttonBackgroundColor": "Button Background Color",
       "buttonTextColor": "Button Text Color"
+    },
+    "announcement": {
+      "title": "Announcement Banner",
+      "description": "Display an announcement at the top of your landing page",
+      "showAnnouncement": "Show Announcement",
+      "announcementText": "Announcement Text",
+      "announcementTextPlaceholder": "Special service this Sunday at 10 AM!",
+      "announcementLink": "Link URL (Optional)",
+      "announcementLinkPlaceholder": "https://example.com/event",
+      "characterCount": "{{count}}/200 characters",
+      "linkNote": "Add a URL to make the banner clickable",
+      "addEmoji": "Add emoji"
     },
     "socialLinks": {
       "title": "Social Links",

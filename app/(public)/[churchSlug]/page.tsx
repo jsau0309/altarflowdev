@@ -8,6 +8,15 @@ import { getTitleFont, getTitleSizeClass } from '@/lib/landing-page/font-config'
 import { prisma } from '@/lib/db';
 import { Facebook, Instagram, Twitter, Youtube, Globe, User } from 'lucide-react';
 
+// Type definition for social media links
+interface SocialLinks {
+  facebook?: string;
+  instagram?: string;
+  twitter?: string;
+  youtube?: string;
+  website?: string;
+}
+
 interface LandingPageProps {
   params: Promise<{
     churchSlug: string;
@@ -185,7 +194,8 @@ export default async function LandingPage(props: LandingPageProps) {
     ? getBackgroundStyle(landingConfig.backgroundType, landingConfig.backgroundValue)
     : 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)';
 
-  const socialLinks = (landingConfig?.socialLinks as any) || {};
+  // Parse social links with type safety
+  const socialLinks: SocialLinks = (landingConfig?.socialLinks as SocialLinks) || {};
   const logoUrl = landingConfig?.logoUrl || null;
   const description = landingConfig?.description;
   const customTitle = landingConfig?.customTitle;
@@ -197,6 +207,10 @@ export default async function LandingPage(props: LandingPageProps) {
   const titleSizeClass = getTitleSizeClass(titleSize);
   const displayTitle = customTitle || church.name;
 
+  const announcementText = landingConfig?.announcementText;
+  const announcementLink = landingConfig?.announcementLink;
+  const showAnnouncement = landingConfig?.showAnnouncement || false;
+
   const socialIcons = [
     { key: 'facebook', icon: Facebook, url: socialLinks.facebook },
     { key: 'instagram', icon: Instagram, url: socialLinks.instagram },
@@ -207,9 +221,39 @@ export default async function LandingPage(props: LandingPageProps) {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center p-6 text-white"
+      className={`min-h-screen flex flex-col items-center justify-center p-6 text-white ${showAnnouncement && announcementText ? 'pt-20' : ''}`}
       style={{ background: backgroundStyle }}
     >
+      {/* Announcement Banner */}
+      {showAnnouncement && announcementText && (
+        <div className="fixed top-0 left-0 right-0 z-50 pt-safe">
+          {announcementLink ? (
+            <a
+              href={announcementLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full px-6 py-3 text-center text-sm md:text-base font-medium transition-opacity hover:opacity-90"
+              style={{
+                backgroundColor: buttonBackgroundColor,
+                color: buttonTextColor,
+              }}
+            >
+              {announcementText}
+            </a>
+          ) : (
+            <div
+              className="w-full px-6 py-3 text-center text-sm md:text-base font-medium"
+              style={{
+                backgroundColor: buttonBackgroundColor,
+                color: buttonTextColor,
+              }}
+            >
+              {announcementText}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col items-center space-y-8 w-full max-w-md">
         {/* Logo */}
         <div className="mb-2">
@@ -271,8 +315,8 @@ export default async function LandingPage(props: LandingPageProps) {
               <Link
                 key={button.id}
                 href={button.url || '#'}
-                target={button.type === 'custom' ? '_blank' : undefined}
-                rel={button.type === 'custom' ? 'noopener noreferrer' : undefined}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center justify-center w-full font-semibold py-3 px-6 rounded-full text-base transition shadow-xl hover:shadow-2xl hover:scale-105"
                 style={{
                   backgroundColor: buttonBackgroundColor,

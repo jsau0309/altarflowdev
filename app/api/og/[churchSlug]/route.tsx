@@ -1,10 +1,39 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
 
-// Note: Using Node.js runtime (not edge) because Prisma requires Node.js
-// This is fine for OG images as they're cached by social platforms
+// Force Node.js runtime (required for Prisma)
+// Edge runtime cannot run Prisma due to file system requirements
+export const runtime = 'nodejs';
+
+// Helper function to validate and sanitize logo URL
+function validateLogoUrl(url: string | null | undefined): string | null {
+  if (!url || typeof url !== 'string') return null;
+
+  try {
+    const parsed = new URL(url);
+    // Only allow http/https protocols (prevent javascript:, data:, etc.)
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      console.warn('[OG Image] Invalid protocol in logo URL:', parsed.protocol);
+      return null;
+    }
+    // Verify it's likely an image by checking common image extensions
+    const pathname = parsed.pathname.toLowerCase();
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+    const hasValidExtension = validExtensions.some(ext => pathname.endsWith(ext));
+
+    if (!hasValidExtension && !pathname.includes('/')) {
+      // If no extension and not a path, might be invalid
+      console.warn('[OG Image] URL does not appear to be an image:', url);
+      return null;
+    }
+
+    return url;
+  } catch (error) {
+    console.error('[OG Image] Invalid logo URL:', url, error);
+    return null;
+  }
+}
 
 export async function GET(
   _request: NextRequest,
@@ -29,24 +58,12 @@ export async function GET(
 
     const config = church.LandingPageConfig;
     const displayTitle = config?.customTitle || church.name;
-    const description = config?.description || `Connect with ${church.name}`;
 
-    // Get background gradient
-    const backgroundType = config?.backgroundType || 'PRESET';
-    const backgroundValue = config?.backgroundValue || 'preset-1';
-    const backgroundStyle = getBackgroundStyle(backgroundType, backgroundValue);
+    // Validate logo URL before using it
+    const validatedLogoUrl = config?.logoUrl ? validateLogoUrl(config.logoUrl) : null;
 
-    // Parse background to get gradient for OG image
-    const getBackgroundForOG = (style: string) => {
-      // Extract the gradient from the style string
-      if (style.includes('linear-gradient')) {
-        return style;
-      }
-      // Default gradient
-      return 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)';
-    };
-
-    const background = getBackgroundForOG(backgroundStyle);
+    // Use solid color for OG image (Linktree style)
+    const ogBackgroundColor = config?.ogBackgroundColor || '#3B82F6'; // Default blue
 
     return new ImageResponse(
       (
@@ -58,91 +75,62 @@ export async function GET(
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: background,
-            padding: '60px',
-            position: 'relative',
+            background: ogBackgroundColor,
+            padding: '80px',
           }}
         >
-          {/* Content Container */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-            }}
-          >
-            {/* Logo */}
-            {config?.logoUrl ? (
-              <div
-                style={{
-                  display: 'flex',
-                  width: '180px',
-                  height: '180px',
-                  borderRadius: '90px',
-                  overflow: 'hidden',
-                  marginBottom: '40px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <img
-                  src={config.logoUrl}
-                  width={180}
-                  height={180}
-                  style={{
-                    objectFit: 'cover',
-                  }}
-                  alt="Logo"
-                />
-              </div>
-            ) : (
-              <div style={{ display: 'none' }} />
-            )}
-
-            {/* Title */}
+          {/* Logo Circle - only render if we have a valid logo URL */}
+          {validatedLogoUrl && (
             <div
               style={{
                 display: 'flex',
-                fontSize: '72px',
-                fontWeight: 'bold',
-                color: 'white',
-                textAlign: 'center',
-                marginBottom: '20px',
-                textShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                maxWidth: '900px',
+                width: '200px',
+                height: '200px',
+                borderRadius: '100px',
+                overflow: 'hidden',
+                marginBottom: '48px',
+                backgroundColor: 'white',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '6px solid rgba(255, 255, 255, 0.3)',
               }}
             >
-              {displayTitle}
+              <img
+                src={validatedLogoUrl}
+                width={200}
+                height={200}
+                style={{
+                  objectFit: 'cover',
+                }}
+                alt="Logo"
+              />
             </div>
+          )}
 
-            {/* Description */}
-            <div
-              style={{
-                display: description ? 'flex' : 'none',
-                fontSize: '32px',
-                color: 'rgba(255, 255, 255, 0.9)',
-                textAlign: 'center',
-                maxWidth: '800px',
-                lineHeight: 1.4,
-              }}
-            >
-              {description && description.length > 120
-                ? description.substring(0, 120) + '...'
-                : description || ''}
-            </div>
-          </div>
-
-          {/* Footer */}
+          {/* Church Name */}
           <div
             style={{
               display: 'flex',
-              position: 'absolute',
-              bottom: '40px',
-              fontSize: '24px',
-              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '64px',
+              fontWeight: 'bold',
+              color: 'white',
+              textAlign: 'center',
+              marginBottom: '24px',
+              maxWidth: '900px',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {displayTitle}
+          </div>
+
+          {/* URL */}
+          <div
+            style={{
+              display: 'flex',
+              fontSize: '28px',
+              color: 'rgba(255, 255, 255, 0.85)',
+              textAlign: 'center',
+              fontWeight: '500',
             }}
           >
             altarflow.com/{churchSlug}

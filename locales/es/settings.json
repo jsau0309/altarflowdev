@@ -218,8 +218,11 @@
     "shareModal": {
       "title": "Comparte portal web",
       "copy": "Copiar",
+      "open": "Abrir",
       "qrCode": "Código QR",
       "downloadQR": "Descargar Código QR",
+      "customizeColor": "Personalizar color para compartir",
+      "ogBackgroundColor": "Color de Fondo de Tarjeta para Compartir",
       "linkCopied": "¡Enlace copiado al portapapeles!",
       "copyFailed": "Error al copiar el enlace",
       "qrDownloaded": "¡Código QR descargado!"
@@ -306,6 +309,18 @@
         "description": "Personaliza la apariencia de los botones",
         "buttonBackgroundColor": "Color de Fondo del Botón",
         "buttonTextColor": "Color de Texto del Botón"
+      },
+      "announcement": {
+        "title": "Banner de Anuncios",
+        "description": "Muestra un anuncio en la parte superior de tu página de destino",
+        "showAnnouncement": "Mostrar Anuncio",
+        "announcementText": "Texto del Anuncio",
+        "announcementTextPlaceholder": "¡Servicio especial este domingo a las 10 AM!",
+        "announcementLink": "URL del Enlace (Opcional)",
+        "announcementLinkPlaceholder": "https://ejemplo.com/evento",
+        "characterCount": "{{count}}/200 caracteres",
+        "linkNote": "Agrega una URL para hacer el banner clickeable",
+        "addEmoji": "Agregar emoji"
       },
       "socialLinks": {
         "title": "Enlaces Sociales",

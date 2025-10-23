@@ -16,15 +16,56 @@ interface DonatePageProps {
 export async function generateMetadata(props: DonatePageProps): Promise<Metadata> {
   const { churchSlug } = await props.params; // Await props.params
   const churchData = await getChurchBySlug(churchSlug);
+
   if (!churchData) {
     return {
       title: "Church Not Found | Altarflow",
       description: "The requested church could not be found.",
     };
   }
+
+  const { church } = churchData;
+
+  // Get landing page configuration for logo and branding
+  const landingConfig = await prisma.landingPageConfig.findUnique({
+    where: { churchId: church.id }
+  });
+
+  const displayTitle = landingConfig?.customTitle || church.name;
+  const churchDescription = `Support ${displayTitle} with your generous donation. Give securely online to help our ministry and mission.`;
+
+  // Build absolute URLs
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://altarflow.com';
+  const ogImageUrl = `${baseUrl}/api/og/${churchSlug}`; // Use same Linktree-style OG image
+
   return {
-    title: `Donate to ${churchData.church.name} | Altarflow`,
-    description: `Support ${churchData.church.name} with your generous donation.`,
+    title: `Donate to ${displayTitle}`,
+    description: churchDescription,
+    openGraph: {
+      title: `Donate to ${displayTitle}`,
+      description: churchDescription,
+      type: 'website',
+      url: `${baseUrl}/donate/${churchSlug}`,
+      siteName: 'Altarflow',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${displayTitle} - Donate on Altarflow`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Donate to ${displayTitle}`,
+      description: churchDescription,
+      images: [ogImageUrl],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
   };
 }
 

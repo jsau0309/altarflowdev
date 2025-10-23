@@ -4,15 +4,20 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, QrCode } from 'lucide-react';
+import { Copy, QrCode, ExternalLink, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import QRCode from "react-qr-code";
+import { ColorPicker } from "@/components/settings/color-picker";
 
 interface LandingShareModalProps {
   open: boolean;
   onClose: () => void;
   url: string;
   churchSlug: string;
+  churchName: string;
+  logoUrl: string | null;
+  ogBackgroundColor: string;
+  onOgColorChange: (color: string) => void;
 }
 
 export function LandingShareModal({
@@ -20,9 +25,14 @@ export function LandingShareModal({
   onClose,
   url,
   churchSlug,
+  churchName,
+  logoUrl,
+  ogBackgroundColor,
+  onOgColorChange,
 }: LandingShareModalProps) {
   const { t } = useTranslation();
   const [showQR, setShowQR] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   const handleCopyLink = async () => {
     try {
@@ -115,8 +125,62 @@ export function LandingShareModal({
           <DialogTitle>{t("settings:shareModal.title", "Share your landing page")}</DialogTitle>
         </DialogHeader>
 
-        {/* URL Copy Section */}
         <div className="space-y-4 overflow-y-auto pr-2">
+          {/* OG Preview Card */}
+          <div className="space-y-3">
+            <div
+              className="relative rounded-lg overflow-hidden border aspect-[1200/630]"
+              style={{ backgroundColor: ogBackgroundColor }}
+            >
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
+                {/* Logo Circle */}
+                {logoUrl && (
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-white mb-4 flex items-center justify-center border-2 border-white/30">
+                    <img
+                      src={logoUrl}
+                      alt="Church logo"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Church Name */}
+                <div className="text-white font-bold text-lg text-center mb-2 max-w-[90%]">
+                  {churchName}
+                </div>
+
+                {/* URL */}
+                <div className="text-white/85 text-xs text-center font-medium">
+                  altarflow.com/{churchSlug}
+                </div>
+              </div>
+            </div>
+
+            {/* Color Picker Toggle */}
+            <button
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-muted transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Palette className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">{t("settings:shareModal.customizeColor", "Customize share color")}</span>
+              </div>
+              <span className="text-muted-foreground">&gt;</span>
+            </button>
+
+            {/* Color Picker Section */}
+            {showColorPicker && (
+              <div className="pt-2 pb-4 border-t space-y-3">
+                <ColorPicker
+                  label={t("settings:shareModal.ogBackgroundColor", "Share Card Background Color")}
+                  color={ogBackgroundColor}
+                  onChange={onOgColorChange}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* URL Copy Section */}
           <div className="flex items-center gap-2 p-3 bg-muted rounded-lg border">
             <span className="flex-1 text-sm truncate font-mono text-foreground">{url}</span>
             <Button
@@ -132,6 +196,17 @@ export function LandingShareModal({
 
           {/* Actions */}
           <div className="space-y-2">
+            <button
+              onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+              className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-muted transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <ExternalLink className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">{t("settings:shareModal.open", "Open")}</span>
+              </div>
+              <span className="text-muted-foreground">&gt;</span>
+            </button>
+
             <button
               onClick={() => setShowQR(!showQR)}
               className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-muted transition-colors"

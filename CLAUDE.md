@@ -170,16 +170,61 @@ Before pushing ANY Prisma schema change to production:
 
 ### Database Migration Best Practices
 
-**Standard workflow:**
-1. Modify the Prisma schema file (`prisma/schema.prisma`)
-2. Create migration: `npx prisma migrate dev --name descriptive_name`
-3. Review generated SQL in `prisma/migrations/[timestamp]_name/migration.sql`
-4. Test locally: `npm run build` and verify functionality
-5. Commit both schema changes AND migration file to git
-6. Create PR with migration safety checklist
-7. Get code review approval
-8. Deploy during low-traffic period
-9. Monitor deployment and verify success
+**🗄️ CRITICAL: Two-Database System**
+
+We have TWO separate databases:
+- **Development DB** (`uhoovjoeitxecfcbzndj.supabase.co`) - Work here, safe to modify
+- **Production DB** (`qdoyonfjxwqefvsfjchx.supabase.co`) - NEVER touch directly, only through deployment
+
+**Source of Truth:** Prisma schema file (`prisma/schema.prisma`)
+
+**Correct Workflow for Schema Changes:**
+
+1. **Modify `prisma/schema.prisma`** - Add your field/model
+   ```prisma
+   model LandingPageConfig {
+     ogBackgroundColor String? @default("#3B82F6")  // New field
+   }
+   ```
+
+2. **Create migration folder manually**
+   ```bash
+   TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
+   mkdir -p "prisma/migrations/${TIMESTAMP}_add_field_name"
+   ```
+
+3. **Write migration SQL manually**
+   Create `prisma/migrations/[TIMESTAMP]_name/migration.sql`:
+   ```sql
+   ALTER TABLE "TableName" ADD COLUMN "fieldName" TEXT DEFAULT 'value';
+   ```
+
+4. **Sync development database**
+   ```bash
+   npx prisma migrate dev    # Applies migration to dev DB
+   # OR
+   npx prisma generate       # Just regenerate client
+   ```
+
+5. **Test locally**
+   ```bash
+   npx tsc --noEmit
+   npm run build
+   ```
+
+6. **Commit schema + migration together**
+   ```bash
+   git add prisma/schema.prisma prisma/migrations/
+   git commit -m "feat: Add field to table"
+   ```
+
+7. **Deploy** - Vercel runs `npx prisma migrate deploy` on production DB automatically
+
+**❌ NEVER:**
+- Run `npx prisma migrate dev` BEFORE creating migration folder (causes shadow DB issues)
+- Modify production database directly
+- Use `npx prisma db push` (doesn't create migration files)
+- Mark migrations as applied without running the SQL
 
 **If you encounter drift errors:**
 1. Check status: `npx prisma migrate status`

@@ -11,6 +11,96 @@ This document establishes a safe, predictable workflow for Prisma schema changes
 
 ---
 
+## 🗄️ **CRITICAL: Understanding Our Two-Database System**
+
+### The Setup
+We have **TWO separate databases**:
+
+1. **Development Database** (`uhoovjoeitxecfcbzndj.supabase.co`)
+   - This is where we work and test
+   - Connected via `.env.development`
+   - Safe to modify and experiment
+   - Changes here don't affect production
+
+2. **Production Database** (`qdoyonfjxwqefvsfjchx.supabase.co`)
+   - **WE NEVER TOUCH THIS DIRECTLY**
+   - Only modified through deployment
+   - Connected via Vercel environment variables
+   - Contains real user data
+
+### The Source of Truth
+**Prisma Schema (`prisma/schema.prisma`) is the SOURCE OF TRUTH**
+
+Not the database. Not migrations. The schema file is what defines our data structure.
+
+### The Correct Workflow for Schema Changes
+
+When you want to add a new field or make any schema change:
+
+**Step 1: Modify the Prisma Schema**
+```prisma
+// Edit prisma/schema.prisma
+model LandingPageConfig {
+  id String @id @default(uuid()) @db.Uuid
+  // ... existing fields
+  ogBackgroundColor String? @default("#3B82F6")  // ← Add your new field
+}
+```
+
+**Step 2: Create Migration Folder Manually**
+```bash
+# Create folder with timestamp
+TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
+mkdir -p "prisma/migrations/${TIMESTAMP}_add_og_background_color"
+```
+
+**Step 3: Write the Migration SQL**
+Create `prisma/migrations/[TIMESTAMP]_name/migration.sql`:
+```sql
+-- AlterTable
+ALTER TABLE "LandingPageConfig" ADD COLUMN "ogBackgroundColor" TEXT DEFAULT '#3B82F6';
+```
+
+**Step 4: Sync Development Database with Schema**
+```bash
+# This applies the migration to development database
+npx prisma migrate dev
+
+# Or if migration folder already exists:
+npx prisma generate
+```
+
+**Step 5: Commit Everything**
+```bash
+git add prisma/schema.prisma
+git add prisma/migrations/
+git commit -m "feat: Add ogBackgroundColor to landing config"
+```
+
+**Step 6: Deploy to Production**
+When you push to `main` and Vercel deploys:
+- Vercel runs `npx prisma migrate deploy`
+- This applies pending migrations to **production database**
+- Production database gets updated automatically
+- **You never touch production database directly**
+
+### Why This Workflow?
+
+✅ **Correct:**
+1. Schema change in `schema.prisma`
+2. Create migration folder + SQL manually
+3. Run `npx prisma migrate dev` to sync dev database
+4. Commit schema + migration
+5. Deploy → Vercel applies to production
+
+❌ **Wrong:**
+1. ~~Run `npx prisma migrate dev` first~~ (causes shadow DB issues)
+2. ~~Modify production database directly~~ (causes drift)
+3. ~~Use `npx prisma db push`~~ (doesn't create migrations)
+4. ~~Mark migrations as applied without running SQL~~ (causes schema mismatch)
+
+---
+
 ## 📋 Quick Reference Checklist
 
 **Before ANY Prisma schema change:**
