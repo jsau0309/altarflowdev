@@ -8,6 +8,15 @@ import { getTitleFont, getTitleSizeClass } from '@/lib/landing-page/font-config'
 import { prisma } from '@/lib/db';
 import { Facebook, Instagram, Twitter, Youtube, Globe, User } from 'lucide-react';
 
+// Type definition for social media links
+interface SocialLinks {
+  facebook?: string;
+  instagram?: string;
+  twitter?: string;
+  youtube?: string;
+  website?: string;
+}
+
 interface LandingPageProps {
   params: Promise<{
     churchSlug: string;
@@ -185,7 +194,8 @@ export default async function LandingPage(props: LandingPageProps) {
     ? getBackgroundStyle(landingConfig.backgroundType, landingConfig.backgroundValue)
     : 'linear-gradient(90deg, hsla(217, 91%, 60%, 1) 0%, hsla(0, 0%, 75%, 1) 99%)';
 
-  const socialLinks = (landingConfig?.socialLinks as any) || {};
+  // Parse social links with type safety
+  const socialLinks: SocialLinks = (landingConfig?.socialLinks as SocialLinks) || {};
   const logoUrl = landingConfig?.logoUrl || null;
   const description = landingConfig?.description;
   const customTitle = landingConfig?.customTitle;

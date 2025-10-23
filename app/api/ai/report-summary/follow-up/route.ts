@@ -16,6 +16,43 @@ import { getUserSubscriptionPlan } from "@/lib/stripe/subscription";
 // import type { User } from "@clerk/backend"; // Not used in this endpoint
 import { getChurchByClerkOrgId } from '@/lib/actions/church.actions';
 
+// Type definitions for trend data
+interface ExpenseTrendItem {
+    month: string;
+    totalExpenses: number;
+    expenseCount: number;
+    topCategory: string;
+    categories: Record<string, number>;
+}
+
+interface DonationTrendItem {
+    month: string;
+    totalDonations: number;
+    donationCount: number;
+    recurringPercentage: number;
+    topType: string;
+    types: Record<string, number>;
+}
+
+// Type guards
+function isExpenseTrendData(data: unknown): data is ExpenseTrendItem[] {
+    return Array.isArray(data) && data.every(item =>
+        typeof item === 'object' &&
+        item !== null &&
+        'totalExpenses' in item &&
+        typeof item.totalExpenses === 'number'
+    );
+}
+
+function isDonationTrendData(data: unknown): data is DonationTrendItem[] {
+    return Array.isArray(data) && data.every(item =>
+        typeof item === 'object' &&
+        item !== null &&
+        'totalDonations' in item &&
+        typeof item.totalDonations === 'number'
+    );
+}
+
 const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
 });
@@ -82,7 +119,8 @@ export async function POST(req: NextRequest) {
                 fetchedData = await getExpenseTrendData(church.id);
                 questionTextForLLM = language === 'es' ? "¿Cuál es la tendencia de gastos en los últimos 6 meses?" : "What is the expense trend over the last 6 months?";
                 noDataMessage = language === 'es' ? "No hay suficientes datos de gastos para determinar una tendencia en los últimos 6 meses. Con más datos en el futuro, podremos ofrecer un análisis de tendencias más claro." : "There isn't enough expense data to determine a trend for the last 6 months yet. As more data becomes available over time, we'll be able to provide a clearer trend analysis.";
-                if (!fetchedData || (Array.isArray(fetchedData) && (fetchedData.length === 0 || fetchedData.every((d: { totalExpenses: number }) => d.totalExpenses === 0)))) {
+                // Type-safe validation with type guard
+                if (!fetchedData || !isExpenseTrendData(fetchedData) || fetchedData.length === 0 || fetchedData.every(d => d.totalExpenses === 0)) {
                     return new NextResponse(noDataMessage, { status: 200 });
                 }
                 break;
@@ -90,7 +128,8 @@ export async function POST(req: NextRequest) {
                 fetchedData = await getDonationTrendData(church.id);
                 questionTextForLLM = language === 'es' ? "¿Cuál es la tendencia de donaciones en los últimos 6 meses?" : "What is the donation trend over the last 6 months?";
                 noDataMessage = language === 'es' ? "No hay suficientes datos de donaciones para determinar una tendencia en los últimos 6 meses. Con más datos en el futuro, podremos ofrecer un análisis de tendencias más claro." : "There isn't enough donation data to determine a trend for the last 6 months yet. As more data becomes available over time, we'll be able to provide a clearer trend analysis.";
-                 if (!fetchedData || (Array.isArray(fetchedData) && (fetchedData.length === 0 || fetchedData.every((d: { totalDonations: number }) => d.totalDonations === 0)))) {
+                // Type-safe validation with type guard
+                if (!fetchedData || !isDonationTrendData(fetchedData) || fetchedData.length === 0 || fetchedData.every(d => d.totalDonations === 0)) {
                     return new NextResponse(noDataMessage, { status: 200 });
                 }
                 break;

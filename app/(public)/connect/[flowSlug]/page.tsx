@@ -4,9 +4,63 @@ import { getPublicFlowBySlug } from '@/lib/actions/flows.actions';
 import ConnectForm from '@/components/connect/connect-form';
 import { prisma } from '@/lib/db';
 import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
+import type { ServiceTime, Ministry } from '@/components/member-form/types';
 
 // Ensure page is dynamically rendered
 export const dynamic = "force-dynamic";
+
+// Type definition for connect form configuration
+interface ConnectFormConfig {
+  serviceTimes: ServiceTime[];
+  ministries: Ministry[];
+  settings: {
+    enablePrayerRequests: boolean;
+    enableReferralTracking: boolean;
+    enableLifeStage: boolean;
+  };
+}
+
+// Validation function to ensure config has the correct structure
+function validateConnectFormConfig(config: unknown): ConnectFormConfig {
+  if (!config || typeof config !== 'object') {
+    throw new Error('Config must be an object');
+  }
+
+  const c = config as Record<string, unknown>;
+
+  // Validate serviceTimes
+  if (!Array.isArray(c.serviceTimes)) {
+    throw new Error('serviceTimes must be an array');
+  }
+
+  // Validate ministries
+  if (!Array.isArray(c.ministries)) {
+    throw new Error('ministries must be an array');
+  }
+
+  // Validate settings
+  if (!c.settings || typeof c.settings !== 'object') {
+    throw new Error('settings must be an object');
+  }
+
+  const settings = c.settings as Record<string, unknown>;
+  if (typeof settings.enablePrayerRequests !== 'boolean' ||
+      typeof settings.enableReferralTracking !== 'boolean' ||
+      typeof settings.enableLifeStage !== 'boolean') {
+    throw new Error('settings must have boolean fields: enablePrayerRequests, enableReferralTracking, enableLifeStage');
+  }
+
+  // Return validated and typed config
+  return {
+    serviceTimes: c.serviceTimes as ServiceTime[],
+    ministries: c.ministries as Ministry[],
+    settings: {
+      enablePrayerRequests: settings.enablePrayerRequests as boolean,
+      enableReferralTracking: settings.enableReferralTracking as boolean,
+      enableLifeStage: settings.enableLifeStage as boolean,
+    }
+  };
+}
 
 interface ConnectPageProps {
   params: Promise<{
@@ -122,23 +176,22 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
   // Get display title - use customTitle from landing config or fall back to church name
   const displayTitle = church?.LandingPageConfig?.customTitle || church?.name || flowData.churchName;
 
-  // TODO: Proper parsing and validation of configJson before passing to client
-  let parsedConfig: any;
+  // Validate and parse configJson with proper type checking
+  let parsedConfig: ConnectFormConfig;
   try {
-    if (typeof flowData.configJson === 'object' && flowData.configJson !== null) {
-      // Assuming configJson is already an object from Prisma JSON type
-      parsedConfig = flowData.configJson;
-    } else {
-      throw new Error("Invalid configJson format");
-    }
+    // Validate the config structure and types
+    parsedConfig = validateConnectFormConfig(flowData.configJson);
   } catch (error) {
-    console.error(`ConnectFlowPage: Error parsing configJson for slug ${flowSlug}:`, error);
-    // Handle parsing error - maybe show a generic error message
+    console.error(`ConnectFlowPage: Invalid configJson for slug ${flowSlug}:`, error);
+    // Show specific error message based on validation failure
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return (
       <div className="container mx-auto py-8 text-center">
         <div className="bg-white text-gray-900 p-8 rounded-lg shadow-md max-w-md mx-auto">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Form Configuration</h1>
-          <p className="text-gray-600">There was a problem loading the form settings. Please try again later.</p>
+          <p className="text-gray-600 mb-4">The form configuration is invalid or corrupted.</p>
+          <p className="text-sm text-gray-500">Technical details: {errorMessage}</p>
+          <p className="text-sm text-gray-500 mt-2">Please contact the church administrator to fix this issue.</p>
         </div>
       </div>
     );
