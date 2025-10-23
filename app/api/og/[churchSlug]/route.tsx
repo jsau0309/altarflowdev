@@ -2,8 +2,9 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 
-// Note: Using Node.js runtime (not edge) because Prisma requires Node.js
-// This is fine for OG images as they're cached by social platforms
+// Force Node.js runtime (required for Prisma)
+// Edge runtime cannot run Prisma due to file system requirements
+export const runtime = 'nodejs';
 
 // Helper function to validate and sanitize logo URL
 function validateLogoUrl(url: string | null | undefined): string | null {
