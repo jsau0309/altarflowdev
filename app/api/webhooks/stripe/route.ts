@@ -794,15 +794,46 @@ export async function POST(req: Request) {
             console.log(`[Stripe Webhook] Detected plan: ${plan} (interval: ${interval}, priceId: ${priceId})`);
           }
           
+          // Check for promotional coupon (50% off for 3 months)
+          let promotionalCouponId: string | null = null;
+          let promotionalEndsAt: Date | null = null;
+
+          if (subscription.discount?.coupon) {
+            const coupon = subscription.discount.coupon;
+            promotionalCouponId = coupon.id;
+
+            console.log(`[Stripe Webhook] Subscription has coupon applied: ${coupon.id}`);
+
+            // If this is our promotional coupon (check by ID or name)
+            // The coupon should be created in Stripe with duration='repeating' and duration_in_months=3
+            if (coupon.duration === 'repeating' && coupon.duration_in_months === 3) {
+              // Calculate when the promotion ends (3 months from now)
+              const now = new Date();
+              const promoEnd = new Date(now);
+              promoEnd.setMonth(promoEnd.getMonth() + 3);
+              promotionalEndsAt = promoEnd;
+
+              console.log(`[Stripe Webhook] Promotional pricing detected, ends at: ${promotionalEndsAt.toISOString()}`);
+            }
+          }
+
           // For canceled subscriptions, we need to update the subscriptionEndsAt to show when it will actually end
           const updateData: {
             subscriptionStatus: string;
             subscriptionPlan: string | null;
             subscriptionEndsAt?: Date | null;
+            promotionalCouponId?: string | null;
+            promotionalEndsAt?: Date | null;
           } = {
             subscriptionStatus: status,
             subscriptionPlan: plan,
           };
+
+          // Add promotional fields if detected
+          if (promotionalCouponId) {
+            updateData.promotionalCouponId = promotionalCouponId;
+            updateData.promotionalEndsAt = promotionalEndsAt;
+          }
           
           // Only update subscriptionEndsAt if the subscription is canceled or will end
           if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
