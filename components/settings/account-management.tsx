@@ -16,6 +16,8 @@ interface ChurchData {
   stripeCustomerId: string | null;
   daysUntilEnd: number | null;
   graceDaysRemaining: number | null;
+  trialDaysRemaining: number | null;
+  hasPromotionalPricing: boolean;
 }
 
 export function AccountManagement() {
@@ -80,6 +82,7 @@ export function AccountManagement() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       free: { label: t("settings:billing.status.free", "Free"), variant: "secondary" as const },
+      trial: { label: t("settings:billing.status.trial", "Free Trial"), variant: "default" as const },
       pending_payment: { label: t("settings:billing.status.pendingPayment", "Payment Required"), variant: "destructive" as const },
       active: { label: t("settings:billing.status.active", "Active"), variant: "default" as const },
       past_due: { label: t("settings:billing.status.pastDue", "Past Due"), variant: "secondary" as const },
@@ -214,10 +217,12 @@ export function AccountManagement() {
         </CardHeader>
         <CardContent>
           {organization?.id && (
-            <SubscriptionPricing 
+            <SubscriptionPricing
               currentPlan={churchData?.subscriptionPlan || undefined}
               currentStatus={churchData?.subscriptionStatus}
               organizationId={organization.id}
+              trialDaysRemaining={churchData?.trialDaysRemaining}
+              hasPromotionalPricing={churchData?.hasPromotionalPricing}
             />
           )}
         </CardContent>

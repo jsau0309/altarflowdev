@@ -181,20 +181,28 @@ export async function POST(req: Request) {
         // A more advanced system might check for existing slugs and append a counter if a collision occurs.
 
 
+        // Calculate trial end date (30 days from now)
+        const now = new Date();
+        const trialEnd = new Date(now);
+        trialEnd.setDate(trialEnd.getDate() + 30);
+
         const newChurch = await prisma.church.create({
           data: {
             clerkOrgId: orgId,
             name: name, // Original name from Clerk
             slug: slug, // Generated slug
-            // Initialize with free status
-            subscriptionStatus: 'free',
+            // AUTO-START 30-DAY FREE TRIAL for all new churches
+            subscriptionStatus: 'trial',
+            setupFeePaid: true, // Mark as "paid" to skip manual setup fee call
+            freeTrialStartedAt: now,
+            trialEndsAt: trialEnd,
             // Initialize onboarding state
             onboardingCompleted: false,
             onboardingStep: 2, // Start at step 2 since org is already created
             // Add other default Church fields if necessary
           }
         });
-        console.log(`Successfully created church for Org ID: ${orgId} with internal ID: ${newChurch.id} - Free plan activated`);
+        console.log(`Successfully created church for Org ID: ${orgId} with internal ID: ${newChurch.id} - 30-day trial started`);
 
         // Create initial email quota for the new church
         const currentMonthYear = format(new Date(), 'yyyy-MM');
