@@ -1,7 +1,7 @@
 "use server"
 
 import { prisma } from '@/lib/db'
-import { format, startOfMonth, endOfMonth, startOfYear, subMonths } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfYear, subMonths, addMonths } from 'date-fns'
 
 export interface MonthlyReportData {
   month: string
@@ -111,7 +111,7 @@ export async function getMonthlyDonationSummary(
 
     // Generate all months from start to end date
     const allMonths: MonthlyReportData[] = []
-    const currentDate = new Date(startDate)
+    let currentDate = new Date(startDate)
     
     while (currentDate <= endDate) {
       const monthKey = format(currentDate, 'yyyy-MM')
@@ -123,8 +123,8 @@ export async function getMonthlyDonationSummary(
         count: data.count
       })
       
-      // Move to next month
-      currentDate.setMonth(currentDate.getMonth() + 1)
+      // Move to next month (immutable operation)
+      currentDate = addMonths(currentDate, 1)
     }
 
     return allMonths
@@ -280,7 +280,7 @@ export async function getMonthlyExpenseSummary(
 
     // Generate all months from start to end date
     const allMonths: MonthlyReportData[] = []
-    const currentDate = new Date(startDate)
+    let currentDate = new Date(startDate)
     
     while (currentDate <= endDate) {
       const monthKey = format(currentDate, 'yyyy-MM')
@@ -292,8 +292,8 @@ export async function getMonthlyExpenseSummary(
         count: data.count
       })
       
-      // Move to next month
-      currentDate.setMonth(currentDate.getMonth() + 1)
+      // Move to next month (immutable operation)
+      currentDate = addMonths(currentDate, 1)
     }
 
     return allMonths

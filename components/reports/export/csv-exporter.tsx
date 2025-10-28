@@ -112,8 +112,20 @@ export function exportToCSV({
   
   // Generate filename
   const dateStr = format(new Date(), 'yyyy-MM-dd')
-  const sanitizedChurchName = churchName.replace(/\s+/g, '_')
-  const sanitizedDonationType = donationTypeName ? `_${donationTypeName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}` : ''
+
+  // Robust filename sanitization helper
+  const sanitizeFilename = (str: string): string => {
+    return str
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .replace(/[^a-zA-Z0-9_-]/g, '') // Remove special characters
+      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+      .replace(/^_+|_+$/g, '') // Trim underscores from start/end
+      .slice(0, 50) // Limit length to prevent overly long filenames
+      || 'report' // Fallback if string becomes empty
+  }
+
+  const sanitizedChurchName = sanitizeFilename(churchName)
+  const sanitizedDonationType = donationTypeName ? `_${sanitizeFilename(donationTypeName)}` : ''
   const filename = `${sanitizedChurchName}_${type}${sanitizedDonationType}_report_${dateStr}.csv`
   
   link.setAttribute('href', url)
