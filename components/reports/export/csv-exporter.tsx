@@ -21,6 +21,7 @@ interface CSVExporterProps {
     to: Date | null
   }
   churchName?: string
+  donationTypeName?: string | null
   t?: TFunction
 }
 
@@ -30,6 +31,7 @@ export function exportToCSV({
   type,
   dateRange,
   churchName = 'Church',
+  donationTypeName,
   t
 }: CSVExporterProps) {
   // Create CSV content
@@ -40,6 +42,13 @@ export function exportToCSV({
   rows.push(`${churchName} - ${reportTitle}`)
   const dateRangeLabel = t ? t('reports:dateRange') : 'Date Range'
   rows.push(`${dateRangeLabel}: ${dateRange.from ? format(dateRange.from, 'MMM d, yyyy') : ''} - ${dateRange.to ? format(dateRange.to, 'MMM d, yyyy') : ''}`)
+
+  // Add donation type filter if present
+  if (donationTypeName) {
+    const filterLabel = t ? t('reports:filteredBy') : 'Filtered by'
+    rows.push(`${filterLabel}: ${donationTypeName}`)
+  }
+
   rows.push('') // Empty line
   
   // Add summary
@@ -103,7 +112,9 @@ export function exportToCSV({
   
   // Generate filename
   const dateStr = format(new Date(), 'yyyy-MM-dd')
-  const filename = `${churchName.replace(/\s+/g, '_')}_${type}_report_${dateStr}.csv`
+  const sanitizedChurchName = churchName.replace(/\s+/g, '_')
+  const sanitizedDonationType = donationTypeName ? `_${donationTypeName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}` : ''
+  const filename = `${sanitizedChurchName}_${type}${sanitizedDonationType}_report_${dateStr}.csv`
   
   link.setAttribute('href', url)
   link.setAttribute('download', filename)

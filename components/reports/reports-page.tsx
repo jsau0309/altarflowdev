@@ -29,9 +29,11 @@ import {
   getExpenseCategoryBreakdown,
   getExpenseSummary,
   getTransactionsForExport,
+  getDonationTypesForFilter,
   type MonthlyReportData,
   type CategoryReportData,
-  type ReportSummary as ReportSummaryType
+  type ReportSummary as ReportSummaryType,
+  type DonationTypeForFilter
 } from "@/lib/actions/reports.actions"
 import { startOfYear } from "date-fns"
 import { toast } from "sonner"
@@ -63,7 +65,21 @@ export function ReportsPage() {
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // First day of current month
     to: new Date() // Today
   })
+  const [donationTypes, setDonationTypes] = useState<DonationTypeForFilter[]>([])
+  const [selectedDonationType, setSelectedDonationType] = useState<string | null>(null)
+  const [selectedDonationTypeName, setSelectedDonationTypeName] = useState<string | null>(null)
   
+  // Fetch donation types on mount
+  useEffect(() => {
+    const fetchDonationTypes = async () => {
+      if (organization?.id) {
+        const types = await getDonationTypesForFilter(organization.id)
+        setDonationTypes(types)
+      }
+    }
+    fetchDonationTypes()
+  }, [organization?.id])
+
   // Sync tab state with URL when using browser navigation
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab')
@@ -100,11 +116,11 @@ export function ReportsPage() {
       }
       
       // Create a unique key for the current fetch parameters
-      const fetchKey = `${organization.id}-${activeTab}-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`
-      
+      const fetchKey = `${organization.id}-${activeTab}-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}-${selectedDonationType || 'all'}`
+
       // Check if tab changed
       const tabChanged = activeTab !== lastActiveTab
-      
+
       // Only fetch if parameters have changed
       if (fetchKey !== lastFetchParams) {
         fetchReportData(tabChanged)
@@ -112,7 +128,7 @@ export function ReportsPage() {
         setLastActiveTab(activeTab)
       }
     }
-  }, [activeTab, dateRange, organization, lastFetchParams, lastActiveTab])
+  }, [activeTab, dateRange, organization, selectedDonationType, lastFetchParams, lastActiveTab])
   
   const fetchReportData = async (isTabChange: boolean = false) => {
     // Always show loading when fetching new data
@@ -137,10 +153,10 @@ export function ReportsPage() {
       if (activeTab === 'donations') {
         // Fetch all donation data in parallel
         const [monthly, categories, summary, exportData] = await Promise.all([
-          getMonthlyDonationSummary(organization.id, yearStart, dateRange.to),
-          getDonationCategoryBreakdown(organization.id, dateRange.from, dateRange.to),
-          getDonationSummary(organization.id, dateRange.from, dateRange.to),
-          getTransactionsForExport(organization.id, 'donations', dateRange.from, dateRange.to)
+          getMonthlyDonationSummary(organization.id, yearStart, dateRange.to, selectedDonationType || undefined),
+          getDonationCategoryBreakdown(organization.id, dateRange.from, dateRange.to, selectedDonationType || undefined),
+          getDonationSummary(organization.id, dateRange.from, dateRange.to, selectedDonationType || undefined),
+          getTransactionsForExport(organization.id, 'donations', dateRange.from, dateRange.to, selectedDonationType || undefined)
         ])
         
         
@@ -180,6 +196,22 @@ export function ReportsPage() {
       setIsFilterLoading(true)
     }
     setDateRange(newRange)
+  }
+
+  const handleDonationTypeChange = (donationTypeId: string | null) => {
+    setSelectedDonationType(donationTypeId)
+    // Find and store the donation type name for export filename
+    if (donationTypeId) {
+      const donationType = donationTypes.find(dt => dt.id === donationTypeId)
+      setSelectedDonationTypeName(donationType?.name || null)
+    } else {
+      setSelectedDonationTypeName(null)
+    }
+
+    // Set loading when filter changes
+    if (activeTab !== 'financial') {
+      setIsFilterLoading(true)
+    }
   }
   
   const handleExport = async (format: 'pdf' | 'csv') => {
@@ -241,6 +273,7 @@ export function ReportsPage() {
       type: activeTab as 'donations' | 'expenses',
       dateRange,
       churchName: organization.name,
+      donationTypeName: selectedDonationTypeName,
       t
     }
     
@@ -260,9 +293,12 @@ export function ReportsPage() {
         </div>
         
         <div className="flex gap-2">
-          <ReportFilters 
+          <ReportFilters
             dateRange={dateRange}
             onDateRangeChange={handleDateRangeChange}
+            donationTypes={donationTypes}
+            selectedDonationType={selectedDonationType}
+            onDonationTypeChange={handleDonationTypeChange}
             isLoading={activeTab === 'financial' ? isFinancialLoading : isFilterLoading}
           />
           

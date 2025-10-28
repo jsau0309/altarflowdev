@@ -23,6 +23,7 @@ interface PDFExporterProps {
     to: Date | null
   }
   churchName?: string
+  donationTypeName?: string | null
   t?: TFunction
 }
 
@@ -32,6 +33,7 @@ export function exportToPDF({
   type,
   dateRange,
   churchName = 'Church',
+  donationTypeName,
   t
 }: PDFExporterProps) {
   const doc = new jsPDF()
@@ -50,7 +52,19 @@ export function exportToPDF({
   doc.setFontSize(12)
   const dateRangeText = `${dateRange.from ? format(dateRange.from, 'MMM d, yyyy') : ''} - ${dateRange.to ? format(dateRange.to, 'MMM d, yyyy') : ''}`
   doc.text(dateRangeText, 20, yPosition)
-  yPosition += 15
+  yPosition += 7
+
+  // Add donation type filter if present
+  if (donationTypeName) {
+    doc.setFontSize(11)
+    doc.setTextColor(100, 100, 100)
+    const filterLabel = t ? t('reports:filteredBy') : 'Filtered by'
+    doc.text(`${filterLabel}: ${donationTypeName}`, 20, yPosition)
+    doc.setTextColor(0, 0, 0)
+    yPosition += 8
+  } else {
+    yPosition += 8
+  }
   
   // Add summary section
   doc.setFontSize(14)
@@ -240,6 +254,8 @@ export function exportToPDF({
   
   // Generate filename and save
   const dateStr = format(new Date(), 'yyyy-MM-dd')
-  const filename = `${churchName.replace(/\s+/g, '_')}_${type}_report_${dateStr}.pdf`
+  const sanitizedChurchName = churchName.replace(/\s+/g, '_')
+  const sanitizedDonationType = donationTypeName ? `_${donationTypeName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}` : ''
+  const filename = `${sanitizedChurchName}_${type}${sanitizedDonationType}_report_${dateStr}.pdf`
   doc.save(filename)
 }

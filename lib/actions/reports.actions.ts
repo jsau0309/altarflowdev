@@ -22,14 +22,60 @@ export interface ReportSummary {
   netIncome?: number
 }
 
+export interface DonationTypeForFilter {
+  id: string
+  name: string
+  isCampaign: boolean
+  isSystemType: boolean
+}
+
+// Get donation types for filter dropdown
+export async function getDonationTypesForFilter(
+  churchId: string
+): Promise<DonationTypeForFilter[]> {
+  try {
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: churchId },
+      select: { id: true }
+    })
+
+    if (!church) {
+      return []
+    }
+
+    const donationTypes = await prisma.donationType.findMany({
+      where: {
+        churchId: church.id,
+        isActive: true
+      },
+      select: {
+        id: true,
+        name: true,
+        isCampaign: true,
+        isSystemType: true
+      },
+      orderBy: [
+        { isSystemType: 'desc' }, // System types first
+        { name: 'asc' }
+      ]
+    })
+
+    return donationTypes
+  } catch (error) {
+    console.error('Error fetching donation types for filter:', error)
+    return []
+  }
+}
+
 // Get monthly donation summary
 export async function getMonthlyDonationSummary(
   churchId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  donationTypeId?: string
 ): Promise<MonthlyReportData[]> {
   try {
-    
+
     const donations = await prisma.donationTransaction.findMany({
       where: {
         Church: { clerkOrgId: churchId },
@@ -39,7 +85,8 @@ export async function getMonthlyDonationSummary(
         },
         status: {
           in: ['succeeded', 'succeeded\n']
-        }
+        },
+        ...(donationTypeId && { donationTypeId })
       },
       select: {
         transactionDate: true,
@@ -91,10 +138,11 @@ export async function getMonthlyDonationSummary(
 export async function getDonationCategoryBreakdown(
   churchId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  donationTypeId?: string
 ): Promise<CategoryReportData[]> {
   try {
-    
+
     const donations = await prisma.donationTransaction.findMany({
       where: {
         Church: { clerkOrgId: churchId },
@@ -104,7 +152,8 @@ export async function getDonationCategoryBreakdown(
         },
         status: {
           in: ['succeeded', 'succeeded\n']
-        }
+        },
+        ...(donationTypeId && { donationTypeId })
       },
       select: {
         amount: true,
@@ -150,7 +199,8 @@ export async function getDonationCategoryBreakdown(
 export async function getDonationSummary(
   churchId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  donationTypeId?: string
 ): Promise<ReportSummary> {
   try {
     const donations = await prisma.donationTransaction.findMany({
@@ -162,7 +212,8 @@ export async function getDonationSummary(
         },
         status: {
           in: ['succeeded', 'succeeded\n']
-        }
+        },
+        ...(donationTypeId && { donationTypeId })
       },
       select: {
         amount: true,
@@ -362,7 +413,8 @@ export async function getTransactionsForExport(
   churchId: string,
   type: 'donations' | 'expenses',
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  donationTypeId?: string
 ) {
   try {
     if (type === 'donations') {
@@ -375,7 +427,8 @@ export async function getTransactionsForExport(
           },
           status: {
           in: ['succeeded', 'succeeded\n']
-        }
+        },
+          ...(donationTypeId && { donationTypeId })
         },
         include: {
           DonationType: true,
