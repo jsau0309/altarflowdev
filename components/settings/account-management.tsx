@@ -221,8 +221,8 @@ export function AccountManagement() {
               currentPlan={churchData?.subscriptionPlan || undefined}
               currentStatus={churchData?.subscriptionStatus}
               organizationId={organization.id}
-              trialDaysRemaining={churchData?.trialDaysRemaining}
-              hasPromotionalPricing={churchData?.hasPromotionalPricing}
+              trialDaysRemaining={churchData?.trialDaysRemaining ?? undefined}
+              hasPromotionalPricing={churchData?.hasPromotionalPricing ?? false}
             />
           )}
         </CardContent>
