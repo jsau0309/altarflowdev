@@ -95,6 +95,15 @@ export function ReportFilters({
     return `${format(fromDate, 'MMM d')} - ${format(toDate, 'MMM d, yyyy')}`
   }
   
+  // Helper function to translate system donation type names
+  const translateDonationType = (name: string): string => {
+    const translations: Record<string, string> = {
+      'Tithe': t('common:tithe'),
+      'Offering': t('common:offering')
+    }
+    return translations[name] || name
+  }
+
   // Separate donation types into system types and campaigns
   const systemTypes = donationTypes.filter(dt => dt.isSystemType)
   const campaigns = donationTypes.filter(dt => dt.isCampaign && !dt.isSystemType)
@@ -238,7 +247,7 @@ export function ReportFilters({
                       <SelectLabel>{t('reports:systemTypes')}</SelectLabel>
                       {systemTypes.map((type) => (
                         <SelectItem key={type.id} value={type.id}>
-                          {type.name}
+                          {translateDonationType(type.name)}
                         </SelectItem>
                       ))}
                     </SelectGroup>

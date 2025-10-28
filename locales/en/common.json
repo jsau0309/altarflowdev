@@ -209,6 +209,8 @@
   "payment": "Payment",
   "paymentMethod": "Payment Method",
   "goBack": "Go Back",
+  "tithe": "Tithe",
+  "offering": "Offering",
   "access": {
     "restrictedTitle": "Access Restricted",
     "trialRestriction": "This feature is not available during your trial. Upgrade to access all features.",
