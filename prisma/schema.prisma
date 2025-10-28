@@ -32,6 +32,14 @@ model Church {
   subscriptionPlan     String?
   subscriptionStatus   String                @default("pending_payment")
   trialEndsAt          DateTime?
+
+  // New pricing model fields
+  setupFeePaid         Boolean               @default(false)
+  setupFeeAmount       Int?                  // Amount in cents
+  setupFeePaidAt       DateTime?
+  freeTrialStartedAt   DateTime?             // When free trial began
+  promotionalEndsAt    DateTime?             // When 50% discount ends (3 months after subscription)
+  promotionalCouponId  String?               // Stripe coupon ID used (e.g., "50OFF3MONTHS")
   DonationTransaction  DonationTransaction[]
   DonationType         DonationType[]
   Donor                Donor[]

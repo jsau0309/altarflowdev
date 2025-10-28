@@ -1,0 +1,7 @@
+-- Add new pricing model fields to Church table
+ALTER TABLE "Church" ADD COLUMN IF NOT EXISTS "setupFeePaid" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Church" ADD COLUMN IF NOT EXISTS "setupFeeAmount" INTEGER;
+ALTER TABLE "Church" ADD COLUMN IF NOT EXISTS "setupFeePaidAt" TIMESTAMP(3);
+ALTER TABLE "Church" ADD COLUMN IF NOT EXISTS "freeTrialStartedAt" TIMESTAMP(3);
+ALTER TABLE "Church" ADD COLUMN IF NOT EXISTS "promotionalEndsAt" TIMESTAMP(3);
+ALTER TABLE "Church" ADD COLUMN IF NOT EXISTS "promotionalCouponId" TEXT;

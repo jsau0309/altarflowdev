@@ -57,6 +57,7 @@ export function DashboardContent() {
   const [subscriptionInfo, setSubscriptionInfo] = useState<{
     status: string;
     daysLeftInTrial: number | null;
+    trialDaysRemaining: number | null;
     daysUntilEnd: number | null;
     graceDaysRemaining: number | null;
   } | null>(null);
@@ -91,6 +92,7 @@ export function DashboardContent() {
           setSubscriptionInfo({
             status: subscriptionData.subscriptionStatus,
             daysLeftInTrial: subscriptionData.daysLeftInTrial,
+            trialDaysRemaining: subscriptionData.trialDaysRemaining,
             daysUntilEnd: subscriptionData.daysUntilEnd,
             graceDaysRemaining: subscriptionData.graceDaysRemaining
           });
@@ -173,6 +175,35 @@ export function DashboardContent() {
           {/* Subscription Banner */}
           {subscriptionInfo && (
             <>
+              {/* Trial Banner - Prominent Design */}
+              {subscriptionInfo.status === 'trial' && subscriptionInfo.trialDaysRemaining !== null && (
+                <div className="flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-950/30 dark:to-emerald-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg px-5 py-4 mb-6 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full">
+                      <Wand2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base text-green-900 dark:text-green-100">
+                        {t('dashboard:trialActive', '🎉 Free Trial Active')}
+                      </h3>
+                      <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
+                        {subscriptionInfo.trialDaysRemaining === 1
+                          ? t('dashboard:trialLastDay', 'Last day of your free trial! Upgrade now to get 3 months at 50% off.')
+                          : t('dashboard:trialDaysRemaining', 'You have {{days}} days remaining in your free trial. Upgrade now to get 3 months at 50% off!', { days: subscriptionInfo.trialDaysRemaining })
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => router.push('/settings?tab=account')}
+                    size="default"
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 ml-4 flex-shrink-0 font-semibold"
+                  >
+                    {t('dashboard:upgradeNow', 'Upgrade Now')}
+                  </Button>
+                </div>
+              )}
+
               {/* Free Plan Banner - Compact Design */}
               {subscriptionInfo.status === 'free' && (
                 <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3 mb-6">
@@ -190,7 +221,7 @@ export function DashboardContent() {
                       </span>
                     </div>
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => router.push('/settings?tab=account')}
                     size="sm"
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 h-8 ml-3 flex-shrink-0"

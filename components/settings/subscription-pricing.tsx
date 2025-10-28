@@ -22,12 +22,26 @@ interface SubscriptionPricingProps {
   currentPlan?: string;
   currentStatus?: string;
   organizationId: string;
+  trialDaysRemaining?: number;
+  hasPromotionalPricing?: boolean;
 }
 
-export function SubscriptionPricing({ currentPlan, currentStatus, organizationId }: SubscriptionPricingProps) {
+export function SubscriptionPricing({
+  currentPlan,
+  currentStatus,
+  organizationId,
+  trialDaysRemaining,
+  hasPromotionalPricing
+}: SubscriptionPricingProps) {
   const { t } = useTranslation();
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
   const [error, setError] = useState<string | null>(null);
+
+  // Promotional coupon code for new customers (3 months at 50% off)
+  // TODO: Create this coupon in your Stripe Dashboard
+  const PROMOTIONAL_COUPON_CODE = process.env.NEXT_PUBLIC_STRIPE_PROMO_CODE || "50OFF3MONTHS";
+
+  const isTrialUser = currentStatus === 'trial';
 
   const plans: PricingPlan[] = [
     {
@@ -43,7 +57,8 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
         t("settings:billing.features.emailCommunications", "Email communications"),
         t("settings:billing.features.customDonationForms", "Custom donation forms"),
         t("settings:billing.features.nfcQrPages", "NFC & QR code pages"),
-        t("settings:billing.features.prioritySupport", "Priority support")
+        t("settings:billing.features.prioritySupport", "Priority support"),
+        ...(isTrialUser ? [t("settings:billing.features.promo3Months", "First 3 months at 50% off ($49.50/month)")] : [])
       ],
       paymentLink: process.env.NEXT_PUBLIC_STRIPE_MONTHLY_LINK || '#'
     },
@@ -61,7 +76,8 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
         t("settings:billing.features.customDonationForms", "Custom donation forms"),
         t("settings:billing.features.nfcQrPages", "NFC & QR code pages"),
         t("settings:billing.features.prioritySupport", "Priority support"),
-        t("settings:billing.features.savePerYear", "Save $358 per year")
+        t("settings:billing.features.savePerYear", "Save $358 per year"),
+        ...(isTrialUser ? [t("settings:billing.features.promo3MonthsAnnual", "Special promotional pricing available")] : [])
       ],
       popular: true,
       paymentLink: process.env.NEXT_PUBLIC_STRIPE_ANNUAL_LINK || '#'
@@ -72,10 +88,16 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
   const isCurrentPlan = (planId: string) => currentPlan === planId;
 
   const handleSubscribe = async (plan: PricingPlan) => {
-    // Only use payment links for users with 'free' status (new or expired subscriptions)
-    if (currentStatus === "free") {
+    // For trial users or free users, use payment links with promotional coupon
+    if (currentStatus === "free" || currentStatus === "trial") {
       if (plan.paymentLink && plan.paymentLink !== '#') {
-        const url = `${plan.paymentLink}?client_reference_id=${organizationId}`;
+        let url = `${plan.paymentLink}?client_reference_id=${organizationId}`;
+
+        // Apply promotional coupon for trial users
+        if (isTrialUser) {
+          url += `&prefilled_promo_code=${PROMOTIONAL_COUPON_CODE}`;
+        }
+
         window.location.href = url;
       } else {
         setError(t("settings:billing.errors.noPaymentLink", "Payment link not configured. Please contact support."));
@@ -86,7 +108,7 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
         const response = await fetch("/api/stripe/portal", {
           method: "POST",
         });
-        
+
         if (response.ok) {
           const { url } = await response.json();
           window.location.href = url;
@@ -99,6 +121,43 @@ export function SubscriptionPricing({ currentPlan, currentStatus, organizationId
 
   return (
     <div className="space-y-6">
+      {/* Trial Countdown Banner */}
+      {isTrialUser && trialDaysRemaining !== undefined && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 p-4 rounded-lg">
+          <div className="flex items-start gap-3">
+            <Zap className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm">
+                {t("settings:billing.trial.title", "Free Trial Active")}
+              </h3>
+              <p className="text-sm mt-1">
+                {trialDaysRemaining > 1
+                  ? t("settings:billing.trial.daysRemaining", `You have ${trialDaysRemaining} days remaining in your free trial. Upgrade now to get 3 months at 50% off!`, { days: trialDaysRemaining })
+                  : t("settings:billing.trial.lastDay", "Last day of your free trial! Upgrade now to get 3 months at 50% off!")
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Promotional Pricing Banner */}
+      {hasPromotionalPricing && (
+        <div className="bg-green-50 border border-green-200 text-green-900 p-4 rounded-lg">
+          <div className="flex items-start gap-3">
+            <Check className="h-5 w-5 text-green-600 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm">
+                {t("settings:billing.promo.title", "Promotional Pricing Active")}
+              </h3>
+              <p className="text-sm mt-1">
+                {t("settings:billing.promo.description", "You're currently enjoying 50% off your subscription. This promotional rate will continue for 3 months.")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
