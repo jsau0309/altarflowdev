@@ -11,6 +11,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -233,24 +234,28 @@ export function ReportFilters({
                 {systemTypes.length > 0 && (
                   <>
                     <SelectSeparator />
-                    <SelectLabel>{t('reports:systemTypes')}</SelectLabel>
-                    {systemTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      <SelectLabel>{t('reports:systemTypes')}</SelectLabel>
+                      {systemTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </>
                 )}
 
                 {campaigns.length > 0 && (
                   <>
                     <SelectSeparator />
-                    <SelectLabel>{t('reports:campaigns')}</SelectLabel>
-                    {campaigns.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      <SelectLabel>{t('reports:campaigns')}</SelectLabel>
+                      {campaigns.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </>
                 )}
               </SelectContent>
