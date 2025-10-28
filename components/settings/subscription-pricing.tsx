@@ -98,6 +98,14 @@ export function SubscriptionPricing({
           url += `&prefilled_promo_code=${PROMOTIONAL_COUPON_CODE}`;
         }
 
+        // Debug logging
+        console.log('🔍 Subscription Debug:', {
+          currentStatus,
+          isTrialUser,
+          PROMOTIONAL_COUPON_CODE,
+          finalUrl: url
+        });
+
         window.location.href = url;
       } else {
         setError(t("settings:billing.errors.noPaymentLink", "Payment link not configured. Please contact support."));
