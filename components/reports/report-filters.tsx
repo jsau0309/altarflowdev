@@ -8,22 +8,44 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectLabel,
+  SelectSeparator,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns"
 import { Calendar as CalendarIcon, Filter, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { DateRange } from "./reports-page"
+import type { DonationTypeForFilter } from "@/lib/actions/reports.actions"
 
 interface ReportFiltersProps {
   dateRange: DateRange
   onDateRangeChange: (range: DateRange) => void
+  donationTypes: DonationTypeForFilter[]
+  selectedDonationType: string | null
+  onDonationTypeChange: (donationTypeId: string | null) => void
   isLoading?: boolean
 }
 
-export function ReportFilters({ dateRange, onDateRangeChange, isLoading = false }: ReportFiltersProps) {
+export function ReportFilters({
+  dateRange,
+  onDateRangeChange,
+  donationTypes,
+  selectedDonationType,
+  onDonationTypeChange,
+  isLoading = false
+}: ReportFiltersProps) {
   const { t } = useTranslation(['reports', 'common'])
   const [isOpen, setIsOpen] = useState(false)
   const [tempRange, setTempRange] = useState<DateRange>(dateRange)
+  const [tempDonationType, setTempDonationType] = useState<string | null>(selectedDonationType)
   const [wasApplyClicked, setWasApplyClicked] = useState(false)
   
   // Close popover when loading completes after Apply was clicked
@@ -37,16 +59,19 @@ export function ReportFilters({ dateRange, onDateRangeChange, isLoading = false 
   const handleApply = () => {
     setWasApplyClicked(true)
     onDateRangeChange(tempRange)
+    onDonationTypeChange(tempDonationType)
     // Don't close immediately - wait for loading to complete
   }
-  
+
   const handleReset = () => {
     const defaultRange = {
       from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
       to: new Date()
     }
     setTempRange(defaultRange)
+    setTempDonationType(null)
     onDateRangeChange(defaultRange)
+    onDonationTypeChange(null)
     setIsOpen(false)
   }
   
@@ -70,9 +95,25 @@ export function ReportFilters({ dateRange, onDateRangeChange, isLoading = false 
     return `${format(fromDate, 'MMM d')} - ${format(toDate, 'MMM d, yyyy')}`
   }
   
+  // Helper function to translate system donation type names
+  const translateDonationType = (name: string): string => {
+    const translations: Record<string, string> = {
+      'Tithe': t('common:tithe'),
+      'Offering': t('common:offering')
+    }
+    return translations[name] || name
+  }
+
+  // Separate donation types into system types and campaigns
+  const systemTypes = donationTypes.filter(dt => dt.isSystemType)
+  const campaigns = donationTypes.filter(dt => dt.isCampaign && !dt.isSystemType)
+
   return (
     <Popover open={isOpen} onOpenChange={(open) => {
-      if (open) setTempRange(dateRange)
+      if (open) {
+        setTempRange(dateRange)
+        setTempDonationType(selectedDonationType)
+      }
       setIsOpen(open)
     }}>
       <PopoverTrigger asChild>
@@ -185,7 +226,51 @@ export function ReportFilters({ dateRange, onDateRangeChange, isLoading = false 
               </div>
             </div>
           </div>
-          
+
+          {/* Donation Type Filter */}
+          <div className="space-y-2 border-t pt-3">
+            <h4 className="font-medium text-sm">{t('reports:donationType')}</h4>
+            <Select
+              value={tempDonationType || 'all'}
+              onValueChange={(value) => setTempDonationType(value === 'all' ? null : value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('reports:allDonationTypes')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('reports:allDonationTypes')}</SelectItem>
+
+                {systemTypes.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>{t('reports:systemTypes')}</SelectLabel>
+                      {systemTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {translateDonationType(type.name)}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </>
+                )}
+
+                {campaigns.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>{t('reports:campaigns')}</SelectLabel>
+                      {campaigns.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex justify-between pt-2">
             <Button variant="outline" size="sm" onClick={handleReset}>
               {t('common:reset')}

@@ -21,6 +21,7 @@ interface CSVExporterProps {
     to: Date | null
   }
   churchName?: string
+  donationTypeName?: string | null
   t?: TFunction
 }
 
@@ -30,6 +31,7 @@ export function exportToCSV({
   type,
   dateRange,
   churchName = 'Church',
+  donationTypeName,
   t
 }: CSVExporterProps) {
   // Create CSV content
@@ -40,6 +42,13 @@ export function exportToCSV({
   rows.push(`${churchName} - ${reportTitle}`)
   const dateRangeLabel = t ? t('reports:dateRange') : 'Date Range'
   rows.push(`${dateRangeLabel}: ${dateRange.from ? format(dateRange.from, 'MMM d, yyyy') : ''} - ${dateRange.to ? format(dateRange.to, 'MMM d, yyyy') : ''}`)
+
+  // Add donation type filter if present
+  if (donationTypeName) {
+    const filterLabel = t ? t('reports:filteredBy') : 'Filtered by'
+    rows.push(`${filterLabel}: ${donationTypeName}`)
+  }
+
   rows.push('') // Empty line
   
   // Add summary
@@ -103,7 +112,21 @@ export function exportToCSV({
   
   // Generate filename
   const dateStr = format(new Date(), 'yyyy-MM-dd')
-  const filename = `${churchName.replace(/\s+/g, '_')}_${type}_report_${dateStr}.csv`
+
+  // Robust filename sanitization helper
+  const sanitizeFilename = (str: string): string => {
+    return str
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .replace(/[^a-zA-Z0-9_-]/g, '') // Remove special characters
+      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+      .replace(/^_+|_+$/g, '') // Trim underscores from start/end
+      .slice(0, 50) // Limit length to prevent overly long filenames
+      || 'report' // Fallback if string becomes empty
+  }
+
+  const sanitizedChurchName = sanitizeFilename(churchName)
+  const sanitizedDonationType = donationTypeName ? `_${sanitizeFilename(donationTypeName)}` : ''
+  const filename = `${sanitizedChurchName}_${type}${sanitizedDonationType}_report_${dateStr}.csv`
   
   link.setAttribute('href', url)
   link.setAttribute('download', filename)

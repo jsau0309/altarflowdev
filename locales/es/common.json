@@ -211,6 +211,8 @@
   "payment": "Pago",
   "paymentMethod": "Método de Pago",
   "goBack": "Volver",
+  "tithe": "Diezmo",
+  "offering": "Ofrenda",
   "access": {
     "restrictedTitle": "Acceso Restringido",
     "trialRestriction": "Esta función no está disponible durante tu período de prueba. Actualiza para acceder a todas las funciones.",

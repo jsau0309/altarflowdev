@@ -36,7 +36,12 @@
   "expenseCategories": "Expense Categories",
   "exportSuccess": "Report exported successfully",
   "exportError": "Failed to export report",
-  
+  "donationType": "Donation Type",
+  "allDonationTypes": "All Donation Types",
+  "systemTypes": "System Types",
+  "campaigns": "Campaigns",
+  "filteredBy": "Filtered by",
+
   "timeFrames": {
     "thisWeek": "This Week",
     "thisMonth": "This Month",
