@@ -182,9 +182,10 @@ export async function POST(req: Request) {
 
 
         // Calculate trial end date (30 days from now)
+        // FIXED: Calculate without date mutation to avoid bugs
         const now = new Date();
-        const trialEnd = new Date(now);
-        trialEnd.setDate(trialEnd.getDate() + 30);
+        const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+        const trialEnd = new Date(now.getTime() + thirtyDaysInMs);
 
         const newChurch = await prisma.church.create({
           data: {

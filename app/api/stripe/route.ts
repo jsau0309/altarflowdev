@@ -93,7 +93,13 @@ async function withIdempotency(
 
   // If operation was successful, prepare response for caching
   const bodyText = await response.clone().text(); // Clone because body can be read once
-  
+
+  // Don't cache error responses (4xx, 5xx) - only cache successful operations
+  if (response.status >= 400) {
+    console.warn(`[DEBUG] Idempotency: Skipping cache for error response (status: ${response.status}, key: ${cacheKey})`);
+    return response;
+  }
+
   // Don't cache empty responses for successful operations
   if (response.status === 200 && (!bodyText || bodyText.trim() === '')) {
     console.warn(`[DEBUG] Idempotency: Skipping cache for empty 200 response (key: ${cacheKey})`);

@@ -194,8 +194,36 @@ export function LandingManagerEnhanced() {
         });
 
         if (!uploadResponse.ok) {
-          const error = await uploadResponse.json();
-          throw new Error(error.error || 'Logo upload failed');
+          // Handle both JSON and non-JSON error responses
+          let errorMessage = 'Logo upload failed';
+
+          try {
+            const contentType = uploadResponse.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const error = await uploadResponse.json();
+              errorMessage = error.error || errorMessage;
+            } else {
+              // Handle HTML or plain text errors (like "Request Entity Too Large")
+              const errorText = await uploadResponse.text();
+
+              // Check for common error patterns
+              if (uploadResponse.status === 413 || errorText.includes('Request Entity Too Large')) {
+                errorMessage = 'Image file is too large. Maximum size is 5MB. Please choose a smaller image.';
+              } else if (uploadResponse.status === 429) {
+                errorMessage = 'Too many upload attempts. Please wait a moment and try again.';
+              } else if (uploadResponse.status === 400) {
+                errorMessage = 'Invalid image file. Please use JPEG, PNG, WebP, GIF, or SVG format.';
+              } else {
+                // Generic error with status code
+                errorMessage = `Upload failed (Error ${uploadResponse.status}). Please try again.`;
+              }
+            }
+          } catch (parseError) {
+            // If we can't parse the error, use generic message
+            errorMessage = `Upload failed (Error ${uploadResponse.status}). Please try again.`;
+          }
+
+          throw new Error(errorMessage);
         }
 
         const uploadData = await uploadResponse.json();

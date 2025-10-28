@@ -2,6 +2,12 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
 const nextConfig = {
+  // Increase body size limit for server actions and API routes (image uploads)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb', // Allow up to 10MB uploads
+    },
+  },
   images: {
     remotePatterns: [
       {

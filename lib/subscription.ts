@@ -35,10 +35,15 @@ export function getSubscriptionInfo(church: {
 
   // If setup fee paid and trial started, check if still in trial period
   if (church.setupFeePaid && church.freeTrialStartedAt && !church.subscriptionEndsAt) {
-    const trialEnd = church.trialEndsAt || new Date(church.freeTrialStartedAt);
-    if (!church.trialEndsAt) {
-      // Default: 30 days from trial start
-      trialEnd.setDate(trialEnd.getDate() + 30);
+    // FIXED: Properly clone date to avoid mutation bugs
+    let trialEnd: Date;
+    if (church.trialEndsAt) {
+      trialEnd = new Date(church.trialEndsAt);
+    } else {
+      // Default: 30 days from trial start (calculate without mutating)
+      const trialStartTime = new Date(church.freeTrialStartedAt).getTime();
+      const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+      trialEnd = new Date(trialStartTime + thirtyDaysInMs);
     }
 
     const daysUntilTrialEnd = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));

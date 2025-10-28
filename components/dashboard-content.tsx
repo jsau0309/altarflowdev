@@ -176,7 +176,7 @@ export function DashboardContent() {
           {subscriptionInfo && (
             <>
               {/* Trial Banner - Prominent Design */}
-              {subscriptionInfo.status === 'trial' && subscriptionInfo.trialDaysRemaining !== null && (
+              {subscriptionInfo.status === 'trial' && subscriptionInfo.trialDaysRemaining !== null && subscriptionInfo.trialDaysRemaining !== undefined && (
                 <div className="flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-950/30 dark:to-emerald-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg px-5 py-4 mb-6 shadow-sm">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full">
@@ -189,7 +189,9 @@ export function DashboardContent() {
                       <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
                         {subscriptionInfo.trialDaysRemaining === 1
                           ? t('dashboard:trialLastDay', 'Last day of your free trial! Upgrade now to get 3 months at 50% off.')
-                          : t('dashboard:trialDaysRemaining', 'You have {{days}} days remaining in your free trial. Upgrade now to get 3 months at 50% off!', { days: subscriptionInfo.trialDaysRemaining })
+                          : t('dashboard:trialDaysRemaining', 'You have {{days}} days remaining in your free trial. Upgrade now to get 3 months at 50% off!', {
+                              days: Number.isNaN(subscriptionInfo.trialDaysRemaining) ? 0 : (subscriptionInfo.trialDaysRemaining ?? 0)
+                            })
                         }
                       </p>
                     </div>
