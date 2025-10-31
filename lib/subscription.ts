@@ -52,9 +52,12 @@ export function getSubscriptionInfo(church: {
       isTrial = true;
       trialDaysRemaining = daysUntilTrialEnd;
       status = 'trial'; // Override status to show trial
-    } else if (status === 'pending_payment' || status === 'free') {
-      // Trial expired and no subscription, downgrade to free
-      status = 'free';
+    } else {
+      // Trial has expired - reset status to free regardless of current value
+      // This prevents the status from staying 'trial' indefinitely when trial ends
+      if (status === 'trial' || status === 'pending_payment' || status === 'free') {
+        status = 'free';
+      }
     }
   }
 
