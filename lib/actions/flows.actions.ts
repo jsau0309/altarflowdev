@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { auth } from '@clerk/nextjs/server';
 import { FormConfiguration, defaultServiceTimes, defaultMinistries, defaultSettings } from "@/components/member-form/types"; // Adjust path if necessary
 import { FlowType, Prisma } from '@prisma/client'; // Import Prisma namespace for Prisma.JsonObject and FlowType
+import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
 import type { ServiceTime, Ministry, LifeStage, RelationshipStatus, MemberFormData } from '../../components/member-form/types'; // Ensure MemberFormData is imported if used
 import { Resend } from 'resend'; // Import Resend
 import { generateNewMemberWelcomeHtml, NewMemberWelcomeData } from '@/lib/email/templates/new-member-welcome';
@@ -692,9 +693,16 @@ export async function submitFlow(
 // Fetches all active flows for a given church ID.
 export async function getActiveFlowsByChurchId(churchId: string): Promise<{ id: string; slug: string; name?: string | null; type?: FlowType | null }[]> {
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error(`[getActiveFlowsByChurchId] Authorization failed:`, authResult.error);
+      return [];
+    }
+
     const activeFlows = await prisma.flow.findMany({
       where: {
-        churchId: churchId,
+        churchId: authResult.churchId,
         isEnabled: true, // Use 'isEnabled' field from Flow model
       },
       select: {

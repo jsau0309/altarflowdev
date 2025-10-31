@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db'
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths, addMonths } from 'date-fns'
+import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access'
 
 export interface MonthlyReportData {
   month: string
@@ -485,14 +486,21 @@ export async function getTransactionsForExport(
 // Get top donors this month
 export async function getTopDonorsThisMonth(churchId: string) {
   try {
+    // Authorization check - verify user has access to this church
+    const auth = await authorizeChurchAccess(churchId)
+    if (!auth.success) {
+      console.error('[getTopDonorsThisMonth] Authorization failed:', auth.error)
+      return []
+    }
+
     const now = new Date()
     const thisMonthStart = startOfMonth(now)
     const thisMonthEnd = endOfMonth(now)
-    
+
     const topDonors = await prisma.donationTransaction.groupBy({
       by: ['donorId'],
       where: {
-        churchId,
+        churchId: auth.churchId,
         transactionDate: {
           gte: thisMonthStart,
           lte: thisMonthEnd
@@ -542,6 +550,13 @@ export async function getTopDonorsThisMonth(churchId: string) {
 // Get most used payment method this month
 export async function getMostUsedPaymentMethodThisMonth(churchId: string) {
   try {
+    // Authorization check - verify user has access to this church
+    const auth = await authorizeChurchAccess(churchId)
+    if (!auth.success) {
+      console.error('[getMostUsedPaymentMethodThisMonth] Authorization failed:', auth.error)
+      return null
+    }
+
     const now = new Date()
     const thisMonthStart = startOfMonth(now)
     const thisMonthEnd = endOfMonth(now)
@@ -549,7 +564,7 @@ export async function getMostUsedPaymentMethodThisMonth(churchId: string) {
     const paymentMethods = await prisma.donationTransaction.groupBy({
       by: ['paymentMethodType'],
       where: {
-        churchId,
+        churchId: auth.churchId,
         transactionDate: {
           gte: thisMonthStart,
           lte: thisMonthEnd
@@ -587,13 +602,20 @@ export async function getMostUsedPaymentMethodThisMonth(churchId: string) {
 // Get biggest donation this month
 export async function getBiggestDonationThisMonth(churchId: string) {
   try {
+    // Authorization check - verify user has access to this church
+    const auth = await authorizeChurchAccess(churchId)
+    if (!auth.success) {
+      console.error('[getBiggestDonationThisMonth] Authorization failed:', auth.error)
+      return null
+    }
+
     const now = new Date()
     const thisMonthStart = startOfMonth(now)
     const thisMonthEnd = endOfMonth(now)
     
     const biggestDonation = await prisma.donationTransaction.findFirst({
       where: {
-        churchId,
+        churchId: auth.churchId,
         transactionDate: {
           gte: thisMonthStart,
           lte: thisMonthEnd
@@ -638,12 +660,19 @@ export async function getBiggestDonationThisMonth(churchId: string) {
 // Get expense trend data for last 6 months
 export async function getExpenseTrendData(churchId: string) {
   try {
+    // Authorization check - verify user has access to this church
+    const auth = await authorizeChurchAccess(churchId)
+    if (!auth.success) {
+      console.error('[getExpenseTrendData] Authorization failed:', auth.error)
+      return []
+    }
+
     const now = new Date()
     const sixMonthsAgo = subMonths(now, 5) // 5 because we include current month
-    
+
     const expenses = await prisma.expense.findMany({
       where: {
-        churchId,
+        churchId: auth.churchId,
         expenseDate: {
           gte: startOfMonth(sixMonthsAgo)
         },
@@ -706,12 +735,19 @@ export async function getExpenseTrendData(churchId: string) {
 // Get donation trend data for last 6 months
 export async function getDonationTrendData(churchId: string) {
   try {
+    // Authorization check - verify user has access to this church
+    const auth = await authorizeChurchAccess(churchId)
+    if (!auth.success) {
+      console.error('[getDonationTrendData] Authorization failed:', auth.error)
+      return []
+    }
+
     const now = new Date()
     const sixMonthsAgo = subMonths(now, 5) // 5 because we include current month
-    
+
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        churchId,
+        churchId: auth.churchId,
         transactionDate: {
           gte: startOfMonth(sixMonthsAgo)
         },
@@ -790,9 +826,16 @@ export async function getDonationTrendData(churchId: string) {
 // Get active member list
 export async function getActiveMemberList(churchId: string) {
   try {
+    // Authorization check - verify user has access to this church
+    const auth = await authorizeChurchAccess(churchId)
+    if (!auth.success) {
+      console.error('[getActiveMemberList] Authorization failed:', auth.error)
+      return []
+    }
+
     const activeMembers = await prisma.member.findMany({
       where: {
-        churchId,
+        churchId: auth.churchId,
         membershipStatus: { in: ['Member', 'Visitor'] }
       },
       select: {
@@ -828,11 +871,18 @@ export async function getActiveMemberList(churchId: string) {
 // Get visitor list (recent visitors)
 export async function getVisitorList(churchId: string) {
   try {
+    // Authorization check - verify user has access to this church
+    const auth = await authorizeChurchAccess(churchId)
+    if (!auth.success) {
+      console.error('[getVisitorList] Authorization failed:', auth.error)
+      return []
+    }
+
     const thirtyDaysAgo = subMonths(new Date(), 1)
-    
+
     const recentVisitors = await prisma.member.findMany({
       where: {
-        churchId,
+        churchId: auth.churchId,
         membershipStatus: 'Visitor',
         joinDate: {
           gte: thirtyDaysAgo
@@ -870,19 +920,26 @@ export async function getVisitorList(churchId: string) {
 // Get AI summary data for the dashboard
 export async function getAiSummaryData(churchId: string) {
   try {
+    // Authorization check - verify user has access to this church
+    const auth = await authorizeChurchAccess(churchId)
+    if (!auth.success) {
+      console.error('[getAiSummaryData] Authorization failed:', auth.error)
+      throw new Error(auth.error || 'Unauthorized access')
+    }
+
     const now = new Date()
     const thisMonthStart = startOfMonth(now)
     const thisMonthEnd = endOfMonth(now)
     const lastMonthStart = startOfMonth(subMonths(now, 1))
     const lastMonthEnd = endOfMonth(subMonths(now, 1))
     const thisYearStart = startOfYear(now)
-    
-    // Get church details
+
+    // Get church details - use authorized church ID
     const church = await prisma.church.findUnique({
-      where: { clerkOrgId: churchId },
+      where: { id: auth.churchId },
       select: { name: true, id: true }
     })
-    
+
     if (!church) {
       throw new Error('Church not found')
     }

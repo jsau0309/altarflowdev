@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@clerk/nextjs/server';
+import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
 
 export interface MemberForLinkingSummary {
   id: string;
@@ -30,9 +31,16 @@ export async function getMembersForChurch(churchId: string): Promise<MemberSumma
   }
 
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getMembersForChurch] Authorization failed:', authResult.error);
+      return [];
+    }
+
     const members = await prisma.member.findMany({
       where: {
-        churchId: churchId,
+        churchId: authResult.churchId,
         // Optionally, filter by active status if needed, e.g., status: 'Active'
       },
       select: {

@@ -6,6 +6,7 @@ import type { Prisma, Member as PrismaMember } from '@prisma/client';
 import { DonorDetailsData, DonorFE } from '@/lib/types'; // Removed Member type as createDonor will now return Donor
 import { Donor } from '@prisma/client';
 import { DonorFilterItem } from './donations.actions';
+import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
 
 // Define the payload for creating a new donor
 export type CreateDonorPayload = {
@@ -168,17 +169,37 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
     return null;
   }
 
-  // Get churchId from auth if not provided
-  let effectiveChurchId = churchId;
-  if (!effectiveChurchId) {
-    const { orgId } = await auth();
-    if (orgId) {
-      const church = await prisma.church.findUnique({
-        where: { clerkOrgId: orgId },
-        select: { id: true },
-      });
-      effectiveChurchId = church?.id;
+  // Authorization check - verify user has access to this church
+  // Get churchId from auth if not provided, then verify authorization
+  let effectiveChurchId: string;
+
+  if (churchId) {
+    // If churchId is provided, verify user has access to it
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error("[getDonorDetails] Authorization failed:", authResult.error);
+      return null;
     }
+    effectiveChurchId = authResult.churchId!;
+  } else {
+    // Get churchId from current user's organization
+    const { orgId } = await auth();
+    if (!orgId) {
+      console.error("[getDonorDetails] No orgId found in auth");
+      return null;
+    }
+
+    const church = await prisma.church.findUnique({
+      where: { clerkOrgId: orgId },
+      select: { id: true },
+    });
+
+    if (!church) {
+      console.error("[getDonorDetails] Church not found for orgId:", orgId);
+      return null;
+    }
+
+    effectiveChurchId = church.id;
   }
 
   try {
