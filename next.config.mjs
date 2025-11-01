@@ -13,6 +13,13 @@ const nextConfig = {
         // !! WARN !!
         ignoreBuildErrors: true,
     },
+    experimental: {
+        // Increase body size limit for file uploads (default is 1MB)
+        // This allows larger logo/image uploads up to 10MB
+        serverActions: {
+            bodySizeLimit: '10mb',
+        },
+    },
     async headers() {
         const cspHeader = `
             default-src 'self';

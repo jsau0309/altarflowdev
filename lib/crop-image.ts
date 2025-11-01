@@ -16,8 +16,9 @@ export async function getCroppedImg(
     throw new Error('No 2d context');
   }
 
-  // Render at 2x resolution for retina quality
-  const scale = 2;
+  // Render at 1x resolution to keep file size manageable for uploads
+  // A 400x400 logo is already good quality for web display
+  const scale = 1;
   const outputWidth = pixelCrop.width * scale;
   const outputHeight = pixelCrop.height * scale;
 
