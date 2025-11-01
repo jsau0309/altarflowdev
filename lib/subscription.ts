@@ -39,11 +39,25 @@ export function getSubscriptionInfo(church: {
     let trialEnd: Date;
     if (church.trialEndsAt) {
       trialEnd = new Date(church.trialEndsAt);
+      // Validate that trialEndsAt is a valid date
+      if (isNaN(trialEnd.getTime())) {
+        console.error('[Subscription] Invalid trialEndsAt date:', church.trialEndsAt);
+        trialEnd = new Date(); // Fallback to current date if invalid
+      }
     } else {
       // Default: 30 days from trial start (calculate without mutating)
-      const trialStartTime = new Date(church.freeTrialStartedAt).getTime();
-      const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
-      trialEnd = new Date(trialStartTime + thirtyDaysInMs);
+      const trialStartDate = new Date(church.freeTrialStartedAt);
+      const trialStartTime = trialStartDate.getTime();
+
+      // Validate that freeTrialStartedAt is a valid date
+      if (isNaN(trialStartTime)) {
+        console.error('[Subscription] Invalid freeTrialStartedAt date:', church.freeTrialStartedAt);
+        // Skip trial calculation if date is invalid
+        trialEnd = new Date(0); // Set to epoch to ensure trial appears expired
+      } else {
+        const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+        trialEnd = new Date(trialStartTime + thirtyDaysInMs);
+      }
     }
 
     const daysUntilTrialEnd = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));

@@ -53,13 +53,21 @@ export async function authorizeChurchAccess(
       }
     }
 
-    // Step 2: Look up the church by the provided identifier
-    // Try both clerkOrgId and internal id to handle different calling patterns
+    // Step 2 & 3 (Combined for atomicity): Look up church AND verify authorization
+    // This prevents race conditions by making the authorization check atomic
+    // The database will only return the church if BOTH conditions are met:
+    // 1. The identifier matches (either clerkOrgId or internal id)
+    // 2. The church's clerkOrgId matches the user's orgId
     const church = await prisma.church.findFirst({
       where: {
-        OR: [
-          { clerkOrgId: churchIdentifier },
-          { id: churchIdentifier }
+        AND: [
+          {
+            OR: [
+              { clerkOrgId: churchIdentifier },
+              { id: churchIdentifier }
+            ]
+          },
+          { clerkOrgId: orgId }  // Atomic authorization check
         ]
       },
       select: {
@@ -69,26 +77,18 @@ export async function authorizeChurchAccess(
     })
 
     if (!church) {
-      return {
-        success: false,
-        error: 'Church not found'
-      }
-    }
-
-    // Step 3: Verify that the user's organization owns this church
-    if (church.clerkOrgId !== orgId) {
-      // This is the horizontal privilege escalation attempt
-      console.warn('[SECURITY] Authorization failed:', {
+      // Church either doesn't exist OR user doesn't have access
+      // Log potential security violation for monitoring
+      console.warn('[SECURITY] Authorization failed - church not found or access denied:', {
         userId,
         userOrgId: orgId,
         requestedChurch: churchIdentifier,
-        actualChurchOrg: church.clerkOrgId,
         timestamp: new Date().toISOString()
       })
 
       return {
         success: false,
-        error: 'Forbidden: You do not have access to this church'
+        error: 'Church not found or access denied'
       }
     }
 
@@ -96,7 +96,7 @@ export async function authorizeChurchAccess(
     return {
       success: true,
       churchId: church.id,
-      clerkOrgId: church.clerkOrgId
+      clerkOrgId: church.clerkOrgId || undefined  // Convert null to undefined
     }
 
   } catch (error) {

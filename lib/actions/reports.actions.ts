@@ -35,8 +35,15 @@ export async function getDonationTypesForFilter(
   churchId: string
 ): Promise<DonationTypeForFilter[]> {
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getDonationTypesForFilter] Authorization failed:', authResult.error);
+      return [];
+    }
+
     const church = await prisma.church.findUnique({
-      where: { clerkOrgId: churchId },
+      where: { id: authResult.churchId },
       select: { id: true }
     })
 
@@ -76,10 +83,16 @@ export async function getMonthlyDonationSummary(
   donationTypeId?: string
 ): Promise<MonthlyReportData[]> {
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getMonthlyDonationSummary] Authorization failed:', authResult.error);
+      return [];
+    }
 
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        Church: { clerkOrgId: churchId },
+        Church: { id: authResult.churchId },
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -143,10 +156,16 @@ export async function getDonationCategoryBreakdown(
   donationTypeId?: string
 ): Promise<CategoryReportData[]> {
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getDonationCategoryBreakdown] Authorization failed:', authResult.error);
+      return [];
+    }
 
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        Church: { clerkOrgId: churchId },
+        Church: { id: authResult.churchId },
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -204,9 +223,16 @@ export async function getDonationSummary(
   donationTypeId?: string
 ): Promise<ReportSummary> {
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getDonationSummary] Authorization failed:', authResult.error);
+      return { total: 0, average: 0, count: 0 };
+    }
+
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        Church: { clerkOrgId: churchId },
+        Church: { id: authResult.churchId },
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -251,9 +277,16 @@ export async function getMonthlyExpenseSummary(
   endDate: Date
 ): Promise<MonthlyReportData[]> {
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getMonthlyExpenseSummary] Authorization failed:', authResult.error);
+      return [];
+    }
+
     const expenses = await prisma.expense.findMany({
       where: {
-        Church: { clerkOrgId: churchId },
+        Church: { id: authResult.churchId },
         expenseDate: {
           gte: startDate,
           lte: endDate
@@ -311,9 +344,16 @@ export async function getExpenseCategoryBreakdown(
   endDate: Date
 ): Promise<CategoryReportData[]> {
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getExpenseCategoryBreakdown] Authorization failed:', authResult.error);
+      return [];
+    }
+
     const expenses = await prisma.expense.findMany({
       where: {
-        Church: { clerkOrgId: churchId },
+        Church: { id: authResult.churchId },
         expenseDate: {
           gte: startDate,
           lte: endDate
@@ -361,9 +401,16 @@ export async function getExpenseSummary(
   endDate: Date
 ): Promise<ReportSummary> {
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getExpenseSummary] Authorization failed:', authResult.error);
+      return { total: 0, average: 0, netIncome: 0 };
+    }
+
     const expenses = await prisma.expense.findMany({
       where: {
-        Church: { clerkOrgId: churchId },
+        Church: { id: authResult.churchId },
         expenseDate: {
           gte: startDate,
           lte: endDate
@@ -379,7 +426,7 @@ export async function getExpenseSummary(
 
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        Church: { clerkOrgId: churchId },
+        Church: { id: authResult.churchId },
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -418,10 +465,17 @@ export async function getTransactionsForExport(
   donationTypeId?: string
 ) {
   try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getTransactionsForExport] Authorization failed:', authResult.error);
+      return [];
+    }
+
     if (type === 'donations') {
       const donations = await prisma.donationTransaction.findMany({
         where: {
-          Church: { clerkOrgId: churchId },
+          Church: { id: authResult.churchId },
           transactionDate: {
             gte: startDate,
             lte: endDate
@@ -456,7 +510,7 @@ export async function getTransactionsForExport(
     } else {
       const expenses = await prisma.expense.findMany({
         where: {
-          Church: { clerkOrgId: churchId },
+          Church: { id: authResult.churchId },
           expenseDate: {
             gte: startDate,
             lte: endDate

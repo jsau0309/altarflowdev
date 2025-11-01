@@ -333,14 +333,31 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
       memberId: member?.id || null,
       linkedMemberName: member ? `${member.firstName} ${member.lastName}`.trim() : null,
       donations: transactions.map((tx: SelectedTransaction) => {
+        // Extract donor name from transaction or fall back to donor details
+        // Use a more robust approach than simple space splitting
+        let txFirstName: string | null = null;
+        let txLastName: string | null = null;
+
+        if (tx.donorName) {
+          const nameParts = tx.donorName.trim().split(/\s+/); // Split on any whitespace
+          if (nameParts.length === 1) {
+            // Single name - treat as first name
+            txFirstName = nameParts[0];
+          } else if (nameParts.length >= 2) {
+            // Multiple parts - first is firstName, rest is lastName
+            txFirstName = nameParts[0];
+            txLastName = nameParts.slice(1).join(' ');
+          }
+        }
+
         return {
           id: tx.id,
           amount: (tx.amount / 100).toFixed(2),
           currency: tx.currency,
           status: tx.status,  // Include status field
           donationDate: tx.transactionDate.toISOString(),
-          donorFirstName: tx.donorName?.split(' ')[0] ?? donorDetails.firstName ?? null,
-          donorLastName: tx.donorName?.split(' ').slice(1).join(' ') ?? donorDetails.lastName ?? null,
+          donorFirstName: txFirstName ?? donorDetails.firstName ?? null,
+          donorLastName: txLastName ?? donorDetails.lastName ?? null,
           donorEmail: tx.donorEmail ?? donorDetails.email ?? null,
           memberId: tx.donorId, // Link transaction to a Donor record via donorId
           donationTypeId: tx.donationTypeId,
