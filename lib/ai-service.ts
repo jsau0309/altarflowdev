@@ -313,7 +313,7 @@ ${language === 'es' ? 'Devuelve EXACTAMENTE este formato JSON con 5 sugerencias 
       const parsed = JSON.parse(content);
       
       // Handle both array and object with suggestions property
-      let suggestions = Array.isArray(parsed) ? parsed : (parsed.suggestions || parsed.items || []);
+      const suggestions = Array.isArray(parsed) ? parsed : (parsed.suggestions || parsed.items || []);
       
       // Validate and return
       if (Array.isArray(suggestions) && suggestions.length > 0) {

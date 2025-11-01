@@ -432,7 +432,7 @@ export async function POST(request: Request) {
     );
 
     let donorDisplayNameForDb: string | null = null;
-    let donorEmailForDb: string | null = donorEmail || null;
+    const donorEmailForDb: string | null = donorEmail || null;
 
     if (isAnonymous) {
       // Anonymous donors: store "Anonymous Donor" as name, but KEEP email for receipts

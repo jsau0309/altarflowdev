@@ -55,7 +55,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
   const [donationTypes, setDonationTypes] = useState<Campaign[]>([])
   const [showNewDonorForm, setShowNewDonorForm] = useState(false)
   const [formData, setFormData] = useState<NewDonationFormData>(() => {
-    let combinedData = { ...initialLocalFormData };
+    const combinedData = { ...initialLocalFormData };
     if (initialData) {
       combinedData.amount = initialData.amount?.toString() ?? initialLocalFormData.amount;
       if (initialData.donationDate !== undefined) combinedData.donationDate = initialData.donationDate;
@@ -133,7 +133,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     e.preventDefault()
     setIsLoading(true)
 
-    let currentMemberId = formData.memberId
+    const currentMemberId = formData.memberId
 
     // If adding a new donor, create the donor first
     if (showNewDonorForm) {
