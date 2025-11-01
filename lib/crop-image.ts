@@ -16,8 +16,9 @@ export async function getCroppedImg(
     throw new Error('No 2d context');
   }
 
-  // Render at 2x resolution for retina quality
-  const scale = 2;
+  // Render at 1x resolution to keep file size manageable for uploads
+  // A 400x400 logo is already good quality for web display
+  const scale = 1;
   const outputWidth = pixelCrop.width * scale;
   const outputHeight = pixelCrop.height * scale;
 
@@ -61,8 +62,28 @@ export async function getCroppedImg(
 function createImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = document.createElement('img');
-    image.addEventListener('load', () => resolve(image));
-    image.addEventListener('error', (error) => reject(error));
+
+    // Define handlers that clean up after themselves
+    const handleLoad = () => {
+      cleanup();
+      resolve(image);
+    };
+
+    const handleError = (error: Event | string) => {
+      cleanup();
+      // Clear src to allow garbage collection
+      image.src = '';
+      reject(error);
+    };
+
+    // Cleanup function to remove event listeners
+    const cleanup = () => {
+      image.removeEventListener('load', handleLoad);
+      image.removeEventListener('error', handleError);
+    };
+
+    image.addEventListener('load', handleLoad);
+    image.addEventListener('error', handleError);
     image.setAttribute('crossOrigin', 'anonymous');
     image.src = url;
   });

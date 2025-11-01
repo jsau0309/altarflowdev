@@ -7,11 +7,15 @@ const nextConfig = {
         ignoreDuringBuilds: true,
     },
     typescript: {
-        // !! WARN !!
-        // Dangerously allow production builds to successfully complete even if
-        // your project has type errors.
-        // !! WARN !!
-        ignoreBuildErrors: true,
+        // TypeScript errors will now fail the build, preventing type errors in production
+        ignoreBuildErrors: false,
+    },
+    experimental: {
+        // Increase body size limit for file uploads (default is 1MB)
+        // This allows larger logo/image uploads up to 10MB
+        serverActions: {
+            bodySizeLimit: '10mb',
+        },
     },
     async headers() {
         const cspHeader = `

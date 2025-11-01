@@ -49,7 +49,7 @@ export async function checkoutWithStripe(
         }
         */
        // --- End temporary comment out ---
-       let customer = "cus_placeholder"; // Temporary placeholder
+       const customer = "cus_placeholder"; // Temporary placeholder
 
         const referralMetadata = referral || referralId ? {
             metadata: {

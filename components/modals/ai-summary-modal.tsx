@@ -363,7 +363,7 @@ export function AiSummaryModal({ isOpen, onClose, churchId }: AiSummaryModalProp
 
           lineBuffer += decodedChunk;
 
-          let lines = lineBuffer.split('\n');
+          const lines = lineBuffer.split('\n');
           
           if (lineBuffer.endsWith('\n')) {
               lineBuffer = '';
