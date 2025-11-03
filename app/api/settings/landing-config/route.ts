@@ -6,6 +6,38 @@ import { validateAndSanitizeUrl, validateUrlObject } from "@/lib/validation/url-
 import { validateDescription, validateCustomTitle } from "@/lib/validation/input-validation";
 import { validateButtons, safeParseButtons } from "@/lib/validation/button-validation";
 
+function isValidHexColor(color: string): boolean {
+  return /^#[0-9A-Fa-f]{6}$/.test(color);
+}
+
+function normalizeHexField(
+  value: string | null | undefined,
+  label: string
+): { value: string | null | undefined; error?: string } {
+  if (value === undefined) {
+    return { value: undefined };
+  }
+
+  if (value === null) {
+    return { value: null };
+  }
+
+  const trimmed = value.trim();
+
+  if (trimmed.length === 0) {
+    return { value: null };
+  }
+
+  if (!isValidHexColor(trimmed)) {
+    return {
+      value: undefined,
+      error: `Invalid ${label}. Must be a valid hex color (e.g., #FFFFFF)`,
+    };
+  }
+
+  return { value: trimmed };
+}
+
 interface SocialLinks {
   facebook?: string;
   instagram?: string;
@@ -21,7 +53,7 @@ interface LandingConfigUpdateData {
   customTitle?: string | null;
   titleFont?: string;
   titleSize?: string;
-  titleColor?: string;
+  titleColor?: string; // NOT nullable - matches Prisma schema
   backgroundType?: BackgroundType;
   backgroundValue?: string | null;
   socialLinks?: SocialLinks;
@@ -29,10 +61,10 @@ interface LandingConfigUpdateData {
   showConnectButton?: boolean;
   donateButtonText?: string;
   connectButtonText?: string;
-  buttonBackgroundColor?: string;
-  buttonTextColor?: string;
+  buttonBackgroundColor?: string | null;
+  buttonTextColor?: string | null;
   buttons?: any; // JSON array of button configurations
-  ogBackgroundColor?: string;
+  ogBackgroundColor?: string | null;
   announcementText?: string | null;
   announcementLink?: string | null;
   showAnnouncement?: boolean;
@@ -307,6 +339,54 @@ export async function PUT(request: Request) {
 
       // Use validated URLs
       body.socialLinks = validatedLinks as SocialLinks;
+    }
+
+    // Validate hex color values
+    // titleColor is NOT nullable in the schema, so we only validate if it's provided
+    if (body.titleColor !== undefined) {
+      const titleColorResult = normalizeHexField(body.titleColor, 'title color');
+      if (titleColorResult.error) {
+        return NextResponse.json({ error: titleColorResult.error }, { status: 400 });
+      }
+      // titleColor cannot be null - if empty, don't update it (keep existing value)
+      if (titleColorResult.value === null || titleColorResult.value === undefined) {
+        delete body.titleColor;
+      } else {
+        body.titleColor = titleColorResult.value;
+      }
+    }
+
+    const buttonBackgroundColorResult = normalizeHexField(
+      body.buttonBackgroundColor,
+      'button background color'
+    );
+    if (buttonBackgroundColorResult.error) {
+      return NextResponse.json({ error: buttonBackgroundColorResult.error }, { status: 400 });
+    }
+    if (buttonBackgroundColorResult.value !== undefined) {
+      body.buttonBackgroundColor = buttonBackgroundColorResult.value as string | null;
+    }
+
+    const buttonTextColorResult = normalizeHexField(
+      body.buttonTextColor,
+      'button text color'
+    );
+    if (buttonTextColorResult.error) {
+      return NextResponse.json({ error: buttonTextColorResult.error }, { status: 400 });
+    }
+    if (buttonTextColorResult.value !== undefined) {
+      body.buttonTextColor = buttonTextColorResult.value as string | null;
+    }
+
+    const ogBackgroundColorResult = normalizeHexField(
+      body.ogBackgroundColor,
+      'OG background color'
+    );
+    if (ogBackgroundColorResult.error) {
+      return NextResponse.json({ error: ogBackgroundColorResult.error }, { status: 400 });
+    }
+    if (ogBackgroundColorResult.value !== undefined) {
+      body.ogBackgroundColor = ogBackgroundColorResult.value as string | null;
     }
 
     // Validate buttons if provided
