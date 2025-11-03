@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import Link from 'next/link';
 import { submitFlow } from '@/lib/actions/flows.actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +14,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { ServiceTime, Ministry, LifeStage, RelationshipStatus } from '../member-form/types'; // Adjust path if needed
 import { useTranslation } from 'react-i18next'; // Import useTranslation
+import { Confetti, ConfettiRef } from '@/components/ui/confetti';
 
 // Define the expected shape of the config prop
 interface ConnectFormConfig {
@@ -32,6 +34,8 @@ interface ConnectFormConfig {
 interface ConnectFormProps {
     flowId: string;
     churchName: string;
+    churchSlug: string;
+    backgroundStyle: string;
     config: ConnectFormConfig;
 }
 
@@ -61,13 +65,14 @@ const createFormSchema = (t: (key: string) => string) => z.object({
 
 type FormData = z.infer<ReturnType<typeof createFormSchema>>;
 
-export default function ConnectForm({ flowId, churchName, config }: ConnectFormProps) {
+export default function ConnectForm({ flowId, churchName, churchSlug, backgroundStyle, config }: ConnectFormProps) {
     const { t, i18n } = useTranslation(['connect-form', 'common']); // Use hook with namespaces
     const formSchema = createFormSchema(t); // Create schema instance with t function
 
     const [isSubmitting, startSubmitTransition] = useTransition();
     const [submitResult, setSubmitResult] = useState<{ success: boolean; message?: string } | null>(null);
     const [showPrayerInput, setShowPrayerInput] = useState(false);
+    const confettiRef = useRef<ConfettiRef>(null);
 
     const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({
         resolver: zodResolver(formSchema),
@@ -170,23 +175,86 @@ export default function ConnectForm({ flowId, churchName, config }: ConnectFormP
         setValue('phone', truncatedValue, { shouldValidate: true }); // Update form state and trigger validation
     };
 
-    // If submission was successful, show message and hide form
+    // Trigger confetti when submission succeeds
+    useEffect(() => {
+        if (submitResult?.success) {
+            // Trigger fireworks confetti
+            const timer = setTimeout(() => {
+                confettiRef.current?.fire({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
+                });
+
+                // Second burst for fireworks effect
+                setTimeout(() => {
+                    confettiRef.current?.fire({
+                        particleCount: 100,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0, y: 0.6 }
+                    });
+                }, 250);
+
+                setTimeout(() => {
+                    confettiRef.current?.fire({
+                        particleCount: 100,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1, y: 0.6 }
+                    });
+                }, 400);
+            }, 500);
+
+            return () => clearTimeout(timer);
+        }
+    }, [submitResult]);
+
+    // If submission was successful, show celebration message
     if (submitResult?.success) {
         return (
-             <Card className="w-full max-w-md mx-auto bg-white text-gray-900 border-gray-300">
-                 <CardHeader>
-                     <CardTitle className="text-gray-900">{t('connect-form:successCardTitle')}</CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                    <Alert variant="default" className="bg-white border-gray-300 text-gray-900">
-                       <AlertCircle className="h-4 w-4 !text-gray-900" />
-                       <AlertTitle className="text-gray-900">{t('common:successTitle')}</AlertTitle>
-                       <AlertDescription className="text-gray-900">
-                         {submitResult.message ? t(submitResult.message, { ns: 'connect-form' }) : t('connect-form:successMessage')}
-                       </AlertDescription>
-                    </Alert>
-                 </CardContent>
-             </Card>
+            <div className="relative min-h-screen flex items-center justify-center p-4" style={{ background: backgroundStyle }}>
+                {/* Confetti Canvas */}
+                <Confetti
+                    ref={confettiRef}
+                    className="absolute inset-0 pointer-events-none w-full h-full"
+                    manualstart={true}
+                />
+
+                <div className="bg-white px-8 py-10 rounded-2xl shadow-xl max-w-lg w-full relative z-10">
+                    {/* Success Icon */}
+                    <div className="flex justify-center mb-6">
+                        <div className="rounded-full bg-green-100 p-4">
+                            <CheckCircle2 className="w-16 h-16 text-green-600" />
+                        </div>
+                    </div>
+
+                    {/* Title and Subtitle */}
+                    <h1 className="text-4xl font-bold mb-3 text-gray-900 text-center">
+                        {t('connect-form:successCardTitle')}
+                    </h1>
+                    <p className="text-gray-600 mb-6 text-lg text-center">
+                        {t('connect-form:successSubtitle')}
+                    </p>
+
+                    {/* Message */}
+                    <p className="text-center text-gray-700 mb-8">
+                        {submitResult.message ? t(submitResult.message, { ns: 'connect-form' }) : t('connect-form:successMessage')}
+                    </p>
+
+                    {/* Return to Landing Page Button */}
+                    <Button
+                        asChild
+                        variant="default"
+                        className="w-full py-6 text-lg rounded-lg font-semibold transition-all duration-150 ease-in-out hover:scale-105"
+                    >
+                        <Link href={`/${churchSlug}`}>
+                            {t('connect-form:goHomeButton')}
+                        </Link>
+                    </Button>
+                </div>
+            </div>
         );
     }
 

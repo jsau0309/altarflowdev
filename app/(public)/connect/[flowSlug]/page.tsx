@@ -165,6 +165,7 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
     select: {
       id: true,
       name: true,
+      slug: true,
       LandingPageConfig: true
     }
   });
@@ -176,6 +177,9 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
 
   // Get display title - use customTitle from landing config or fall back to church name
   const displayTitle = church?.LandingPageConfig?.customTitle || church?.name || flowData.churchName;
+
+  // Get church slug for success page redirect
+  const churchSlug = church?.slug || '';
 
   // Validate and parse configJson with proper type checking
   let parsedConfig: ConnectFormConfig;
@@ -208,6 +212,8 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
           <ConnectForm
             flowId={flowData.id}
             churchName={displayTitle}
+            churchSlug={churchSlug}
+            backgroundStyle={backgroundStyle}
             config={parsedConfig}
           />
         </ConnectPageWrapper>

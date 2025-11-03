@@ -21,8 +21,10 @@
   "optionLifeStage70plus": "70+",
   "placeholderPrayer": "You can share your request here...",
   "successCardTitle": "Thank You!",
-  "successMessage": "Your information has been received. We'll be in touch soon!",
+  "successSubtitle": "Your information has been received",
+  "successMessage": "We're excited to connect with you! Someone from our team will be in touch soon.",
   "submissionSuccessMessage": "Submission received successfully!",
+  "goHomeButton": "Return to Landing Page",
   "errorMessageDefault": "An error occurred. Please check your entries and try again.",
   "validationRelationshipStatusRequired": "Please select your relationship status.",
   "labelSmsConsent": "Send me a welcome text with service times."
