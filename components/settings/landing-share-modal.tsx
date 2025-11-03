@@ -105,7 +105,7 @@ export function LandingShareModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-2xl w-full max-w-[720px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>{t("settings:shareModal.title", "Share your landing page")}</DialogTitle>
         </DialogHeader>
@@ -160,6 +160,9 @@ export function LandingShareModal({
                   label={t("settings:shareModal.ogBackgroundColor", "Share Card Background Color")}
                   color={ogBackgroundColor}
                   onChange={onOgColorChange}
+                  enableEyedropper
+                  eyedropperLabel={t("settings:shareModal.pickColorFromScreen", "Pick color from screen")}
+                  eyedropperUnsupportedLabel={t("settings:shareModal.eyedropperUnsupported", "Eyedropper not supported in this browser")}
                 />
               </div>
             )}
@@ -210,7 +213,7 @@ export function LandingShareModal({
               <div className="flex justify-center bg-background p-6 rounded-lg border">
                 <CustomQRCode
                   value={url}
-                  size={300}
+                  size={320}
                   fgColor={qrFgColor}
                   bgColor="#FFFFFF"
                   logoUrl={logoUrl}
@@ -247,6 +250,9 @@ export function LandingShareModal({
                       label={t("settings:shareModal.qrColor", "QR Code Color")}
                       color={qrFgColor}
                       onChange={setQrFgColor}
+                      enableEyedropper
+                      eyedropperLabel={t("settings:shareModal.pickColorFromScreen", "Pick color from screen")}
+                      eyedropperUnsupportedLabel={t("settings:shareModal.eyedropperUnsupported", "Eyedropper not supported in this browser")}
                     />
                   </div>
                 )}
