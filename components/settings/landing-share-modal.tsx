@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Copy, QrCode, ExternalLink, Palette } from 'lucide-react';
 import { toast } from 'sonner';
-import QRCode from "react-qr-code";
+import { CustomQRCode } from "@/components/settings/custom-qr-code";
 import { ColorPicker } from "@/components/settings/color-picker";
 
 interface LandingShareModalProps {
@@ -33,6 +33,11 @@ export function LandingShareModal({
   const { t } = useTranslation();
   const [showQR, setShowQR] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+
+  // QR Code customization state
+  const [qrFgColor, setQrFgColor] = useState('#000000');
+  const [showQRColorPicker, setShowQRColorPicker] = useState(false);
+  const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const handleCopyLink = async () => {
     try {
@@ -64,54 +69,34 @@ export function LandingShareModal({
   };
 
   const handleDownloadQR = () => {
-    const svg = document.getElementById('share-qr-code');
-    if (!svg) return;
+    const canvas = qrCanvasRef.current;
+    if (!canvas) {
+      toast.error('QR code not ready');
+      return;
+    }
 
     try {
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        toast.error('Canvas not supported in this browser');
-        return;
+      // Check if toBlob is supported
+      if (canvas.toBlob) {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${churchSlug}-qr-code.png`;
+            link.click();
+            URL.revokeObjectURL(url);
+            toast.success(t("settings:shareModal.qrDownloaded", "QR code downloaded!"));
+          }
+        });
+      } else {
+        // Fallback for browsers without toBlob support
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `${churchSlug}-qr-code.png`;
+        link.click();
+        toast.success(t("settings:shareModal.qrDownloaded", "QR code downloaded!"));
       }
-
-      const img = new Image();
-
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-
-        // Check if toBlob is supported
-        if (canvas.toBlob) {
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `${churchSlug}-qr-code.png`;
-              link.click();
-              URL.revokeObjectURL(url);
-              toast.success(t("settings:shareModal.qrDownloaded", "QR code downloaded!"));
-            }
-          });
-        } else {
-          // Fallback for browsers without toBlob support
-          const link = document.createElement('a');
-          link.href = canvas.toDataURL('image/png');
-          link.download = `${churchSlug}-qr-code.png`;
-          link.click();
-          toast.success(t("settings:shareModal.qrDownloaded", "QR code downloaded!"));
-        }
-      };
-
-      img.onerror = () => {
-        toast.error('Failed to load QR code image');
-      };
-
-      img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
     } catch (error) {
       console.error('QR code download error:', error);
       toast.error('Failed to download QR code');
@@ -120,7 +105,7 @@ export function LandingShareModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-2xl w-full max-w-[720px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>{t("settings:shareModal.title", "Share your landing page")}</DialogTitle>
         </DialogHeader>
@@ -175,6 +160,9 @@ export function LandingShareModal({
                   label={t("settings:shareModal.ogBackgroundColor", "Share Card Background Color")}
                   color={ogBackgroundColor}
                   onChange={onOgColorChange}
+                  enableEyedropper
+                  eyedropperLabel={t("settings:shareModal.pickColorFromScreen", "Pick color from screen")}
+                  eyedropperUnsupportedLabel={t("settings:shareModal.eyedropperUnsupported", "Eyedropper not supported in this browser")}
                 />
               </div>
             )}
@@ -222,16 +210,54 @@ export function LandingShareModal({
           {/* QR Code Section */}
           {showQR && (
             <div className="pt-4 border-t space-y-3">
-              <div className="flex justify-center bg-background p-4 rounded-lg border">
-                <QRCode
-                  id="share-qr-code"
+              <div className="flex justify-center bg-background p-6 rounded-lg border">
+                <CustomQRCode
                   value={url}
-                  size={180}
-                  level="H"
+                  size={320}
+                  fgColor={qrFgColor}
                   bgColor="#FFFFFF"
-                  fgColor="#000000"
+                  logoUrl={logoUrl}
+                  onCanvasReady={(canvas) => {
+                    qrCanvasRef.current = canvas;
+                  }}
                 />
               </div>
+
+              {/* QR Color Customization */}
+              <div className="space-y-3 pt-2">
+                <button
+                  onClick={() => setShowQRColorPicker(!showQRColorPicker)}
+                  className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-muted transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Palette className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">
+                      {t("settings:shareModal.customizeQRColor", "Customize QR color")}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border border-gray-300"
+                      style={{ backgroundColor: qrFgColor }}
+                    />
+                    <span className="text-muted-foreground">&gt;</span>
+                  </div>
+                </button>
+
+                {showQRColorPicker && (
+                  <div className="pt-2 pb-4 border-t space-y-3">
+                    <ColorPicker
+                      label={t("settings:shareModal.qrColor", "QR Code Color")}
+                      color={qrFgColor}
+                      onChange={setQrFgColor}
+                      enableEyedropper
+                      eyedropperLabel={t("settings:shareModal.pickColorFromScreen", "Pick color from screen")}
+                      eyedropperUnsupportedLabel={t("settings:shareModal.eyedropperUnsupported", "Eyedropper not supported in this browser")}
+                    />
+                  </div>
+                )}
+              </div>
+
               <Button
                 onClick={handleDownloadQR}
                 variant="outline"

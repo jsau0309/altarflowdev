@@ -223,7 +223,11 @@
     "qrCode": "QR code",
     "downloadQR": "Download QR Code",
     "customizeColor": "Customize share color",
+    "customizeQRColor": "Customize QR color",
     "ogBackgroundColor": "Share Card Background Color",
+    "qrColor": "QR Code Color",
+    "pickColorFromScreen": "Pick color from screen",
+    "eyedropperUnsupported": "Eyedropper not supported in this browser",
     "linkCopied": "Link copied to clipboard!",
     "copyFailed": "Failed to copy link",
     "qrDownloaded": "QR code downloaded!"

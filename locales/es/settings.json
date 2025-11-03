@@ -222,7 +222,11 @@
       "qrCode": "Código QR",
       "downloadQR": "Descargar Código QR",
       "customizeColor": "Personalizar color para compartir",
+      "customizeQRColor": "Personalizar color de código QR",
       "ogBackgroundColor": "Color de Fondo de Tarjeta para Compartir",
+      "qrColor": "Color del Código QR",
+      "pickColorFromScreen": "Seleccionar color desde la pantalla",
+      "eyedropperUnsupported": "El cuentagotas no es compatible con este navegador",
       "linkCopied": "¡Enlace copiado al portapapeles!",
       "copyFailed": "Error al copiar el enlace",
       "qrDownloaded": "¡Código QR descargado!"
