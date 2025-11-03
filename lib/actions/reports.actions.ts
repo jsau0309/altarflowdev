@@ -92,7 +92,7 @@ export async function getMonthlyDonationSummary(
 
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        Church: { id: authResult.churchId },
+        churchId: authResult.churchId,
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -165,7 +165,7 @@ export async function getDonationCategoryBreakdown(
 
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        Church: { id: authResult.churchId },
+        churchId: authResult.churchId,
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -232,7 +232,7 @@ export async function getDonationSummary(
 
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        Church: { id: authResult.churchId },
+        churchId: authResult.churchId,
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -286,7 +286,7 @@ export async function getMonthlyExpenseSummary(
 
     const expenses = await prisma.expense.findMany({
       where: {
-        Church: { id: authResult.churchId },
+        churchId: authResult.churchId,
         expenseDate: {
           gte: startDate,
           lte: endDate
@@ -353,7 +353,7 @@ export async function getExpenseCategoryBreakdown(
 
     const expenses = await prisma.expense.findMany({
       where: {
-        Church: { id: authResult.churchId },
+        churchId: authResult.churchId,
         expenseDate: {
           gte: startDate,
           lte: endDate
@@ -410,7 +410,7 @@ export async function getExpenseSummary(
 
     const expenses = await prisma.expense.findMany({
       where: {
-        Church: { id: authResult.churchId },
+        churchId: authResult.churchId,
         expenseDate: {
           gte: startDate,
           lte: endDate
@@ -426,7 +426,7 @@ export async function getExpenseSummary(
 
     const donations = await prisma.donationTransaction.findMany({
       where: {
-        Church: { id: authResult.churchId },
+        churchId: authResult.churchId,
         transactionDate: {
           gte: startDate,
           lte: endDate
@@ -475,7 +475,7 @@ export async function getTransactionsForExport(
     if (type === 'donations') {
       const donations = await prisma.donationTransaction.findMany({
         where: {
-          Church: { id: authResult.churchId },
+          churchId: authResult.churchId,
           transactionDate: {
             gte: startDate,
             lte: endDate
@@ -510,7 +510,7 @@ export async function getTransactionsForExport(
     } else {
       const expenses = await prisma.expense.findMany({
         where: {
-          Church: { id: authResult.churchId },
+          churchId: authResult.churchId,
           expenseDate: {
             gte: startDate,
             lte: endDate

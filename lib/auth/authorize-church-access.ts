@@ -58,15 +58,16 @@ export async function authorizeChurchAccess(
     // The database will only return the church if BOTH conditions are met:
     // 1. The identifier matches (either clerkOrgId or internal id)
     // 2. The church's clerkOrgId matches the user's orgId
+
+    // Determine if the identifier is a UUID (internal ID) or clerkOrgId
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(churchIdentifier)
+
     const church = await prisma.church.findFirst({
       where: {
         AND: [
-          {
-            OR: [
-              { clerkOrgId: churchIdentifier },
-              { id: churchIdentifier }
-            ]
-          },
+          isUuid
+            ? { id: churchIdentifier }  // If UUID, match by internal ID
+            : { clerkOrgId: churchIdentifier },  // Otherwise, match by clerkOrgId
           { clerkOrgId: orgId }  // Atomic authorization check
         ]
       },
