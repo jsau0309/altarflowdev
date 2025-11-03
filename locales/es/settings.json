@@ -222,7 +222,9 @@
       "qrCode": "Código QR",
       "downloadQR": "Descargar Código QR",
       "customizeColor": "Personalizar color para compartir",
+      "customizeQRColor": "Personalizar color de código QR",
       "ogBackgroundColor": "Color de Fondo de Tarjeta para Compartir",
+      "qrColor": "Color del Código QR",
       "linkCopied": "¡Enlace copiado al portapapeles!",
       "copyFailed": "Error al copiar el enlace",
       "qrDownloaded": "¡Código QR descargado!"
