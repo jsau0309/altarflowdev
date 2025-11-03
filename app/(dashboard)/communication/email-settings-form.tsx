@@ -32,7 +32,7 @@ import { toast } from "sonner";
 import { Loader2, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
 
 
-const getFormSchema = (t: any) => z.object({
+const getFormSchema = (t: (key: string) => string) => z.object({
   senderName: z.string().min(2, {
     message: t('common:errors.required'),
   }),

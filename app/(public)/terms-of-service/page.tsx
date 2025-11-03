@@ -16,8 +16,8 @@ export default function TermsOfServicePage() {
       {/* Section 1 */}
       <h2 className="text-2xl font-semibold mt-8 mb-4">1. Agreement to Terms</h2>
       <p className="mb-4">
-        By accessing or using Altarflow ("Service"), operated by AU Sigma LLC ("Company," "we," "us," or "our"), 
-        you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, 
+        By accessing or using Altarflow (&quot;Service&quot;), operated by AU Sigma LLC (&quot;Company,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;),
+        you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you disagree with any part of these terms,
         you may not access the Service.
       </p>
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -103,7 +103,7 @@ export default function TermsOfServicePage() {
       <h3 className="text-xl font-semibold mb-3">Price Changes</h3>
       <ul className="list-disc pl-6 space-y-2 mb-6">
         <li>We reserve the right to modify pricing for new customers</li>
-        <li>Existing customers will receive 30 days' notice of any price changes</li>
+        <li>Existing customers will receive 30 days&apos; notice of any price changes</li>
         <li>Founding churches maintain their original pricing structure</li>
       </ul>
 
@@ -189,8 +189,8 @@ export default function TermsOfServicePage() {
       <h3 className="text-xl font-semibold mb-3 mt-6">Our Role vs. Stripe's Role</h3>
       <div className="bg-blue-50 rounded-lg p-4 mb-6">
         <ul className="space-y-2">
-          <li><strong>Altarflow's Role:</strong> We provide the platform interface and donation management tools</li>
-          <li><strong>Stripe's Role:</strong> Stripe processes all payments, handles PCI compliance, and manages fund transfers</li>
+          <li><strong>Altarflow&apos;s Role:</strong> We provide the platform interface and donation management tools</li>
+          <li><strong>Stripe&apos;s Role:</strong> Stripe processes all payments, handles PCI compliance, and manages fund transfers</li>
           <li><strong>Your Role:</strong> You are responsible for tax reporting, compliance with donation regulations, and donor communications</li>
         </ul>
       </div>
@@ -257,7 +257,7 @@ export default function TermsOfServicePage() {
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
         <p className="text-sm font-semibold mb-3">TO THE MAXIMUM EXTENT PERMITTED BY LAW:</p>
         <ul className="space-y-2">
-          <li><strong>Service Provided "AS IS":</strong> We provide the Service without warranties of any kind</li>
+          <li><strong>Service Provided &quot;AS IS&quot;:</strong> We provide the Service without warranties of any kind</li>
           <li><strong>Limited Liability:</strong> Our liability is limited to the amount you paid for the Service in the 12 months prior to the claim</li>
           <li><strong>Excluded Damages:</strong> We are not liable for indirect, incidental, or consequential damages</li>
           <li><strong>Force Majeure:</strong> We are not liable for delays or failures due to circumstances beyond our reasonable control</li>
@@ -361,7 +361,7 @@ export default function TermsOfServicePage() {
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
         <ul className="space-y-2">
           <li>Email: <a href="mailto:hola@altarflow.com" className="text-[#3B82F6] hover:underline">hola@altarflow.com</a></li>
-          <li>Subject Line: "Terms of Service Inquiry"</li>
+          <li>Subject Line: &quot;Terms of Service Inquiry&quot;</li>
         </ul>
         <div className="mt-4 pt-4 border-t border-gray-200">
           <p className="font-semibold">AU Sigma LLC</p>

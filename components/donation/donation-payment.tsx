@@ -122,13 +122,19 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
       covers_fees: formData.coverFees || false,
     });
 
-    const calculatedReturnUrl = `${window.location.origin}/${churchSlug}/donation-successful`;
+    // Build success URL using URLSearchParams for safer parameter encoding
+    const successParams = new URLSearchParams({
+      amount: formData.amount.toString(),
+      churchName: churchName || '',
+      fundName: formData.donationTypeName || ''
+    });
+    const calculatedReturnUrl = `${window.location.origin}/${churchSlug}/donation-successful?${successParams.toString()}`;
     // Debug logging removed: confirming Stripe payment
 
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/${churchSlug}/donation-successful?amount=${formData.amount}&churchName=${encodeURIComponent(churchName || '')}&fundName=${encodeURIComponent(formData.donationTypeName || '')}`,
+        return_url: calculatedReturnUrl,
         // receipt_email removed - we send custom receipts via webhook/Resend instead
       },
       redirect: "if_required" // Changed to if_required to handle redirect better
@@ -148,10 +154,9 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
       // Clear the session storage to allow future donations
       const donationKey = `donation_${churchSlug}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${formData.donationTypeIsCampaign ? 'campaign' : 'fund'}`;
       sessionStorage.removeItem(donationKey);
-      
-      // Manually redirect to success page
-      const successUrl = `${window.location.origin}/${churchSlug}/donation-successful?amount=${formData.amount}&churchName=${encodeURIComponent(churchName || '')}&fundName=${encodeURIComponent(formData.donationTypeName || '')}`;
-      window.location.href = successUrl;
+
+      // Manually redirect to success page (reuse the same URL constructed above)
+      window.location.href = calculatedReturnUrl;
     } else {
       // Payment is processing or requires additional action
       // The redirect should have happened automatically

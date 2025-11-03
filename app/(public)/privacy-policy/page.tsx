@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
       {/* Section 1 */}
       <h2 className="text-2xl font-semibold mt-8 mb-4">1. Introduction</h2>
       <p className="mb-4">
-        AU Sigma LLC ("we," "us," or "our") operates Altarflow, a church management platform ("Service"). 
+        AU Sigma LLC (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates Altarflow, a church management platform (&quot;Service&quot;).
         This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service.
       </p>
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -196,7 +196,7 @@ export default function PrivacyPolicyPage() {
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
         <ul className="space-y-2">
           <li>Email: <a href="mailto:hola@altarflow.com" className="text-[#3B82F6] hover:underline">hola@altarflow.com</a></li>
-          <li>Subject Line: "Privacy Policy Inquiry"</li>
+          <li>Subject Line: &quot;Privacy Policy Inquiry&quot;</li>
         </ul>
         <div className="mt-4 pt-4 border-t border-gray-200">
           <p className="font-semibold">AU Sigma LLC</p>

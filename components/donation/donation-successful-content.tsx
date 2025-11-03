@@ -24,8 +24,11 @@ function DonationSuccessfulInner({ churchSlug, backgroundStyle, logoUrl, display
   const { trackEvent } = usePostHog();
   const confettiRef = useRef<ConfettiRef>(null);
 
-  // Get donation details from URL params
-  const amount = searchParams.get('amount');
+  // Get donation details from URL params with validation
+  const amountStr = searchParams.get('amount');
+  const amount = amountStr && !isNaN(parseFloat(amountStr)) && parseFloat(amountStr) > 0
+    ? parseFloat(amountStr).toFixed(2)
+    : null;
   const fundName = searchParams.get('fundName') || searchParams.get('campaignName');
   const donationDate = new Date().toLocaleDateString(undefined, {
     year: 'numeric',
@@ -45,8 +48,10 @@ function DonationSuccessfulInner({ churchSlug, backgroundStyle, logoUrl, display
       });
     }
 
-    // Trigger fireworks confetti
-    const timer = setTimeout(() => {
+    // Trigger fireworks confetti with proper cleanup
+    const timers: NodeJS.Timeout[] = [];
+
+    const timer1 = setTimeout(() => {
       confettiRef.current?.fire({
         particleCount: 150,
         spread: 70,
@@ -55,7 +60,7 @@ function DonationSuccessfulInner({ churchSlug, backgroundStyle, logoUrl, display
       });
 
       // Second burst for fireworks effect
-      setTimeout(() => {
+      const timer2 = setTimeout(() => {
         confettiRef.current?.fire({
           particleCount: 100,
           angle: 60,
@@ -63,8 +68,9 @@ function DonationSuccessfulInner({ churchSlug, backgroundStyle, logoUrl, display
           origin: { x: 0, y: 0.6 }
         });
       }, 250);
+      timers.push(timer2);
 
-      setTimeout(() => {
+      const timer3 = setTimeout(() => {
         confettiRef.current?.fire({
           particleCount: 100,
           angle: 120,
@@ -72,9 +78,14 @@ function DonationSuccessfulInner({ churchSlug, backgroundStyle, logoUrl, display
           origin: { x: 1, y: 0.6 }
         });
       }, 400);
+      timers.push(timer3);
     }, 500);
+    timers.push(timer1);
 
-    return () => clearTimeout(timer);
+    // Cleanup all timers on unmount
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+    };
   }, [searchParams, churchSlug, trackEvent, amount]);
 
   return (

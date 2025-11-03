@@ -32,7 +32,16 @@ export async function PUT(request: NextRequest, { params }: UpdateDonorParams) {
     }
 
     // Construct the data object with only the fields that are provided in the body
-    const updateData: any = {};
+    const updateData: Partial<{
+      firstName: string;
+      lastName: string;
+      email: string;
+      addressLine1: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      country: string;
+    }> = {};
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
     if (email !== undefined) updateData.email = email; // Consider email format validation
@@ -53,9 +62,9 @@ export async function PUT(request: NextRequest, { params }: UpdateDonorParams) {
 
     return NextResponse.json({ success: true, donor: updatedDonor });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating donor:', error);
-    if (error.code === 'P2025') { // Prisma error code for 'Record to update not found.'
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') { // Prisma error code for 'Record to update not found.'
       return NextResponse.json({ success: false, error: 'Donor not found.' }, { status: 404 });
     }
     // Potentially handle other Prisma errors like P2002 if email were made unique and an update conflicts

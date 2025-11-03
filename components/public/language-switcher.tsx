@@ -18,8 +18,21 @@ export function LanguageSwitcher({
 
   // Update local state when i18n language changes
   useEffect(() => {
+    const handleLanguageChanged = (lang: string) => {
+      setCurrentLang(lang);
+    };
+
+    // Subscribe to language change events
+    i18n.on('languageChanged', handleLanguageChanged);
+
+    // Set initial language
     setCurrentLang(i18n.language);
-  }, [i18n.language]);
+
+    // Cleanup: unsubscribe on unmount
+    return () => {
+      i18n.off('languageChanged', handleLanguageChanged);
+    };
+  }, [i18n]);
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);

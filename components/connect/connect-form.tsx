@@ -178,8 +178,10 @@ export default function ConnectForm({ flowId, churchName, churchSlug, background
     // Trigger confetti when submission succeeds
     useEffect(() => {
         if (submitResult?.success) {
-            // Trigger fireworks confetti
-            const timer = setTimeout(() => {
+            // Trigger fireworks confetti with proper cleanup
+            const timers: NodeJS.Timeout[] = [];
+
+            const timer1 = setTimeout(() => {
                 confettiRef.current?.fire({
                     particleCount: 150,
                     spread: 70,
@@ -188,7 +190,7 @@ export default function ConnectForm({ flowId, churchName, churchSlug, background
                 });
 
                 // Second burst for fireworks effect
-                setTimeout(() => {
+                const timer2 = setTimeout(() => {
                     confettiRef.current?.fire({
                         particleCount: 100,
                         angle: 60,
@@ -196,8 +198,9 @@ export default function ConnectForm({ flowId, churchName, churchSlug, background
                         origin: { x: 0, y: 0.6 }
                     });
                 }, 250);
+                timers.push(timer2);
 
-                setTimeout(() => {
+                const timer3 = setTimeout(() => {
                     confettiRef.current?.fire({
                         particleCount: 100,
                         angle: 120,
@@ -205,9 +208,14 @@ export default function ConnectForm({ flowId, churchName, churchSlug, background
                         origin: { x: 1, y: 0.6 }
                     });
                 }, 400);
+                timers.push(timer3);
             }, 500);
+            timers.push(timer1);
 
-            return () => clearTimeout(timer);
+            // Cleanup all timers on unmount
+            return () => {
+                timers.forEach(timer => clearTimeout(timer));
+            };
         }
     }, [submitResult]);
 

@@ -49,14 +49,24 @@ const Confetti = forwardRef<ConfettiRef, Props>((props, ref) => {
       if (node !== null) {
         // <canvas> is mounted => create the confetti instance
         if (instanceRef.current) return // if not already created
-        instanceRef.current = confetti.create(node, {
-          ...globalOptions,
-          resize: true,
-        })
+        try {
+          instanceRef.current = confetti.create(node, {
+            ...globalOptions,
+            resize: true,
+          })
+        } catch (error) {
+          console.error('Failed to initialize confetti:', error)
+          // Component continues to work without confetti
+          instanceRef.current = null
+        }
       } else {
         // <canvas> is unmounted => reset and destroy instanceRef
         if (instanceRef.current) {
-          instanceRef.current.reset()
+          try {
+            instanceRef.current.reset()
+          } catch (error) {
+            console.error('Failed to reset confetti:', error)
+          }
           instanceRef.current = null
         }
       }
