@@ -382,5 +382,15 @@
     "reasonPlaceholder": "Please describe the reason for this edit...",
     "reasonDescription": "This reason will be stored in the edit history",
     "editSuccess": "Donation updated successfully"
+  },
+  "publicPage": {
+    "notAvailable": "Donations are not available at this time. Please contact the church for more information.",
+    "temporarilyDisabled": "This donation page has been temporarily disabled.",
+    "secureTransaction": "Secure Transaction",
+    "poweredBy": "Powered by",
+    "termsAndPrivacy": "By continuing, you agree to Altarflow's",
+    "termsOfService": "Terms of Service",
+    "and": "and",
+    "privacyPolicy": "Privacy Policy"
   }
 }
