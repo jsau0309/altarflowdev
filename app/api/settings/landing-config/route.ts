@@ -53,7 +53,7 @@ interface LandingConfigUpdateData {
   customTitle?: string | null;
   titleFont?: string;
   titleSize?: string;
-  titleColor?: string;
+  titleColor?: string; // NOT nullable - matches Prisma schema
   backgroundType?: BackgroundType;
   backgroundValue?: string | null;
   socialLinks?: SocialLinks;
@@ -61,10 +61,10 @@ interface LandingConfigUpdateData {
   showConnectButton?: boolean;
   donateButtonText?: string;
   connectButtonText?: string;
-  buttonBackgroundColor?: string;
-  buttonTextColor?: string;
+  buttonBackgroundColor?: string | null;
+  buttonTextColor?: string | null;
   buttons?: any; // JSON array of button configurations
-  ogBackgroundColor?: string;
+  ogBackgroundColor?: string | null;
   announcementText?: string | null;
   announcementLink?: string | null;
   showAnnouncement?: boolean;
@@ -342,12 +342,18 @@ export async function PUT(request: Request) {
     }
 
     // Validate hex color values
-    const titleColorResult = normalizeHexField(body.titleColor, 'title color');
-    if (titleColorResult.error) {
-      return NextResponse.json({ error: titleColorResult.error }, { status: 400 });
-    }
-    if (titleColorResult.value !== undefined) {
-      body.titleColor = titleColorResult.value as string | null;
+    // titleColor is NOT nullable in the schema, so we only validate if it's provided
+    if (body.titleColor !== undefined) {
+      const titleColorResult = normalizeHexField(body.titleColor, 'title color');
+      if (titleColorResult.error) {
+        return NextResponse.json({ error: titleColorResult.error }, { status: 400 });
+      }
+      // titleColor cannot be null - if empty, don't update it (keep existing value)
+      if (titleColorResult.value === null || titleColorResult.value === undefined) {
+        delete body.titleColor;
+      } else {
+        body.titleColor = titleColorResult.value;
+      }
     }
 
     const buttonBackgroundColorResult = normalizeHexField(
