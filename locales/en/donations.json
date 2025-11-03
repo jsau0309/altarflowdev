@@ -187,7 +187,20 @@
     "feesCoveredMessage": "You're helping cover the transaction fees, so the full {{amount}} goes to the church."
   },
   "donationInfo": {
-    "anonymousLabel": "Donate anonymously"
+    "anonymousLabel": "Donate anonymously",
+    "internationalLabel": "International donor",
+    "phoneVerificationPrompt": "We will send a one-time code to this number.",
+    "verifyPhone": "Verify Phone",
+    "sendingOtp": "Sending OTP...",
+    "phonePlaceholderE164": "e.g., +11234567890",
+    "otpSentTo": "An OTP has been sent to:",
+    "otpCode": "Verification Code",
+    "otpPlaceholder": "Enter 6-digit code",
+    "verifyingOtp": "Verifying...",
+    "submitOtp": "Submit OTP",
+    "resendOtp": "Resend OTP",
+    "changePhoneNumber": "Change Number",
+    "youHaveVerified": "You have verified"
   },
   "donationDetails": {
     "amountPrompt": "Enter an amount or make a quick selection below",
@@ -317,9 +330,15 @@
   },
   "donationSuccessful": {
     "title": "Thank you!",
+    "subtitle": "Your generous gift has been received",
     "submissionMessage": "Your donation has been received.",
-    "goHomeButton": "Go to home",
-    "contactSupportMessage": "If you have any questions, please contact support: hola@altarflow.com"
+    "goHomeButton": "Return to Landing Page",
+    "contactSupportMessage": "If you have any questions, please contact support: hola@altarflow.com",
+    "donationSummary": "Donation Summary",
+    "amount": "Amount",
+    "fund": "Fund",
+    "date": "Date",
+    "receiptSent": "A receipt has been sent to your email"
   },
   "linkToMember": "Link to Member",
   "currentlyLinkedTo": "Currently linked to",
@@ -382,5 +401,15 @@
     "reasonPlaceholder": "Please describe the reason for this edit...",
     "reasonDescription": "This reason will be stored in the edit history",
     "editSuccess": "Donation updated successfully"
+  },
+  "publicPage": {
+    "notAvailable": "Donations are not available at this time. Please contact the church for more information.",
+    "temporarilyDisabled": "This donation page has been temporarily disabled.",
+    "secureTransaction": "Secure Transaction",
+    "poweredBy": "Powered by",
+    "termsAndPrivacy": "By continuing, you agree to Altarflow's",
+    "termsOfService": "Terms of Service",
+    "and": "and",
+    "privacyPolicy": "Privacy Policy"
   }
 }

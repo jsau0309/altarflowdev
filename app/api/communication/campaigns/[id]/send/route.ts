@@ -267,7 +267,7 @@ export async function POST(
     // Optimized batch updates with parallel execution
     if (unsubscribedRecipients.length > 0 || invalidEmailRecipients.length > 0) {
       await withRetryTransaction(async (tx) => {
-        const updates: Promise<any>[] = [];
+        const updates: Promise<unknown>[] = [];
 
         // Batch update unsubscribed recipients
         if (unsubscribedRecipients.length > 0) {

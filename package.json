@@ -67,7 +67,7 @@
     "@vercel/og": "^0.8.5",
     "ai": "^3.4.33",
     "canvas": "^3.1.0",
-    "canvas-confetti": "^1.9.3",
+    "canvas-confetti": "^1.9.4",
     "chart.js": "^4.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

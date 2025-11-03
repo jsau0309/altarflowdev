@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import DonationForm from "@/components/donation/donation-form";
 import { getChurchBySlug } from '@/lib/actions/church.actions';
-import { Lock } from 'lucide-react'; // Added for Secure Transaction icon
 import { prisma } from '@/lib/db';
 import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
+import { DonationPageWrapper, DonationNotAvailable } from '@/components/public/donation-page-wrapper';
 
 interface DonatePageProps {
   params: Promise<{ // params itself is a Promise
@@ -120,25 +119,11 @@ export default async function DonatePage(props: DonatePageProps) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: backgroundStyle }}>
         <div className="w-full max-w-md space-y-8">
-          <div className="mt-8 flex flex-col items-center space-y-4 bg-white px-6 py-8 rounded-lg shadow-md">
-            <div className="relative w-48 h-24">
-              <Image
-                src={logoUrl}
-                alt={`${displayTitle} logo`}
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 text-center">
-              {displayTitle}
-            </h1>
-            <p className="text-gray-600 text-center">
-              {!hasActiveStripeAccount
-                ? "Donations are not available at this time. Please contact the church for more information."
-                : "This donation page has been temporarily disabled."}
-            </p>
-          </div>
+          <DonationNotAvailable
+            logoUrl={logoUrl}
+            displayTitle={displayTitle}
+            hasActiveStripeAccount={!!hasActiveStripeAccount}
+          />
         </div>
       </div>
     );
@@ -147,61 +132,17 @@ export default async function DonatePage(props: DonatePageProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ background: backgroundStyle }}>
       <div className="w-full max-w-md space-y-8">
-        {/* New Header Structure */}
-        <div className="mt-8 flex flex-col items-center space-y-4 bg-white px-6 py-8 rounded-lg shadow-md">
-          <div className="relative w-48 h-24">
-            <Image
-              src={logoUrl}
-              alt={`${displayTitle} logo`}
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-          {/* Church Name Display */}
-          <h1 className="text-2xl font-bold text-gray-900 text-center">
-            {displayTitle}
-          </h1>
-        </div>
-
-        {/* Donation Form Card */}
-        <div className="bg-white px-6 py-8 rounded-lg shadow-md">
+        <DonationPageWrapper
+          logoUrl={logoUrl}
+          displayTitle={displayTitle}
+        >
           <DonationForm
             churchId={church.id}
-            churchName={church.name} // churchName is still passed to the form if needed internally
+            churchName={church.name}
             donationTypes={donationTypes}
             churchSlug={churchSlug}
           />
-        </div>
-
-        {/* Footer Sections */}
-        <div className="w-full max-w-md space-y-3 text-center bg-white px-6 py-6 rounded-lg shadow-md">
-          {/* Terms and Privacy */}
-          <p className="text-xs text-gray-500">
-            By continuing, you agree to Altarflow&apos;s{' '}
-            <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700">Terms of Service</a>
-            {' and '}
-            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-gray-700">Privacy Policy</a>.
-          </p>
-
-          {/* Powered by Altarflow */}
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-            <span>Powered by</span>
-            <Image
-              src="/images/Altarflow.svg"
-              alt="Altarflow Logo"
-              width={70} // Adjusted size for footer
-              height={18} // Adjusted size for footer
-            />
-          </div>
-
-          {/* Secure Transaction */}
-          <div className="flex items-center justify-center space-x-1 text-xs text-gray-500">
-            <Lock className="h-3 w-3" />
-            <span>Secure Transaction</span>
-          </div>
-        </div>
-
+        </DonationPageWrapper>
       </div>
     </div>
   );

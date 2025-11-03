@@ -5,6 +5,7 @@ import ConnectForm from '@/components/connect/connect-form';
 import { prisma } from '@/lib/db';
 import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
 import type { ServiceTime, Ministry } from '@/components/member-form/types';
+import { ConnectPageWrapper } from '@/components/public/connect-page-wrapper';
 
 // Ensure page is dynamically rendered
 export const dynamic = "force-dynamic";
@@ -164,6 +165,7 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
     select: {
       id: true,
       name: true,
+      slug: true,
       LandingPageConfig: true
     }
   });
@@ -175,6 +177,9 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
 
   // Get display title - use customTitle from landing config or fall back to church name
   const displayTitle = church?.LandingPageConfig?.customTitle || church?.name || flowData.churchName;
+
+  // Get church slug for success page redirect
+  const churchSlug = church?.slug || '';
 
   // Validate and parse configJson with proper type checking
   let parsedConfig: ConnectFormConfig;
@@ -203,13 +208,15 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
       style={{ background: backgroundStyle }}
     >
       <div className="container mx-auto">
-        {/* Render the new ConnectForm client component, passing required props */}
-        <ConnectForm
-          flowId={flowData.id}
-          churchName={displayTitle}
-          // Pass the parsed config safely
-          config={parsedConfig}
-        />
+        <ConnectPageWrapper>
+          <ConnectForm
+            flowId={flowData.id}
+            churchName={displayTitle}
+            churchSlug={churchSlug}
+            backgroundStyle={backgroundStyle}
+            config={parsedConfig}
+          />
+        </ConnectPageWrapper>
       </div>
     </div>
   );

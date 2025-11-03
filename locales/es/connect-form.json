@@ -21,8 +21,10 @@
   "optionLifeStage70plus": "70+",
   "placeholderPrayer": "Puedes compartir tu petición aquí...",
   "successCardTitle": "¡Gracias!",
-  "successMessage": "Tu información ha sido recibida. ¡Nos pondremos en contacto pronto!",
+  "successSubtitle": "Tu información ha sido recibida",
+  "successMessage": "¡Estamos emocionados de conectar contigo! Alguien de nuestro equipo se pondrá en contacto pronto.",
   "submissionSuccessMessage": "¡Formulario enviado con éxito!",
+  "goHomeButton": "Volver a la Página Principal",
   "errorMessageDefault": "Ocurrió un error. Por favor, revisa tus datos e intenta de nuevo.",
   "validationRelationshipStatusRequired": "Por favor, selecciona el tipo de miembro.",
   "labelSmsConsent": "Envíame un mensaje de bienvenida con los horarios de servicio."
