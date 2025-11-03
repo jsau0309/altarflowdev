@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,14 @@ interface ColorPickerProps {
   eyedropperUnsupportedLabel?: string;
 }
 
+function isValidHexColor(color: string): boolean {
+  return /^#[0-9A-Fa-f]{6}$/.test(color);
+}
+
+function isPartialHexColor(color: string): boolean {
+  return /^#[0-9A-Fa-f]{0,6}$/.test(color);
+}
+
 export function ColorPicker({
   label,
   color,
@@ -29,8 +37,14 @@ export function ColorPicker({
 }: ColorPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isEyedropperSupported, setIsEyedropperSupported] = useState(false);
+  const lastValidColorRef = useRef<string>(
+    isValidHexColor(color) ? color : '#000000'
+  );
 
   const handleColorChange = (newColor: string) => {
+    if (isValidHexColor(newColor)) {
+      lastValidColorRef.current = newColor;
+    }
     onChange(newColor);
   };
 
@@ -38,7 +52,36 @@ export function ColorPicker({
     const value = e.target.value;
     // Ensure it starts with #
     const formattedValue = value.startsWith('#') ? value : `#${value}`;
-    onChange(formattedValue);
+
+    // Only update if it's a valid partial hex color (for typing experience)
+    if (isPartialHexColor(formattedValue) && formattedValue.length <= 7) {
+      onChange(formattedValue);
+    }
+  };
+
+  const handleInputBlur = () => {
+    // Validate on blur and reset to default if invalid
+    if (typeof color !== 'string') {
+      onChange(lastValidColorRef.current);
+      return;
+    }
+
+    const trimmed = color.trim();
+
+    if (trimmed.length === 0) {
+      onChange(lastValidColorRef.current);
+      return;
+    }
+
+    if (!isValidHexColor(trimmed)) {
+      onChange(lastValidColorRef.current);
+      return;
+    }
+
+    lastValidColorRef.current = trimmed;
+    if (trimmed !== color) {
+      onChange(trimmed);
+    }
   };
 
   useEffect(() => {
@@ -47,6 +90,12 @@ export function ColorPicker({
       setIsEyedropperSupported(true);
     }
   }, [enableEyedropper]);
+
+  useEffect(() => {
+    if (isValidHexColor(color)) {
+      lastValidColorRef.current = color;
+    }
+  }, [color]);
 
   const handleEyedropperPick = async () => {
     if (!enableEyedropper || !isEyedropperSupported) return;
@@ -117,6 +166,7 @@ export function ColorPicker({
           type="text"
           value={color}
           onChange={handleInputChange}
+          onBlur={handleInputBlur}
           placeholder="#FFFFFF"
           className="font-mono flex-1"
           maxLength={7}

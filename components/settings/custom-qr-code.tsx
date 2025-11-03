@@ -111,7 +111,13 @@ export function CustomQRCode({
             }
           };
           logo.onload = drawLogo;
-          logo.onerror = () => {
+          logo.onerror = (error) => {
+            console.error('Failed to load logo image:', {
+              logoUrl,
+              error,
+              possibleCause: 'CORS policy, invalid URL, or network error'
+            });
+            // Continue without logo if it fails to load
             if (onCanvasReady) {
               onCanvasReady(canvas);
             }
@@ -131,7 +137,7 @@ export function CustomQRCode({
     };
 
     generateQR();
-  }, [value, size, fgColor, bgColor, logoUrl, onCanvasReady]);
+  }, [value, size, fgColor, bgColor, logoUrl, logoBackgroundColor, logoSizeRatio, logoPaddingRatio, logoBorderRadiusRatio, onCanvasReady]);
 
   return (
     <div className="flex justify-center items-center">
