@@ -374,10 +374,16 @@
       "noDataAvailable": "No hay datos del donante disponibles."
     },
     "donationSuccessful": {
-        "title": "Gracias",
+        "title": "¡Gracias!",
+        "subtitle": "Tu generosa donación ha sido recibida",
         "submissionMessage": "Tu donación ha sido recibida.",
-        "goHomeButton": "Volver al Inicio",
-        "contactSupportMessage": "Si tienes alguna pregunta, por favor contacta a soporte: hola@altarflow.com"
+        "goHomeButton": "Volver a la Página Principal",
+        "contactSupportMessage": "Si tienes alguna pregunta, por favor contacta a soporte: hola@altarflow.com",
+        "donationSummary": "Resumen de Donación",
+        "amount": "Monto",
+        "fund": "Fondo",
+        "date": "Fecha",
+        "receiptSent": "Se ha enviado un recibo a tu correo electrónico"
     },
     "donationDetailsDrawer": {
       "title": "Detalles de Donación",

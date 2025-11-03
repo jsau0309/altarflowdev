@@ -330,9 +330,15 @@
   },
   "donationSuccessful": {
     "title": "Thank you!",
+    "subtitle": "Your generous gift has been received",
     "submissionMessage": "Your donation has been received.",
-    "goHomeButton": "Go to home",
-    "contactSupportMessage": "If you have any questions, please contact support: hola@altarflow.com"
+    "goHomeButton": "Return to Landing Page",
+    "contactSupportMessage": "If you have any questions, please contact support: hola@altarflow.com",
+    "donationSummary": "Donation Summary",
+    "amount": "Amount",
+    "fund": "Fund",
+    "date": "Date",
+    "receiptSent": "A receipt has been sent to your email"
   },
   "linkToMember": "Link to Member",
   "currentlyLinkedTo": "Currently linked to",

@@ -128,7 +128,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/${churchSlug}/donation-successful?amount=${formData.amount}&churchName=${encodeURIComponent(churchName || '')}`,
+        return_url: `${window.location.origin}/${churchSlug}/donation-successful?amount=${formData.amount}&churchName=${encodeURIComponent(churchName || '')}&fundName=${encodeURIComponent(formData.donationTypeName || '')}`,
         // receipt_email removed - we send custom receipts via webhook/Resend instead
       },
       redirect: "if_required" // Changed to if_required to handle redirect better
@@ -150,7 +150,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
       sessionStorage.removeItem(donationKey);
       
       // Manually redirect to success page
-      const successUrl = `${window.location.origin}/${churchSlug}/donation-successful?amount=${formData.amount}&churchName=${encodeURIComponent(churchName || '')}`;
+      const successUrl = `${window.location.origin}/${churchSlug}/donation-successful?amount=${formData.amount}&churchName=${encodeURIComponent(churchName || '')}&fundName=${encodeURIComponent(formData.donationTypeName || '')}`;
       window.location.href = successUrl;
     } else {
       // Payment is processing or requires additional action
