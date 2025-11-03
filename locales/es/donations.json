@@ -191,7 +191,20 @@
     },
     
     "donationInfo": {
-      "anonymousLabel": "Donar anónimamente"
+      "anonymousLabel": "Donar anónimamente",
+      "internationalLabel": "Donante internacional",
+      "phoneVerificationPrompt": "Enviaremos un código de un solo uso a este número.",
+      "verifyPhone": "Verificar Teléfono",
+      "sendingOtp": "Enviando código...",
+      "phonePlaceholderE164": "ej., +11234567890",
+      "otpSentTo": "Se ha enviado un código de verificación a:",
+      "otpCode": "Código de Verificación",
+      "otpPlaceholder": "Ingresa el código de 6 dígitos",
+      "verifyingOtp": "Verificando...",
+      "submitOtp": "Enviar Código",
+      "resendOtp": "Reenviar Código",
+      "changePhoneNumber": "Cambiar Número",
+      "youHaveVerified": "Has verificado"
     },
     
     "donationDetails": {

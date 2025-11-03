@@ -9,6 +9,8 @@ import enConnectForm from '../locales/en/connect-form.json';
 import esConnectForm from '../locales/es/connect-form.json';
 import enCommon from '../locales/en/common.json';
 import esCommon from '../locales/es/common.json';
+import enMembers from '../locales/en/members.json';
+import esMembers from '../locales/es/members.json';
 
 // Create separate i18n instance for public pages
 const publicI18n = i18n.createInstance();
@@ -24,11 +26,13 @@ publicI18n
         common: enCommon,
         donations: enDonations,
         'connect-form': enConnectForm,
+        members: enMembers,
       },
       es: {
         common: esCommon,
         donations: esDonations,
         'connect-form': esConnectForm,
+        members: esMembers,
       }
     },
     detection: {
@@ -38,7 +42,7 @@ publicI18n
       order: ['localStorage', 'sessionStorage', 'navigator'],
       caches: ['localStorage', 'sessionStorage'],
     },
-    ns: ['common', 'donations', 'connect-form'],
+    ns: ['common', 'donations', 'connect-form', 'members'],
     defaultNS: 'common',
     interpolation: {
       escapeValue: false

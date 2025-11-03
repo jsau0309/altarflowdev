@@ -187,7 +187,20 @@
     "feesCoveredMessage": "You're helping cover the transaction fees, so the full {{amount}} goes to the church."
   },
   "donationInfo": {
-    "anonymousLabel": "Donate anonymously"
+    "anonymousLabel": "Donate anonymously",
+    "internationalLabel": "International donor",
+    "phoneVerificationPrompt": "We will send a one-time code to this number.",
+    "verifyPhone": "Verify Phone",
+    "sendingOtp": "Sending OTP...",
+    "phonePlaceholderE164": "e.g., +11234567890",
+    "otpSentTo": "An OTP has been sent to:",
+    "otpCode": "Verification Code",
+    "otpPlaceholder": "Enter 6-digit code",
+    "verifyingOtp": "Verifying...",
+    "submitOtp": "Submit OTP",
+    "resendOtp": "Resend OTP",
+    "changePhoneNumber": "Change Number",
+    "youHaveVerified": "You have verified"
   },
   "donationDetails": {
     "amountPrompt": "Enter an amount or make a quick selection below",

@@ -205,7 +205,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
 
 
 export default function DonationPayment({ formData, updateFormData, onBack, churchId, churchSlug, donorId, churchName }: DonationPaymentProps) {
-  const { t } = useTranslation(['donations', 'common']);
+  const { t, i18n } = useTranslation(['donations', 'common']);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [stripeAccount, setStripeAccount] = useState<string | null>(null); // Store Connect account ID
   const [isLoadingClientSecret, setIsLoadingClientSecret] = useState(false); // Start false
@@ -447,7 +447,8 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
 
   const options: StripeElementsOptions = {
     clientSecret: clientSecret!, // Ensured by checks above to be a string
-    appearance: appearance
+    appearance: appearance,
+    locale: i18n.language === 'es' ? 'es' : 'en' // Set Stripe UI language based on current i18n language
   };
   
   return (
