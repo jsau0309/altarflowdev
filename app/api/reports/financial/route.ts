@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       select: {
         amount: true,
         processingFeeCoveredByDonor: true,
+        platformFeeAmount: true,
         transactionDate: true,
         paymentMethodType: true,
         refundedAmount: true
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
       select: {
         amount: true,
         processingFeeCoveredByDonor: true,
+        platformFeeAmount: true,
         refundedAmount: true
       }
     }) : []
@@ -91,10 +93,11 @@ export async function POST(request: NextRequest) {
     const hasActualFees = reconciledPayouts.length > 0
     
     // Calculate REAL gross donations (what donors actually paid)
-    // This includes: donation amounts + fees covered by donors
+    // This includes: donation amounts + fees covered by donors (Stripe + platform fees)
     const currentDonationAmounts = currentDonations.reduce((sum, d) => sum + d.amount - (d.refundedAmount || 0), 0)
     const currentFeesCovered = currentDonations.reduce((sum, d) => sum + (d.processingFeeCoveredByDonor || 0), 0)
-    const currentGross = currentDonationAmounts + currentFeesCovered
+    const currentPlatformFees = currentDonations.reduce((sum, d) => sum + (d.platformFeeAmount || 0), 0)
+    const currentGross = currentDonationAmounts + currentFeesCovered + currentPlatformFees
     
     // Use actual fees from payouts when available, otherwise estimate
     let currentProcessingFees = 0
@@ -127,8 +130,11 @@ export async function POST(request: NextRequest) {
       }, 0)
     }
     
-    // Calculate net donations (gross - processing fees)
-    const currentNet = currentGross - currentProcessingFees
+    // Add platform fees to total processing fees (churches see combined total)
+    const currentTotalFees = currentProcessingFees + currentPlatformFees
+
+    // Calculate net donations (gross - total fees including platform)
+    const currentNet = currentGross - currentTotalFees
     
     // Calculate previous period summary
     const prevDonationAmounts = previousDonations.reduce((sum, d) => sum + d.amount - (d.refundedAmount || 0), 0)
@@ -138,13 +144,13 @@ export async function POST(request: NextRequest) {
     const prevNet = prevGross - prevProcessingFees
     
     // Calculate effective fee rate (what percentage of gross donations goes to fees)
-    const effectiveFeeRate = currentGross > 0 ? (currentProcessingFees / currentGross) : 0
+    const effectiveFeeRate = currentGross > 0 ? (currentTotalFees / currentGross) : 0
     const prevEffectiveFeeRate = 0 // No historical fee data
     
     // Prepare summary data
     const summary = {
       grossRevenue: currentGross / 100, // Convert cents to dollars
-      totalFees: currentProcessingFees / 100,
+      totalFees: currentTotalFees / 100, // Combined Stripe + platform fees
       netRevenue: currentNet / 100,
       effectiveFeeRate,
       isUsingActualFees: hasActualFees, // Indicate if fees are actual or estimated
@@ -176,9 +182,10 @@ export async function POST(request: NextRequest) {
     const totalCoveredFees = stripeDonations.reduce((sum, d) => {
       return sum + (d.processingFeeCoveredByDonor || 0)
     }, 0)
-    
+
     // Fees if no one covered = actual fees paid + fees that were covered
-    const estimatedFeesWithoutCoverage = currentProcessingFees + totalCoveredFees
+    // Note: Platform fees are separate and always apply
+    const estimatedFeesWithoutCoverage = currentProcessingFees + totalCoveredFees + currentPlatformFees
     
     // Total saved by donor coverage
     // This is simply the sum of all fees that donors covered

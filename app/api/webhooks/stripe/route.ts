@@ -243,7 +243,7 @@ export async function POST(req: Request) {
             // The total amount charged to the donor (includes covered fee if applicable)
             const totalCharged = paymentIntentSucceeded.amount;
             
-            console.log(`[Stripe Webhook] Processing payment - Total charged: ${totalCharged}, Original donation: ${existingTransaction.amount}, Fee covered by donor: ${existingTransaction.processingFeeCoveredByDonor || 0}`);
+            console.log(`[Stripe Webhook] Processing payment - Total charged: ${totalCharged}, Original donation: ${existingTransaction.amount}, Fee covered by donor: ${existingTransaction.processingFeeCoveredByDonor || 0}, Platform fee: ${existingTransaction.platformFeeAmount || 0}`);
             
             // Simplified: No longer tracking fees in database
             // We'll use Stripe Reports API for fee information
