@@ -63,7 +63,6 @@ model DonationTransaction {
   id                          String       @id @default(cuid())
   churchId                    String       @db.Uuid
   donationTypeId              String
-  donorClerkId                String?
   donorName                   String?
   donorEmail                  String?
   amount                      Int
@@ -78,6 +77,7 @@ model DonationTransaction {
   processedAt                 DateTime?
   idempotencyKey              String?      @unique
   processingFeeCoveredByDonor Int?         @default(0)
+  platformFeeAmount           Int?         @default(0)
   donorId                     String?
   source                      String       @default("stripe")
   createdAt                   DateTime     @default(now())
@@ -91,10 +91,6 @@ model DonationTransaction {
   disputeStatus               String?
   disputeReason               String?
   disputedAt                  DateTime?
-  amountReceived              Int?
-  paymentMethodDetails        Json?
-  stripeFee                   Int?
-  stripePayoutId              String?
   isAnonymous                 Boolean      @default(false)
   isInternational             Boolean      @default(false)
   donorCountry                String?

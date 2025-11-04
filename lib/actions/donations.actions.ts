@@ -36,7 +36,6 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
     id: true;
     churchId: true;
     donationTypeId: true;
-    donorClerkId: true;
     donorName: true;
     donorEmail: true;
     amount: true;
@@ -156,7 +155,6 @@ export async function getDonationTransactions({
         id: true,
         churchId: true,
         donationTypeId: true,
-        donorClerkId: true,
         donorName: true,
         donorEmail: true,
         amount: true,
@@ -205,7 +203,6 @@ export async function getDonationTransactions({
       donationTypeId: t.donationTypeId,
       donationTypeName: t.DonationType.name,
       donationTypeIsCampaign: t.DonationType.isCampaign,
-      donorClerkId: t.donorClerkId,
       donorName: t.donorName ?? undefined,
       donorEmail: t.donorEmail ?? undefined,
       amount: (t.amount / 100).toFixed(2),
@@ -506,7 +503,6 @@ export async function createManualDonation(
       donationTypeId: newTransaction.donationTypeId,
       donationTypeName: newTransaction.DonationType.name,
       donationTypeIsCampaign: newTransaction.DonationType.isCampaign,
-      donorClerkId: newTransaction.donorClerkId,
       donorName: newTransaction.donorName ?? undefined,
       donorEmail: newTransaction.donorEmail ?? undefined,
       amount: (newTransaction.amount / 100).toFixed(2),

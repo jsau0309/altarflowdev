@@ -41,7 +41,6 @@ const initiateDonationSchema = z.object({
   isAnonymous: z.boolean().default(false),
   isInternational: z.boolean().default(false),
   donorCountry: z.string().regex(/^[A-Z]{2}$/, 'Invalid country code').optional(), // ISO country code (e.g., "MX", "SV")
-  donorClerkId: z.string().optional(),
   coverFees: z.boolean().optional(),
   donorId: z.string().optional(),
 });
@@ -83,7 +82,6 @@ export async function POST(request: Request) {
         firstName,
         lastName,
         phone,
-        donorClerkId,
         coverFees,
         donorId,
         isInternational,
@@ -226,15 +224,26 @@ export async function POST(request: Request) {
 
     const STRIPE_PERCENTAGE_FEE_RATE = 0.029;
     const STRIPE_FIXED_FEE_CENTS = 30;
+    const PLATFORM_FEE_RATE = 0.01; // 1% platform fee
 
     let finalAmountForStripe = baseAmount; // baseAmount is in cents, this is the default if fees are not covered
     let calculatedProcessingFeeInCents = 0;
+    let platformFeeInCents = 0;
 
     if (coverFees && baseAmount > 0) {
+      // Calculate 1% platform fee on base donation
+      platformFeeInCents = Math.ceil(baseAmount * PLATFORM_FEE_RATE);
+
       // Gross-up calculation to ensure the church receives the full baseAmount
-      // finalAmountForStripe will be the total amount charged to the donor.
-      finalAmountForStripe = Math.ceil((baseAmount + STRIPE_FIXED_FEE_CENTS) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
-      calculatedProcessingFeeInCents = finalAmountForStripe - baseAmount;
+      // This now includes BOTH Stripe fees AND platform fee
+      const totalFeesToCover = STRIPE_FIXED_FEE_CENTS + platformFeeInCents;
+      finalAmountForStripe = Math.ceil((baseAmount + totalFeesToCover) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
+
+      // Calculate the Stripe processing fee (excluding platform fee)
+      calculatedProcessingFeeInCents = finalAmountForStripe - baseAmount - platformFeeInCents;
+    } else {
+      // Platform fee applies even if donor doesn't cover fees (church absorbs it)
+      platformFeeInCents = Math.ceil(baseAmount * PLATFORM_FEE_RATE);
     }
     // If coverFees is false, finalAmountForStripe remains baseAmount (initial value), and calculatedProcessingFeeInCents remains 0.
     // Debug logging removed: fee calculation details
@@ -311,9 +320,6 @@ export async function POST(request: Request) {
         if (validation.data.phone) {
           updatePayload.phone = validation.data.phone;
         }
-        if (validation.data.donorClerkId && validation.data.donorClerkId !== 'guest') {
-            updatePayload.metadata = { ...updatePayload.metadata, dbDonorClerkId: validation.data.donorClerkId };
-        }
 
         if (Object.keys(updatePayload).length > 0) {
           try {
@@ -352,10 +358,6 @@ export async function POST(request: Request) {
         
         if (hasAddressData) {
           customerParams.address = stripeAddress;
-        }
-
-        if (donorClerkId && donorClerkId !== 'guest') {
-          customerParams.metadata = { ...customerParams.metadata, dbDonorClerkId: donorClerkId };
         }
 
         const newStripeCustomer = await stripe.customers.create(
@@ -403,8 +405,9 @@ export async function POST(request: Request) {
       amount: finalAmountForStripe,
       currency: currency,
       customer: stripeCustomerId,
+      application_fee_amount: platformFeeInCents, // 1% platform fee
       // Use automatic_payment_methods to let Stripe determine available methods
-      automatic_payment_methods: { 
+      automatic_payment_methods: {
         enabled: true,
         allow_redirects: 'always' // Allow redirect-based methods like bank transfers
       },
@@ -413,8 +416,8 @@ export async function POST(request: Request) {
       metadata: {
         dbChurchId: church.id,
         dbDonationTypeId: donationTypeId,
-        dbDonorClerkId: donorClerkId || 'guest',
         transactionType: 'one-time',
+        platformFeeInCents: platformFeeInCents.toString(), // For tracking
       },
     };
 
@@ -455,7 +458,6 @@ export async function POST(request: Request) {
         churchId: church.id,
         donorId: donorId,
         donationTypeId: donationTypeId,
-        donorClerkId: donorClerkId,
         donorName: donorDisplayNameForDb,
         donorEmail: donorEmailForDb,
         amount: baseAmount,
@@ -468,6 +470,7 @@ export async function POST(request: Request) {
         stripeCustomerId: stripeCustomerId,
         idempotencyKey: idempotencyKey,
         processingFeeCoveredByDonor: calculatedProcessingFeeInCents,
+        platformFeeAmount: platformFeeInCents,
         isAnonymous: isAnonymous,
         isInternational: isInternational || false,
         donorCountry: donorCountry || null,

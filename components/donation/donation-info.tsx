@@ -88,13 +88,18 @@ export default function DonationInfo({
   const baseAmount = formData.amount || 0;
   let displayAmount = baseAmount;
   if (formData.coverFees && baseAmount > 0) {
-    // Use the same gross-up calculation as donation-details.tsx
+    // Use the same gross-up calculation as backend
     const STRIPE_PERCENTAGE_FEE_RATE = 0.029;
     const STRIPE_FIXED_FEE_CENTS = 30; // Fixed fee in cents
+    const PLATFORM_FEE_RATE = 0.01; // 1% platform fee
     const baseAmountInCents = Math.round(baseAmount * 100); // Convert to cents
-    
-    // Calculate the grossed-up amount that includes fees
-    const finalAmountForStripeInCents = Math.ceil((baseAmountInCents + STRIPE_FIXED_FEE_CENTS) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
+
+    // Calculate 1% platform fee
+    const platformFeeInCents = Math.ceil(baseAmountInCents * PLATFORM_FEE_RATE);
+
+    // Calculate the grossed-up amount that includes BOTH Stripe fees AND platform fee
+    const totalFeesToCover = STRIPE_FIXED_FEE_CENTS + platformFeeInCents;
+    const finalAmountForStripeInCents = Math.ceil((baseAmountInCents + totalFeesToCover) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
     displayAmount = finalAmountForStripeInCents / 100; // Convert back to dollars
   }
 

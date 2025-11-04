@@ -45,7 +45,6 @@ export const createDonationSchema = z.object({
     country: z.string().max(2).optional(),
   }).optional(),
   isAnonymous: z.boolean().default(false),
-  donorClerkId: z.string().optional(),
   coverFees: z.boolean().optional(),
   donorId: z.string().uuid().optional(),
 });

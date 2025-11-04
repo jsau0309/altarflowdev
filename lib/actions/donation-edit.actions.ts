@@ -206,7 +206,6 @@ export async function editManualDonation(params: EditDonationParams): Promise<Ed
       donationTypeId: updatedDonation.donationTypeId,
       donationTypeName: updatedDonation.DonationType.name,
       donationTypeIsCampaign: updatedDonation.DonationType.isCampaign,
-      donorClerkId: updatedDonation.donorClerkId,
       donorName: updatedDonation.donorName ?? undefined,
       donorEmail: updatedDonation.donorEmail ?? undefined,
       amount: (updatedDonation.amount / 100).toFixed(2),
