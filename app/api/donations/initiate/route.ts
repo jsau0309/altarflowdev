@@ -231,15 +231,18 @@ export async function POST(request: Request) {
     let platformFeeInCents = 0;
 
     if (coverFees && baseAmount > 0) {
-      // Calculate 1% platform fee on base donation
-      platformFeeInCents = Math.ceil(baseAmount * PLATFORM_FEE_RATE);
+      // Correct gross-up calculation: combine both percentage fees in the divisor
+      // Formula: final_amount = (base_amount + fixed_fee) / (1 - stripe_rate - platform_rate)
+      // This ensures church receives exactly the base amount after ALL fees are deducted
+      finalAmountForStripe = Math.ceil(
+        (baseAmount + STRIPE_FIXED_FEE_CENTS) /
+        (1 - STRIPE_PERCENTAGE_FEE_RATE - PLATFORM_FEE_RATE)
+      );
 
-      // Gross-up calculation to ensure the church receives the full baseAmount
-      // This now includes BOTH Stripe fees AND platform fee
-      const totalFeesToCover = STRIPE_FIXED_FEE_CENTS + platformFeeInCents;
-      finalAmountForStripe = Math.ceil((baseAmount + totalFeesToCover) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
+      // Calculate the actual platform fee based on final amount charged
+      platformFeeInCents = Math.ceil(finalAmountForStripe * PLATFORM_FEE_RATE);
 
-      // Calculate the Stripe processing fee (excluding platform fee)
+      // Calculate the Stripe processing fee (total fee minus platform fee)
       calculatedProcessingFeeInCents = finalAmountForStripe - baseAmount - platformFeeInCents;
     } else {
       // Platform fee applies even if donor doesn't cover fees (church absorbs it)

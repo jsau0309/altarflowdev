@@ -94,12 +94,11 @@ export default function DonationInfo({
     const PLATFORM_FEE_RATE = 0.01; // 1% platform fee
     const baseAmountInCents = Math.round(baseAmount * 100); // Convert to cents
 
-    // Calculate 1% platform fee
-    const platformFeeInCents = Math.ceil(baseAmountInCents * PLATFORM_FEE_RATE);
-
-    // Calculate the grossed-up amount that includes BOTH Stripe fees AND platform fee
-    const totalFeesToCover = STRIPE_FIXED_FEE_CENTS + platformFeeInCents;
-    const finalAmountForStripeInCents = Math.ceil((baseAmountInCents + totalFeesToCover) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
+    // Correct gross-up calculation: combine both percentage fees in the divisor
+    const finalAmountForStripeInCents = Math.ceil(
+      (baseAmountInCents + STRIPE_FIXED_FEE_CENTS) /
+      (1 - STRIPE_PERCENTAGE_FEE_RATE - PLATFORM_FEE_RATE)
+    );
     displayAmount = finalAmountForStripeInCents / 100; // Convert back to dollars
   }
 
