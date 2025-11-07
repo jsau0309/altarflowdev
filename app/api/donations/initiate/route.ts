@@ -409,11 +409,11 @@ export async function POST(request: Request) {
       currency: currency,
       customer: stripeCustomerId,
       application_fee_amount: platformFeeInCents, // 1% platform fee
-      // Use automatic_payment_methods to let Stripe determine available methods
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: 'always' // Allow redirect-based methods like bank transfers
-      },
+      // Explicitly specify payment method types to exclude customer_balance (bank transfer)
+      // Card payment type includes: credit cards, debit cards, Link, Apple Pay, Google Pay
+      // us_bank_account: ACH Direct Debit (instant verification)
+      // This removes the redundant "Transferencia bancaria" (customer_balance) option
+      payment_method_types: ['card', 'us_bank_account'],
       // Remove transfer_data since we're creating directly on Connect account
       // The church will receive funds directly
       metadata: {
