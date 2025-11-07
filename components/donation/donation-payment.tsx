@@ -293,6 +293,7 @@ export default function DonationPayment({
           ...(formData.zipCode && !formData.isAnonymous && { zipCode: formData.zipCode }),
           ...(formData.country && !formData.isAnonymous && { country: formData.country }),
           ...(donorId && { donorId: donorId }),
+          donorLanguage: i18n.language as 'en' | 'es', // Pass current language from i18n
         }),
         signal: abortController.signal,
       });

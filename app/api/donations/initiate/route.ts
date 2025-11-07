@@ -43,6 +43,7 @@ const initiateDonationSchema = z.object({
   donorCountry: z.string().regex(/^[A-Z]{2}$/, 'Invalid country code').optional(), // ISO country code (e.g., "MX", "SV")
   coverFees: z.boolean().optional(),
   donorId: z.string().optional(),
+  donorLanguage: z.enum(['en', 'es']).default('en'), // Language from i18n
 });
 
 export async function POST(request: Request) {
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
         donorId,
         isInternational,
         donorCountry,
+        donorLanguage,
       } = validation.data;
 
       // Assign to outer scope variables for error handling
@@ -477,6 +479,7 @@ export async function POST(request: Request) {
         isAnonymous: isAnonymous,
         isInternational: isInternational || false,
         donorCountry: donorCountry || null,
+        donorLanguage: donorLanguage || 'en',
       },
     });
     } catch (dbError: unknown) {

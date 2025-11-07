@@ -94,6 +94,7 @@ model DonationTransaction {
   isAnonymous                 Boolean      @default(false)
   isInternational             Boolean      @default(false)
   donorCountry                String?
+  donorLanguage               String?      @default("en")
   Church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
   DonationType                DonationType @relation(fields: [donationTypeId], references: [id])
   Donor                       Donor?       @relation(fields: [donorId], references: [id])

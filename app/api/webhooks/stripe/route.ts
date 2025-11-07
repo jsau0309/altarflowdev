@@ -1258,6 +1258,13 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     return;
   }
 
+  // Fetch church logo from LandingPageConfig
+  const landingPageConfig = await prisma.landingPageConfig.findUnique({
+    where: { churchId: church.id },
+    select: { logoUrl: true }
+  });
+  const churchLogoUrl = landingPageConfig?.logoUrl || undefined;
+
   const stripeConnectAccountDb = await prisma.stripeConnectAccount.findUnique({
     where: { churchId: church.clerkOrgId },
   });
@@ -1394,6 +1401,9 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     return;
   }
 
+  // Get donor language from transaction (defaults to 'en' if not set)
+  const donorLanguage = (donationTransaction.donorLanguage || 'en') as 'en' | 'es';
+
   // Log receipt type for debugging
   if (donationTransaction.isAnonymous && donationTransaction.isInternational) {
     console.log(`[Receipt] Sending receipt to anonymous international donor (${donationTransaction.donorCountry || 'unknown'})`);
@@ -1440,7 +1450,7 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   const receiptData: DonationReceiptData = {
     transactionId: donationTransaction.id,
     confirmationNumber: confirmationNumber,
-    datePaid: new Date(paymentIntent.created * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+    datePaid: new Date(paymentIntent.created * 1000).toISOString(), // Pass ISO string, let template format by locale
     amountPaid: (paymentIntent.amount_received / 100).toFixed(2),
     currency: paymentIntent.currency.toUpperCase(),
     paymentMethod: paymentIntent.payment_method_types[0] ? paymentIntent.payment_method_types[0].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A',
@@ -1451,14 +1461,14 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     churchAddress: churchAddressString,
     churchEmail: churchRegisteredEmail,
     churchPhone: churchRegisteredPhone,
-    churchLogoUrl: `${process.env.NEXT_PUBLIC_APP_URL}/images/Altarflow.png`,
+    churchLogoUrl: churchLogoUrl, // Use church's custom logo from LandingPageConfig
     donorName: donorName,
     donorEmail: donorEmail,
     donorAddress: donorAddress,
     donorPhone: donationTransaction.Donor?.phone || undefined,
     donationCampaign: donationTransaction.DonationType?.name || 'Tithes & Offerings',
     donationFrequency: 'one-time', // TODO: Update when recurring donations are implemented
-    disclaimer: `No goods or services were provided in exchange for this contribution. ${churchRegisteredName} is a 501(c)(3) non-profit organization. EIN: ${ein}`
+    language: donorLanguage, // Add language for bilingual support
   };
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
@@ -1467,10 +1477,15 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   try {
     // Use validated serverEnv to ensure proper email format without quotes
     const fromEmail = serverEnv.RESEND_FROM_EMAIL;
+    // Bilingual email subject based on donor language
+    const emailSubject = donorLanguage === 'es'
+      ? `Gracias por tu contribución a ${receiptData.churchName}`
+      : `Thank you for your contribution to ${receiptData.churchName}`;
+
     await resend.emails.send({
       from: fromEmail,
       to: [donorEmail],
-      subject: `Thank you for your contribution to ${receiptData.churchName}`,
+      subject: emailSubject,
       html: emailHtml,
     });
     console.log(`[Receipt] Receipt email sent to ${donorEmail} for transaction ${donationTransaction.id}`);

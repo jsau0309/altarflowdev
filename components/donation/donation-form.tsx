@@ -65,6 +65,7 @@ export type PhoneVerificationStage =
   | 'verification_error';
 
 function DonationForm({ churchId, churchName, donationTypes, churchSlug }: DonationFormProps) {
+  const { i18n } = useTranslation(); // Get current language from i18n
   const [formData, setFormData] = useState<DonationFormData>({
     amount: 0,
     donationTypeId: "",
@@ -258,6 +259,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
           state: donorData.state || '',
           zipCode: donorData.postalCode || '',
           country: donorData.country || '',
+          donorLanguage: i18n.language as 'en' | 'es', // Pass current language from i18n
         }),
       });
 
