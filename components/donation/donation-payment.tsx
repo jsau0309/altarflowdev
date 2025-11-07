@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -37,6 +37,8 @@ interface DonationPaymentProps {
   churchSlug: string; // Added churchSlug to construct dynamic return_url
   donorId?: string; // ID of the verified Donor record
   churchName: string; // Added churchName, now required
+  clientSecret?: string; // Payment intent client secret (created early after OTP)
+  stripeAccount?: string; // Stripe Connect account ID
 }
 
 // New Inner component for the payment form itself
@@ -209,72 +211,65 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
 };
 
 
-export default function DonationPayment({ formData, updateFormData, onBack, churchId, churchSlug, donorId, churchName }: DonationPaymentProps) {
+export default function DonationPayment({
+  formData,
+  updateFormData,
+  onBack,
+  churchId,
+  churchSlug,
+  donorId,
+  churchName,
+  clientSecret: propClientSecret,
+  stripeAccount: propStripeAccount
+}: DonationPaymentProps) {
   const { t, i18n } = useTranslation(['donations', 'common']);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [stripeAccount, setStripeAccount] = useState<string | null>(null); // Store Connect account ID
-  const [isLoadingClientSecret, setIsLoadingClientSecret] = useState(false); // Start false
+
+  // For verified donors: use clientSecret passed as prop (created early after OTP)
+  // For anonymous/international: create clientSecret here on mount
+  const [clientSecret, setClientSecret] = useState<string | null>(propClientSecret || null);
+  const [stripeAccount, setStripeAccount] = useState<string | null>(propStripeAccount || null);
+  // Start in loading state if we don't have a clientSecret yet (anonymous/international donors)
+  // This prevents error flash before useEffect creates the payment intent
+  const [isLoadingClientSecret, setIsLoadingClientSecret] = useState(!propClientSecret);
   const [initError, setInitError] = useState<string | null>(null);
-  const initializationRef = useRef<AbortController | null>(null); // Track current initialization
+  const initializationRef = useRef<AbortController | null>(null);
+  const hasInitiatedRef = useRef<boolean>(false);
 
-  // Create a stable session key for this specific donation configuration
-  // Don't include timestamp so it remains the same across remounts
-  const donationSessionKey = useMemo(() => {
-    const category = formData.donationTypeIsCampaign ? 'campaign' : 'fund';
-    return `donation_${churchId}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${category}`;
-  }, [churchId, formData.donationTypeId, formData.amount, formData.coverFees, formData.donationTypeIsCampaign]);
+  // Payment intent creation:
+  // - Verified donors: Created early (after OTP) in DonationInfo - enables Stripe Link
+  // - Anonymous/International donors: Created here on mount - same as before ALT-75
 
-  // Function to initiate payment - called once when component mounts with valid data
+  // Function to create payment intent for anonymous/international donors
   const initiateDonationPayment = useCallback(async () => {
-    // Check if we've already initialized for this session using sessionStorage
-    const hasInitialized = sessionStorage.getItem(donationSessionKey);
-    
-    if (hasInitialized) {
-      console.log('[DonationPayment] Already initialized in this session, skipping. Key:', donationSessionKey);
-      // Try to retrieve the stored client secret
-      const storedData = JSON.parse(hasInitialized);
-      if (storedData.clientSecret && storedData.stripeAccount) {
-        setClientSecret(storedData.clientSecret);
-        setStripeAccount(storedData.stripeAccount);
-      }
+    // Skip if we already have clientSecret (verified donor)
+    if (propClientSecret) {
       return;
     }
 
-    // Prevent multiple simultaneous calls
-    if (initializationRef.current) {
-      console.log('[DonationPayment] Initialization already in progress, skipping');
+    // Prevent multiple simultaneous calls or re-initialization
+    if (initializationRef.current || hasInitiatedRef.current) {
       return;
     }
 
-    // If we already have a client secret, don't fetch again
-    if (clientSecret) {
-      console.log('[DonationPayment] Already have client secret, skipping');
-      return;
-    }
+    // Mark as initiated to prevent race conditions
+    hasInitiatedRef.current = true;
 
     // Check required fields
     if (!formData.donationTypeId || formData.amount <= 0 || !churchId) {
-      console.log('[DonationPayment] Missing required fields, not initializing');
+      setIsLoadingClientSecret(false);
+      setInitError('Missing required donation information. Please go back and complete all fields.');
       return;
     }
 
-    // Create abort controller for this request
     const abortController = new AbortController();
     initializationRef.current = abortController;
 
-    console.log('[DonationPayment] Starting payment initialization with session key:', donationSessionKey);
     setIsLoadingClientSecret(true);
     setInitError(null);
 
     try {
-      if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-        throw new Error(t('donations:donationPayment.stripeKeyMissing', "Stripe publishable key is not configured."));
-      }
-
-      // Generate a unique idempotency key for THIS specific API call
       const uniqueIdempotencyKey = `${crypto.randomUUID()}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${Date.now()}`;
-      console.log('[DonationPayment] Making API call with idempotency key:', uniqueIdempotencyKey);
-      
+
       const response = await fetch('/api/donations/initiate', {
         method: 'POST',
         headers: {
@@ -285,95 +280,74 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
           idempotencyKey: uniqueIdempotencyKey,
           churchId: churchId,
           donationTypeId: formData.donationTypeId,
-          baseAmount: Math.round(formData.amount * 100), // Convert to cents
-          currency: 'usd', // Assuming USD, make dynamic if needed
+          baseAmount: Math.round(formData.amount * 100),
+          currency: 'usd',
           coverFees: formData.coverFees,
           isAnonymous: formData.isAnonymous,
           isInternational: formData.isInternational || false,
-          // For anonymous/international donors, we NEED name and email for receipts
           ...(formData.firstName && { firstName: formData.firstName }),
           ...(formData.lastName && { lastName: formData.lastName }),
-          ...(formData.email && { donorEmail: formData.email }), // API expects donorEmail
+          ...(formData.email && { donorEmail: formData.email }),
           ...(formData.phone && !formData.isAnonymous && { phone: formData.phone }),
-          ...(formData.donorCountry && { donorCountry: formData.donorCountry }), // Country code for international donors
-
-          // Address info (only for non-anonymous donors)
+          ...(formData.donorCountry && { donorCountry: formData.donorCountry }),
           ...(formData.street && !formData.isAnonymous && { street: formData.street }),
           ...(formData.addressLine2 && !formData.isAnonymous && { addressLine2: formData.addressLine2 }),
           ...(formData.city && !formData.isAnonymous && { city: formData.city }),
           ...(formData.state && !formData.isAnonymous && { state: formData.state }),
-          ...(formData.zipCode && !formData.isAnonymous && { zipCode: formData.zipCode }), // Matches flat Zod schema field
+          ...(formData.zipCode && !formData.isAnonymous && { zipCode: formData.zipCode }),
           ...(formData.country && !formData.isAnonymous && { country: formData.country }),
-          ...(donorId && { donorId: donorId }), // Include donorId if available
+          ...(donorId && { donorId: donorId }),
+          donorLanguage: (i18n.language === 'es' || i18n.language.startsWith('es-')) ? 'es' : 'en', // Normalize language code
         }),
         signal: abortController.signal,
       });
 
-      // Check if request was aborted
       if (abortController.signal.aborted) {
-        console.log('[DonationPayment] Request was aborted');
         return;
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to initiate donation. Please try again.' }));
+        const errorData = await response.json().catch(() => ({ message: 'Failed to initiate donation.' }));
         throw new Error(errorData.message || `Server error: ${response.status}`);
       }
 
       const data = await response.json();
       if (data.clientSecret) {
-        console.log('[DonationPayment] Successfully received client secret, transaction ID:', data.transactionId);
-        
-        // Debug: Log payment method information
-        console.log('[DonationPayment] Payment method types:', data.paymentMethodTypes);
-        console.log('[DonationPayment] Payment method config:', data.paymentMethodConfiguration);
-        
-        // Store in sessionStorage to prevent duplicate calls
-        sessionStorage.setItem(donationSessionKey, JSON.stringify({
-          clientSecret: data.clientSecret,
-          stripeAccount: data.stripeAccount || null,
-          transactionId: data.transactionId,
-          timestamp: Date.now()
-        }));
-        
         setClientSecret(data.clientSecret);
         setStripeAccount(data.stripeAccount || null);
+        setIsLoadingClientSecret(false);
+        initializationRef.current = null;
       } else {
         throw new Error(t('donations:donationPayment.clientSecretError', 'Failed to retrieve client secret.'));
       }
     } catch (error: any) {
-      // Ignore abort errors
       if (error.name === 'AbortError') {
-        console.log('[DonationPayment] Request aborted');
+        // Don't change loading state if aborted - let the new request handle it
+        initializationRef.current = null;
+        hasInitiatedRef.current = false;
         return;
       }
-      console.error('[DonationPayment] Error in initiateDonationPayment:', error);
       setInitError(error.message || t('donations:donationPayment.initError', 'Error initializing payment form.'));
       setClientSecret(null);
-    } finally {
       setIsLoadingClientSecret(false);
-      initializationRef.current = null; // Clear the ref
+      initializationRef.current = null;
+      hasInitiatedRef.current = false; // Reset on error to allow retry
     }
-  }, [formData.donationTypeId, formData.amount, formData.coverFees, formData.isAnonymous, 
-      formData.firstName, formData.lastName, formData.email, formData.phone,
-      formData.street, formData.addressLine2, formData.city, formData.state, 
-      formData.zipCode, formData.country, churchId, donorId, clientSecret, donationSessionKey, t]);
+  }, [formData, churchId, donorId, propClientSecret, t]);
 
-  // Effect to initialize payment only once when component mounts with valid data
+  // Effect to initialize payment for anonymous/international donors
   useEffect(() => {
-    // Only initialize once when we have the required data
-    if (formData.donationTypeId && formData.amount > 0 && churchId) {
+    if (!propClientSecret && formData.donationTypeId && formData.amount > 0 && churchId) {
       initiateDonationPayment();
     }
 
-    // Cleanup function to abort any in-flight requests and clean sessionStorage
     return () => {
       if (initializationRef.current) {
         initializationRef.current.abort();
         initializationRef.current = null;
       }
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, [initiateDonationPayment, propClientSecret, formData.donationTypeId, formData.amount, churchId]);
 
   const appearance: StripeElementsOptions['appearance'] = {
     theme: 'stripe',
@@ -388,37 +362,20 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
     }
   };
 
-  // This top-level check for NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY can provide immediate feedback
-  // if the key is missing, even before the useEffect runs or if it's somehow bypassed.
+  // Configuration check
   if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-     return (
+    return (
       <div className="space-y-6 p-4 border border-red-500 rounded-md bg-red-50">
         <h3 className="text-lg font-medium text-red-700">{t('donations:donationPayment.configErrorTitle', "Configuration Error")}</h3>
         <p className="text-red-600">{t('donations:donationPayment.stripeKeyMissingAdmin', "Stripe publishable key is missing. Please contact support or the site administrator.")}</p>
-         <Button type="button" variant="outline" onClick={onBack} className="w-full sm:w-auto">
+        <Button type="button" variant="outline" onClick={onBack} className="w-full sm:w-auto">
           {t('common:back', 'Back')}
         </Button>
       </div>
     );
   }
 
-  // Check if we need to initialize
-  const hasSessionData = sessionStorage.getItem(donationSessionKey);
-  
-  if (!clientSecret && !isLoadingClientSecret && !initError && !hasSessionData) {
-    // Check if we have the required data to initialize
-    if (formData.donationTypeId && formData.amount > 0 && churchId) {
-      // Trigger initialization
-      initiateDonationPayment();
-      return (
-        <div className="flex flex-col justify-center items-center p-8 w-full">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-          <p className="mt-4 text-lg font-medium text-gray-700 dark:text-gray-300">{t('donations:donationPayment.loadingPaymentForm', 'Loading payment form...')}</p>
-        </div>
-      );
-    }
-  }
-
+  // Show loading state while creating payment intent for anonymous/international donors
   if (isLoadingClientSecret) {
     return (
       <div className="flex flex-col justify-center items-center p-8 w-full">
@@ -428,11 +385,12 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
     );
   }
 
-  if (initError || (!clientSecret && hasSessionData)) {
+  // Show error if payment intent creation failed
+  if (initError || (!clientSecret && !isLoadingClientSecret)) {
     return (
       <div className="space-y-6 p-4 border border-red-500 rounded-md bg-red-50">
         <h3 className="text-lg font-medium text-red-700">{t('donations:donationPayment.initiationErrorTitle', 'Payment Initialization Failed')}</h3>
-        <p className="text-red-600">{initError || t('donations:donationPayment.clientSecretMissing', 'Could not retrieve payment details. Please try refreshing or contact support.')}</p>
+        <p className="text-red-600">{initError || t('donations:donationPayment.clientSecretMissing', 'Could not retrieve payment details. Please try going back and verifying your information again.')}</p>
         <Button type="button" variant="outline" onClick={onBack} className="w-full sm:w-auto">
           {t('common:back', 'Back')}
         </Button>
@@ -440,14 +398,9 @@ export default function DonationPayment({ formData, updateFormData, onBack, chur
     );
   }
 
+  // At this point, we should have a clientSecret (either from prop or created here)
   if (!clientSecret) {
-    // Waiting for initialization
-    return (
-      <div className="flex flex-col justify-center items-center p-8 w-full">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-        <p className="mt-4 text-lg font-medium text-gray-700 dark:text-gray-300">{t('donations:donationPayment.loadingPaymentForm', 'Preparing payment form...')}</p>
-      </div>
-    );
+    return null; // Still initializing
   }
 
   const options: StripeElementsOptions = {

@@ -204,7 +204,9 @@
       "submitOtp": "Enviar Código",
       "resendOtp": "Reenviar Código",
       "changePhoneNumber": "Cambiar Número",
-      "youHaveVerified": "Has verificado"
+      "youHaveVerified": "Has verificado",
+      "preparingPayment": "Preparando pago seguro...",
+      "pleaseWait": "Por favor espera un momento"
     },
     
     "donationDetails": {

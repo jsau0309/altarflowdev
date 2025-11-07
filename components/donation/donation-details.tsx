@@ -60,15 +60,21 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
     const numericAmount = Number.parseFloat(amount) || 0; // This is in dollars
     const STRIPE_PERCENTAGE_FEE_RATE = 0.029;
     const STRIPE_FIXED_FEE_CENTS = 30; // Fixed fee in cents
+    const PLATFORM_FEE_RATE = 0.01; // 1% platform fee
 
     if (numericAmount > 0 && formData.coverFees) {
       const baseAmountInCents = Math.round(numericAmount * 100); // Convert to cents, ensure integer
 
-      // Mimic backend gross-up calculation
-      const finalAmountForStripeInCents = Math.ceil((baseAmountInCents + STRIPE_FIXED_FEE_CENTS) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
-      
+      // Correct gross-up calculation: combine both percentage fees in the divisor
+      // Formula: final_amount = (base_amount + fixed_fee) / (1 - stripe_rate - platform_rate)
+      // This ensures church receives exactly the base amount after ALL fees are deducted
+      const finalAmountForStripeInCents = Math.ceil(
+        (baseAmountInCents + STRIPE_FIXED_FEE_CENTS) /
+        (1 - STRIPE_PERCENTAGE_FEE_RATE - PLATFORM_FEE_RATE)
+      );
+
       const finalTotalDisplay = finalAmountForStripeInCents / 100; // Convert back to dollars for display
-      const calculatedDisplayFee = (finalAmountForStripeInCents - baseAmountInCents) / 100; // Fee in dollars
+      const calculatedDisplayFee = (finalAmountForStripeInCents - baseAmountInCents) / 100; // Combined fee in dollars
 
       setCalculatedFee(calculatedDisplayFee);
       setTotalWithFees(finalTotalDisplay);

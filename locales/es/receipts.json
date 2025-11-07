@@ -1,0 +1,28 @@
+{
+  "header": {
+    "title": "Recibo de Donación"
+  },
+  "greeting": "Hola {{name}},",
+  "thankYouMessage": "Gracias por tu generosa donación a <strong>{{churchName}}</strong>. Tu contribución hace una diferencia significativa en nuestra misión y en las vidas que servimos.",
+  "amountLabel": "Contribución Total",
+  "transactionDetailsTitle": "Detalles de Transacción",
+  "confirmationNumber": "Número de Confirmación",
+  "campus": "Campus",
+  "mainCampus": "Campus Principal",
+  "fund": "Fondo",
+  "frequency": "Frecuencia",
+  "paymentMethod": "Método de Pago",
+  "billingTitle": "Información de Facturación",
+  "frequencies": {
+    "oneTime": "Una Vez",
+    "monthly": "Mensual",
+    "weekly": "Semanal"
+  },
+  "footer": {
+    "branding": "Construido con ❤ para iglesias en todo el mundo",
+    "copyright": "©2025 Altarflow. Todos los derechos reservados.",
+    "termsOfService": "Términos de Servicio",
+    "privacyPolicy": "Política de Privacidad",
+    "contactSupport": "Contactar Soporte"
+  }
+}

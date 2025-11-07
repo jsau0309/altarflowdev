@@ -200,7 +200,9 @@
     "submitOtp": "Submit OTP",
     "resendOtp": "Resend OTP",
     "changePhoneNumber": "Change Number",
-    "youHaveVerified": "You have verified"
+    "youHaveVerified": "You have verified",
+    "preparingPayment": "Preparing secure payment...",
+    "pleaseWait": "Please wait a moment"
   },
   "donationDetails": {
     "amountPrompt": "Enter an amount or make a quick selection below",

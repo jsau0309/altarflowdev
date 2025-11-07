@@ -1,0 +1,28 @@
+{
+  "header": {
+    "title": "Donation Receipt"
+  },
+  "greeting": "Hi {{name}},",
+  "thankYouMessage": "Thank you for your generous donation to <strong>{{churchName}}</strong>. Your contribution makes a meaningful difference in our mission and the lives we serve.",
+  "amountLabel": "Total Contribution",
+  "transactionDetailsTitle": "Transaction Details",
+  "confirmationNumber": "Confirmation Number",
+  "campus": "Campus",
+  "mainCampus": "Main Campus",
+  "fund": "Fund",
+  "frequency": "Frequency",
+  "paymentMethod": "Payment Method",
+  "billingTitle": "Billing Information",
+  "frequencies": {
+    "oneTime": "One Time",
+    "monthly": "Monthly",
+    "weekly": "Weekly"
+  },
+  "footer": {
+    "branding": "Built with ❤ for churches worldwide",
+    "copyright": "©2025 Altarflow. All rights reserved.",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "contactSupport": "Contact Support"
+  }
+}

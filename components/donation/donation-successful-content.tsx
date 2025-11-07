@@ -36,6 +36,27 @@ function DonationSuccessfulInner({ churchSlug, backgroundStyle, logoUrl, display
     day: 'numeric'
   });
 
+  // Translate system donation types (Tithe, Offering) but keep user-created campaign names as-is
+  const getTranslatedFundName = (name: string | null): string | null => {
+    if (!name) return null;
+
+    // Check if it's a system donation type
+    const systemTypes: { [key: string]: string } = {
+      'Tithe': 'tithe',
+      'Offering': 'offering'
+    };
+
+    if (systemTypes[name]) {
+      // It's a system type, return translated version
+      return t(`funds.${systemTypes[name]}`);
+    }
+
+    // It's a user-created campaign, return as-is
+    return name;
+  };
+
+  const displayFundName = getTranslatedFundName(fundName);
+
   useEffect(() => {
     // Track successful donation
     const churchName = searchParams.get('churchName');
@@ -124,9 +145,9 @@ function DonationSuccessfulInner({ churchSlug, backgroundStyle, logoUrl, display
               <div className="text-5xl font-bold text-gray-900">${amount}</div>
 
               {/* Fund Name */}
-              {fundName && (
+              {displayFundName && (
                 <div className="text-base text-gray-600 mt-2">
-                  {fundName}
+                  {displayFundName}
                 </div>
               )}
 

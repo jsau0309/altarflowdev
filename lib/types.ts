@@ -196,7 +196,6 @@ export type DonationTransactionFE = Omit<Donation, 'amount'> & {
   processedAt: string | null; // ISO string
   donorId: string | null;
   idempotencyKey: string | null;
-  donorClerkId: string | null; // Added: Clerk ID of the donor, if available
   paymentMethodType: string;
   donationTypeId: string; // Added: Foreign key to DonationType
   donationTypeName: string;

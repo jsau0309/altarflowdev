@@ -105,7 +105,8 @@ export async function getMonthlyDonationSummary(
       select: {
         transactionDate: true,
         amount: true,
-        processingFeeCoveredByDonor: true
+        processingFeeCoveredByDonor: true,
+        platformFeeAmount: true
       }
     })
 
@@ -118,7 +119,8 @@ export async function getMonthlyDonationSummary(
       }
       const netAmount = parseFloat(donation.amount.toString()) / 100
       const feesCovered = donation.processingFeeCoveredByDonor ? parseFloat(donation.processingFeeCoveredByDonor.toString()) / 100 : 0
-      acc[monthKey].total += netAmount + feesCovered
+      const platformFee = donation.platformFeeAmount ? parseFloat(donation.platformFeeAmount.toString()) / 100 : 0
+      acc[monthKey].total += netAmount + feesCovered + platformFee
       acc[monthKey].count += 1
       return acc
     }, {} as Record<string, { total: number; count: number }>)
@@ -178,6 +180,7 @@ export async function getDonationCategoryBreakdown(
       select: {
         amount: true,
         processingFeeCoveredByDonor: true,
+        platformFeeAmount: true,
         DonationType: {
           select: {
             name: true
@@ -195,7 +198,8 @@ export async function getDonationCategoryBreakdown(
       }
       const netAmount = parseFloat(donation.amount.toString()) / 100
       const feesCovered = donation.processingFeeCoveredByDonor ? parseFloat(donation.processingFeeCoveredByDonor.toString()) / 100 : 0
-      acc[category] += netAmount + feesCovered
+      const platformFee = donation.platformFeeAmount ? parseFloat(donation.platformFeeAmount.toString()) / 100 : 0
+      acc[category] += netAmount + feesCovered + platformFee
       return acc
     }, {} as Record<string, number>)
 
@@ -245,6 +249,7 @@ export async function getDonationSummary(
       select: {
         amount: true,
         processingFeeCoveredByDonor: true,
+        platformFeeAmount: true,
         donorId: true
       }
     })
@@ -253,7 +258,8 @@ export async function getDonationSummary(
     const total = donations.reduce((sum, d) => {
       const netAmount = parseFloat(d.amount.toString()) / 100
       const feesCovered = d.processingFeeCoveredByDonor ? parseFloat(d.processingFeeCoveredByDonor.toString()) / 100 : 0
-      return sum + netAmount + feesCovered
+      const platformFee = d.platformFeeAmount ? parseFloat(d.platformFeeAmount.toString()) / 100 : 0
+      return sum + netAmount + feesCovered + platformFee
     }, 0)
     
     const uniqueDonors = new Set(donations.map(d => d.donorId).filter(Boolean)).size
@@ -497,7 +503,8 @@ export async function getTransactionsForExport(
       return donations.map(d => {
         const netAmount = parseFloat(d.amount.toString()) / 100
         const feesCovered = d.processingFeeCoveredByDonor ? parseFloat(d.processingFeeCoveredByDonor.toString()) / 100 : 0
-        const grossAmount = netAmount + feesCovered
+        const platformFee = d.platformFeeAmount ? parseFloat(d.platformFeeAmount.toString()) / 100 : 0
+        const grossAmount = netAmount + feesCovered + platformFee
         
         return {
           date: d.transactionDate,

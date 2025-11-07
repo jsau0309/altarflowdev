@@ -63,7 +63,6 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
       donationTypeId: donation.donationTypeId,
       donationTypeName: donation.DonationType.name,
       donationTypeIsCampaign: donation.DonationType.isCampaign,
-      donorClerkId: donation.donorClerkId,
       donorName: donation.donorName ?? (donation.Donor ? `${donation.Donor.firstName} ${donation.Donor.lastName}`.trim() : undefined),
       donorEmail: donation.donorEmail ?? undefined,
       amount: (donation.amount / 100).toFixed(2),

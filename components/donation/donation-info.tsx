@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import PhoneInput, { formatPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Check } from 'lucide-react'; // Import Check icon
+import { Check, Loader2 } from 'lucide-react'; // Import Check and Loader2 icons
 import { DonationFormData, PhoneVerificationStage } from './donation-form'; // Import types
 import countryList from 'react-select-country-list';
 
@@ -22,10 +22,12 @@ interface DonationInfoProps {
   enteredOtp: string;
   setEnteredOtp: (otp: string) => void;
   isLoadingOtpAction: boolean;
+  isCreatingPaymentIntent: boolean;
   apiErrorMessage: string | null;
   handleSendOtp: () => Promise<void>;
   handleCheckOtp: () => Promise<void>;
   handleChangePhoneNumber: () => void;
+  createPaymentIntentForNewDonor?: () => Promise<void>; // NEW: For creating payment intent for new verified donors
 }
 
 export default function DonationInfo({
@@ -38,20 +40,28 @@ export default function DonationInfo({
   enteredOtp,
   setEnteredOtp,
   isLoadingOtpAction,
+  isCreatingPaymentIntent,
   apiErrorMessage,
   handleSendOtp,
   handleCheckOtp,
   handleChangePhoneNumber,
+  createPaymentIntentForNewDonor,
 }: DonationInfoProps) {
   const { t } = useTranslation(['donations', 'members', 'common']);
 
   // Get country options from the library
   const countryOptions = useMemo(() => countryList().getData(), []);
 
-  const handleFinalSubmit = (e: React.FormEvent) => {
+  const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Potentially add final validation here before calling onNext
-    onNext();
+
+    // For new verified donors, create payment intent before moving to next step
+    if (phoneVerificationStage === 'verified_new_donor' && createPaymentIntentForNewDonor) {
+      await createPaymentIntentForNewDonor();
+    } else {
+      // For anonymous/international donors, just move to next step
+      onNext();
+    }
   };
 
   const handleAnonymousChange = (checked: boolean) => {
@@ -88,13 +98,17 @@ export default function DonationInfo({
   const baseAmount = formData.amount || 0;
   let displayAmount = baseAmount;
   if (formData.coverFees && baseAmount > 0) {
-    // Use the same gross-up calculation as donation-details.tsx
+    // Use the same gross-up calculation as backend
     const STRIPE_PERCENTAGE_FEE_RATE = 0.029;
     const STRIPE_FIXED_FEE_CENTS = 30; // Fixed fee in cents
+    const PLATFORM_FEE_RATE = 0.01; // 1% platform fee
     const baseAmountInCents = Math.round(baseAmount * 100); // Convert to cents
-    
-    // Calculate the grossed-up amount that includes fees
-    const finalAmountForStripeInCents = Math.ceil((baseAmountInCents + STRIPE_FIXED_FEE_CENTS) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
+
+    // Correct gross-up calculation: combine both percentage fees in the divisor
+    const finalAmountForStripeInCents = Math.ceil(
+      (baseAmountInCents + STRIPE_FIXED_FEE_CENTS) /
+      (1 - STRIPE_PERCENTAGE_FEE_RATE - PLATFORM_FEE_RATE)
+    );
     displayAmount = finalAmountForStripeInCents / 100; // Convert back to dollars
   }
 
@@ -153,43 +167,76 @@ export default function DonationInfo({
       case 'verification_error':
         return (
           <div className="space-y-4">
-            <p className="text-gray-900">{t('donations:donationInfo.otpSentTo', 'An OTP has been sent to:')} {formData.phone}</p>
-            <div>
-              <Label htmlFor="otpCode" className="text-gray-900">{t('donations:donationInfo.otpCode', 'Verification Code')}</Label>
-              <Input
-                id="otpCode"
-                type="text"
-                value={enteredOtp}
-                onChange={(e) => setEnteredOtp(e.target.value)}
-                placeholder={t('donations:donationInfo.otpPlaceholder', 'Enter 6-digit code')}
-                maxLength={6}
-                disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}
-                className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
-              />
-            </div>
-            <Button
-                  onClick={() => {
-                    // Debug logging removed: OTP submission
-                    handleCheckOtp(); // This calls the prop passed from DonationForm
-                  }}
-                  disabled={isLoadingOtpAction || enteredOtp.length < 4 || phoneVerificationStage === 'verifying_otp'}
-                  className="w-full"
-                >
-              {isLoadingOtpAction || phoneVerificationStage === 'verifying_otp' ? t('donations:donationInfo.verifyingOtp', 'Verifying...') : t('donations:donationInfo.submitOtp', 'Submit OTP')}
-            </Button>
-            { (phoneVerificationStage === 'otp_failed' || phoneVerificationStage === 'verification_error') && apiErrorMessage && 
-              <p className="text-sm text-red-600">{apiErrorMessage}</p>
-            }
-            <div className="flex justify-between text-sm">
-              <Button variant="link" onClick={handleSendOtp} disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}>{t('donations:donationInfo.resendOtp', 'Resend OTP')}</Button>
-              <Button variant="link" onClick={handleChangePhoneNumber} disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}>{t('donations:donationInfo.changePhoneNumber', 'Change Number')}</Button>
-            </div>
+            {/* Show loading overlay when creating payment intent */}
+            {isCreatingPaymentIntent && (
+              <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <p className="text-lg font-medium text-gray-900">
+                  {t('donations:donationInfo.preparingPayment', 'Preparing secure payment...')}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {t('donations:donationInfo.pleaseWait', 'Please wait a moment')}
+                </p>
+              </div>
+            )}
+
+            {/* Show OTP form when not creating payment intent */}
+            {!isCreatingPaymentIntent && (
+              <>
+                <p className="text-gray-900">{t('donations:donationInfo.otpSentTo', 'An OTP has been sent to:')} {formData.phone}</p>
+                <div>
+                  <Label htmlFor="otpCode" className="text-gray-900">{t('donations:donationInfo.otpCode', 'Verification Code')}</Label>
+                  <Input
+                    id="otpCode"
+                    type="text"
+                    value={enteredOtp}
+                    onChange={(e) => setEnteredOtp(e.target.value)}
+                    placeholder={t('donations:donationInfo.otpPlaceholder', 'Enter 6-digit code')}
+                    maxLength={6}
+                    disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}
+                    className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
+                  />
+                </div>
+                <Button
+                      onClick={() => {
+                        // Debug logging removed: OTP submission
+                        handleCheckOtp(); // This calls the prop passed from DonationForm
+                      }}
+                      disabled={isLoadingOtpAction || enteredOtp.length < 4 || phoneVerificationStage === 'verifying_otp'}
+                      className="w-full"
+                    >
+                  {isLoadingOtpAction || phoneVerificationStage === 'verifying_otp' ? t('donations:donationInfo.verifyingOtp', 'Verifying...') : t('donations:donationInfo.submitOtp', 'Submit OTP')}
+                </Button>
+                { (phoneVerificationStage === 'otp_failed' || phoneVerificationStage === 'verification_error') && apiErrorMessage &&
+                  <p className="text-sm text-red-600">{apiErrorMessage}</p>
+                }
+                <div className="flex justify-between text-sm">
+                  <Button variant="link" onClick={handleSendOtp} disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}>{t('donations:donationInfo.resendOtp', 'Resend OTP')}</Button>
+                  <Button variant="link" onClick={handleChangePhoneNumber} disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}>{t('donations:donationInfo.changePhoneNumber', 'Change Number')}</Button>
+                </div>
+              </>
+            )}
           </div>
         );
       
       case 'anonymous_selected':
       case 'verified_existing_donor':
       case 'verified_new_donor':
+        // Show loading state if creating payment intent for verified donors
+        if (isCreatingPaymentIntent && (phoneVerificationStage === 'verified_existing_donor' || phoneVerificationStage === 'verified_new_donor')) {
+          return (
+            <div className="flex flex-col items-center justify-center py-8 space-y-3">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <p className="text-lg font-medium text-gray-900">
+                {t('donations:donationInfo.preparingPayment', 'Preparing secure payment...')}
+              </p>
+              <p className="text-sm text-gray-600">
+                {t('donations:donationInfo.pleaseWait', 'Please wait a moment')}
+              </p>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-4">
             { (phoneVerificationStage === 'verified_existing_donor' || phoneVerificationStage === 'verified_new_donor') && formData.phone && (

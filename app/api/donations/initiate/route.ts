@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 import { getStripeInstance } from '@/lib/stripe-server';
 import { z } from 'zod'; // For input validation
 import * as Sentry from '@sentry/nextjs';
-import { withApiSpan, withDatabaseSpan, withStripeSpan, logger, capturePaymentError } from '@/lib/sentry';
+import { withApiSpan, logger, capturePaymentError } from '@/lib/sentry';
 
 // Initialize Stripe with proper error handling
 const stripe = getStripeInstance();
@@ -41,9 +41,9 @@ const initiateDonationSchema = z.object({
   isAnonymous: z.boolean().default(false),
   isInternational: z.boolean().default(false),
   donorCountry: z.string().regex(/^[A-Z]{2}$/, 'Invalid country code').optional(), // ISO country code (e.g., "MX", "SV")
-  donorClerkId: z.string().optional(),
   coverFees: z.boolean().optional(),
   donorId: z.string().optional(),
+  donorLanguage: z.enum(['en', 'es']).default('en'), // Language from i18n
 });
 
 export async function POST(request: Request) {
@@ -83,11 +83,11 @@ export async function POST(request: Request) {
         firstName,
         lastName,
         phone,
-        donorClerkId,
         coverFees,
         donorId,
         isInternational,
         donorCountry,
+        donorLanguage,
       } = validation.data;
 
       // Assign to outer scope variables for error handling
@@ -226,15 +226,29 @@ export async function POST(request: Request) {
 
     const STRIPE_PERCENTAGE_FEE_RATE = 0.029;
     const STRIPE_FIXED_FEE_CENTS = 30;
+    const PLATFORM_FEE_RATE = 0.01; // 1% platform fee
 
     let finalAmountForStripe = baseAmount; // baseAmount is in cents, this is the default if fees are not covered
     let calculatedProcessingFeeInCents = 0;
+    let platformFeeInCents = 0;
 
     if (coverFees && baseAmount > 0) {
-      // Gross-up calculation to ensure the church receives the full baseAmount
-      // finalAmountForStripe will be the total amount charged to the donor.
-      finalAmountForStripe = Math.ceil((baseAmount + STRIPE_FIXED_FEE_CENTS) / (1 - STRIPE_PERCENTAGE_FEE_RATE));
-      calculatedProcessingFeeInCents = finalAmountForStripe - baseAmount;
+      // Correct gross-up calculation: combine both percentage fees in the divisor
+      // Formula: final_amount = (base_amount + fixed_fee) / (1 - stripe_rate - platform_rate)
+      // This ensures church receives exactly the base amount after ALL fees are deducted
+      finalAmountForStripe = Math.ceil(
+        (baseAmount + STRIPE_FIXED_FEE_CENTS) /
+        (1 - STRIPE_PERCENTAGE_FEE_RATE - PLATFORM_FEE_RATE)
+      );
+
+      // Calculate the actual platform fee based on final amount charged
+      platformFeeInCents = Math.ceil(finalAmountForStripe * PLATFORM_FEE_RATE);
+
+      // Calculate the Stripe processing fee (total fee minus platform fee)
+      calculatedProcessingFeeInCents = finalAmountForStripe - baseAmount - platformFeeInCents;
+    } else {
+      // Platform fee applies even if donor doesn't cover fees (church absorbs it)
+      platformFeeInCents = Math.ceil(baseAmount * PLATFORM_FEE_RATE);
     }
     // If coverFees is false, finalAmountForStripe remains baseAmount (initial value), and calculatedProcessingFeeInCents remains 0.
     // Debug logging removed: fee calculation details
@@ -311,9 +325,6 @@ export async function POST(request: Request) {
         if (validation.data.phone) {
           updatePayload.phone = validation.data.phone;
         }
-        if (validation.data.donorClerkId && validation.data.donorClerkId !== 'guest') {
-            updatePayload.metadata = { ...updatePayload.metadata, dbDonorClerkId: validation.data.donorClerkId };
-        }
 
         if (Object.keys(updatePayload).length > 0) {
           try {
@@ -352,10 +363,6 @@ export async function POST(request: Request) {
         
         if (hasAddressData) {
           customerParams.address = stripeAddress;
-        }
-
-        if (donorClerkId && donorClerkId !== 'guest') {
-          customerParams.metadata = { ...customerParams.metadata, dbDonorClerkId: donorClerkId };
         }
 
         const newStripeCustomer = await stripe.customers.create(
@@ -403,18 +410,19 @@ export async function POST(request: Request) {
       amount: finalAmountForStripe,
       currency: currency,
       customer: stripeCustomerId,
-      // Use automatic_payment_methods to let Stripe determine available methods
-      automatic_payment_methods: { 
-        enabled: true,
-        allow_redirects: 'always' // Allow redirect-based methods like bank transfers
-      },
+      application_fee_amount: platformFeeInCents, // 1% platform fee
+      // Explicitly specify payment method types to exclude customer_balance (bank transfer)
+      // Card payment type includes: credit cards, debit cards, Link, Apple Pay, Google Pay
+      // us_bank_account: ACH Direct Debit (instant verification)
+      // This removes the redundant "Transferencia bancaria" (customer_balance) option
+      payment_method_types: ['card', 'us_bank_account'],
       // Remove transfer_data since we're creating directly on Connect account
       // The church will receive funds directly
       metadata: {
         dbChurchId: church.id,
         dbDonationTypeId: donationTypeId,
-        dbDonorClerkId: donorClerkId || 'guest',
         transactionType: 'one-time',
+        platformFeeInCents: platformFeeInCents.toString(), // For tracking
       },
     };
 
@@ -455,7 +463,6 @@ export async function POST(request: Request) {
         churchId: church.id,
         donorId: donorId,
         donationTypeId: donationTypeId,
-        donorClerkId: donorClerkId,
         donorName: donorDisplayNameForDb,
         donorEmail: donorEmailForDb,
         amount: baseAmount,
@@ -468,9 +475,11 @@ export async function POST(request: Request) {
         stripeCustomerId: stripeCustomerId,
         idempotencyKey: idempotencyKey,
         processingFeeCoveredByDonor: calculatedProcessingFeeInCents,
+        platformFeeAmount: platformFeeInCents,
         isAnonymous: isAnonymous,
         isInternational: isInternational || false,
         donorCountry: donorCountry || null,
+        donorLanguage: donorLanguage || 'en',
       },
     });
     } catch (dbError: unknown) {

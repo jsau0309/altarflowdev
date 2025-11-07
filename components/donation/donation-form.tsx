@@ -47,6 +47,10 @@ export type DonationFormData = {
   paymentMethod?: "card" | "bank" | "google-pay" | "apple-pay";
   coverFees?: boolean;
   donorId?: string; // ID of the Donor record from OTP flow
+  // NEW FIELDS for early payment intent creation
+  clientSecret?: string; // Stripe payment intent client secret
+  stripeAccount?: string; // Stripe Connect account ID
+  transactionId?: string; // Internal transaction ID
   // campaignId and campaignName are removed
 };
 
@@ -61,6 +65,7 @@ export type PhoneVerificationStage =
   | 'verification_error';
 
 function DonationForm({ churchId, churchName, donationTypes, churchSlug }: DonationFormProps) {
+  const { i18n } = useTranslation(); // Get current language from i18n
   const [formData, setFormData] = useState<DonationFormData>({
     amount: 0,
     donationTypeId: "",
@@ -87,6 +92,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
   const [phoneVerificationStage, setPhoneVerificationStage] = useState<PhoneVerificationStage>('initial');
   const [enteredOtp, setEnteredOtp] = useState<string>('');
   const [isLoadingOtpAction, setIsLoadingOtpAction] = useState<boolean>(false);
+  const [isCreatingPaymentIntent, setIsCreatingPaymentIntent] = useState<boolean>(false);
   const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
 
   const updateFormData = (data: Partial<DonationFormData>) => {
@@ -146,8 +152,8 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          phoneNumber: formData.phone, 
+        body: JSON.stringify({
+          phoneNumber: formData.phone,
           code: enteredOtp,
           churchId: churchId // Pass the churchId from props
         }),
@@ -159,32 +165,33 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
       }
 
       if (data.success) {
+        // Store donor information based on whether they're existing or new
+        const donorUpdateData: Partial<DonationFormData> = {
+          donorId: data.donorData.id,
+        };
+
         if (data.isExistingDonor && data.donorData) {
-          updateFormData({
-            donorId: data.donorData.id, // Store the donor's ID
+          // Existing donor - populate with saved data
+          Object.assign(donorUpdateData, {
             firstName: data.donorData.firstName || '',
             lastName: data.donorData.lastName || '',
             email: data.donorData.email || '',
             street: data.donorData.addressLine1 || '',
-            addressLine2: data.donorData.addressLine2 || '', // Added addressLine2
+            addressLine2: data.donorData.addressLine2 || '',
             city: data.donorData.city || '',
             state: data.donorData.state || '',
             zipCode: data.donorData.postalCode || '',
             country: data.donorData.country || '',
-            // Note: 'address' (full formatted address) is not directly provided by this API
-            // It might need to be reconstructed or handled differently if required.
           });
           setPhoneVerificationStage('verified_existing_donor');
         } else {
-          // Clear PII fields for a new donor, except phone which is already set and verified
-          // Also, store the new donor's ID
-          updateFormData({
-            donorId: data.donorData.id, // Store the new donor's ID
+          // New donor - clear PII fields
+          Object.assign(donorUpdateData, {
             firstName: '',
             lastName: '',
             email: '',
             street: '',
-            addressLine2: '', // Ensure addressLine2 is also cleared for new donors
+            addressLine2: '',
             city: '',
             state: '',
             zipCode: '',
@@ -192,18 +199,156 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
           });
           setPhoneVerificationStage('verified_new_donor');
         }
+
+        updateFormData(donorUpdateData);
         setEnteredOtp(''); // Clear OTP input on success
+
+        // NEW: Create payment intent immediately for EXISTING donors only
+        // New donors need to fill out their information first
+        if (data.isExistingDonor) {
+          // Pass donor data directly (can't rely on formData state - it updates async)
+          await createPaymentIntent(data.donorData);
+        }
+        // For new donors, payment intent will be created when they click "Next" after filling the form
       } else {
         // This case might be redundant if !response.ok covers it, but good for explicit API contracts
         throw new Error(data.message || 'OTP verification failed.');
       }
     } catch (error: any) {
       console.error("OTP Check Catch Block Error:", error);
-      setApiErrorMessage(`Catch Block: ${error.message || 'An unexpected error occurred.'}`); 
+      setApiErrorMessage(`Catch Block: ${error.message || 'An unexpected error occurred.'}`);
       setPhoneVerificationStage('otp_failed');
     } finally {
       setIsLoadingOtpAction(false);
     }
+  };
+
+  // NEW: Function to create payment intent after OTP verification
+  const createPaymentIntent = async (donorData: any) => {
+    setIsCreatingPaymentIntent(true);
+    setApiErrorMessage(null);
+
+    try {
+      // Generate unique idempotency key for this payment intent
+      const uniqueIdempotencyKey = `${crypto.randomUUID()}_${formData.donationTypeId}_${formData.amount}_${formData.coverFees}_${Date.now()}`;
+
+      const piResponse = await fetch('/api/donations/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': uniqueIdempotencyKey,
+        },
+        body: JSON.stringify({
+          idempotencyKey: uniqueIdempotencyKey,
+          churchId: churchId,
+          donationTypeId: formData.donationTypeId,
+          baseAmount: Math.round((formData.amount || 0) * 100), // Convert to cents
+          currency: 'usd',
+          coverFees: formData.coverFees,
+          isAnonymous: false, // Verified donors are never anonymous
+          isInternational: false,
+          donorId: donorData.id,
+          // Use donor data directly from API response (not formData state)
+          firstName: donorData.firstName || '',
+          lastName: donorData.lastName || '',
+          donorEmail: donorData.email || '',
+          phone: formData.phone || '', // Phone from formData (verified)
+          street: donorData.addressLine1 || '',
+          addressLine2: donorData.addressLine2 || '',
+          city: donorData.city || '',
+          state: donorData.state || '',
+          zipCode: donorData.postalCode || '',
+          country: donorData.country || '',
+          donorLanguage: (i18n.language === 'es' || i18n.language.startsWith('es-')) ? 'es' : 'en', // Normalize language code
+        }),
+      });
+
+      if (!piResponse.ok) {
+        const errorData = await piResponse.json().catch(() => ({
+          message: 'Failed to prepare payment. Please try again.'
+        }));
+        throw new Error(errorData.message || `Server error: ${piResponse.status}`);
+      }
+
+      const piData = await piResponse.json();
+
+      // API returns data directly with clientSecret, stripeAccount, transactionId
+      if (piData.clientSecret) {
+        console.log('[DonationForm] Payment intent created successfully, transaction ID:', piData.transactionId);
+
+        // Store payment intent data in formData
+        updateFormData({
+          clientSecret: piData.clientSecret,
+          stripeAccount: piData.stripeAccount || undefined,
+          transactionId: piData.transactionId,
+        });
+
+        // Automatically proceed to payment step
+        nextStep();
+      } else {
+        throw new Error(piData.error || piData.message || 'Failed to retrieve payment information.');
+      }
+    } catch (error: any) {
+      console.error("Payment Intent Creation Error:", error);
+      setApiErrorMessage(`Payment preparation failed: ${error.message || 'An unexpected error occurred.'}`);
+      setPhoneVerificationStage('verification_error');
+    } finally {
+      setIsCreatingPaymentIntent(false);
+    }
+  };
+
+  // NEW: Wrapper function for new donors to update donor info first, then create payment intent
+  const createPaymentIntentForNewDonor = async () => {
+    setIsCreatingPaymentIntent(true);
+    setApiErrorMessage(null);
+
+    try {
+      // Step 1: Update donor record in database with form data
+      const updatePayload = {
+        donorId: formData.donorId,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        addressLine1: formData.street || null,
+        addressLine2: formData.addressLine2 || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        postalCode: formData.zipCode || null,
+        country: formData.donorCountry || 'US', // Use donorCountry (2-letter code), not country (state name)
+      };
+
+      const updateResponse = await fetch('/api/donors/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatePayload),
+      });
+
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json().catch(() => ({
+          error: 'Failed to save donor information.'
+        }));
+        throw new Error(errorData.error || 'Failed to save donor information.');
+      }
+
+      const updateData = await updateResponse.json();
+
+      if (!updateData.success || !updateData.donorData) {
+        throw new Error('Failed to retrieve updated donor information.');
+      }
+
+      // Step 2: Create payment intent with updated donor data from API
+      // This ensures we use the persisted data, not just form state
+      await createPaymentIntent(updateData.donorData);
+
+    } catch (error: any) {
+      console.error('[DonationForm] Error in createPaymentIntentForNewDonor:', error);
+      setApiErrorMessage(`Failed to prepare payment: ${error.message || 'An unexpected error occurred.'}`);
+      setPhoneVerificationStage('verification_error');
+      setIsCreatingPaymentIntent(false);
+    }
+    // Note: isCreatingPaymentIntent will be set to false by createPaymentIntent
   };
 
   const handleChangePhoneNumber = () => {
@@ -219,24 +364,36 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
         // Pass donationTypes and churchSlug to DonationDetails
         return <DonationDetails formData={formData} updateFormData={updateFormData} onNext={nextStep} donationTypes={donationTypes} churchSlug={churchSlug} />;
       case 2:
-        return <DonationInfo 
-          formData={formData} 
-          updateFormData={updateFormData} 
-          onNext={nextStep} 
+        return <DonationInfo
+          formData={formData}
+          updateFormData={updateFormData}
+          onNext={nextStep}
           onBack={prevStep}
           phoneVerificationStage={phoneVerificationStage}
           setPhoneVerificationStage={setPhoneVerificationStage}
           enteredOtp={enteredOtp}
           setEnteredOtp={setEnteredOtp}
           isLoadingOtpAction={isLoadingOtpAction}
+          isCreatingPaymentIntent={isCreatingPaymentIntent}
           apiErrorMessage={apiErrorMessage}
           handleSendOtp={handleSendOtp}
           handleCheckOtp={handleCheckOtp}
           handleChangePhoneNumber={handleChangePhoneNumber}
+          createPaymentIntentForNewDonor={createPaymentIntentForNewDonor}
         />;
       case 3:
-        // Pass churchId, donorId, and churchName to DonationPayment
-        return <DonationPayment formData={formData} updateFormData={updateFormData} onBack={prevStep} churchId={churchId} churchSlug={churchSlug} donorId={formData.donorId} churchName={churchName} />;
+        // Pass clientSecret and stripeAccount from formData (created after OTP verification)
+        return <DonationPayment
+          formData={formData}
+          updateFormData={updateFormData}
+          onBack={prevStep}
+          churchId={churchId}
+          churchSlug={churchSlug}
+          donorId={formData.donorId}
+          churchName={churchName}
+          clientSecret={formData.clientSecret}
+          stripeAccount={formData.stripeAccount}
+        />;
       default:
         return <div>Something went wrong.</div>;
     }
