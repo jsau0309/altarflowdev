@@ -28,9 +28,17 @@ export interface DonationReceiptData {
   language: 'en' | 'es';
 }
 
-// Helper function to get translations based on language
+// Helper function to get translations based on language with validation
 function getReceiptTranslations(language: 'en' | 'es') {
-  return language === 'es' ? receiptsEs : receiptsEn;
+  const translations = language === 'es' ? receiptsEs : receiptsEn;
+
+  // Validate that essential translation keys exist
+  if (!translations || !translations.header || !translations.greeting || !translations.thankYouMessage) {
+    console.error(`[Receipt] Missing critical translations for language: ${language}, falling back to English`);
+    return receiptsEn; // Fallback to English
+  }
+
+  return translations;
 }
 
 // Helper function to format date based on locale
@@ -399,7 +407,7 @@ export function generateDonationReceiptHtml(data: DonationReceiptData, appUrl: s
         <p class="greeting">${escapeHtml(t.greeting.replace('{{name}}', donorFirstName))}</p>
 
         <p class="thank-you-message">
-          ${t.thankYouMessage.replace('{{churchName}}', escapeHtml(data.churchName))}
+          ${t.thankYouMessage.replace('{{churchName}}', `<strong>${escapeHtml(data.churchName)}</strong>`).replace(/<strong><strong>/g, '<strong>').replace(/<\/strong><\/strong>/g, '</strong>')}
         </p>
 
         <!-- Amount Highlight -->

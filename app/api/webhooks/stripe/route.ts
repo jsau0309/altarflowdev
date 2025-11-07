@@ -1259,11 +1259,17 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   }
 
   // Fetch church logo from LandingPageConfig
-  const landingPageConfig = await prisma.landingPageConfig.findUnique({
-    where: { churchId: church.id },
-    select: { logoUrl: true }
-  });
-  const churchLogoUrl = landingPageConfig?.logoUrl || undefined;
+  let churchLogoUrl: string | undefined;
+  try {
+    const landingPageConfig = await prisma.landingPageConfig.findUnique({
+      where: { churchId: church.id },
+      select: { logoUrl: true }
+    });
+    churchLogoUrl = landingPageConfig?.logoUrl || undefined;
+  } catch (error) {
+    console.warn('[Receipt] Failed to fetch church logo, proceeding without logo:', error);
+    churchLogoUrl = undefined;
+  }
 
   const stripeConnectAccountDb = await prisma.stripeConnectAccount.findUnique({
     where: { churchId: church.clerkOrgId },
@@ -1472,7 +1478,26 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   };
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
-  const emailHtml = generateDonationReceiptHtml(receiptData, appUrl);
+
+  // Generate email HTML with error handling
+  let emailHtml: string;
+  try {
+    emailHtml = generateDonationReceiptHtml(receiptData, appUrl);
+  } catch (error) {
+    console.error('[Receipt] Failed to generate email HTML, using fallback template:', error);
+    // Simple fallback template
+    emailHtml = `
+      <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Thank you for your donation!</h2>
+          <p>Thank you for your generous donation of $${receiptData.amountPaid} ${receiptData.currency.toUpperCase()} to ${receiptData.churchName}.</p>
+          <p><strong>Confirmation Number:</strong> ${receiptData.confirmationNumber}</p>
+          <p><strong>Date:</strong> ${receiptData.datePaid}</p>
+          <p>You will receive a detailed receipt shortly.</p>
+        </body>
+      </html>
+    `;
+  }
 
   try {
     // Use validated serverEnv to ensure proper email format without quotes

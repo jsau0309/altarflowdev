@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 import { getStripeInstance } from '@/lib/stripe-server';
 import { z } from 'zod'; // For input validation
 import * as Sentry from '@sentry/nextjs';
-import { withApiSpan, withDatabaseSpan, withStripeSpan, logger, capturePaymentError } from '@/lib/sentry';
+import { withApiSpan, logger, capturePaymentError } from '@/lib/sentry';
 
 // Initialize Stripe with proper error handling
 const stripe = getStripeInstance();

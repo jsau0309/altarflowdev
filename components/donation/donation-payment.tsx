@@ -233,6 +233,7 @@ export default function DonationPayment({
   const [isLoadingClientSecret, setIsLoadingClientSecret] = useState(!propClientSecret);
   const [initError, setInitError] = useState<string | null>(null);
   const initializationRef = useRef<AbortController | null>(null);
+  const hasInitiatedRef = useRef<boolean>(false);
 
   // Payment intent creation:
   // - Verified donors: Created early (after OTP) in DonationInfo - enables Stripe Link
@@ -245,10 +246,13 @@ export default function DonationPayment({
       return;
     }
 
-    // Prevent multiple simultaneous calls
-    if (initializationRef.current) {
+    // Prevent multiple simultaneous calls or re-initialization
+    if (initializationRef.current || hasInitiatedRef.current) {
       return;
     }
+
+    // Mark as initiated to prevent race conditions
+    hasInitiatedRef.current = true;
 
     // Check required fields
     if (!formData.donationTypeId || formData.amount <= 0 || !churchId) {
@@ -293,7 +297,7 @@ export default function DonationPayment({
           ...(formData.zipCode && !formData.isAnonymous && { zipCode: formData.zipCode }),
           ...(formData.country && !formData.isAnonymous && { country: formData.country }),
           ...(donorId && { donorId: donorId }),
-          donorLanguage: i18n.language as 'en' | 'es', // Pass current language from i18n
+          donorLanguage: (i18n.language === 'es' || i18n.language.startsWith('es-')) ? 'es' : 'en', // Normalize language code
         }),
         signal: abortController.signal,
       });
@@ -320,12 +324,14 @@ export default function DonationPayment({
       if (error.name === 'AbortError') {
         // Don't change loading state if aborted - let the new request handle it
         initializationRef.current = null;
+        hasInitiatedRef.current = false;
         return;
       }
       setInitError(error.message || t('donations:donationPayment.initError', 'Error initializing payment form.'));
       setClientSecret(null);
       setIsLoadingClientSecret(false);
       initializationRef.current = null;
+      hasInitiatedRef.current = false; // Reset on error to allow retry
     }
   }, [formData, churchId, donorId, propClientSecret, t]);
 

@@ -259,7 +259,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
           state: donorData.state || '',
           zipCode: donorData.postalCode || '',
           country: donorData.country || '',
-          donorLanguage: i18n.language as 'en' | 'es', // Pass current language from i18n
+          donorLanguage: (i18n.language === 'es' || i18n.language.startsWith('es-')) ? 'es' : 'en', // Normalize language code
         }),
       });
 
