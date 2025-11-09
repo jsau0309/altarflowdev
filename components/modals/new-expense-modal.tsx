@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from 'sonner';
 import type { Expense } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library';
+import { useOrganization } from "@clerk/nextjs";
 
 interface NewExpenseModalProps {
   isOpen: boolean;
@@ -26,13 +27,21 @@ interface NewExpenseModalProps {
   onSuccess?: () => void; // For refreshing data after action
 }
 
+interface ExpenseCategory {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: NewExpenseModalProps) {
   const router = useRouter()
+  const { organization } = useOrganization();
   const [isLoading, setIsLoading] = useState(false)
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptMetadata, setReceiptMetadata] = useState<Record<string, unknown> | null>(null);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   
   // Function to safely format date string to YYYY-MM-DD
   const formatDateForInput = (dateInput: Date | string | undefined | null): string => {
@@ -60,6 +69,16 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
   })
   const { t } = useTranslation('expenses');
 
+  // Fetch expense categories when modal opens
+  useEffect(() => {
+    if (isOpen && organization?.id) {
+      fetch(`/api/churches/${organization.id}/expense-categories`)
+        .then((res) => res.json())
+        .then((data) => setExpenseCategories(data))
+        .catch((error) => console.error("Error fetching expense categories:", error));
+    }
+  }, [isOpen, organization?.id]);
+
   // useEffect to update form when expenseToEdit changes or modal opens
   useEffect(() => {
     if (isOpen) {
@@ -69,7 +88,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
           amount: expenseToEdit.amount?.toString() || "",
           expenseDate: formatDateForInput(expenseToEdit.expenseDate),
           vendor: expenseToEdit.vendor || "",
-          category: expenseToEdit.category || "",
+          category: expenseToEdit.expenseCategoryId || expenseToEdit.category || "", // Support both new and legacy fields
           description: expenseToEdit.description || "",
         });
         setReceiptImage(expenseToEdit.receiptUrl || null);
@@ -144,7 +163,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
     const formPayload = new FormData()
     formPayload.append('amount', String(normalizedAmount))
     formPayload.append('expenseDate', expenseDate.toISOString())
-    formPayload.append('category', formData.category)
+    formPayload.append('expenseCategoryId', formData.category) // Now stores category ID
 
     formPayload.append('vendor', formData.vendor ?? '')
     formPayload.append('description', formData.description ?? '')
@@ -330,22 +349,32 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
 
             <div className="space-y-2">
               <Label htmlFor="category">{t('expenses:newExpenseModal.categoryLabel')}</Label>
-              <select 
-                id="category" 
-                name="category" 
-                required 
-                value={formData.category} 
+              <select
+                id="category"
+                name="category"
+                required
+                value={formData.category}
                 onChange={(e) => handleSelectChange("category", e.target.value)}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
               >
                 <option value="" disabled>{t('expenses:newExpenseModal.categoryPlaceholder')}</option>
-                <option value="utilities">{t('expenses:newExpenseModal.categoryOptions.utilities')}</option>
-                <option value="supplies">{t('expenses:newExpenseModal.categoryOptions.supplies')}</option>
-                <option value="maintenance">{t('expenses:newExpenseModal.categoryOptions.maintenance')}</option>
-                <option value="salaries">{t('expenses:newExpenseModal.categoryOptions.salaries')}</option>
-                <option value="events">{t('expenses:newExpenseModal.categoryOptions.events')}</option>
-                <option value="other">{t('expenses:newExpenseModal.categoryOptions.other')}</option>
+                {expenseCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
+              {formData.category && expenseCategories.find(c => c.id === formData.category) && (
+                <div className="flex items-center gap-2 mt-1">
+                  <div
+                    className="w-4 h-4 rounded"
+                    style={{ backgroundColor: expenseCategories.find(c => c.id === formData.category)?.color }}
+                  />
+                  <span className="text-xs text-gray-500">
+                    {expenseCategories.find(c => c.id === formData.category)?.name}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

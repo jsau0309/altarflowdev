@@ -43,6 +43,7 @@ model Church {
   DonationTransaction  DonationTransaction[]
   DonationType         DonationType[]
   Donor                Donor[]
+  ExpenseCategory      ExpenseCategory[]
   EmailCampaign        EmailCampaign[]
   EmailQuota           EmailQuota[]
   EmailSettings        EmailSettings?
@@ -117,6 +118,7 @@ model DonationType {
   churchId            String                @db.Uuid
   name                String
   description         String?
+  color               String                @default("#3B82F6") // Default blue color
   isRecurringAllowed  Boolean               @default(true)
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
@@ -159,6 +161,23 @@ model Donor {
 
   @@index([churchId])
   @@index([memberId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ExpenseCategory {
+  id              String    @id @default(cuid())
+  churchId        String    @db.Uuid
+  name            String
+  color           String    @default("#6B7280") // Default gray color
+  isSystemCategory Boolean  @default(false)
+  isDeletable     Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  Expense         Expense[]
+  Church          Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([churchId, name])
+  @@index([churchId])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -260,28 +279,31 @@ model EmailSettings {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Expense {
-  id                                   String        @id @default(cuid())
-  amount                               Decimal       @db.Decimal(10, 2)
-  currency                             String        @default("USD")
+  id                                   String           @id @default(cuid())
+  amount                               Decimal          @db.Decimal(10, 2)
+  currency                             String           @default("USD")
   expenseDate                          DateTime
-  category                             String
+  category                             String?          // Legacy field, kept for backward compatibility
+  expenseCategoryId                    String?          // New relation to ExpenseCategory
   vendor                               String?
   description                          String?
   receiptUrl                           String?
   receiptPath                          String?
-  status                               ExpenseStatus @default(PENDING)
+  status                               ExpenseStatus    @default(PENDING)
   submitterId                          String
   approverId                           String?
-  churchId                             String        @db.Uuid
-  createdAt                            DateTime      @default(now())
-  updatedAt                            DateTime      @default(now())
-  Profile_Expense_approverIdToProfile  Profile?      @relation("Expense_approverIdToProfile", fields: [approverId], references: [id])
-  Church                               Church        @relation(fields: [churchId], references: [id])
-  Profile_Expense_submitterIdToProfile Profile       @relation("Expense_submitterIdToProfile", fields: [submitterId], references: [id])
+  churchId                             String           @db.Uuid
+  createdAt                            DateTime         @default(now())
+  updatedAt                            DateTime         @default(now())
+  ExpenseCategory                      ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
+  Profile_Expense_approverIdToProfile  Profile?         @relation("Expense_approverIdToProfile", fields: [approverId], references: [id])
+  Church                               Church           @relation(fields: [churchId], references: [id])
+  Profile_Expense_submitterIdToProfile Profile          @relation("Expense_submitterIdToProfile", fields: [submitterId], references: [id])
 
   @@index([churchId, expenseDate])
   @@index([churchId])
   @@index([submitterId])
+  @@index([expenseCategoryId])
   @@index([churchId, expenseDate(sort: Desc)], map: "idx_expenses_church_date")
 }
 

@@ -226,6 +226,7 @@ export async function POST(req: Request) {
           {
             name: "Tithe",
             description: "Regular giving to support the church's mission and ministries.",
+            color: "#10B981", // Green for Tithe
             churchId: newChurch.id, // Link to the newly created church
             isRecurringAllowed: true,
             isCampaign: false,
@@ -235,6 +236,7 @@ export async function POST(req: Request) {
           {
             name: "Offering",
             description: "General contributions and special one-time gifts.",
+            color: "#3B82F6", // Blue for Offering
             churchId: newChurch.id, // Link to the newly created church
             isRecurringAllowed: true,
             isCampaign: false,
@@ -248,6 +250,58 @@ export async function POST(req: Request) {
           skipDuplicates: true, // Good practice, though should not happen for new church
         });
         console.log(`Successfully created default donation types for church ID: ${newChurch.id}`);
+
+        // Create default expense categories for the new church
+        const defaultExpenseCategoriesData = [
+          {
+            name: "Utilities",
+            color: "#EF4444", // Red
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Supplies",
+            color: "#F59E0B", // Amber
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Maintenance",
+            color: "#8B5CF6", // Purple
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Salaries",
+            color: "#06B6D4", // Cyan
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Events",
+            color: "#EC4899", // Pink
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Other",
+            color: "#6B7280", // Gray
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+        ];
+
+        await prisma.expenseCategory.createMany({
+          data: defaultExpenseCategoriesData,
+          skipDuplicates: true,
+        });
+        console.log(`Successfully created default expense categories for church ID: ${newChurch.id}`);
 
         // Fix race condition: Update the creator's role to ADMIN immediately
         if (createdByUserId) {

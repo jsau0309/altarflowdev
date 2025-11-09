@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
     let amountValue: number | null = null;
     let expenseDateValue: string | null = null;
     let categoryValue: string | null = null;
+    let expenseCategoryId: string | null = null;
     let vendorValue: string | null = null;
     let descriptionValue: string | null = null;
     let receiptFile: File | null = null;
@@ -183,9 +184,16 @@ export async function POST(request: NextRequest) {
         expenseDateValue = expenseDateRaw;
       }
 
-      const categoryRaw = formData.get('category');
-      if (typeof categoryRaw === 'string' && categoryRaw.trim().length > 0) {
-        categoryValue = categoryRaw;
+      // Support both new expenseCategoryId and legacy category field
+      const expenseCategoryIdRaw = formData.get('expenseCategoryId');
+      if (typeof expenseCategoryIdRaw === 'string' && expenseCategoryIdRaw.trim().length > 0) {
+        expenseCategoryId = expenseCategoryIdRaw;
+      } else {
+        // Fallback to legacy category field
+        const categoryRaw = formData.get('category');
+        if (typeof categoryRaw === 'string' && categoryRaw.trim().length > 0) {
+          categoryValue = categoryRaw;
+        }
       }
 
       const vendorRaw = formData.get('vendor');
@@ -220,7 +228,14 @@ export async function POST(request: NextRequest) {
         amountValue = Number.parseFloat(body.amount);
       }
       expenseDateValue = typeof body?.expenseDate === 'string' ? body.expenseDate : null;
-      categoryValue = typeof body?.category === 'string' ? body.category : null;
+
+      // Support both new expenseCategoryId and legacy category field
+      if (typeof body?.expenseCategoryId === 'string' && body.expenseCategoryId.trim().length > 0) {
+        expenseCategoryId = body.expenseCategoryId;
+      } else {
+        categoryValue = typeof body?.category === 'string' ? body.category : null;
+      }
+
       vendorValue = typeof body?.vendor === 'string' ? (body.vendor.trim() ? body.vendor : null) : null;
       descriptionValue = typeof body?.description === 'string' ? (body.description.trim() ? body.description : null) : null;
     }
@@ -231,10 +246,10 @@ export async function POST(request: NextRequest) {
       Number.isNaN(amountValue) ||
       amountValue <= 0 ||
       !expenseDateValue ||
-      !categoryValue
+      (!expenseCategoryId && !categoryValue)
     ) {
       return NextResponse.json(
-        { error: 'Missing required fields (amount, expenseDate, category)' },
+        { error: 'Missing required fields (amount, expenseDate, category or expenseCategoryId)' },
         { status: 400 }
       );
     }
@@ -295,7 +310,8 @@ export async function POST(request: NextRequest) {
       data: {
         amount: amountValue,
         expenseDate,
-        category: categoryValue,
+        category: categoryValue, // Legacy field for backward compatibility
+        expenseCategoryId: expenseCategoryId, // New relation field
         vendor: vendorValue,
         description: descriptionValue,
         receiptUrl,

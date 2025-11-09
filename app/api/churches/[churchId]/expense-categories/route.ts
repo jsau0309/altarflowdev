@@ -6,49 +6,49 @@ interface Params {
   churchId: string; // This is the Clerk Organization ID from the path
 }
 
+// GET - Fetch all expense categories for a church
 export async function GET(
   request: Request,
   { params }: { params: Promise<Params> }
 ) {
-  const { churchId } = await params; // This 'churchId' variable now holds the Clerk Organization ID
+  const { churchId } = await params;
 
   if (!churchId) {
     return NextResponse.json({ error: 'Church ID (Clerk Organization ID) from path is required' }, { status: 400 });
   }
 
   try {
-    // 1. Find the internal Church record using the clerkOrgId
+    // Find the internal Church record using the clerkOrgId
     const church = await prisma.church.findUnique({
-      where: { clerkOrgId: churchId.trim() }, // Use the churchId from path (which is clerkOrgId) to find the Church
+      where: { clerkOrgId: churchId.trim() },
     });
 
     if (!church) {
       return NextResponse.json({ error: `Church not found for Clerk Organization ID: ${churchId}` }, { status: 404 });
     }
 
-    const internalChurchUUID = church.id; // This is the actual UUID for the church
+    const internalChurchUUID = church.id;
 
-    // 2. Fetch DonationType records for that internalChurchUUID
-    const donationTypes = await prisma.donationType.findMany({
+    // Fetch ExpenseCategory records for that church
+    const expenseCategories = await prisma.expenseCategory.findMany({
       where: {
         churchId: internalChurchUUID,
-        // isActive: true, // Optional: You might want to only return active types later
       },
       orderBy: {
-        name: 'asc', // Optional: Order them alphabetically or by creation date
+        name: 'asc',
       },
     });
 
-    return NextResponse.json(donationTypes, { status: 200 });
+    return NextResponse.json(expenseCategories, { status: 200 });
 
   } catch (error) {
-    console.error(`Error fetching donation types for church (Clerk Org ID: ${churchId}):`, error);
+    console.error(`Error fetching expense categories for church (Clerk Org ID: ${churchId}):`, error);
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json({ error: 'Failed to fetch donation types', details: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch expense categories', details: errorMessage }, { status: 500 });
   }
 }
 
-// POST - Create a new donation type
+// POST - Create a new expense category
 export async function POST(
   request: Request,
   { params }: { params: Promise<Params> }
@@ -66,7 +66,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { name, description, color, isCampaign, goalAmount, startDate, endDate, isRecurringAllowed } = body;
+    const { name, color } = body;
 
     if (!name || !color) {
       return NextResponse.json({ error: 'Name and color are required' }, { status: 400 });
@@ -81,29 +81,22 @@ export async function POST(
       return NextResponse.json({ error: `Church not found for Clerk Organization ID: ${churchId}` }, { status: 404 });
     }
 
-    // Create the donation type
-    const donationType = await prisma.donationType.create({
+    // Create the expense category
+    const expenseCategory = await prisma.expenseCategory.create({
       data: {
         name: name.trim(),
-        description: description?.trim() || null,
         color: color.trim(),
         churchId: church.id,
-        isCampaign: isCampaign || false,
-        goalAmount: goalAmount ? parseFloat(goalAmount) : null,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        isRecurringAllowed: isRecurringAllowed !== undefined ? isRecurringAllowed : true,
-        isSystemType: false,
+        isSystemCategory: false,
         isDeletable: true,
-        isActive: true,
       },
     });
 
-    return NextResponse.json(donationType, { status: 201 });
+    return NextResponse.json(expenseCategory, { status: 201 });
 
   } catch (error) {
-    console.error(`Error creating donation type for church (Clerk Org ID: ${churchId}):`, error);
+    console.error(`Error creating expense category for church (Clerk Org ID: ${churchId}):`, error);
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json({ error: 'Failed to create donation type', details: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create expense category', details: errorMessage }, { status: 500 });
   }
 }

@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Shield } from "lucide-react";
+import { Settings, Shield, Tag } from "lucide-react";
 import { GeneralSettings } from "./general-settings";
 import { AccountManagement } from "./account-management";
+import { CategoriesSettings } from "./categories-settings";
 import { useSearchParams } from "next/navigation";
 
 export function SettingsContent() {
@@ -15,7 +16,7 @@ export function SettingsContent() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["general", "account"].includes(tab)) {
+    if (tab && ["general", "account", "categories"].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -28,6 +29,12 @@ export function SettingsContent() {
       description: t("settings:tabs.generalDesc", "Basic church information and preferences")
     },
     {
+      id: "categories",
+      label: t("settings:tabs.categories", "Categories & Tags"),
+      icon: Tag,
+      description: t("settings:tabs.categoriesDesc", "Manage expense categories and donation types")
+    },
+    {
       id: "account",
       label: t("settings:tabs.account", "Account Management"),
       icon: Shield,
@@ -37,7 +44,7 @@ export function SettingsContent() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-      <TabsList className="grid grid-cols-1 md:grid-cols-2 gap-2 h-auto">
+      <TabsList className="grid grid-cols-1 md:grid-cols-3 gap-2 h-auto">
         {settingsSections.map((section) => {
           const Icon = section.icon;
           return (
@@ -55,6 +62,10 @@ export function SettingsContent() {
 
       <TabsContent value="general" className="space-y-4">
         <GeneralSettings />
+      </TabsContent>
+
+      <TabsContent value="categories" className="space-y-4">
+        <CategoriesSettings />
       </TabsContent>
 
       <TabsContent value="account" className="space-y-4">

@@ -110,13 +110,14 @@ async function removeReceipt(path: string) {
 const expenseUpdateSchema = z.object({
   amount: z.number().positive().optional(),
   expenseDate: z.string().datetime().optional(),
-  category: z.string().min(1).optional(),
+  category: z.string().min(1).optional(), // Legacy field
+  expenseCategoryId: z.string().optional(), // New relation field
   vendor: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   receiptUrl: z.string().url().nullable().optional(),
   receiptPath: z.string().nullable().optional(), // Allow receipt storage path for regenerating signed URLs
   // Status might be updated by a different mechanism/role
-  // status: z.nativeEnum(ExpenseStatus).optional(), 
+  // status: z.nativeEnum(ExpenseStatus).optional(),
 });
 
 // GET /api/expenses/[expenseId] - Fetch a single expense from the active organization
@@ -213,6 +214,7 @@ export async function PATCH(
     let amountValue: number | undefined;
     let expenseDateValue: string | undefined;
     let categoryValue: string | undefined;
+    let expenseCategoryId: string | undefined;
     let vendorValue: string | null | undefined;
     let descriptionValue: string | null | undefined;
     let receiptFile: File | null = null;
@@ -224,6 +226,7 @@ export async function PATCH(
     let hasAmountField = false;
     let hasExpenseDateField = false;
     let hasCategoryField = false;
+    let hasExpenseCategoryIdField = false;
     let hasVendorField = false;
     let hasDescriptionField = false;
     let hasReceiptPathField = false;
@@ -252,6 +255,14 @@ export async function PATCH(
         const categoryRaw = formData.get('category');
         if (typeof categoryRaw === 'string' && categoryRaw.trim().length > 0) {
           categoryValue = categoryRaw;
+        }
+      }
+
+      if (formData.has('expenseCategoryId')) {
+        hasExpenseCategoryIdField = true;
+        const expenseCategoryIdRaw = formData.get('expenseCategoryId');
+        if (typeof expenseCategoryIdRaw === 'string' && expenseCategoryIdRaw.trim().length > 0) {
+          expenseCategoryId = expenseCategoryIdRaw;
         }
       }
 
@@ -341,6 +352,10 @@ export async function PATCH(
         hasCategoryField = true;
         categoryValue = data.category;
       }
+      if (data.expenseCategoryId !== undefined) {
+        hasExpenseCategoryIdField = true;
+        expenseCategoryId = data.expenseCategoryId;
+      }
       if (data.vendor !== undefined) {
         hasVendorField = true;
         vendorValue = data.vendor ?? null;
@@ -378,6 +393,10 @@ export async function PATCH(
 
     if (hasCategoryField && categoryValue) {
       updateData.category = categoryValue;
+    }
+
+    if (hasExpenseCategoryIdField) {
+      updateData.expenseCategoryId = expenseCategoryId ?? null;
     }
 
     if (hasVendorField) {
