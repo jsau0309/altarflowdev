@@ -21,6 +21,7 @@ import { LandingPagePreview } from "@/components/settings/landing-page-preview";
 import { ImageDropzone } from "@/components/settings/image-dropzone";
 import { ImageCropperModal } from "@/components/settings/image-cropper-modal";
 import { EmojiPickerPopover } from "@/components/settings/emoji-picker-popover";
+import { EventManager } from "@/components/settings/event-manager";
 
 interface SocialLinks {
   facebook?: string;
@@ -287,10 +288,11 @@ export function LandingManagerEnhanced() {
         {/* Left Column: Settings */}
         <div>
           <Tabs defaultValue="branding" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="branding">{t("settings:landing.tabs.branding", "Branding")}</TabsTrigger>
               <TabsTrigger value="appearance">{t("settings:landing.tabs.appearance", "Appearance")}</TabsTrigger>
               <TabsTrigger value="social">{t("settings:landing.tabs.social", "Social")}</TabsTrigger>
+              <TabsTrigger value="events">{t("settings:landing.tabs.events", "Events")}</TabsTrigger>
             </TabsList>
 
         {/* Branding Tab */}
@@ -721,6 +723,15 @@ export function LandingManagerEnhanced() {
                   }))}
                 />
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Events Tab */}
+        <TabsContent value="events" className="space-y-4">
+          <Card>
+            <CardContent className="pt-6">
+              <EventManager />
             </CardContent>
           </Card>
         </TabsContent>

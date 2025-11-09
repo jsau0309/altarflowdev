@@ -7,6 +7,7 @@ import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
 import { getTitleFont, getTitleSizeClass } from '@/lib/landing-page/font-config';
 import { prisma } from '@/lib/db';
 import { Facebook, Instagram, Twitter, Youtube, Globe, User } from 'lucide-react';
+import { EventsSection } from '@/components/landing/events-section';
 
 // Type definition for social media links
 interface SocialLinks {
@@ -123,6 +124,22 @@ export default async function LandingPage(props: LandingPageProps) {
 
   const hasActiveFlow = activeFlows.length > 0;
   const connectSlug = hasActiveFlow ? activeFlows[0].slug : null;
+
+  // Get published events
+  const now = new Date();
+  const allEvents = await prisma.event.findMany({
+    where: {
+      churchId: church.id,
+      isPublished: true
+    },
+    orderBy: {
+      eventDate: 'asc'
+    }
+  });
+
+  // Split events into upcoming and past
+  const upcomingEvents = allEvents.filter(event => event.eventDate >= now);
+  const pastEvents = allEvents.filter(event => event.eventDate < now).reverse();
 
   // Get button configuration
   const buttonBackgroundColor = landingConfig?.buttonBackgroundColor || '#FFFFFF';
@@ -328,6 +345,14 @@ export default async function LandingPage(props: LandingPageProps) {
             ))}
           </div>
         )}
+
+        {/* Events Section */}
+        <EventsSection
+          upcomingEvents={upcomingEvents}
+          pastEvents={pastEvents}
+          buttonBackgroundColor={buttonBackgroundColor}
+          buttonTextColor={buttonTextColor}
+        />
       </div>
 
       {/* Footer */}

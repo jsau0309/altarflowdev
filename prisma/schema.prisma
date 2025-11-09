@@ -52,6 +52,7 @@ model Church {
   PayoutSummary        PayoutSummary[]
   StripeConnectAccount StripeConnectAccount?
   LandingPageConfig    LandingPageConfig?
+  Event                Event[]
 
   @@index([clerkOrgId])
   @@index([slug])
@@ -475,6 +476,31 @@ model LandingPageConfig {
   Church            Church          @relation(fields: [churchId], references: [id], onDelete: Cascade)
 
   @@index([churchId])
+}
+
+/// This model stores events that churches can display on their landing pages
+model Event {
+  id          String   @id @default(uuid()) @db.Uuid
+  churchId    String   @db.Uuid
+
+  // Event details
+  title       String
+  description String   @db.Text
+  eventDate   DateTime // The date when the event occurs
+  eventTime   String   // Time in readable format (e.g., "7:00 PM", "19:00")
+  address     String   @db.Text
+
+  // Display settings
+  isPublished Boolean  @default(true) // Whether to show this event on the landing page
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Church      Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@index([churchId])
+  @@index([churchId, eventDate]) // Optimize queries for upcoming/past events by church
 }
 
 enum BackgroundType {
