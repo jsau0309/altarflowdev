@@ -226,7 +226,6 @@ export async function POST(req: Request) {
           {
             name: "Tithe",
             description: "Regular giving to support the church's mission and ministries.",
-            color: "#10B981", // Green for Tithe
             churchId: newChurch.id, // Link to the newly created church
             isRecurringAllowed: true,
             isCampaign: false,
@@ -236,7 +235,6 @@ export async function POST(req: Request) {
           {
             name: "Offering",
             description: "General contributions and special one-time gifts.",
-            color: "#3B82F6", // Blue for Offering
             churchId: newChurch.id, // Link to the newly created church
             isRecurringAllowed: true,
             isCampaign: false,
@@ -250,6 +248,44 @@ export async function POST(req: Request) {
           skipDuplicates: true, // Good practice, though should not happen for new church
         });
         console.log(`Successfully created default donation types for church ID: ${newChurch.id}`);
+
+        // Create default donation payment methods for the new church
+        const defaultPaymentMethodsData = [
+          {
+            name: "Cash",
+            color: "#10B981", // Green
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+          {
+            name: "Check",
+            color: "#3B82F6", // Blue
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+          {
+            name: "Bank Transfer",
+            color: "#8B5CF6", // Purple
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+          {
+            name: "Zelle",
+            color: "#A855F7", // Violet
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+        ];
+
+        await prisma.donationPaymentMethod.createMany({
+          data: defaultPaymentMethodsData,
+          skipDuplicates: true,
+        });
+        console.log(`Successfully created default donation payment methods for church ID: ${newChurch.id}`);
 
         // Create default expense categories for the new church
         const defaultExpenseCategoriesData = [

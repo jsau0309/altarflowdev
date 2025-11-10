@@ -66,10 +66,10 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { name, description, color, isCampaign, goalAmount, startDate, endDate, isRecurringAllowed } = body;
+    const { name, description, isCampaign, goalAmount, startDate, endDate, isRecurringAllowed } = body;
 
-    if (!name || !color) {
-      return NextResponse.json({ error: 'Name and color are required' }, { status: 400 });
+    if (!name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
     // Find the internal Church record
@@ -86,7 +86,6 @@ export async function POST(
       data: {
         name: name.trim(),
         description: description?.trim() || null,
-        color: color.trim(),
         churchId: church.id,
         isCampaign: isCampaign || false,
         goalAmount: goalAmount ? parseFloat(goalAmount) : null,

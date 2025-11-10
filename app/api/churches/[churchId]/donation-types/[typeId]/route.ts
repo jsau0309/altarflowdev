@@ -25,10 +25,10 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const { name, description, color } = body;
+    const { name, description } = body;
 
-    if (!name || !color) {
-      return NextResponse.json({ error: 'Name and color are required' }, { status: 400 });
+    if (!name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
     // Find the church
@@ -59,7 +59,6 @@ export async function PUT(
       data: {
         name: name.trim(),
         description: description?.trim() || null,
-        color: color.trim(),
       },
     });
 

@@ -40,11 +40,12 @@ model Church {
   freeTrialStartedAt   DateTime?             // When free trial began
   promotionalEndsAt    DateTime?             // When 50% discount ends (3 months after subscription)
   promotionalCouponId  String?               // Stripe coupon ID used (e.g., "50OFF3MONTHS")
-  DonationTransaction  DonationTransaction[]
-  DonationType         DonationType[]
-  Donor                Donor[]
-  ExpenseCategory      ExpenseCategory[]
-  EmailCampaign        EmailCampaign[]
+  DonationTransaction     DonationTransaction[]
+  DonationType            DonationType[]
+  DonationPaymentMethod   DonationPaymentMethod[]
+  Donor                   Donor[]
+  ExpenseCategory         ExpenseCategory[]
+  EmailCampaign           EmailCampaign[]
   EmailQuota           EmailQuota[]
   EmailSettings        EmailSettings?
   Expense              Expense[]
@@ -69,7 +70,8 @@ model DonationTransaction {
   amount                      Int
   currency                    String
   status                      String
-  paymentMethodType           String?
+  paymentMethodType           String?      // Legacy field for Stripe payment methods
+  paymentMethodId             String?      // New relation to DonationPaymentMethod for manual donations
   isRecurring                 Boolean      @default(false)
   stripePaymentIntentId       String?      @unique
   stripeSubscriptionId        String?      @unique
@@ -96,9 +98,10 @@ model DonationTransaction {
   isInternational             Boolean      @default(false)
   donorCountry                String?
   donorLanguage               String?      @default("en")
-  Church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  DonationType                DonationType @relation(fields: [donationTypeId], references: [id])
-  Donor                       Donor?       @relation(fields: [donorId], references: [id])
+  Church                      Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  DonationType                DonationType           @relation(fields: [donationTypeId], references: [id])
+  DonationPaymentMethod       DonationPaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  Donor                       Donor?                 @relation(fields: [donorId], references: [id])
 
   @@index([churchId])
   @@index([churchId, transactionDate])
@@ -106,6 +109,7 @@ model DonationTransaction {
   @@index([donationTypeId])
   @@index([donorId])
   @@index([paymentMethodType])
+  @@index([paymentMethodId])
   @@index([stripePaymentIntentId], map: "idx_donation_transaction_stripe")
   @@index([churchId, createdAt(sort: Desc)], map: "idx_donations_church_date")
   @@index([churchId, donationTypeId, createdAt(sort: Desc)], map: "idx_donations_church_fund_date")
@@ -118,7 +122,6 @@ model DonationType {
   churchId            String                @db.Uuid
   name                String
   description         String?
-  color               String                @default("#3B82F6") // Default blue color
   isRecurringAllowed  Boolean               @default(true)
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
@@ -161,6 +164,23 @@ model Donor {
 
   @@index([churchId])
   @@index([memberId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model DonationPaymentMethod {
+  id                  String                @id @default(cuid())
+  churchId            String                @db.Uuid
+  name                String
+  color               String                @default("#10B981") // Default green color
+  isSystemMethod      Boolean               @default(false)
+  isDeletable         Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  DonationTransaction DonationTransaction[]
+  Church              Church                @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([churchId, name])
+  @@index([churchId])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

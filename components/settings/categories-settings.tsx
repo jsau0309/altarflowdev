@@ -28,12 +28,11 @@ interface Category {
   isDeletable: boolean;
 }
 
-interface DonationType {
+interface PaymentMethod {
   id: string;
   name: string;
-  description?: string;
   color: string;
-  isSystemType?: boolean;
+  isSystemMethod?: boolean;
   isDeletable: boolean;
 }
 
@@ -64,28 +63,27 @@ export function CategoriesSettings() {
   const { toast } = useToast();
 
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
-  const [donationTypes, setDonationTypes] = useState<DonationType[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
 
   // For adding new items
   const [newExpenseName, setNewExpenseName] = useState("");
   const [newExpenseColor, setNewExpenseColor] = useState("#6B7280");
-  const [newDonationName, setNewDonationName] = useState("");
-  const [newDonationDescription, setNewDonationDescription] = useState("");
-  const [newDonationColor, setNewDonationColor] = useState("#3B82F6");
+  const [newPaymentMethodName, setNewPaymentMethodName] = useState("");
+  const [newPaymentMethodColor, setNewPaymentMethodColor] = useState("#10B981");
 
   // For editing items
   const [editingExpense, setEditingExpense] = useState<Category | null>(null);
-  const [editingDonation, setEditingDonation] = useState<DonationType | null>(null);
+  const [editingPaymentMethod, setEditingPaymentMethod] = useState<PaymentMethod | null>(null);
 
   // Dialogs
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
-  const [isAddDonationOpen, setIsAddDonationOpen] = useState(false);
+  const [isAddPaymentMethodOpen, setIsAddPaymentMethodOpen] = useState(false);
 
   useEffect(() => {
     if (organization?.id) {
       fetchCategories();
-      fetchDonationTypes();
+      fetchPaymentMethods();
     }
   }, [organization?.id]);
 
@@ -103,15 +101,15 @@ export function CategoriesSettings() {
     }
   };
 
-  const fetchDonationTypes = async () => {
+  const fetchPaymentMethods = async () => {
     try {
-      const response = await fetch(`/api/churches/${organization?.id}/donation-types`);
+      const response = await fetch(`/api/churches/${organization?.id}/donation-payment-methods`);
       if (response.ok) {
         const data = await response.json();
-        setDonationTypes(data);
+        setPaymentMethods(data);
       }
     } catch (error) {
-      console.error("Error fetching donation types:", error);
+      console.error("Error fetching payment methods:", error);
     }
   };
 
@@ -215,8 +213,8 @@ export function CategoriesSettings() {
     }
   };
 
-  const handleAddDonationType = async () => {
-    if (!newDonationName.trim()) {
+  const handleAddPaymentMethod = async () => {
+    if (!newPaymentMethodName.trim()) {
       toast({
         title: t("settings:categories.error", "Error"),
         description: t("settings:categories.nameRequired", "Name is required"),
@@ -226,51 +224,46 @@ export function CategoriesSettings() {
     }
 
     try {
-      const response = await fetch(`/api/churches/${organization?.id}/donation-types`, {
+      const response = await fetch(`/api/churches/${organization?.id}/donation-payment-methods`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: newDonationName,
-          description: newDonationDescription,
-          color: newDonationColor,
-          isCampaign: false,
-          isRecurringAllowed: true,
+          name: newPaymentMethodName,
+          color: newPaymentMethodColor,
         }),
       });
 
       if (response.ok) {
         toast({
           title: t("settings:categories.success", "Success"),
-          description: t("settings:categories.donationTypeAdded", "Donation type added successfully"),
+          description: t("settings:categories.paymentMethodAdded", "Payment method added successfully"),
         });
-        setNewDonationName("");
-        setNewDonationDescription("");
-        setNewDonationColor("#3B82F6");
-        setIsAddDonationOpen(false);
-        fetchDonationTypes();
+        setNewPaymentMethodName("");
+        setNewPaymentMethodColor("#10B981");
+        setIsAddPaymentMethodOpen(false);
+        fetchPaymentMethods();
       } else {
-        throw new Error("Failed to add donation type");
+        throw new Error("Failed to add payment method");
       }
     } catch (error) {
       toast({
         title: t("settings:categories.error", "Error"),
-        description: t("settings:categories.failedToAdd", "Failed to add donation type"),
+        description: t("settings:categories.failedToAdd", "Failed to add payment method"),
         variant: "destructive",
       });
     }
   };
 
-  const handleUpdateDonationType = async (donationType: DonationType) => {
+  const handleUpdatePaymentMethod = async (paymentMethod: PaymentMethod) => {
     try {
       const response = await fetch(
-        `/api/churches/${organization?.id}/donation-types/${donationType.id}`,
+        `/api/churches/${organization?.id}/donation-payment-methods/${paymentMethod.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: donationType.name,
-            description: donationType.description,
-            color: donationType.color,
+            name: paymentMethod.name,
+            color: paymentMethod.color,
           }),
         }
       );
@@ -278,43 +271,43 @@ export function CategoriesSettings() {
       if (response.ok) {
         toast({
           title: t("settings:categories.success", "Success"),
-          description: t("settings:categories.donationTypeUpdated", "Donation type updated successfully"),
+          description: t("settings:categories.paymentMethodUpdated", "Payment method updated successfully"),
         });
-        setEditingDonation(null);
-        fetchDonationTypes();
+        setEditingPaymentMethod(null);
+        fetchPaymentMethods();
       } else {
-        throw new Error("Failed to update donation type");
+        throw new Error("Failed to update payment method");
       }
     } catch (error) {
       toast({
         title: t("settings:categories.error", "Error"),
-        description: t("settings:categories.failedToUpdate", "Failed to update donation type"),
+        description: t("settings:categories.failedToUpdate", "Failed to update payment method"),
         variant: "destructive",
       });
     }
   };
 
-  const handleDeleteDonationType = async (typeId: string) => {
+  const handleDeletePaymentMethod = async (methodId: string) => {
     try {
       const response = await fetch(
-        `/api/churches/${organization?.id}/donation-types/${typeId}`,
+        `/api/churches/${organization?.id}/donation-payment-methods/${methodId}`,
         { method: "DELETE" }
       );
 
       if (response.ok) {
         toast({
           title: t("settings:categories.success", "Success"),
-          description: t("settings:categories.donationTypeDeleted", "Donation type deleted successfully"),
+          description: t("settings:categories.paymentMethodDeleted", "Payment method deleted successfully"),
         });
-        fetchDonationTypes();
+        fetchPaymentMethods();
       } else {
         const data = await response.json();
-        throw new Error(data.error || "Failed to delete donation type");
+        throw new Error(data.error || "Failed to delete payment method");
       }
     } catch (error: any) {
       toast({
         title: t("settings:categories.error", "Error"),
-        description: error.message || t("settings:categories.failedToDelete", "Failed to delete donation type"),
+        description: error.message || t("settings:categories.failedToDelete", "Failed to delete payment method"),
         variant: "destructive",
       });
     }
@@ -473,17 +466,17 @@ export function CategoriesSettings() {
         </CardContent>
       </Card>
 
-      {/* Donation Types */}
+      {/* Donation Payment Methods */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>{t("settings:categories.donationTypes", "Donation Types")}</CardTitle>
+              <CardTitle>{t("settings:categories.paymentMethods", "Donation Payment Methods")}</CardTitle>
               <CardDescription>
-                {t("settings:categories.donationTypesDesc", "Manage types for tracking donations")}
+                {t("settings:categories.paymentMethodsDesc", "Manage payment methods for manual donation entry")}
               </CardDescription>
             </div>
-            <Dialog open={isAddDonationOpen} onOpenChange={setIsAddDonationOpen}>
+            <Dialog open={isAddPaymentMethodOpen} onOpenChange={setIsAddPaymentMethodOpen}>
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
@@ -492,28 +485,19 @@ export function CategoriesSettings() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{t("settings:categories.addDonationType", "Add Donation Type")}</DialogTitle>
+                  <DialogTitle>{t("settings:categories.addPaymentMethod", "Add Payment Method")}</DialogTitle>
                   <DialogDescription>
-                    {t("settings:categories.addDonationTypeDesc", "Create a new type for donations")}
+                    {t("settings:categories.addPaymentMethodDesc", "Create a new payment method for donations")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="donation-name">{t("settings:categories.name", "Name")}</Label>
+                    <Label htmlFor="payment-method-name">{t("settings:categories.name", "Name")}</Label>
                     <Input
-                      id="donation-name"
-                      value={newDonationName}
-                      onChange={(e) => setNewDonationName(e.target.value)}
-                      placeholder={t("settings:categories.donationNamePlaceholder", "e.g., Building Fund")}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="donation-description">{t("settings:categories.description", "Description")}</Label>
-                    <Input
-                      id="donation-description"
-                      value={newDonationDescription}
-                      onChange={(e) => setNewDonationDescription(e.target.value)}
-                      placeholder={t("settings:categories.descriptionPlaceholder", "Optional description")}
+                      id="payment-method-name"
+                      value={newPaymentMethodName}
+                      onChange={(e) => setNewPaymentMethodName(e.target.value)}
+                      placeholder={t("settings:categories.paymentMethodNamePlaceholder", "e.g., Zelle, Cash, Check")}
                     />
                   </div>
                   <div>
@@ -523,10 +507,10 @@ export function CategoriesSettings() {
                         <button
                           key={preset.value}
                           className={`w-10 h-10 rounded-md border-2 ${
-                            newDonationColor === preset.value ? "border-black" : "border-gray-200"
+                            newPaymentMethodColor === preset.value ? "border-black" : "border-gray-200"
                           }`}
                           style={{ backgroundColor: preset.value }}
-                          onClick={() => setNewDonationColor(preset.value)}
+                          onClick={() => setNewPaymentMethodColor(preset.value)}
                           title={preset.name}
                         />
                       ))}
@@ -534,10 +518,10 @@ export function CategoriesSettings() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddDonationOpen(false)}>
+                  <Button variant="outline" onClick={() => setIsAddPaymentMethodOpen(false)}>
                     {t("common:cancel", "Cancel")}
                   </Button>
-                  <Button onClick={handleAddDonationType}>
+                  <Button onClick={handleAddPaymentMethod}>
                     {t("settings:categories.add", "Add")}
                   </Button>
                 </DialogFooter>
@@ -547,17 +531,17 @@ export function CategoriesSettings() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {donationTypes.map((donationType) => (
+            {paymentMethods.map((paymentMethod) => (
               <div
-                key={donationType.id}
+                key={paymentMethod.id}
                 className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
               >
-                {editingDonation?.id === donationType.id ? (
+                {editingPaymentMethod?.id === paymentMethod.id ? (
                   <div className="flex items-center gap-3 flex-1">
                     <Input
-                      value={editingDonation.name}
+                      value={editingPaymentMethod.name}
                       onChange={(e) =>
-                        setEditingDonation({ ...editingDonation, name: e.target.value })
+                        setEditingPaymentMethod({ ...editingPaymentMethod, name: e.target.value })
                       }
                       className="flex-1"
                     />
@@ -566,25 +550,25 @@ export function CategoriesSettings() {
                         <button
                           key={preset.value}
                           className={`w-6 h-6 rounded border ${
-                            editingDonation.color === preset.value ? "border-black border-2" : "border-gray-200"
+                            editingPaymentMethod.color === preset.value ? "border-black border-2" : "border-gray-200"
                           }`}
                           style={{ backgroundColor: preset.value }}
                           onClick={() =>
-                            setEditingDonation({ ...editingDonation, color: preset.value })
+                            setEditingPaymentMethod({ ...editingPaymentMethod, color: preset.value })
                           }
                         />
                       ))}
                     </div>
                     <Button
                       size="sm"
-                      onClick={() => handleUpdateDonationType(editingDonation)}
+                      onClick={() => handleUpdatePaymentMethod(editingPaymentMethod)}
                     >
                       <Save className="h-4 w-4" />
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setEditingDonation(null)}
+                      onClick={() => setEditingPaymentMethod(null)}
                     >
                       <XCircle className="h-4 w-4" />
                     </Button>
@@ -594,15 +578,10 @@ export function CategoriesSettings() {
                     <div className="flex items-center gap-3">
                       <div
                         className="w-8 h-8 rounded-md"
-                        style={{ backgroundColor: donationType.color }}
+                        style={{ backgroundColor: paymentMethod.color }}
                       />
-                      <div>
-                        <div className="font-medium">{donationType.name}</div>
-                        {donationType.description && (
-                          <div className="text-sm text-gray-500">{donationType.description}</div>
-                        )}
-                      </div>
-                      {(donationType.isSystemType || !donationType.isDeletable) && (
+                      <span className="font-medium">{paymentMethod.name}</span>
+                      {(paymentMethod.isSystemMethod || !paymentMethod.isDeletable) && (
                         <Badge variant="secondary" className="text-xs">
                           {t("settings:categories.system", "System")}
                         </Badge>
@@ -612,15 +591,15 @@ export function CategoriesSettings() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setEditingDonation(donationType)}
+                        onClick={() => setEditingPaymentMethod(paymentMethod)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      {donationType.isDeletable && (
+                      {paymentMethod.isDeletable && (
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleDeleteDonationType(donationType.id)}
+                          onClick={() => handleDeletePaymentMethod(paymentMethod.id)}
                         >
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
