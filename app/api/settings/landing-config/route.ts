@@ -68,6 +68,8 @@ interface LandingConfigUpdateData {
   announcementText?: string | null;
   announcementLink?: string | null;
   showAnnouncement?: boolean;
+  eventTitleColor?: string; // NOT nullable - matches Prisma schema
+  eventDetailsColor?: string; // NOT nullable - matches Prisma schema
 }
 
 // GET /api/settings/landing-config - Get landing page configuration
@@ -146,6 +148,8 @@ export async function GET() {
           announcementText: null,
           announcementLink: null,
           showAnnouncement: false,
+          eventTitleColor: '#FFFFFF',
+          eventDetailsColor: '#FFFFFF',
           buttons: [
             {
               id: 'donate',
@@ -242,6 +246,8 @@ export async function GET() {
         announcementText: church.LandingPageConfig.announcementText ?? null,
         announcementLink: church.LandingPageConfig.announcementLink ?? null,
         showAnnouncement: church.LandingPageConfig.showAnnouncement ?? false,
+        eventTitleColor: church.LandingPageConfig.eventTitleColor ?? '#FFFFFF',
+        eventDetailsColor: church.LandingPageConfig.eventDetailsColor ?? '#FFFFFF',
         buttons: buttons,
       },
       churchSlug: church.slug,
@@ -356,6 +362,34 @@ export async function PUT(request: Request) {
       }
     }
 
+    // eventTitleColor is NOT nullable in the schema, so we only validate if it's provided
+    if (body.eventTitleColor !== undefined) {
+      const eventTitleColorResult = normalizeHexField(body.eventTitleColor, 'event title color');
+      if (eventTitleColorResult.error) {
+        return NextResponse.json({ error: eventTitleColorResult.error }, { status: 400 });
+      }
+      // eventTitleColor cannot be null - if empty, don't update it (keep existing value)
+      if (eventTitleColorResult.value === null || eventTitleColorResult.value === undefined) {
+        delete body.eventTitleColor;
+      } else {
+        body.eventTitleColor = eventTitleColorResult.value;
+      }
+    }
+
+    // eventDetailsColor is NOT nullable in the schema, so we only validate if it's provided
+    if (body.eventDetailsColor !== undefined) {
+      const eventDetailsColorResult = normalizeHexField(body.eventDetailsColor, 'event details color');
+      if (eventDetailsColorResult.error) {
+        return NextResponse.json({ error: eventDetailsColorResult.error }, { status: 400 });
+      }
+      // eventDetailsColor cannot be null - if empty, don't update it (keep existing value)
+      if (eventDetailsColorResult.value === null || eventDetailsColorResult.value === undefined) {
+        delete body.eventDetailsColor;
+      } else {
+        body.eventDetailsColor = eventDetailsColorResult.value;
+      }
+    }
+
     const buttonBackgroundColorResult = normalizeHexField(
       body.buttonBackgroundColor,
       'button background color'
@@ -453,6 +487,8 @@ export async function PUT(request: Request) {
         announcementText: body.announcementText ?? null,
         announcementLink: body.announcementLink ?? null,
         showAnnouncement: body.showAnnouncement ?? false,
+        eventTitleColor: body.eventTitleColor ?? '#FFFFFF',
+        eventDetailsColor: body.eventDetailsColor ?? '#FFFFFF',
         buttons: (body.buttons || [
           {
             id: 'donate',
@@ -491,6 +527,8 @@ export async function PUT(request: Request) {
         ...(body.announcementText !== undefined && { announcementText: body.announcementText }),
         ...(body.announcementLink !== undefined && { announcementLink: body.announcementLink }),
         ...(body.showAnnouncement !== undefined && { showAnnouncement: body.showAnnouncement }),
+        ...(body.eventTitleColor !== undefined && { eventTitleColor: body.eventTitleColor }),
+        ...(body.eventDetailsColor !== undefined && { eventDetailsColor: body.eventDetailsColor }),
         ...(body.buttons !== undefined && { buttons: body.buttons as any }),
       }
     });

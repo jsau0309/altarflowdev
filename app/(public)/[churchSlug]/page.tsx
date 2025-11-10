@@ -7,6 +7,7 @@ import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
 import { getTitleFont, getTitleSizeClass } from '@/lib/landing-page/font-config';
 import { prisma } from '@/lib/db';
 import { Facebook, Instagram, Twitter, Youtube, Globe, User } from 'lucide-react';
+import { EventsSection } from '@/components/landing/events-section';
 
 // Type definition for social media links
 interface SocialLinks {
@@ -124,9 +125,66 @@ export default async function LandingPage(props: LandingPageProps) {
   const hasActiveFlow = activeFlows.length > 0;
   const connectSlug = hasActiveFlow ? activeFlows[0].slug : null;
 
+  // Get published events
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);  // Set to midnight for day-level comparison
+
+  const allEvents = await prisma.event.findMany({
+    where: {
+      churchId: church.id,
+      isPublished: true
+    },
+    orderBy: {
+      eventDate: 'asc'
+    }
+  });
+
+  // Split events into upcoming and past using day-level comparison
+  // Convert Date objects to ISO strings for client component compatibility
+  const upcomingEvents = allEvents
+    .filter(event => {
+      const eventDay = new Date(event.eventDate);
+      eventDay.setHours(0, 0, 0, 0);
+      return eventDay >= now;
+    })
+    .map(event => ({
+      id: event.id,
+      churchId: event.churchId,
+      title: event.title,
+      description: event.description,
+      eventDate: event.eventDate.toISOString(),
+      eventTime: event.eventTime,
+      address: event.address,
+      isPublished: event.isPublished,
+      createdAt: event.createdAt.toISOString(),
+      updatedAt: event.updatedAt.toISOString()
+    }));
+
+  const pastEvents = allEvents
+    .filter(event => {
+      const eventDay = new Date(event.eventDate);
+      eventDay.setHours(0, 0, 0, 0);
+      return eventDay < now;
+    })
+    .sort((a, b) => b.eventDate.getTime() - a.eventDate.getTime()) // Sort descending (most recent first)
+    .map(event => ({
+      id: event.id,
+      churchId: event.churchId,
+      title: event.title,
+      description: event.description,
+      eventDate: event.eventDate.toISOString(),
+      eventTime: event.eventTime,
+      address: event.address,
+      isPublished: event.isPublished,
+      createdAt: event.createdAt.toISOString(),
+      updatedAt: event.updatedAt.toISOString()
+    }));
+
   // Get button configuration
   const buttonBackgroundColor = landingConfig?.buttonBackgroundColor || '#FFFFFF';
   const buttonTextColor = landingConfig?.buttonTextColor || '#1F2937';
+  const eventTitleColor = landingConfig?.eventTitleColor || '#FFFFFF';
+  const eventDetailsColor = landingConfig?.eventDetailsColor || '#FFFFFF';
   const { safeParseButtons } = await import('@/lib/validation/button-validation');
   let buttonsConfig = safeParseButtons(landingConfig?.buttons);
 
@@ -328,6 +386,16 @@ export default async function LandingPage(props: LandingPageProps) {
             ))}
           </div>
         )}
+
+        {/* Events Section */}
+        <EventsSection
+          upcomingEvents={upcomingEvents}
+          pastEvents={pastEvents}
+          buttonBackgroundColor={buttonBackgroundColor}
+          buttonTextColor={buttonTextColor}
+          eventTitleColor={eventTitleColor}
+          eventDetailsColor={eventDetailsColor}
+        />
       </div>
 
       {/* Footer */}
