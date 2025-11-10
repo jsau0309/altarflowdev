@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import DOMPurify from 'isomorphic-dompurify';
+
+/**
+ * Check if a string is a valid UUID format
+ */
+function isValidUUID(value: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
+}
 
 /**
  * Convert a date string (YYYY-MM-DD) to a Date object at noon local time.
@@ -15,8 +24,18 @@ function parseDateAtNoon(dateString: string): Date {
   return new Date(year, month - 1, day, 12, 0, 0, 0);
 }
 
+// Type for event update data
+interface EventUpdateData {
+  title?: string;
+  description?: string;
+  eventDate?: string;
+  eventTime?: string;
+  address?: string;
+  isPublished?: boolean;
+}
+
 // Validation helper for event data
-function validateEventData(data: any): { isValid: boolean; error?: string } {
+function validateEventData(data: EventUpdateData): { isValid: boolean; error?: string } {
   if (data.title !== undefined) {
     if (typeof data.title !== 'string' || data.title.trim().length === 0) {
       return { isValid: false, error: "Title cannot be empty" };
@@ -103,22 +122,16 @@ export async function PATCH(request: Request, props: RouteParams) {
     }
 
     const { id } = await props.params;
-    const body = await request.json();
 
-    // Verify the event belongs to this church
-    const existingEvent = await prisma.event.findFirst({
-      where: {
-        id,
-        churchId: church.id
-      }
-    });
-
-    if (!existingEvent) {
+    // Validate UUID format to prevent injection
+    if (!isValidUUID(id)) {
       return NextResponse.json(
-        { error: "Event not found" },
-        { status: 404 }
+        { error: "Invalid event ID format" },
+        { status: 400 }
       );
     }
+
+    const body = await request.json();
 
     // Validate input
     const validation = validateEventData(body);
@@ -129,19 +142,43 @@ export async function PATCH(request: Request, props: RouteParams) {
       );
     }
 
-    // Build update data
-    const updateData: any = {};
-    if (body.title !== undefined) updateData.title = body.title.trim();
-    if (body.description !== undefined) updateData.description = body.description.trim();
+    // Build update data with HTML sanitization to prevent XSS
+    const updateData: Partial<{
+      title: string;
+      description: string;
+      eventDate: Date;
+      eventTime: string;
+      address: string;
+      isPublished: boolean;
+    }> = {};
+
+    if (body.title !== undefined) updateData.title = DOMPurify.sanitize(body.title.trim(), { ALLOWED_TAGS: [] });
+    if (body.description !== undefined) updateData.description = DOMPurify.sanitize(body.description.trim(), { ALLOWED_TAGS: [] });
     if (body.eventDate !== undefined) updateData.eventDate = parseDateAtNoon(body.eventDate);
-    if (body.eventTime !== undefined) updateData.eventTime = body.eventTime.trim();
-    if (body.address !== undefined) updateData.address = body.address.trim();
+    if (body.eventTime !== undefined) updateData.eventTime = DOMPurify.sanitize(body.eventTime.trim(), { ALLOWED_TAGS: [] });
+    if (body.address !== undefined) updateData.address = DOMPurify.sanitize(body.address.trim(), { ALLOWED_TAGS: [] });
     if (body.isPublished !== undefined) updateData.isPublished = body.isPublished;
 
-    // Update the event
-    const event = await prisma.event.update({
-      where: { id },
+    // Update with atomic operation - combines ownership check and update
+    // This prevents TOCTOU (Time-of-check-time-of-use) vulnerability
+    const result = await prisma.event.updateMany({
+      where: {
+        id,
+        churchId: church.id  // Enforce ownership in the same query
+      },
       data: updateData
+    });
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
+
+    // Fetch the updated event to return
+    const event = await prisma.event.findUnique({
+      where: { id }
     });
 
     return NextResponse.json({
@@ -150,6 +187,24 @@ export async function PATCH(request: Request, props: RouteParams) {
     });
   } catch (error) {
     console.error("Failed to update event:", error);
+
+    // Check for specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('P2024') || error.message.includes('connection pool')) {
+        return NextResponse.json(
+          { error: "Database connection issue. Please try again." },
+          { status: 503 }
+        );
+      }
+
+      if (error.message.includes('timeout')) {
+        return NextResponse.json(
+          { error: "Request timed out. Please try again." },
+          { status: 504 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { error: "Failed to update event" },
       { status: 500 }
@@ -183,25 +238,29 @@ export async function DELETE(request: Request, props: RouteParams) {
 
     const { id } = await props.params;
 
-    // Verify the event belongs to this church before deleting
-    const existingEvent = await prisma.event.findFirst({
+    // Validate UUID format to prevent injection
+    if (!isValidUUID(id)) {
+      return NextResponse.json(
+        { error: "Invalid event ID format" },
+        { status: 400 }
+      );
+    }
+
+    // Delete with atomic operation - combines ownership check and delete
+    // This prevents TOCTOU (Time-of-check-time-of-use) vulnerability
+    const result = await prisma.event.deleteMany({
       where: {
         id,
-        churchId: church.id
+        churchId: church.id  // Enforce ownership in the same query
       }
     });
 
-    if (!existingEvent) {
+    if (result.count === 0) {
       return NextResponse.json(
         { error: "Event not found" },
         { status: 404 }
       );
     }
-
-    // Delete the event
-    await prisma.event.delete({
-      where: { id }
-    });
 
     return NextResponse.json({
       success: true,
@@ -209,6 +268,24 @@ export async function DELETE(request: Request, props: RouteParams) {
     });
   } catch (error) {
     console.error("Failed to delete event:", error);
+
+    // Check for specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('P2024') || error.message.includes('connection pool')) {
+        return NextResponse.json(
+          { error: "Database connection issue. Please try again." },
+          { status: 503 }
+        );
+      }
+
+      if (error.message.includes('timeout')) {
+        return NextResponse.json(
+          { error: "Request timed out. Please try again." },
+          { status: 504 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { error: "Failed to delete event" },
       { status: 500 }

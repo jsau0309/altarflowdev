@@ -260,9 +260,9 @@
     "saveError": "Failed to save settings",
     "tabs": {
       "branding": "Branding",
-      "appearance": "Appearance",
-      "social": "Social",
-      "events": "Events"
+      "buttons": "Buttons",
+      "events": "Events",
+      "social": "Social"
     },
     "branding": {
       "title": "Church Branding",

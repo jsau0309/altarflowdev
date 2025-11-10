@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import DOMPurify from 'isomorphic-dompurify';
 
 /**
  * Convert a date string (YYYY-MM-DD) to a Date object at noon local time.
@@ -15,8 +16,18 @@ function parseDateAtNoon(dateString: string): Date {
   return new Date(year, month - 1, day, 12, 0, 0, 0);
 }
 
+// Type for event creation data
+interface EventCreateData {
+  title: string;
+  description: string;
+  eventDate: string;
+  eventTime: string;
+  address: string;
+  isPublished?: boolean;
+}
+
 // Validation helper for event data
-function validateEventData(data: any): { isValid: boolean; error?: string } {
+function validateEventData(data: EventCreateData): { isValid: boolean; error?: string } {
   if (!data.title || typeof data.title !== 'string' || data.title.trim().length === 0) {
     return { isValid: false, error: "Title is required" };
   }
@@ -47,7 +58,23 @@ function validateEventData(data: any): { isValid: boolean; error?: string } {
     if (isNaN(eventDate.getTime())) {
       return { isValid: false, error: "Invalid event date" };
     }
-  } catch (error) {
+
+    // Validate date is within reasonable range
+    const now = new Date();
+    const maxFutureDate = new Date();
+    maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 5); // 5 years in future
+
+    if (eventDate > maxFutureDate) {
+      return { isValid: false, error: "Event date cannot be more than 5 years in the future" };
+    }
+
+    const minPastDate = new Date();
+    minPastDate.setFullYear(minPastDate.getFullYear() - 10); // 10 years in past
+
+    if (eventDate < minPastDate) {
+      return { isValid: false, error: "Event date cannot be more than 10 years in the past" };
+    }
+  } catch (_error) {
     return { isValid: false, error: "Invalid event date format" };
   }
 
@@ -108,6 +135,24 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Failed to fetch events:", error);
+
+    // Check for specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('P2024') || error.message.includes('connection pool')) {
+        return NextResponse.json(
+          { error: "Database connection issue. Please try again." },
+          { status: 503 }
+        );
+      }
+
+      if (error.message.includes('timeout')) {
+        return NextResponse.json(
+          { error: "Request timed out. Please try again." },
+          { status: 504 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { error: "Failed to fetch events" },
       { status: 500 }
@@ -150,15 +195,34 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check event count limit per church (prevent abuse)
+    const eventCount = await prisma.event.count({
+      where: { churchId: church.id }
+    });
+
+    const MAX_EVENTS_PER_CHURCH = 100;
+    if (eventCount >= MAX_EVENTS_PER_CHURCH) {
+      return NextResponse.json(
+        { error: `Maximum of ${MAX_EVENTS_PER_CHURCH} events allowed. Please delete old events first.` },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize all text inputs to prevent XSS
+    const sanitizedTitle = DOMPurify.sanitize(body.title.trim(), { ALLOWED_TAGS: [] });
+    const sanitizedDescription = DOMPurify.sanitize(body.description.trim(), { ALLOWED_TAGS: [] });
+    const sanitizedEventTime = DOMPurify.sanitize(body.eventTime.trim(), { ALLOWED_TAGS: [] });
+    const sanitizedAddress = DOMPurify.sanitize(body.address.trim(), { ALLOWED_TAGS: [] });
+
     // Create the event
     const event = await prisma.event.create({
       data: {
         churchId: church.id,
-        title: body.title.trim(),
-        description: body.description.trim(),
+        title: sanitizedTitle,
+        description: sanitizedDescription,
         eventDate: parseDateAtNoon(body.eventDate),
-        eventTime: body.eventTime.trim(),
-        address: body.address.trim(),
+        eventTime: sanitizedEventTime,
+        address: sanitizedAddress,
         isPublished: body.isPublished ?? true
       }
     });
@@ -169,6 +233,24 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Failed to create event:", error);
+
+    // Check for specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('P2024') || error.message.includes('connection pool')) {
+        return NextResponse.json(
+          { error: "Database connection issue. Please try again." },
+          { status: 503 }
+        );
+      }
+
+      if (error.message.includes('timeout')) {
+        return NextResponse.json(
+          { error: "Request timed out. Please try again." },
+          { status: 504 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { error: "Failed to create event" },
       { status: 500 }

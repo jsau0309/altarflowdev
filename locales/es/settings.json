@@ -259,9 +259,9 @@
       "saveError": "Error al guardar configuración",
       "tabs": {
         "branding": "Marca",
-        "appearance": "Apariencia",
-        "social": "Social",
-        "events": "Eventos"
+        "buttons": "Botones",
+        "events": "Eventos",
+        "social": "Social"
       },
       "branding": {
         "title": "Bio de la Iglesia",

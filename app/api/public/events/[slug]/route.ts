@@ -25,8 +25,10 @@ export async function GET(request: Request, props: RouteParams) {
       );
     }
 
-    // Get current date/time for filtering
+    // Get current date at start of day (midnight) for consistent comparison
+    // This prevents today's events from being classified as "past" after noon
     const now = new Date();
+    now.setHours(0, 0, 0, 0);  // Set to midnight local time
 
     // Get published events, split into upcoming and past
     const allEvents = await prisma.event.findMany({
@@ -39,9 +41,18 @@ export async function GET(request: Request, props: RouteParams) {
       }
     });
 
-    // Split events into upcoming and past
-    const upcomingEvents = allEvents.filter(event => event.eventDate >= now);
-    const pastEvents = allEvents.filter(event => event.eventDate < now).reverse(); // Most recent past events first
+    // Split events into upcoming and past using day-level comparison
+    const upcomingEvents = allEvents.filter(event => {
+      const eventDay = new Date(event.eventDate);
+      eventDay.setHours(0, 0, 0, 0);
+      return eventDay >= now;
+    });
+
+    const pastEvents = allEvents.filter(event => {
+      const eventDay = new Date(event.eventDate);
+      eventDay.setHours(0, 0, 0, 0);
+      return eventDay < now;
+    }).reverse(); // Most recent past events first
 
     return NextResponse.json({
       success: true,

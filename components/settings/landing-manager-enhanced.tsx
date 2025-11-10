@@ -149,14 +149,25 @@ export function LandingManagerEnhanced() {
       const data = await response.json();
       const allEvents = data.events || [];
 
-      // Filter upcoming and past events (only show published events in preview)
+      // Filter upcoming and past events using day-level comparison (only show published events in preview)
       const now = new Date();
+      now.setHours(0, 0, 0, 0);  // Set to midnight for day-level comparison
+
       const upcoming = allEvents
-        .filter((event: any) => new Date(event.eventDate) >= now && event.isPublished)
+        .filter((event: any) => {
+          const eventDay = new Date(event.eventDate);
+          eventDay.setHours(0, 0, 0, 0);
+          return eventDay >= now && event.isPublished;
+        })
         .slice(0, 3); // Show max 3 upcoming
+
       const past = allEvents
-        .filter((event: any) => new Date(event.eventDate) < now && event.isPublished)
-        .reverse()
+        .filter((event: any) => {
+          const eventDay = new Date(event.eventDate);
+          eventDay.setHours(0, 0, 0, 0);
+          return eventDay < now && event.isPublished;
+        })
+        .sort((a: any, b: any) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime()) // Sort descending
         .slice(0, 2); // Show max 2 past
 
       setUpcomingEvents(upcoming);
@@ -340,9 +351,9 @@ export function LandingManagerEnhanced() {
           <Tabs defaultValue="branding" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="branding">{t("settings:landing.tabs.branding", "Branding")}</TabsTrigger>
-              <TabsTrigger value="appearance">{t("settings:landing.tabs.appearance", "Appearance")}</TabsTrigger>
-              <TabsTrigger value="social">{t("settings:landing.tabs.social", "Social")}</TabsTrigger>
+              <TabsTrigger value="buttons">{t("settings:landing.tabs.buttons", "Buttons")}</TabsTrigger>
               <TabsTrigger value="events">{t("settings:landing.tabs.events", "Events")}</TabsTrigger>
+              <TabsTrigger value="social">{t("settings:landing.tabs.social", "Social")}</TabsTrigger>
             </TabsList>
 
         {/* Branding Tab */}
@@ -494,6 +505,82 @@ export function LandingManagerEnhanced() {
             </CardContent>
           </Card>
 
+          {/* Background Style */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("settings:landing.backgroundStyle.title", "Background Style")}</CardTitle>
+              <CardDescription>
+                {t("settings:landing.backgroundStyle.description", "Choose a background for your landing page")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Preset Backgrounds */}
+              <div className="space-y-2">
+                <Label>{t("settings:landing.backgroundStyle.presetBackgrounds", "Preset Backgrounds")}</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {BACKGROUND_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => setConfig(prev => ({
+                        ...prev,
+                        backgroundType: 'PRESET',
+                        backgroundValue: preset.id,
+                      }))}
+                      className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                        config.backgroundType === 'PRESET' && config.backgroundValue === preset.id
+                          ? 'border-blue-500 ring-2 ring-blue-200'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      style={{ background: preset.preview }}
+                    >
+                      <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-opacity" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1.5">
+                        {preset.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Solid Color Option */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={config.backgroundType === 'SOLID'}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setConfig(prev => ({
+                          ...prev,
+                          backgroundType: 'SOLID',
+                          backgroundValue: prev.backgroundValue || '#4F46E5',
+                        }));
+                      } else {
+                        setConfig(prev => ({
+                          ...prev,
+                          backgroundType: 'PRESET',
+                          backgroundValue: 'preset-1',
+                        }));
+                      }
+                    }}
+                  />
+                  <Label>{t("settings:landing.backgroundStyle.useSolidColor", "Use Solid Color")}</Label>
+                </div>
+                {config.backgroundType === 'SOLID' && (
+                  <div className="mt-4 p-4 border rounded-lg bg-muted">
+                    <ColorPicker
+                      label={t("settings:landing.backgroundStyle.backgroundColor", "Background Color")}
+                      color={config.backgroundValue || '#4F46E5'}
+                      onChange={(color) => setConfig(prev => ({ ...prev, backgroundValue: color }))}
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Buttons Tab */}
+        <TabsContent value="buttons" className="space-y-4">
           {/* Button Manager */}
           <Card>
             <CardHeader>
@@ -508,6 +595,29 @@ export function LandingManagerEnhanced() {
                 onButtonsChange={(buttons) => setConfig(prev => ({ ...prev, buttons }))}
                 hasStripeAccount={hasStripeAccount}
                 hasActiveFlow={hasActiveFlow}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Button Styling */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("settings:landing.buttonStyling.title", "Button Styling")}</CardTitle>
+              <CardDescription>
+                {t("settings:landing.buttonStyling.description", "Customize button appearance")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ColorPicker
+                label={t("settings:landing.buttonStyling.buttonBackgroundColor", "Button Background Color")}
+                color={config.buttonBackgroundColor}
+                onChange={(color) => setConfig(prev => ({ ...prev, buttonBackgroundColor: color }))}
+              />
+
+              <ColorPicker
+                label={t("settings:landing.buttonStyling.buttonTextColor", "Button Text Color")}
+                color={config.buttonTextColor}
+                onChange={(color) => setConfig(prev => ({ ...prev, buttonTextColor: color }))}
               />
             </CardContent>
           </Card>
@@ -581,105 +691,6 @@ export function LandingManagerEnhanced() {
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Appearance Tab */}
-        <TabsContent value="appearance" className="space-y-4">
-          {/* Background Style */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings:landing.backgroundStyle.title", "Background Style")}</CardTitle>
-              <CardDescription>
-                {t("settings:landing.backgroundStyle.description", "Choose a background for your landing page")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Preset Backgrounds */}
-              <div className="space-y-2">
-                <Label>{t("settings:landing.backgroundStyle.presetBackgrounds", "Preset Backgrounds")}</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {BACKGROUND_PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      onClick={() => setConfig(prev => ({
-                        ...prev,
-                        backgroundType: 'PRESET',
-                        backgroundValue: preset.id,
-                      }))}
-                      className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                        config.backgroundType === 'PRESET' && config.backgroundValue === preset.id
-                          ? 'border-blue-500 ring-2 ring-blue-200'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      style={{ background: preset.preview }}
-                    >
-                      <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-opacity" />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1.5">
-                        {preset.name}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Solid Color Option */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={config.backgroundType === 'SOLID'}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setConfig(prev => ({
-                          ...prev,
-                          backgroundType: 'SOLID',
-                          backgroundValue: prev.backgroundValue || '#4F46E5',
-                        }));
-                      } else {
-                        setConfig(prev => ({
-                          ...prev,
-                          backgroundType: 'PRESET',
-                          backgroundValue: 'preset-1',
-                        }));
-                      }
-                    }}
-                  />
-                  <Label>{t("settings:landing.backgroundStyle.useSolidColor", "Use Solid Color")}</Label>
-                </div>
-                {config.backgroundType === 'SOLID' && (
-                  <div className="mt-4 p-4 border rounded-lg bg-muted">
-                    <ColorPicker
-                      label={t("settings:landing.backgroundStyle.backgroundColor", "Background Color")}
-                      color={config.backgroundValue || '#4F46E5'}
-                      onChange={(color) => setConfig(prev => ({ ...prev, backgroundValue: color }))}
-                    />
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Button Styling */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings:landing.buttonStyling.title", "Button Styling")}</CardTitle>
-              <CardDescription>
-                {t("settings:landing.buttonStyling.description", "Customize button appearance")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ColorPicker
-                label={t("settings:landing.buttonStyling.buttonBackgroundColor", "Button Background Color")}
-                color={config.buttonBackgroundColor}
-                onChange={(color) => setConfig(prev => ({ ...prev, buttonBackgroundColor: color }))}
-              />
-
-              <ColorPicker
-                label={t("settings:landing.buttonStyling.buttonTextColor", "Button Text Color")}
-                color={config.buttonTextColor}
-                onChange={(color) => setConfig(prev => ({ ...prev, buttonTextColor: color }))}
-              />
             </CardContent>
           </Card>
         </TabsContent>

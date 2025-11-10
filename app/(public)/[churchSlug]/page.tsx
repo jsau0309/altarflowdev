@@ -127,6 +127,8 @@ export default async function LandingPage(props: LandingPageProps) {
 
   // Get published events
   const now = new Date();
+  now.setHours(0, 0, 0, 0);  // Set to midnight for day-level comparison
+
   const allEvents = await prisma.event.findMany({
     where: {
       churchId: church.id,
@@ -137,10 +139,14 @@ export default async function LandingPage(props: LandingPageProps) {
     }
   });
 
-  // Split events into upcoming and past
+  // Split events into upcoming and past using day-level comparison
   // Convert Date objects to ISO strings for client component compatibility
   const upcomingEvents = allEvents
-    .filter(event => event.eventDate >= now)
+    .filter(event => {
+      const eventDay = new Date(event.eventDate);
+      eventDay.setHours(0, 0, 0, 0);
+      return eventDay >= now;
+    })
     .map(event => ({
       id: event.id,
       churchId: event.churchId,
@@ -155,8 +161,12 @@ export default async function LandingPage(props: LandingPageProps) {
     }));
 
   const pastEvents = allEvents
-    .filter(event => event.eventDate < now)
-    .reverse()
+    .filter(event => {
+      const eventDay = new Date(event.eventDate);
+      eventDay.setHours(0, 0, 0, 0);
+      return eventDay < now;
+    })
+    .sort((a, b) => b.eventDate.getTime() - a.eventDate.getTime()) // Sort descending (most recent first)
     .map(event => ({
       id: event.id,
       churchId: event.churchId,

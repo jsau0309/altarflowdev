@@ -111,18 +111,50 @@ export function EventManager() {
   const handleOpenDialog = (event?: Event) => {
     if (event) {
       setEditingEvent(event);
-      // Parse date string (YYYY-MM-DD) to Date object
-      const [year, month, day] = event.eventDate.split('T')[0].split('-').map(Number);
-      const eventDateObj = new Date(year, month - 1, day);
 
-      setFormData({
-        title: event.title,
-        description: event.description,
-        eventDate: eventDateObj,
-        eventTime: event.eventTime,
-        address: event.address,
-        isPublished: event.isPublished,
-      });
+      try {
+        // Parse date string - handle both ISO 8601 and plain date strings
+        const datePart = event.eventDate.includes('T')
+          ? event.eventDate.split('T')[0]
+          : event.eventDate;
+        const [year, month, day] = datePart.split('-').map(Number);
+
+        // Validate parsed values
+        if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) {
+          console.error('Invalid date format:', event.eventDate);
+          // Fallback to current date
+          const eventDateObj = new Date();
+          setFormData({
+            title: event.title,
+            description: event.description,
+            eventDate: eventDateObj,
+            eventTime: event.eventTime,
+            address: event.address,
+            isPublished: event.isPublished,
+          });
+        } else {
+          const eventDateObj = new Date(year, month - 1, day);
+          setFormData({
+            title: event.title,
+            description: event.description,
+            eventDate: eventDateObj,
+            eventTime: event.eventTime,
+            address: event.address,
+            isPublished: event.isPublished,
+          });
+        }
+      } catch (error) {
+        console.error('Error parsing event date:', error);
+        // Fallback to current date on error
+        setFormData({
+          title: event.title,
+          description: event.description,
+          eventDate: new Date(),
+          eventTime: event.eventTime,
+          address: event.address,
+          isPublished: event.isPublished,
+        });
+      }
     } else {
       setEditingEvent(null);
       setFormData(initialFormData);
@@ -271,6 +303,11 @@ export function EventManager() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    // Validate date to prevent "Invalid Date" from showing in UI
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString);
+      return 'Invalid Date';
+    }
     return date.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
@@ -278,10 +315,23 @@ export function EventManager() {
     });
   };
 
-  // Separate upcoming and past events
+  // Separate upcoming and past events using day-level comparison
   const now = new Date();
-  const upcomingEvents = events.filter(e => new Date(e.eventDate) >= now);
-  const pastEvents = events.filter(e => new Date(e.eventDate) < now);
+  now.setHours(0, 0, 0, 0);  // Set to midnight for day-level comparison
+
+  const upcomingEvents = events.filter(e => {
+    const eventDay = new Date(e.eventDate);
+    eventDay.setHours(0, 0, 0, 0);
+    return eventDay >= now;
+  });
+
+  const pastEvents = events
+    .filter(e => {
+      const eventDay = new Date(e.eventDate);
+      eventDay.setHours(0, 0, 0, 0);
+      return eventDay < now;
+    })
+    .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime()); // Sort descending (most recent first)
 
   if (isLoading) {
     return <LoaderOne />;
@@ -411,7 +461,7 @@ export function EventManager() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pastEvents.reverse().map((event) => (
+                    {pastEvents.map((event) => (
                       <TableRow key={event.id}>
                         <TableCell className="font-medium">{event.title}</TableCell>
                         <TableCell>{formatDate(event.eventDate)}</TableCell>

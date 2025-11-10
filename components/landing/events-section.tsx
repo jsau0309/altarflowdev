@@ -30,18 +30,31 @@ export function EventsSection({
   eventDetailsColor = '#FFFFFF'
 }: EventsSectionProps) {
   const formatMonth = (dateString: string) => {
+    // Parse as UTC to preserve the date stored by parseDateAtNoon
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+    const utcYear = date.getUTCFullYear();
+    const utcMonth = date.getUTCMonth();
+    const utcDay = date.getUTCDate();
+    const localDate = new Date(utcYear, utcMonth, utcDay);
+    return localDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
   };
 
   const formatDay = (dateString: string) => {
     const date = new Date(dateString);
-    return date.getDate();
+    const utcYear = date.getUTCFullYear();
+    const utcMonth = date.getUTCMonth();
+    const utcDay = date.getUTCDate();
+    const localDate = new Date(utcYear, utcMonth, utcDay);
+    return localDate.getDate();
   };
 
   const formatFullDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
+    const utcYear = date.getUTCFullYear();
+    const utcMonth = date.getUTCMonth();
+    const utcDay = date.getUTCDate();
+    const localDate = new Date(utcYear, utcMonth, utcDay);
+    return localDate.toLocaleDateString(undefined, {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
