@@ -23,9 +23,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, Clock, MapPin, Plus, Pencil, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, MapPin, Plus, Pencil, Trash2, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import LoaderOne from "@/components/ui/loader-one";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Event {
   id: string;
@@ -42,7 +57,7 @@ interface Event {
 interface EventFormData {
   title: string;
   description: string;
-  eventDate: string;
+  eventDate: Date | undefined;
   eventTime: string;
   address: string;
   isPublished: boolean;
@@ -51,7 +66,7 @@ interface EventFormData {
 const initialFormData: EventFormData = {
   title: "",
   description: "",
-  eventDate: "",
+  eventDate: undefined,
   eventTime: "",
   address: "",
   isPublished: true,
@@ -65,6 +80,10 @@ export function EventManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [formData, setFormData] = useState<EventFormData>(initialFormData);
+  const [dateError, setDateError] = useState<string | null>(null);
+  const [showPastDateWarning, setShowPastDateWarning] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
 
   // Load events
   useEffect(() => {
@@ -92,10 +111,14 @@ export function EventManager() {
   const handleOpenDialog = (event?: Event) => {
     if (event) {
       setEditingEvent(event);
+      // Parse date string (YYYY-MM-DD) to Date object
+      const [year, month, day] = event.eventDate.split('T')[0].split('-').map(Number);
+      const eventDateObj = new Date(year, month - 1, day);
+
       setFormData({
         title: event.title,
         description: event.description,
-        eventDate: new Date(event.eventDate).toISOString().split('T')[0],
+        eventDate: eventDateObj,
         eventTime: event.eventTime,
         address: event.address,
         isPublished: event.isPublished,
@@ -104,6 +127,8 @@ export function EventManager() {
       setEditingEvent(null);
       setFormData(initialFormData);
     }
+    setDateError(null);
+    setShowPastDateWarning(false);
     setIsDialogOpen(true);
   };
 
@@ -111,6 +136,8 @@ export function EventManager() {
     setIsDialogOpen(false);
     setEditingEvent(null);
     setFormData(initialFormData);
+    setDateError(null);
+    setShowPastDateWarning(false);
   };
 
   const handleSave = async () => {
@@ -125,6 +152,7 @@ export function EventManager() {
     }
     if (!formData.eventDate) {
       toast.error(t("settings:events.dateRequired", "Event date is required"));
+      setDateError(t("settings:events.dateRequired", "Event date is required"));
       return;
     }
     if (!formData.eventTime.trim()) {
@@ -144,10 +172,25 @@ export function EventManager() {
 
       const method = editingEvent ? "PATCH" : "POST";
 
+      // Format date as YYYY-MM-DD for API
+      const year = formData.eventDate.getFullYear();
+      const month = String(formData.eventDate.getMonth() + 1).padStart(2, '0');
+      const day = String(formData.eventDate.getDate()).padStart(2, '0');
+      const eventDateString = `${year}-${month}-${day}`;
+
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        eventDate: eventDateString,
+        eventTime: formData.eventTime,
+        address: formData.address,
+        isPublished: formData.isPublished,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -171,13 +214,18 @@ export function EventManager() {
     }
   };
 
-  const handleDelete = async (eventId: string) => {
-    if (!confirm(t("settings:events.deleteConfirm", "Are you sure you want to delete this event?"))) {
-      return;
-    }
+  const handleDeleteClick = (event: Event) => {
+    setEventToDelete(event);
+    setConfirmDelete(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!eventToDelete) return;
+
+    const loadingToast = toast.loading(t("settings:events.deleting", "Deleting event..."));
 
     try {
-      const response = await fetch(`/api/settings/events/${eventId}`, {
+      const response = await fetch(`/api/settings/events/${eventToDelete.id}`, {
         method: "DELETE",
       });
 
@@ -185,10 +233,14 @@ export function EventManager() {
         throw new Error("Failed to delete event");
       }
 
+      toast.dismiss(loadingToast);
       toast.success(t("settings:events.deleteSuccess", "Event deleted successfully"));
+      setConfirmDelete(false);
+      setEventToDelete(null);
       loadEvents();
     } catch (error) {
       console.error("Failed to delete event:", error);
+      toast.dismiss(loadingToast);
       toast.error(t("settings:events.deleteError", "Failed to delete event"));
     }
   };
@@ -254,7 +306,7 @@ export function EventManager() {
 
       {events.length === 0 ? (
         <div className="text-center py-12 border rounded-lg border-dashed">
-          <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <CalendarIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">
             {t("settings:events.noEvents", "No events yet")}
           </h3>
@@ -327,7 +379,7 @@ export function EventManager() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(event.id)}
+                              onClick={() => handleDeleteClick(event)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -400,7 +452,7 @@ export function EventManager() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(event.id)}
+                              onClick={() => handleDeleteClick(event)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -429,6 +481,16 @@ export function EventManager() {
               {t("settings:events.eventFormDescription", "Fill in the event details below")}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Past Date Warning */}
+          {showPastDateWarning && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {t("settings:events.pastDateWarning", "Warning: This event date is in the past. It will appear in the 'Past Events' section.")}
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -463,16 +525,54 @@ export function EventManager() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="eventDate" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
+                <Label className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
                   {t("settings:events.eventDate", "Date")} *
                 </Label>
-                <Input
-                  id="eventDate"
-                  type="date"
-                  value={formData.eventDate}
-                  onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.eventDate && "text-muted-foreground",
+                        dateError && "border-red-500 focus:ring-red-500"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.eventDate ? format(formData.eventDate, 'PPP') : <span>{t('members:pickDate', 'Pick a date')}</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.eventDate}
+                      onSelect={(date) => {
+                        setFormData({ ...formData, eventDate: date });
+                        setDateError(null);
+
+                        // Check if date is in the past
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        if (date) {
+                          const selected = new Date(date);
+                          selected.setHours(0, 0, 0, 0);
+                          if (selected < today) {
+                            setShowPastDateWarning(true);
+                          } else {
+                            setShowPastDateWarning(false);
+                          }
+                        } else {
+                          setShowPastDateWarning(false);
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateError && (
+                  <p className="text-sm text-red-600" role="alert">{dateError}</p>
+                )}
               </div>
 
               <div className="grid gap-2">
@@ -534,6 +634,31 @@ export function EventManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("settings:events.deleteConfirmTitle", "Confirm Deletion")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("settings:events.deleteConfirm", "Are you sure you want to delete this event? This action cannot be undone.")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t("common:cancel", "Cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("common:delete", "Delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
