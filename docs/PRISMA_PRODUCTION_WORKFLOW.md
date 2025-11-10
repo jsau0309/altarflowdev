@@ -16,13 +16,13 @@ This document establishes a safe, predictable workflow for Prisma schema changes
 ### The Setup
 We have **TWO separate databases**:
 
-1. **Development Database** (`uhoovjoeitxecfcbzndj.supabase.co`)
+1. **Development Database** (`qdoyonfjxwqefvsfjchx.supabase.co`)
    - This is where we work and test
    - Connected via `.env.development`
    - Safe to modify and experiment
    - Changes here don't affect production
 
-2. **Production Database** (`qdoyonfjxwqefvsfjchx.supabase.co`)
+2. **Production Database** (`uhoovjoeitxecfcbzndj.supabase.co`)
    - **WE NEVER TOUCH THIS DIRECTLY**
    - Only modified through deployment
    - Connected via Vercel environment variables

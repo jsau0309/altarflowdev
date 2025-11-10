@@ -106,31 +106,51 @@ Any Prisma schema change can cause:
 - Service downtime
 - TypeScript build errors
 
+### 🔥 #1 RECURRING ISSUE: Schema Drift
+
+**Problem**: Every feature branch, schema drift keeps appearing. This happens when database changes are applied WITHOUT creating proper migrations.
+
+**The ONE Rule to Prevent Drift:**
+
+```bash
+# For ANY schema change, ONLY use this command:
+npx prisma migrate dev --name descriptive_name
+
+# ❌ NEVER use these (they cause drift):
+# npx prisma db push
+# npx prisma generate (by itself after schema change)
+```
+
+**Quick Fix When Drift Happens:**
+
+```bash
+# Reset development database (safe for dev, NEVER for production)
+DATABASE_URL="$DIRECT_URL" npx prisma migrate reset
+```
+
+**📖 READ FIRST:** `/docs/PREVENT_SCHEMA_DRIFT.md` - Simple guide to prevent recurring drift
+
 ### Required Reading Before ANY Schema Change
-**📖 MUST READ:** `/docs/PRISMA_PRODUCTION_WORKFLOW.md`
 
-This comprehensive guide covers:
-- Safe development workflow
-- Migration review checklist
-- Production deployment procedures
-- Emergency rollback procedures
-- Team coordination guidelines
+**📖 Comprehensive Guides:**
+- `/docs/PREVENT_SCHEMA_DRIFT.md` - **START HERE** - Simple anti-drift workflow
+- `/docs/PRISMA_SCHEMA_DRIFT_ANALYSIS.md` - Deep dive into why drift happens
+- `/docs/PRISMA_PRODUCTION_WORKFLOW.md` - Full production deployment guide
 
-### Quick Safety Rules (Production Environment)
+### Quick Safety Rules
 
 **❌ NEVER DO:**
-1. **NEVER use `npx prisma db push`** - Only for local prototyping!
-2. **NEVER remove `@default()` from id fields** - Causes TypeScript errors
-3. **NEVER modify schema without creating migration** - Causes drift
-4. **NEVER deploy schema changes on Fridays** - Weekend incidents are bad
-5. **NEVER skip migration SQL review** - Destructive changes are permanent
-6. **NEVER deploy without team notification** - Coordinate changes
-7. **NEVER skip production backup** - Last safety net
+1. **NEVER use `npx prisma db push`** - Causes schema drift!
+2. **NEVER run `npx prisma generate` alone after schema change** - Creates drift!
+3. **NEVER modify database directly via SQL** - Bypasses migrations!
+4. **NEVER remove `@default()` from id fields** - Causes TypeScript errors
+5. **NEVER deploy schema changes on Fridays** - Weekend incidents are bad
+6. **NEVER skip migration SQL review** - Destructive changes are permanent
 
 **✅ ALWAYS DO:**
-1. **ALWAYS backup production** before schema changes (Supabase dashboard)
-2. **ALWAYS use `npx prisma migrate dev`** to create tracked migrations
-3. **ALWAYS review generated SQL** before committing
+1. **ALWAYS use `npx prisma migrate dev --name NAME`** for schema changes
+2. **ALWAYS review generated SQL** before committing
+3. **ALWAYS commit schema + migrations together**
 4. **ALWAYS add `@default()` to new id fields**:
    ```prisma
    id String @id @default(uuid()) @db.Uuid  // For UUID
@@ -140,7 +160,7 @@ This comprehensive guide covers:
    ```prisma
    updatedAt DateTime @updatedAt
    ```
-6. **ALWAYS use PascalCase for relation names** (matches model names):
+6. **ALWAYS use PascalCase for relation names**:
    ```prisma
    model DonationTransaction {
      Church Church @relation(...)           // ✅ PascalCase
@@ -151,93 +171,107 @@ This comprehensive guide covers:
    ```bash
    npx tsc --noEmit && npm run build
    ```
-8. **ALWAYS commit both schema AND migration files** together
-9. **ALWAYS test migrations locally first**
-10. **ALWAYS have a rollback plan** documented in PR
+8. **ALWAYS use direct URL if pooler times out**:
+   ```bash
+   DATABASE_URL="$DIRECT_URL" npx prisma migrate dev
+   ```
 
-### Pre-Deployment Checklist (Required)
+### The Correct Workflow (Anti-Drift)
 
-Before pushing ANY Prisma schema change to production:
-- [ ] Read `/docs/PRISMA_PRODUCTION_WORKFLOW.md`
-- [ ] Created production backup (Supabase → Database → Backups)
-- [ ] Migration tested in local development
-- [ ] TypeScript compiles without errors (`npx tsc --noEmit`)
-- [ ] Full build succeeds (`npm run build`)
-- [ ] Migration SQL reviewed for safety
-- [ ] Team notified about pending deployment
-- [ ] Rollback procedure documented in PR
-- [ ] Deployment scheduled during low-traffic period
+**Step-by-step to NEVER get drift:**
 
-### Database Migration Best Practices
-
-**🗄️ CRITICAL: Two-Database System**
-
-We have TWO separate databases:
-- **Development DB** (`uhoovjoeitxecfcbzndj.supabase.co`) - Work here, safe to modify
-- **Production DB** (`qdoyonfjxwqefvsfjchx.supabase.co`) - NEVER touch directly, only through deployment
-
-**Source of Truth:** Prisma schema file (`prisma/schema.prisma`)
-
-**Correct Workflow for Schema Changes:**
-
-1. **Modify `prisma/schema.prisma`** - Add your field/model
+1. **Edit schema**: Modify `prisma/schema.prisma`
    ```prisma
-   model LandingPageConfig {
-     ogBackgroundColor String? @default("#3B82F6")  // New field
+   model User {
+     newField String?  // Add your change
    }
    ```
 
-2. **Create migration folder manually**
+2. **Create migration**: ONE command does everything
    ```bash
-   TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
-   mkdir -p "prisma/migrations/${TIMESTAMP}_add_field_name"
+   npx prisma migrate dev --name add_new_field
+   # This creates migration + applies to DB + regenerates client
    ```
 
-3. **Write migration SQL manually**
-   Create `prisma/migrations/[TIMESTAMP]_name/migration.sql`:
-   ```sql
-   ALTER TABLE "TableName" ADD COLUMN "fieldName" TEXT DEFAULT 'value';
-   ```
-
-4. **Sync development database**
+3. **Review SQL**: Check auto-generated migration
    ```bash
-   npx prisma migrate dev    # Applies migration to dev DB
-   # OR
-   npx prisma generate       # Just regenerate client
+   cat prisma/migrations/TIMESTAMP_add_new_field/migration.sql
    ```
 
-5. **Test locally**
+4. **Test**: Build and run locally
    ```bash
    npx tsc --noEmit
    npm run build
+   npm run dev
    ```
 
-6. **Commit schema + migration together**
+5. **Commit**: Schema + migration together
    ```bash
    git add prisma/schema.prisma prisma/migrations/
-   git commit -m "feat: Add field to table"
+   git commit -m "feat: Add new field"
    ```
 
-7. **Deploy** - Vercel runs `npx prisma migrate deploy` on production DB automatically
+6. **Deploy**: Push to GitHub, Vercel handles production
+   ```bash
+   git push
+   # Vercel runs: npx prisma migrate deploy
+   # Production DB updated automatically
+   ```
 
-**❌ NEVER:**
-- Run `npx prisma migrate dev` BEFORE creating migration folder (causes shadow DB issues)
-- Modify production database directly
-- Use `npx prisma db push` (doesn't create migration files)
-- Mark migrations as applied without running the SQL
+**Why This Works:**
+- Schema, migrations, and database all stay in sync
+- No drift possible
+- Production gets same changes as dev
+- All tracked in Git
 
-**If you encounter drift errors:**
-1. Check status: `npx prisma migrate status`
-2. If changes were made without migrations, create a baseline migration
-3. Mark it as applied: `npx prisma migrate resolve --applied "migration_name"`
-4. Document why drift occurred to prevent future issues
+### Two-Database System
 
-**Migration naming conventions:**
+We have TWO separate databases:
+- **Development** (`qdoyonfjxwqefvsfjchx.supabase.co`) - Safe to reset, modify, experiment
+- **Production** (`uhoovjoeitxecfcbzndj.supabase.co`) - NEVER touch directly
+
+**Source of Truth:** `prisma/schema.prisma` (not the database!)
+
+### Drift Detection & Fix
+
+**Check for drift:**
+```bash
+npx prisma migrate status
+
+# ✅ Healthy: "Database schema is up to date!"
+# ⚠️ Drift: "Your database schema is not in sync..."
+```
+
+**Fix drift in development:**
+```bash
+# Option 1: Reset (recommended)
+DATABASE_URL="$DIRECT_URL" npx prisma migrate reset
+
+# Option 2: Create baseline migration
+npx prisma migrate dev --name baseline_drift_fix --create-only
+# Edit SQL to be empty, then:
+npx prisma migrate resolve --applied "baseline_drift_fix"
+```
+
+### Migration Naming Conventions
+
 - `add_table_name` - Creating new tables
 - `update_table_add_field` - Adding fields
 - `remove_unused_table` - Dropping tables
 - `fix_constraint_issue` - Fixing problems
-- Always use descriptive names that explain the change
+- Always use snake_case and be descriptive
+
+### Pre-Deployment Checklist
+
+Before pushing ANY Prisma schema change:
+- [ ] Read `/docs/PREVENT_SCHEMA_DRIFT.md`
+- [ ] Used `npx prisma migrate dev --name NAME` (not db push!)
+- [ ] Migration tested in local development
+- [ ] TypeScript compiles (`npx tsc --noEmit`)
+- [ ] Full build succeeds (`npm run build`)
+- [ ] Migration SQL reviewed for safety
+- [ ] No drift: `npx prisma migrate status` shows "up to date"
+- [ ] Schema + migrations committed together
 
 ## Common Gotchas
 
