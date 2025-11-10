@@ -1,0 +1,110 @@
+{
+  "timestamp": "2025-11-10T13:30:01.722Z",
+  "churches": [
+    {
+      "id": "3ddf4359-87f2-4d6f-b7c0-d920af08a822",
+      "name": "Church Test",
+      "address": "456 Mastick Ave",
+      "phone": "4696573825",
+      "email": "hola@jeffunderwood.me",
+      "website": null,
+      "createdAt": "2025-11-04T23:35:49.720Z",
+      "updatedAt": "2025-11-04T23:36:25.811Z",
+      "clerkOrgId": "org_352DbwYkScMAjt0rf8ED26fKJ1z",
+      "ministriesJson": null,
+      "serviceTimesJson": null,
+      "settingsJson": {
+        "language": "en",
+        "theme": "light"
+      },
+      "slug": "church-test",
+      "onboardingCompleted": true,
+      "onboardingStep": 6,
+      "stripeCustomerId": "cus_TMdIsvjyMrHiYA",
+      "subscriptionEndsAt": null,
+      "subscriptionId": "sub_1SPu24PpvCLsMCOrjOuAJktD",
+      "subscriptionPlan": "monthly",
+      "subscriptionStatus": "active",
+      "trialEndsAt": "2025-12-04T23:35:49.719Z",
+      "setupFeePaid": true,
+      "setupFeeAmount": null,
+      "setupFeePaidAt": null,
+      "freeTrialStartedAt": "2025-11-04T23:35:49.719Z",
+      "promotionalEndsAt": null,
+      "promotionalCouponId": null,
+      "StripeConnectAccount": {
+        "id": "553a6e21-0ed8-43f9-bd48-61d4bb9ed03b",
+        "stripeAccountId": "acct_1SPuO7L6WrNmY15t",
+        "churchId": "org_352DbwYkScMAjt0rf8ED26fKJ1z",
+        "chargesEnabled": true,
+        "detailsSubmitted": true,
+        "payoutsEnabled": true,
+        "createdAt": "2025-11-05T00:15:50.328Z",
+        "updatedAt": "2025-11-05T00:21:30.765Z",
+        "metadata": {
+          "churchId": "org_352DbwYkScMAjt0rf8ED26fKJ1z"
+        },
+        "requirementsCurrentlyDue": [],
+        "requirementsDisabledReason": null,
+        "requirementsEventuallyDue": [],
+        "tosAcceptanceDate": "2025-11-05T00:21:16.000Z",
+        "verificationStatus": "verified",
+        "paymentDomainsRegistered": true,
+        "paymentDomainsRegisteredAt": "2025-11-05T00:21:21.555Z",
+        "registeredDomains": [
+          "altarflow.com",
+          "www.altarflow.com"
+        ]
+      },
+      "EmailSettings": null
+    }
+  ],
+  "profiles": [
+    {
+      "id": "user_352Da7dM48OvZjj2sh3czM2SObk",
+      "firstName": "Jeffrey",
+      "lastName": "Alonso",
+      "churchName": null,
+      "role": "ADMIN",
+      "onboardingComplete": false,
+      "createdAt": "2025-11-04T23:35:35.638Z",
+      "updatedAt": "2025-11-04T23:35:35.638Z",
+      "email": null
+    }
+  ],
+  "donationTypes": [
+    {
+      "id": "cmhl7j5120000y4r8dbb74irw",
+      "churchId": "3ddf4359-87f2-4d6f-b7c0-d920af08a822",
+      "name": "Tithe",
+      "description": "Regular giving to support the church's mission and ministries.",
+      "isRecurringAllowed": true,
+      "createdAt": "2025-11-04T23:35:49.814Z",
+      "updatedAt": "2025-11-04T23:35:49.814Z",
+      "isCampaign": false,
+      "goalAmount": null,
+      "startDate": null,
+      "endDate": null,
+      "isActive": true,
+      "isSystemType": true,
+      "isDeletable": false
+    },
+    {
+      "id": "cmhl7j5120001y4r8fqanjjng",
+      "churchId": "3ddf4359-87f2-4d6f-b7c0-d920af08a822",
+      "name": "Offering",
+      "description": "General contributions and special one-time gifts.",
+      "isRecurringAllowed": true,
+      "createdAt": "2025-11-04T23:35:49.814Z",
+      "updatedAt": "2025-11-04T23:35:49.814Z",
+      "isCampaign": false,
+      "goalAmount": null,
+      "startDate": null,
+      "endDate": null,
+      "isActive": true,
+      "isSystemType": true,
+      "isDeletable": false
+    }
+  ],
+  "members": []
+}

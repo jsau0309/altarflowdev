@@ -138,12 +138,43 @@ export default async function LandingPage(props: LandingPageProps) {
   });
 
   // Split events into upcoming and past
-  const upcomingEvents = allEvents.filter(event => event.eventDate >= now);
-  const pastEvents = allEvents.filter(event => event.eventDate < now).reverse();
+  // Convert Date objects to ISO strings for client component compatibility
+  const upcomingEvents = allEvents
+    .filter(event => event.eventDate >= now)
+    .map(event => ({
+      id: event.id,
+      churchId: event.churchId,
+      title: event.title,
+      description: event.description,
+      eventDate: event.eventDate.toISOString(),
+      eventTime: event.eventTime,
+      address: event.address,
+      isPublished: event.isPublished,
+      createdAt: event.createdAt.toISOString(),
+      updatedAt: event.updatedAt.toISOString()
+    }));
+
+  const pastEvents = allEvents
+    .filter(event => event.eventDate < now)
+    .reverse()
+    .map(event => ({
+      id: event.id,
+      churchId: event.churchId,
+      title: event.title,
+      description: event.description,
+      eventDate: event.eventDate.toISOString(),
+      eventTime: event.eventTime,
+      address: event.address,
+      isPublished: event.isPublished,
+      createdAt: event.createdAt.toISOString(),
+      updatedAt: event.updatedAt.toISOString()
+    }));
 
   // Get button configuration
   const buttonBackgroundColor = landingConfig?.buttonBackgroundColor || '#FFFFFF';
   const buttonTextColor = landingConfig?.buttonTextColor || '#1F2937';
+  const eventTitleColor = landingConfig?.eventTitleColor || '#FFFFFF';
+  const eventDetailsColor = landingConfig?.eventDetailsColor || '#FFFFFF';
   const { safeParseButtons } = await import('@/lib/validation/button-validation');
   let buttonsConfig = safeParseButtons(landingConfig?.buttons);
 
@@ -352,6 +383,8 @@ export default async function LandingPage(props: LandingPageProps) {
           pastEvents={pastEvents}
           buttonBackgroundColor={buttonBackgroundColor}
           buttonTextColor={buttonTextColor}
+          eventTitleColor={eventTitleColor}
+          eventDetailsColor={eventDetailsColor}
         />
       </div>
 

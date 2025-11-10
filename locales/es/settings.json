@@ -388,7 +388,15 @@
       "deleteError": "Error al eliminar evento",
       "publishSuccess": "Evento publicado en la página de destino",
       "unpublishSuccess": "Evento ocultado de la página de destino",
-      "toggleError": "Error al actualizar evento"
+      "toggleError": "Error al actualizar evento",
+      "styling": {
+        "title": "Estilo de Eventos",
+        "description": "Personaliza cómo aparecen los eventos en tu página de destino",
+        "titleColor": "Color del Título del Evento",
+        "detailsColor": "Color de Detalles del Evento",
+        "colorSaved": "Color del título del evento guardado con éxito",
+        "colorSaveError": "Error al guardar el color del título del evento"
+      }
     },
 
     "comingSoon": "Próximamente",

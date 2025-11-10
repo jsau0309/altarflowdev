@@ -389,7 +389,15 @@
     "deleteError": "Failed to delete event",
     "publishSuccess": "Event published to landing page",
     "unpublishSuccess": "Event hidden from landing page",
-    "toggleError": "Failed to update event"
+    "toggleError": "Failed to update event",
+    "styling": {
+      "title": "Event Styling",
+      "description": "Customize how events appear on your landing page",
+      "titleColor": "Event Title Color",
+      "detailsColor": "Event Details Color",
+      "colorSaved": "Event title color saved successfully",
+      "colorSaveError": "Failed to save event title color"
+    }
   },
 
   "comingSoon": "Coming soon",

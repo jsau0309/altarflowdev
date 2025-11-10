@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, Clock, MapPin, Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Calendar, Clock, MapPin, Plus, Pencil, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import LoaderOne from "@/components/ui/loader-one";
 
@@ -78,6 +78,9 @@ export function EventManager() {
 
       const data = await response.json();
       setEvents(data.events || []);
+
+      // Notify parent component (landing-manager-enhanced) to update preview
+      window.dispatchEvent(new CustomEvent('eventsUpdated'));
     } catch (error) {
       console.error("Failed to load events:", error);
       toast.error(t("settings:events.loadError", "Failed to load events"));
@@ -221,10 +224,6 @@ export function EventManager() {
       month: 'short',
       day: 'numeric'
     });
-  };
-
-  const isPastEvent = (dateString: string) => {
-    return new Date(dateString) < new Date();
   };
 
   // Separate upcoming and past events
@@ -525,7 +524,7 @@ export function EventManager() {
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving ? (
                 <>
-                  <LoaderOne className="h-4 w-4 mr-2" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   {t("common:saving", "Saving...")}
                 </>
               ) : (

@@ -6,6 +6,7 @@ import { Facebook, Instagram, Twitter, Youtube, Globe, User, Share2 } from 'luci
 import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
 import { getTitleFont, getTitleSizeClass } from '@/lib/landing-page/font-config';
 import { LandingShareModal } from './landing-share-modal';
+import { EventsSection } from '@/components/landing/events-section';
 
 interface SocialLinks {
   facebook?: string;
@@ -22,6 +23,16 @@ interface ButtonConfig {
   url?: string;
   enabled: boolean;
   order: number;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  eventDate: string;
+  eventTime: string;
+  address: string;
+  isPublished: boolean;
 }
 
 interface LandingPagePreviewProps {
@@ -48,6 +59,10 @@ interface LandingPagePreviewProps {
   announcementText?: string | null;
   announcementLink?: string | null;
   showAnnouncement?: boolean;
+  upcomingEvents?: Event[];
+  pastEvents?: Event[];
+  eventTitleColor?: string;
+  eventDetailsColor?: string;
 }
 
 export function LandingPagePreview({
@@ -74,6 +89,10 @@ export function LandingPagePreview({
   announcementText = null,
   announcementLink = null,
   showAnnouncement = false,
+  upcomingEvents = [],
+  pastEvents = [],
+  eventTitleColor = '#FFFFFF',
+  eventDetailsColor = '#FFFFFF',
 }: LandingPagePreviewProps) {
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -216,6 +235,18 @@ export function LandingPagePreview({
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Events Section */}
+          {(upcomingEvents.length > 0 || pastEvents.length > 0) && (
+            <EventsSection
+              upcomingEvents={upcomingEvents}
+              pastEvents={pastEvents}
+              buttonBackgroundColor={buttonBackgroundColor}
+              buttonTextColor={buttonTextColor}
+              eventTitleColor={eventTitleColor}
+              eventDetailsColor={eventDetailsColor}
+            />
           )}
 
           {/* Footer */}

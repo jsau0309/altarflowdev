@@ -11,7 +11,7 @@ datasource db {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Church {
-  id                   String                @id @default(uuid()) @db.Uuid
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                 String
   address              String?
   phone                String?
@@ -32,27 +32,25 @@ model Church {
   subscriptionPlan     String?
   subscriptionStatus   String                @default("pending_payment")
   trialEndsAt          DateTime?
-
-  // New pricing model fields
   setupFeePaid         Boolean               @default(false)
-  setupFeeAmount       Int?                  // Amount in cents
+  setupFeeAmount       Int?
   setupFeePaidAt       DateTime?
-  freeTrialStartedAt   DateTime?             // When free trial began
-  promotionalEndsAt    DateTime?             // When 50% discount ends (3 months after subscription)
-  promotionalCouponId  String?               // Stripe coupon ID used (e.g., "50OFF3MONTHS")
+  freeTrialStartedAt   DateTime?
+  promotionalEndsAt    DateTime?
+  promotionalCouponId  String?
   DonationTransaction  DonationTransaction[]
   DonationType         DonationType[]
   Donor                Donor[]
   EmailCampaign        EmailCampaign[]
   EmailQuota           EmailQuota[]
   EmailSettings        EmailSettings?
+  Event                Event[]
   Expense              Expense[]
   Flow                 Flow[]
+  LandingPageConfig    LandingPageConfig?
   Member               Member[]
   PayoutSummary        PayoutSummary[]
   StripeConnectAccount StripeConnectAccount?
-  LandingPageConfig    LandingPageConfig?
-  Event                Event[]
 
   @@index([clerkOrgId])
   @@index([slug])
@@ -78,7 +76,6 @@ model DonationTransaction {
   processedAt                 DateTime?
   idempotencyKey              String?      @unique
   processingFeeCoveredByDonor Int?         @default(0)
-  platformFeeAmount           Int?         @default(0)
   donorId                     String?
   source                      String       @default("stripe")
   createdAt                   DateTime     @default(now())
@@ -95,6 +92,7 @@ model DonationTransaction {
   isAnonymous                 Boolean      @default(false)
   isInternational             Boolean      @default(false)
   donorCountry                String?
+  platformFeeAmount           Int?         @default(0)
   donorLanguage               String?      @default("en")
   Church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
   DonationType                DonationType @relation(fields: [donationTypeId], references: [id])
@@ -109,12 +107,13 @@ model DonationTransaction {
   @@index([stripePaymentIntentId], map: "idx_donation_transaction_stripe")
   @@index([churchId, createdAt(sort: Desc)], map: "idx_donations_church_date")
   @@index([churchId, donationTypeId, createdAt(sort: Desc)], map: "idx_donations_church_fund_date")
+  @@index([churchId], map: "idx_donation_transaction_church")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model DonationType {
-  id                  String                @id @default(cuid())
+  id                  String                @id @default(dbgenerated("(gen_random_uuid())::text"))
   churchId            String                @db.Uuid
   name                String
   description         String?
@@ -133,6 +132,7 @@ model DonationType {
 
   @@unique([churchId, name])
   @@index([churchId, isCampaign])
+  @@index([churchId], map: "idx_donation_type_church")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -160,6 +160,7 @@ model Donor {
 
   @@index([churchId])
   @@index([memberId])
+  @@index([churchId], map: "idx_donor_church")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -189,6 +190,7 @@ model EmailCampaign {
   @@index([scheduledFor])
   @@index([status])
   @@index([churchId, status], map: "idx_campaigns_church_status")
+  @@index([churchId, status], map: "idx_email_campaign_church_status")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -208,6 +210,7 @@ model EmailPreference {
 
   @@index([unsubscribeToken])
   @@index([memberId], map: "idx_email_prefs_member")
+  @@index([memberId], map: "idx_email_preference_member")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -222,6 +225,7 @@ model EmailQuota {
   Church     Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
 
   @@unique([churchId, monthYear])
+  @@index([churchId], map: "idx_email_quota_church")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -244,6 +248,7 @@ model EmailRecipient {
   @@unique([campaignId, memberId])
   @@index([memberId])
   @@index([campaignId, status], map: "idx_email_recipients_campaign_status")
+  @@index([campaignId, email], map: "idx_email_recipient_campaign_email")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -257,6 +262,8 @@ model EmailSettings {
   replyToEmail  String?
   senderName    String?
   Church        Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@index([churchId], map: "idx_email_settings_church")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -284,6 +291,7 @@ model Expense {
   @@index([churchId])
   @@index([submitterId])
   @@index([churchId, expenseDate(sort: Desc)], map: "idx_expenses_church_date")
+  @@index([churchId, createdAt], map: "idx_expense_church_date")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -306,7 +314,7 @@ model Flow {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Member {
-  id                         String            @id @default(uuid()) @db.Uuid
+  id                         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   firstName                  String
   lastName                   String
   email                      String?
@@ -340,6 +348,7 @@ model Member {
   @@index([churchId, joinDate])
   @@index([churchId, email], map: "idx_members_church_email")
   @@index([churchId, membershipStatus], map: "idx_members_church_status")
+  @@index([churchId, email], map: "idx_member_church_email")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -369,6 +378,7 @@ model PayoutSummary {
 
   @@index([churchId, payoutDate])
   @@index([payoutDate])
+  @@index([churchId], map: "idx_payout_summary_church")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -388,7 +398,7 @@ model Profile {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model StripeConnectAccount {
-  id                         String    @id @default(uuid()) @db.Uuid
+  id                         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   stripeAccountId            String    @unique
   churchId                   String    @unique
   chargesEnabled             Boolean   @default(false)
@@ -406,6 +416,8 @@ model StripeConnectAccount {
   paymentDomainsRegisteredAt DateTime?
   registeredDomains          String[]  @default([])
   Church                     Church    @relation(fields: [churchId], references: [clerkOrgId], onDelete: Cascade)
+
+  @@index([churchId], map: "idx_stripe_connect_church")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -431,49 +443,34 @@ model idempotency_cache {
 /// Landing page customization settings for churches
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model LandingPageConfig {
-  id                String          @id @default(uuid()) @db.Uuid
-  churchId          String          @unique @db.Uuid
-
-  // Branding
-  logoUrl           String?
-  logoPath          String?         // Supabase storage path
-  description       String?         @db.Text
-
-  // Title Customization
-  customTitle       String?         // Optional override of church name
-  titleFont         String          @default("Modern")
-  titleSize         String          @default("Large")
-  titleColor        String          @default("#1F2937") // Default dark gray
-
-  // Background customization
-  backgroundType    BackgroundType  @default(PRESET)
-  backgroundValue   String?         // Preset ID, hex color, or image URL
-  ogBackgroundColor String?         @default("#3B82F6") // Solid color for OG image (Linktree style)
-
-  // Social Media Links (stored as JSON for flexibility)
-  socialLinks       Json?           @db.Json
-
-  // Button Settings (Legacy - kept for backward compatibility)
-  showDonateButton  Boolean         @default(false)
-  showConnectButton Boolean         @default(false)
-  donateButtonText  String          @default("Donate")
-  connectButtonText String          @default("Connect")
-
-  // New Button System (Unified & Sortable)
-  buttonBackgroundColor String?     @default("#FFFFFF")
-  buttonTextColor       String?     @default("#1F2937")
-  buttons               Json?       @db.Json // Array of {id, type, label, url?, enabled, order}
-
-  // Announcement Banner
-  announcementText      String?     // Announcement text to display
-  announcementLink      String?     // Optional URL to link to
-  showAnnouncement      Boolean     @default(false) // Show/hide toggle
-
-  // Timestamps
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-
-  Church            Church          @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  id                    String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  churchId              String         @unique @db.Uuid
+  logoUrl               String?
+  logoPath              String?
+  description           String?
+  backgroundType        BackgroundType @default(PRESET)
+  backgroundValue       String?
+  socialLinks           Json?          @db.Json
+  showDonateButton      Boolean        @default(false)
+  showConnectButton     Boolean        @default(false)
+  donateButtonText      String         @default("Donate")
+  connectButtonText     String         @default("Connect")
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @default(now()) @updatedAt
+  customTitle           String?
+  titleFont             String         @default("Modern")
+  titleSize             String         @default("Large")
+  titleColor            String         @default("#1F2937")
+  buttonBackgroundColor String?        @default("#FFFFFF")
+  buttonTextColor       String?        @default("#1F2937")
+  buttons               Json?
+  announcementText      String?
+  announcementLink      String?
+  showAnnouncement      Boolean        @default(false)
+  ogBackgroundColor     String?        @default("#3B82F6")
+  eventTitleColor       String         @default("#FFFFFF")
+  eventDetailsColor     String         @default("#FFFFFF")
+  Church                Church         @relation(fields: [churchId], references: [id], onDelete: Cascade)
 
   @@index([churchId])
 }
@@ -482,25 +479,18 @@ model LandingPageConfig {
 model Event {
   id          String   @id @default(uuid()) @db.Uuid
   churchId    String   @db.Uuid
-
-  // Event details
   title       String
-  description String   @db.Text
-  eventDate   DateTime // The date when the event occurs
-  eventTime   String   // Time in readable format (e.g., "7:00 PM", "19:00")
-  address     String   @db.Text
-
-  // Display settings
-  isPublished Boolean  @default(true) // Whether to show this event on the landing page
-
-  // Timestamps
+  description String
+  eventDate   DateTime
+  eventTime   String
+  address     String
+  isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   Church      Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
 
   @@index([churchId])
-  @@index([churchId, eventDate]) // Optimize queries for upcoming/past events by church
+  @@index([churchId, eventDate])
 }
 
 enum BackgroundType {

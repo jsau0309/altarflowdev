@@ -2,6 +2,19 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 
+/**
+ * Convert a date string (YYYY-MM-DD) to a Date object at noon local time.
+ * This prevents timezone-related date shifts when storing date-only values.
+ *
+ * Example: "2025-11-10" becomes November 10, 2025 at 12:00:00 local time
+ * instead of November 9, 2025 at 19:00:00 (if parsed as UTC in EST timezone)
+ */
+function parseDateAtNoon(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  // Month is 0-indexed in JavaScript Date
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
 // Validation helper for event data
 function validateEventData(data: any): { isValid: boolean; error?: string } {
   if (!data.title || typeof data.title !== 'string' || data.title.trim().length === 0) {
@@ -24,9 +37,17 @@ function validateEventData(data: any): { isValid: boolean; error?: string } {
     return { isValid: false, error: "Event date is required" };
   }
 
-  // Validate date format
-  const eventDate = new Date(data.eventDate);
-  if (isNaN(eventDate.getTime())) {
+  // Validate date format (YYYY-MM-DD)
+  if (typeof data.eventDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data.eventDate)) {
+    return { isValid: false, error: "Invalid event date format. Expected YYYY-MM-DD" };
+  }
+
+  try {
+    const eventDate = parseDateAtNoon(data.eventDate);
+    if (isNaN(eventDate.getTime())) {
+      return { isValid: false, error: "Invalid event date" };
+    }
+  } catch (error) {
     return { isValid: false, error: "Invalid event date format" };
   }
 
@@ -135,7 +156,7 @@ export async function POST(request: Request) {
         churchId: church.id,
         title: body.title.trim(),
         description: body.description.trim(),
-        eventDate: new Date(body.eventDate),
+        eventDate: parseDateAtNoon(body.eventDate),
         eventTime: body.eventTime.trim(),
         address: body.address.trim(),
         isPublished: body.isPublished ?? true

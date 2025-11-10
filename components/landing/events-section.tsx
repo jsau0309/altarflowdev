@@ -17,21 +17,35 @@ interface EventsSectionProps {
   pastEvents: Event[];
   buttonBackgroundColor: string;
   buttonTextColor: string;
+  eventTitleColor?: string;
+  eventDetailsColor?: string;
 }
 
 export function EventsSection({
   upcomingEvents,
   pastEvents,
   buttonBackgroundColor,
-  buttonTextColor
+  buttonTextColor,
+  eventTitleColor = '#FFFFFF',
+  eventDetailsColor = '#FFFFFF'
 }: EventsSectionProps) {
-  const formatDate = (dateString: string) => {
+  const formatMonth = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  };
+
+  const formatDay = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.getDate();
+  };
+
+  const formatFullDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString(undefined, {
       weekday: 'long',
-      year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -56,33 +70,61 @@ export function EventsSection({
             {displayUpcoming.map((event) => (
               <div
                 key={event.id}
-                className="rounded-xl p-4 backdrop-blur-sm shadow-lg transition hover:shadow-xl"
+                className="flex gap-3 rounded-xl p-4 backdrop-blur-sm shadow-lg transition hover:shadow-xl"
                 style={{
                   backgroundColor: `${buttonBackgroundColor}15`,
-                  borderLeft: `4px solid ${buttonBackgroundColor}`,
                 }}
               >
-                <h4
-                  className="font-semibold mb-2 text-base"
-                  style={{ color: buttonTextColor }}
+                {/* Date Box */}
+                <div
+                  className="flex-shrink-0 w-16 h-16 rounded-lg flex flex-col items-center justify-center"
+                  style={{
+                    backgroundColor: buttonBackgroundColor,
+                  }}
                 >
-                  {event.title}
-                </h4>
-                <p className="text-sm text-white/80 mb-3 line-clamp-2">
-                  {event.description}
-                </p>
-                <div className="space-y-1.5 text-xs text-white/70">
-                  <div className="flex items-start gap-2">
-                    <Calendar className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                    <span>{formatDate(event.eventDate)}</span>
+                  <div
+                    className="text-[10px] font-bold leading-none"
+                    style={{ color: buttonTextColor }}
+                  >
+                    {formatMonth(event.eventDate)}
                   </div>
-                  <div className="flex items-start gap-2">
-                    <Clock className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                    <span>{event.eventTime}</span>
+                  <div
+                    className="text-2xl font-bold leading-none mt-1"
+                    style={{ color: buttonTextColor }}
+                  >
+                    {formatDay(event.eventDate)}
                   </div>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                    <span>{event.address}</span>
+                </div>
+
+                {/* Event Details */}
+                <div className="flex-1 min-w-0 space-y-2">
+                  <h4
+                    className="font-semibold text-base leading-snug"
+                    style={{ color: eventTitleColor }}
+                  >
+                    {event.title}
+                  </h4>
+
+                  {/* Description */}
+                  {event.description && (
+                    <p
+                      className="text-xs leading-relaxed"
+                      style={{ color: eventDetailsColor, opacity: 0.9 }}
+                    >
+                      {event.description}
+                    </p>
+                  )}
+
+                  {/* Date, Time, and Address */}
+                  <div className="space-y-1.5 text-xs" style={{ color: eventDetailsColor }}>
+                    <div className="flex items-start gap-1.5">
+                      <Clock className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                      <span className="leading-tight">{formatFullDate(event.eventDate)}, {event.eventTime}</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                      <span className="leading-tight">{event.address}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -102,22 +144,57 @@ export function EventsSection({
             {displayPast.map((event) => (
               <div
                 key={event.id}
-                className="rounded-xl p-4 backdrop-blur-sm shadow-lg"
+                className="flex gap-3 rounded-xl p-4 backdrop-blur-sm shadow-lg"
                 style={{
                   backgroundColor: `${buttonBackgroundColor}10`,
-                  borderLeft: `4px solid ${buttonBackgroundColor}80`,
                 }}
               >
-                <h4
-                  className="font-semibold mb-2 text-sm"
-                  style={{ color: buttonTextColor }}
+                {/* Date Box */}
+                <div
+                  className="flex-shrink-0 w-14 h-14 rounded-lg flex flex-col items-center justify-center opacity-80"
+                  style={{
+                    backgroundColor: buttonBackgroundColor,
+                  }}
                 >
-                  {event.title}
-                </h4>
-                <div className="space-y-1 text-xs text-white/60">
-                  <div className="flex items-start gap-2">
-                    <Calendar className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                    <span>{formatDate(event.eventDate)}</span>
+                  <div
+                    className="text-[9px] font-bold leading-none"
+                    style={{ color: buttonTextColor }}
+                  >
+                    {formatMonth(event.eventDate)}
+                  </div>
+                  <div
+                    className="text-xl font-bold leading-none mt-1"
+                    style={{ color: buttonTextColor }}
+                  >
+                    {formatDay(event.eventDate)}
+                  </div>
+                </div>
+
+                {/* Event Details */}
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <h4
+                    className="font-semibold text-sm leading-snug"
+                    style={{ color: eventTitleColor }}
+                  >
+                    {event.title}
+                  </h4>
+
+                  {/* Description */}
+                  {event.description && (
+                    <p
+                      className="text-xs leading-relaxed"
+                      style={{ color: eventDetailsColor, opacity: 0.8 }}
+                    >
+                      {event.description}
+                    </p>
+                  )}
+
+                  {/* Date */}
+                  <div className="text-xs" style={{ color: eventDetailsColor, opacity: 0.8 }}>
+                    <div className="flex items-start gap-1.5">
+                      <Calendar className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <span className="leading-tight">{formatFullDate(event.eventDate)}</span>
+                    </div>
                   </div>
                 </div>
               </div>

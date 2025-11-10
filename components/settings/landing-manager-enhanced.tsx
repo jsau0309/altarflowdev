@@ -53,6 +53,8 @@ interface LandingConfig {
   announcementText: string | null;
   announcementLink: string | null;
   showAnnouncement: boolean;
+  eventTitleColor: string;
+  eventDetailsColor: string;
 }
 
 export function LandingManagerEnhanced() {
@@ -85,10 +87,16 @@ export function LandingManagerEnhanced() {
     announcementText: null,
     announcementLink: null,
     showAnnouncement: false,
+    eventTitleColor: '#FFFFFF',
+    eventDetailsColor: '#FFFFFF',
   });
 
   const [hasStripeAccount, setHasStripeAccount] = useState(false);
   const [hasActiveFlow, setHasActiveFlow] = useState(false);
+
+  // Events state
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [pastEvents, setPastEvents] = useState<any[]>([]);
 
   // Image upload state
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -131,6 +139,48 @@ export function LandingManagerEnhanced() {
       loadSettings();
     }
   }, [organization, t]);
+
+  // Load events for preview
+  const loadEvents = async () => {
+    try {
+      const response = await fetch("/api/settings/events");
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const allEvents = data.events || [];
+
+      // Filter upcoming and past events (only show published events in preview)
+      const now = new Date();
+      const upcoming = allEvents
+        .filter((event: any) => new Date(event.eventDate) >= now && event.isPublished)
+        .slice(0, 3); // Show max 3 upcoming
+      const past = allEvents
+        .filter((event: any) => new Date(event.eventDate) < now && event.isPublished)
+        .reverse()
+        .slice(0, 2); // Show max 2 past
+
+      setUpcomingEvents(upcoming);
+      setPastEvents(past);
+    } catch (error) {
+      console.error("Failed to load events:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (organization) {
+      loadEvents();
+    }
+  }, [organization]);
+
+  // Listen for event updates from EventManager
+  useEffect(() => {
+    const handleEventUpdate = () => {
+      loadEvents();
+    };
+
+    window.addEventListener('eventsUpdated', handleEventUpdate);
+    return () => window.removeEventListener('eventsUpdated', handleEventUpdate);
+  }, []);
 
   // Handle image selection from dropzone
   const handleImageSelected = (file: File) => {
@@ -729,6 +779,29 @@ export function LandingManagerEnhanced() {
 
         {/* Events Tab */}
         <TabsContent value="events" className="space-y-4">
+          {/* Event Styling */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("settings:events.styling.title", "Event Styling")}</CardTitle>
+              <CardDescription>
+                {t("settings:events.styling.description", "Customize how events appear on your landing page")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ColorPicker
+                label={t("settings:events.styling.titleColor", "Event Title Color")}
+                color={config.eventTitleColor}
+                onChange={(color) => setConfig(prev => ({ ...prev, eventTitleColor: color }))}
+              />
+              <ColorPicker
+                label={t("settings:events.styling.detailsColor", "Event Details Color")}
+                color={config.eventDetailsColor}
+                onChange={(color) => setConfig(prev => ({ ...prev, eventDetailsColor: color }))}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Event Manager */}
           <Card>
             <CardContent className="pt-6">
               <EventManager />
@@ -764,6 +837,10 @@ export function LandingManagerEnhanced() {
             announcementText={config.announcementText}
             announcementLink={config.announcementLink}
             showAnnouncement={config.showAnnouncement}
+            upcomingEvents={upcomingEvents}
+            pastEvents={pastEvents}
+            eventTitleColor={config.eventTitleColor}
+            eventDetailsColor={config.eventDetailsColor}
           />
         </div>
       </div>
