@@ -62,6 +62,16 @@ export function CategoriesSettings() {
   const { organization } = useOrganization();
   const { toast } = useToast();
 
+  // Helper function to translate system categories
+  const getTranslatedName = (name: string, type: 'expense' | 'payment'): string => {
+    const key = type === 'expense'
+      ? `settings:systemCategories.expenseCategories.${name}`
+      : `settings:systemCategories.paymentMethods.${name}`;
+    const translated = t(key, name);
+    // If translation returns the key itself, it means no translation exists (user-created category)
+    return translated === key ? name : translated;
+  };
+
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -433,7 +443,7 @@ export function CategoriesSettings() {
                         className="w-8 h-8 rounded-md"
                         style={{ backgroundColor: category.color }}
                       />
-                      <span className="font-medium">{category.name}</span>
+                      <span className="font-medium">{getTranslatedName(category.name, 'expense')}</span>
                       {(category.isSystemCategory || !category.isDeletable) && (
                         <Badge variant="secondary" className="text-xs">
                           {t("settings:categories.system", "System")}
@@ -580,7 +590,7 @@ export function CategoriesSettings() {
                         className="w-8 h-8 rounded-md"
                         style={{ backgroundColor: paymentMethod.color }}
                       />
-                      <span className="font-medium">{paymentMethod.name}</span>
+                      <span className="font-medium">{getTranslatedName(paymentMethod.name, 'payment')}</span>
                       {(paymentMethod.isSystemMethod || !paymentMethod.isDeletable) && (
                         <Badge variant="secondary" className="text-xs">
                           {t("settings:categories.system", "System")}

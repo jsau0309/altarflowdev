@@ -471,5 +471,27 @@
       "adminDescription": "Acceso completo a todas las funciones",
       "you": "Tú",
       "inviteTeamMember": "Invitar Miembro del Equipo"
+    },
+
+    "systemCategories": {
+      "expenseCategories": {
+        "Utilities": "Servicios Públicos",
+        "Salaries": "Salarios",
+        "Maintenance": "Mantenimiento",
+        "Office Supplies": "Suministros de Oficina",
+        "Ministry": "Ministerio",
+        "Building": "Edificio",
+        "Events": "Eventos",
+        "Technology": "Tecnología",
+        "Transportation": "Transporte",
+        "Insurance": "Seguro",
+        "Other": "Otro"
+      },
+      "paymentMethods": {
+        "Cash": "Efectivo",
+        "Check": "Cheque",
+        "Card": "Tarjeta",
+        "Bank Transfer": "Transferencia Bancaria"
+      }
     }
   } 

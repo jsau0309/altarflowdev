@@ -472,5 +472,27 @@
     "adminDescription": "Full access to all features",
     "you": "You",
     "inviteTeamMember": "Invite Team Member"
+  },
+
+  "systemCategories": {
+    "expenseCategories": {
+      "Utilities": "Utilities",
+      "Salaries": "Salaries",
+      "Maintenance": "Maintenance",
+      "Office Supplies": "Office Supplies",
+      "Ministry": "Ministry",
+      "Building": "Building",
+      "Events": "Events",
+      "Technology": "Technology",
+      "Transportation": "Transportation",
+      "Insurance": "Insurance",
+      "Other": "Other"
+    },
+    "paymentMethods": {
+      "Cash": "Cash",
+      "Check": "Check",
+      "Card": "Card",
+      "Bank Transfer": "Bank Transfer"
+    }
   }
 } 
