@@ -497,8 +497,8 @@ export async function createManualDonation(
     }
     const donationTypeId = donationTypeRecord.id;
 
-    // 4. Look up the DonationPaymentMethod by name
-    const paymentMethodRecord = await prisma.donationPaymentMethod.findUnique({
+    // 4. Look up or auto-create the DonationPaymentMethod
+    let paymentMethodRecord = await prisma.donationPaymentMethod.findUnique({
       where: {
         churchId_name: {
           churchId: actualChurchUuid,
@@ -508,8 +508,25 @@ export async function createManualDonation(
       select: { id: true },
     });
 
+    // Auto-create payment method if it doesn't exist (for backward compatibility)
     if (!paymentMethodRecord) {
-      return { success: false, error: `Payment method "${paymentMethod}" not found for this church. Please create it in settings first.` };
+      const defaultColors: Record<string, string> = {
+        'Cash': '#10B981',       // Green
+        'Check': '#3B82F6',      // Blue
+        'Card': '#8B5CF6',       // Purple
+        'Bank Transfer': '#F59E0B', // Amber
+      };
+
+      paymentMethodRecord = await prisma.donationPaymentMethod.create({
+        data: {
+          churchId: actualChurchUuid,
+          name: paymentMethod,
+          color: defaultColors[paymentMethod] || '#6B7280', // Default to gray
+          isSystemMethod: ['Cash', 'Check', 'Card', 'Bank Transfer'].includes(paymentMethod),
+          isDeletable: true,
+        },
+        select: { id: true },
+      });
     }
 
     // 5. Create the DonationTransaction
