@@ -49,6 +49,13 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
             lastName: true,
           },
         },
+        DonationPaymentMethod: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
     });
 
@@ -69,6 +76,11 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
       currency: donation.currency,
       status: donation.status,
       paymentMethodType: donation.paymentMethodType ?? '',
+      paymentMethodId: donation.paymentMethodId,
+      paymentMethod: donation.DonationPaymentMethod ? {
+        name: donation.DonationPaymentMethod.name,
+        color: donation.DonationPaymentMethod.color,
+      } : undefined,
       stripePaymentIntentId: donation.stripePaymentIntentId,
       stripeSubscriptionId: donation.stripeSubscriptionId,
       transactionDate: donation.transactionDate.toISOString(),

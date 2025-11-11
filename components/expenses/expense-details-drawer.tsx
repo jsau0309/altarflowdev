@@ -23,8 +23,16 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { useTranslation } from "react-i18next"
 import { toast as sonnerToast } from "sonner"
 
+type ExpenseWithCategory = Expense & {
+  ExpenseCategory?: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
+};
+
 interface ExpenseDetailsDrawerProps {
-  expense: Expense | null
+  expense: ExpenseWithCategory | null
   open: boolean
   onClose: () => void
   onEdit: (expense: Expense) => void
@@ -67,7 +75,25 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
   const [currentReceiptUrl, setCurrentReceiptUrl] = useState<string | null>(null);
   const [receiptUrlExpiry, setReceiptUrlExpiry] = useState<number>(0);
   // const [isDownloading, setIsDownloading] = useState(false)
-  const { t } = useTranslation(['expenses', 'common'])
+  const { t } = useTranslation(['expenses', 'common', 'settings'])
+
+  // Helper function to translate system category names
+  const getTranslatedCategoryName = (categoryName: string): string => {
+    const key = `settings:systemCategories.expenseCategories.${categoryName}`;
+    const translated = t(key, categoryName);
+    return translated === key ? categoryName : translated;
+  };
+
+  // Get category name with fallback to legacy field
+  const getCategoryDisplay = () => {
+    if (expense?.ExpenseCategory) {
+      return getTranslatedCategoryName(expense.ExpenseCategory.name);
+    }
+    if (expense?.category) {
+      return getTranslatedCategoryName(expense.category);
+    }
+    return '-';
+  };
 
   // New function to refresh the signed URL when needed
   const refreshReceiptUrl = useCallback(async (): Promise<string | null> => {
@@ -265,7 +291,15 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('expenses:category')}</p>
-                  <p className="font-medium capitalize">{expense.category}</p>
+                  <div className="flex items-center gap-2">
+                    {expense.ExpenseCategory?.color && (
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: expense.ExpenseCategory.color }}
+                      />
+                    )}
+                    <p className="font-medium capitalize">{getCategoryDisplay()}</p>
+                  </div>
                 </div>
               </div>
 

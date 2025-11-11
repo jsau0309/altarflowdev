@@ -25,11 +25,7 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const { name, color } = body;
-
-    if (!name || !color) {
-      return NextResponse.json({ error: 'Name and color are required' }, { status: 400 });
-    }
+    const { name, color, isHidden } = body;
 
     // Find the church
     const church = await prisma.church.findUnique({
@@ -53,13 +49,30 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden: Category does not belong to this church' }, { status: 403 });
     }
 
+    // Build update data object
+    const updateData: { name?: string; color?: string; isHidden?: boolean } = {};
+
+    if (name !== undefined) {
+      updateData.name = name.trim();
+    }
+
+    if (color !== undefined) {
+      updateData.color = color.trim();
+    }
+
+    if (isHidden !== undefined) {
+      updateData.isHidden = isHidden;
+    }
+
+    // Ensure at least one field is being updated
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
     // Update the category
     const updatedCategory = await prisma.expenseCategory.update({
       where: { id: categoryId },
-      data: {
-        name: name.trim(),
-        color: color.trim(),
-      },
+      data: updateData,
     });
 
     return NextResponse.json(updatedCategory, { status: 200 });

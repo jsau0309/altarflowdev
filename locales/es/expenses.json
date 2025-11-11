@@ -98,8 +98,17 @@
       "title": "Detalles del Gasto",
       "noReceipt": "No hay recibo adjunto.",
       "deleteConfirmTitle": "Confirmar Eliminación",
-      "deleteConfirmDescription": "¿Estás seguro de que quieres eliminar este gasto? Esta acción no se puede deshacer."
+      "deleteConfirmDescription": "¿Estás seguro de que quieres eliminar este gasto? Esta acción no se puede deshacer.",
+      "deleting": "Eliminando gasto...",
+      "deleteSuccess": "¡Gasto eliminado con éxito!",
+      "deleteError": "Error al eliminar el gasto",
+      "deleteErrorDescription": "Por favor, inténtalo de nuevo más tarde.",
+      "permissionDenied": "Permiso denegado",
+      "permissionDeniedDescription": "Solo los administradores pueden eliminar gastos. Por favor, contacta a tu administrador.",
+      "expenseNotFound": "Gasto no encontrado",
+      "expenseNotFoundDescription": "Este gasto puede haber sido eliminado anteriormente."
     },
-  "deleteSuccess": "¡Gasto eliminado con éxito!",
-  "deleteError": "Error al eliminar el gasto"
+  "filterByCategory": "Filtrar por categoría",
+  "allCategories": "Todas las categorías",
+  "pageTotal": "Total"
   } 

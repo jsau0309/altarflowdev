@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Edit2, Trash2, Save, XCircle } from "lucide-react";
+import { Plus, X, Edit2, Trash2, Save, XCircle, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ColorPicker } from "@/components/settings/color-picker";
 
 interface Category {
   id: string;
@@ -26,6 +27,7 @@ interface Category {
   color: string;
   isSystemCategory?: boolean;
   isDeletable: boolean;
+  isHidden?: boolean;
 }
 
 interface PaymentMethod {
@@ -34,28 +36,8 @@ interface PaymentMethod {
   color: string;
   isSystemMethod?: boolean;
   isDeletable: boolean;
+  isHidden?: boolean;
 }
-
-const COLOR_PRESETS = [
-  { name: "Red", value: "#EF4444" },
-  { name: "Orange", value: "#F97316" },
-  { name: "Amber", value: "#F59E0B" },
-  { name: "Yellow", value: "#EAB308" },
-  { name: "Lime", value: "#84CC16" },
-  { name: "Green", value: "#10B981" },
-  { name: "Emerald", value: "#059669" },
-  { name: "Teal", value: "#14B8A6" },
-  { name: "Cyan", value: "#06B6D4" },
-  { name: "Sky", value: "#0EA5E9" },
-  { name: "Blue", value: "#3B82F6" },
-  { name: "Indigo", value: "#6366F1" },
-  { name: "Violet", value: "#8B5CF6" },
-  { name: "Purple", value: "#A855F7" },
-  { name: "Fuchsia", value: "#D946EF" },
-  { name: "Pink", value: "#EC4899" },
-  { name: "Rose", value: "#F43F5E" },
-  { name: "Gray", value: "#6B7280" },
-];
 
 export function CategoriesSettings() {
   const { t } = useTranslation();
@@ -99,7 +81,7 @@ export function CategoriesSettings() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`/api/churches/${organization?.id}/expense-categories`);
+      const response = await fetch(`/api/churches/${organization?.id}/expense-categories?includeHidden=true`);
       if (response.ok) {
         const data = await response.json();
         setExpenseCategories(data);
@@ -113,7 +95,7 @@ export function CategoriesSettings() {
 
   const fetchPaymentMethods = async () => {
     try {
-      const response = await fetch(`/api/churches/${organization?.id}/donation-payment-methods`);
+      const response = await fetch(`/api/churches/${organization?.id}/donation-payment-methods?includeHidden=true`);
       if (response.ok) {
         const data = await response.json();
         setPaymentMethods(data);
@@ -218,6 +200,68 @@ export function CategoriesSettings() {
       toast({
         title: t("settings:categories.error", "Error"),
         description: error.message || t("settings:categories.failedToDelete", "Failed to delete category"),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleHideExpenseCategory = async (categoryId: string, currentlyHidden: boolean) => {
+    try {
+      const response = await fetch(
+        `/api/churches/${organization?.id}/expense-categories/${categoryId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isHidden: !currentlyHidden }),
+        }
+      );
+
+      if (response.ok) {
+        toast({
+          title: t("settings:categories.success", "Success"),
+          description: currentlyHidden
+            ? t("settings:categories.categoryShown", "Category shown successfully")
+            : t("settings:categories.categoryHidden", "Category hidden successfully"),
+        });
+        fetchCategories();
+      } else {
+        throw new Error("Failed to toggle category visibility");
+      }
+    } catch (error: unknown) {
+      toast({
+        title: t("settings:categories.error", "Error"),
+        description: error instanceof Error ? error.message : t("settings:categories.failedToToggle", "Failed to toggle category"),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleHidePaymentMethod = async (methodId: string, currentlyHidden: boolean) => {
+    try {
+      const response = await fetch(
+        `/api/churches/${organization?.id}/donation-payment-methods/${methodId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isHidden: !currentlyHidden }),
+        }
+      );
+
+      if (response.ok) {
+        toast({
+          title: t("settings:categories.success", "Success"),
+          description: currentlyHidden
+            ? t("settings:categories.paymentMethodShown", "Payment method shown successfully")
+            : t("settings:categories.paymentMethodHidden", "Payment method hidden successfully"),
+        });
+        fetchPaymentMethods();
+      } else {
+        throw new Error("Failed to toggle payment method visibility");
+      }
+    } catch (error: unknown) {
+      toast({
+        title: t("settings:categories.error", "Error"),
+        description: error instanceof Error ? error.message : t("settings:categories.failedToToggle", "Failed to toggle payment method"),
         variant: "destructive",
       });
     }
@@ -363,22 +407,11 @@ export function CategoriesSettings() {
                       placeholder={t("settings:categories.namePlaceholder", "e.g., Office Supplies")}
                     />
                   </div>
-                  <div>
-                    <Label>{t("settings:categories.color", "Color")}</Label>
-                    <div className="grid grid-cols-6 gap-2 mt-2">
-                      {COLOR_PRESETS.map((preset) => (
-                        <button
-                          key={preset.value}
-                          className={`w-10 h-10 rounded-md border-2 ${
-                            newExpenseColor === preset.value ? "border-black" : "border-gray-200"
-                          }`}
-                          style={{ backgroundColor: preset.value }}
-                          onClick={() => setNewExpenseColor(preset.value)}
-                          title={preset.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                  <ColorPicker
+                    label={t("settings:categories.color", "Color")}
+                    color={newExpenseColor}
+                    onChange={setNewExpenseColor}
+                  />
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsAddExpenseOpen(false)}>
@@ -408,20 +441,12 @@ export function CategoriesSettings() {
                       }
                       className="flex-1"
                     />
-                    <div className="grid grid-cols-6 gap-1">
-                      {COLOR_PRESETS.slice(0, 6).map((preset) => (
-                        <button
-                          key={preset.value}
-                          className={`w-6 h-6 rounded border ${
-                            editingExpense.color === preset.value ? "border-black border-2" : "border-gray-200"
-                          }`}
-                          style={{ backgroundColor: preset.value }}
-                          onClick={() =>
-                            setEditingExpense({ ...editingExpense, color: preset.value })
-                          }
-                        />
-                      ))}
-                    </div>
+                    <ColorPicker
+                      color={editingExpense.color}
+                      onChange={(color) =>
+                        setEditingExpense({ ...editingExpense, color })
+                      }
+                    />
                     <Button
                       size="sm"
                       onClick={() => handleUpdateExpenseCategory(editingExpense)}
@@ -440,7 +465,7 @@ export function CategoriesSettings() {
                   <>
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-8 h-8 rounded-md"
+                        className="w-8 h-8 rounded-full"
                         style={{ backgroundColor: category.color }}
                       />
                       <span className="font-medium">{getTranslatedName(category.name, 'expense')}</span>
@@ -458,7 +483,16 @@ export function CategoriesSettings() {
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      {category.isDeletable && (
+                      {category.isSystemCategory || !category.isDeletable ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleToggleHideExpenseCategory(category.id, category.isHidden || false)}
+                          title={category.isHidden ? t("settings:categories.show", "Show") : t("settings:categories.hide", "Hide")}
+                        >
+                          {category.isHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        </Button>
+                      ) : (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -510,22 +544,11 @@ export function CategoriesSettings() {
                       placeholder={t("settings:categories.paymentMethodNamePlaceholder", "e.g., Zelle, Cash, Check")}
                     />
                   </div>
-                  <div>
-                    <Label>{t("settings:categories.color", "Color")}</Label>
-                    <div className="grid grid-cols-6 gap-2 mt-2">
-                      {COLOR_PRESETS.map((preset) => (
-                        <button
-                          key={preset.value}
-                          className={`w-10 h-10 rounded-md border-2 ${
-                            newPaymentMethodColor === preset.value ? "border-black" : "border-gray-200"
-                          }`}
-                          style={{ backgroundColor: preset.value }}
-                          onClick={() => setNewPaymentMethodColor(preset.value)}
-                          title={preset.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                  <ColorPicker
+                    label={t("settings:categories.color", "Color")}
+                    color={newPaymentMethodColor}
+                    onChange={setNewPaymentMethodColor}
+                  />
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsAddPaymentMethodOpen(false)}>
@@ -555,20 +578,12 @@ export function CategoriesSettings() {
                       }
                       className="flex-1"
                     />
-                    <div className="grid grid-cols-6 gap-1">
-                      {COLOR_PRESETS.slice(0, 6).map((preset) => (
-                        <button
-                          key={preset.value}
-                          className={`w-6 h-6 rounded border ${
-                            editingPaymentMethod.color === preset.value ? "border-black border-2" : "border-gray-200"
-                          }`}
-                          style={{ backgroundColor: preset.value }}
-                          onClick={() =>
-                            setEditingPaymentMethod({ ...editingPaymentMethod, color: preset.value })
-                          }
-                        />
-                      ))}
-                    </div>
+                    <ColorPicker
+                      color={editingPaymentMethod.color}
+                      onChange={(color) =>
+                        setEditingPaymentMethod({ ...editingPaymentMethod, color })
+                      }
+                    />
                     <Button
                       size="sm"
                       onClick={() => handleUpdatePaymentMethod(editingPaymentMethod)}
@@ -587,7 +602,7 @@ export function CategoriesSettings() {
                   <>
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-8 h-8 rounded-md"
+                        className="w-8 h-8 rounded-full"
                         style={{ backgroundColor: paymentMethod.color }}
                       />
                       <span className="font-medium">{getTranslatedName(paymentMethod.name, 'payment')}</span>
@@ -605,7 +620,16 @@ export function CategoriesSettings() {
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      {paymentMethod.isDeletable && (
+                      {paymentMethod.isSystemMethod || !paymentMethod.isDeletable ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleToggleHidePaymentMethod(paymentMethod.id, paymentMethod.isHidden || false)}
+                          title={paymentMethod.isHidden ? t("settings:categories.show", "Show") : t("settings:categories.hide", "Hide")}
+                        >
+                          {paymentMethod.isHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        </Button>
+                      ) : (
                         <Button
                           size="sm"
                           variant="ghost"

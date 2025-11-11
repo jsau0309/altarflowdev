@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Pipette } from 'lucide-react';
 
 interface ColorPickerProps {
-  label: string;
+  label?: string;
   color: string;
   onChange: (color: string) => void;
   description?: string;
@@ -124,7 +124,7 @@ export function ColorPicker({
 
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      {label && <Label>{label}</Label>}
       {description && (
         <p className="text-sm text-muted-foreground">{description}</p>
       )}
@@ -136,7 +136,7 @@ export function ColorPicker({
             <Button
               type="button"
               variant="outline"
-              className="w-12 h-12 p-0 border-2"
+              className="w-10 h-10 p-0 border-2"
               style={{ backgroundColor: color }}
             >
               <span className="sr-only">Pick color</span>
@@ -151,7 +151,7 @@ export function ColorPicker({
           <Button
             type="button"
             variant="outline"
-            className="w-12 h-12 p-0 border-2 flex items-center justify-center"
+            className="w-10 h-10 p-0 border-2 flex items-center justify-center"
             onClick={handleEyedropperPick}
             disabled={!isEyedropperSupported}
             title={!isEyedropperSupported ? eyedropperUnsupportedLabel : undefined}
@@ -168,7 +168,7 @@ export function ColorPicker({
           onChange={handleInputChange}
           onBlur={handleInputBlur}
           placeholder="#FFFFFF"
-          className="font-mono flex-1"
+          className="font-mono flex-1 h-10"
           maxLength={7}
         />
       </div>

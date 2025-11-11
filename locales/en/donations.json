@@ -34,6 +34,11 @@
     "other": "Other",
     "nfc": "NFC Payment"
   },
+  "stripePaymentMethods": {
+    "card": "Card",
+    "bankaccount": "Bank Account",
+    "link": "Link"
+  },
   "types": {
     "oneTime": "One-time",
     "recurring": "Recurring",
@@ -48,9 +53,15 @@
   },
   "statuses": {
     "completed": "Completed",
+    "succeeded": "Succeeded",
     "pending": "Pending",
+    "processing": "Processing",
     "failed": "Failed",
-    "cancelled": "Cancelled"
+    "refunded": "Refunded",
+    "partiallyRefunded": "Partial Refund",
+    "canceled": "Canceled",
+    "cancelled": "Cancelled",
+    "disputed": "Disputed"
   },
   "funds": {
     "offering": "Offering",
@@ -216,8 +227,8 @@
     "totalDonation": "Total Donation:"
   },
   "newManualDonation": {
-    "title": "New Manual Donation",
-    "description": "Record a donation made via cash, check, or other non-stripe methods.",
+    "title": "Add Donation",
+    "description": "Record a donation for your church records.",
     "amount": "Amount",
     "date": "Date",
     "donor": "Donor",
@@ -235,7 +246,7 @@
     "cancelButton": "Cancel",
     "saving": "Saving...",
     "success": "Success",
-    "success_message": "Manual donation saved successfully.",
+    "success_message": "Donation saved successfully.",
     "validation": {
       "invalid_amount": "Please enter a valid donation amount.",
       "date_required": "Please select a donation date.",
@@ -382,15 +393,22 @@
     "locked": "This donation is locked (editing period expired)",
     "editDonation": "Edit Donation",
     "donationInfo": "Donation Information",
+    "amount": "Amount",
+    "type": "Type",
+    "date": "Date",
+    "method": "Method",
+    "status": "Status",
+    "source": "Source",
     "donorInfo": "Donor Information",
+    "name": "Name",
+    "email": "Email",
+    "country": "Country",
     "editHistory": "Edit History",
     "lastEdited": "Last edited",
     "editReason": "Edit Reason",
     "transactionDetails": "Transaction Details",
     "transactionId": "Transaction ID",
-    "processed": "Processed",
-    "source": "Source",
-    "status": "Status"
+    "processed": "Processed"
   },
   "editDonation": {
     "title": "Edit Manual Donation",
@@ -413,5 +431,6 @@
     "termsOfService": "Terms of Service",
     "and": "and",
     "privacyPolicy": "Privacy Policy"
-  }
+  },
+  "pageTotal": "Total"
 }

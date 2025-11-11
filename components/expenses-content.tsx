@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useAuth } from "@clerk/nextjs"
-import { Search, Plus, CreditCard, Calendar as CalendarIcon, Filter } from "lucide-react"
+import { useAuth, useOrganization } from "@clerk/nextjs"
+import { Search, Plus, CreditCard, Calendar as CalendarIcon, Filter, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
@@ -11,6 +11,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval } from "date-fns"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -24,6 +31,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { toast as sonnerToast } from 'sonner';
 import LoaderOne from "@/components/ui/loader-one";
 
+type ExpenseWithCategory = Expense & {
+  ExpenseCategory?: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
+};
+
 interface DateRange {
   from: Date | null
   to: Date | null
@@ -31,7 +46,8 @@ interface DateRange {
 
 export function ExpensesContent() {
   const { getToken } = useAuth()
-  const [expenses, setExpenses] = useState<Expense[]>([])
+  const { organization } = useOrganization()
+  const [expenses, setExpenses] = useState<ExpenseWithCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -42,17 +58,42 @@ export function ExpensesContent() {
   const [itemsPerPage, setItemsPerPage] = useState(8)
   const [userRole, setUserRole] = useState<"ADMIN" | "STAFF" | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const { t, i18n } = useTranslation(['expenses', 'donations', 'common', 'reports'])
+  const { t, i18n } = useTranslation(['expenses', 'donations', 'common', 'reports', 'settings'])
   const { toast } = useToast()
-  
+
+  // Helper function to translate system category names
+  const getTranslatedCategoryName = (categoryName: string): string => {
+    const key = `settings:systemCategories.expenseCategories.${categoryName}`;
+    const translated = t(key, categoryName);
+    return translated === key ? categoryName : translated;
+  };
+
+  // Get category display with fallback to legacy field
+  const getCategoryDisplay = (expense: ExpenseWithCategory) => {
+    if (expense.ExpenseCategory) {
+      return getTranslatedCategoryName(expense.ExpenseCategory.name);
+    }
+    if (expense.category) {
+      return getTranslatedCategoryName(expense.category);
+    }
+    return '-';
+  };
+
   // Date filter state
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // First day of current month
-    to: new Date() // Today
+    from: startOfMonth(new Date()), // First day of current month
+    to: endOfMonth(new Date()) // Last day of current month
   })
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [tempDateRange, setTempDateRange] = useState<DateRange>(dateRange)
   // const [isFilterLoading, setIsFilterLoading] = useState(false) // Not needed for expenses
+
+  // Category filter state
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+  const [expenseCategories, setExpenseCategories] = useState<Array<{ id: string; name: string; color: string }>>([])
+
+  // Sort state
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc') // Default to newest first
 
   const fetchExpenses = useCallback(async () => {
     setIsLoading(true);
@@ -91,10 +132,26 @@ export function ExpensesContent() {
     }
   }, [getToken]);
 
+  const fetchExpenseCategories = useCallback(async () => {
+    if (!organization?.id) return;
+
+    try {
+      const response = await fetch(`/api/churches/${organization.id}/expense-categories`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setExpenseCategories(data);
+      }
+    } catch (error) {
+      console.error("Error fetching expense categories:", error);
+    }
+  }, [organization?.id]);
+
   useEffect(() => {
     fetchExpenses();
     fetchUserRole();
-  }, [fetchExpenses, fetchUserRole]);
+    fetchExpenseCategories();
+  }, [fetchExpenses, fetchUserRole, fetchExpenseCategories]);
 
   useEffect(() => {
     if (error) {
@@ -125,8 +182,8 @@ export function ExpensesContent() {
   const handleDeleteExpense = async (expenseId: string) => {
     // Check if user is admin first
     if (userRole !== "ADMIN") {
-      sonnerToast.error("Permission denied", {
-        description: "Only administrators can delete expenses.",
+      sonnerToast.error(t('expenses:detailsDrawer.permissionDenied'), {
+        description: t('expenses:detailsDrawer.permissionDeniedDescription'),
       });
       return;
     }
@@ -135,11 +192,11 @@ export function ExpensesContent() {
     if (deletingId) return;
 
     setDeletingId(expenseId);
-    const loadingToast = sonnerToast.loading("Deleting expense...");
+    const loadingToast = sonnerToast.loading(t('expenses:detailsDrawer.deleting'));
 
     try {
       const token = await getToken();
-      const response = await fetch(`/api/expenses/${expenseId}`, { 
+      const response = await fetch(`/api/expenses/${expenseId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -149,37 +206,37 @@ export function ExpensesContent() {
       if (response.ok || response.status === 204) {
         // Update expenses list immediately for better UX
         setExpenses(prev => prev.filter(exp => exp.id !== expenseId));
-        
+
         sonnerToast.dismiss(loadingToast);
-        sonnerToast.success("Expense deleted successfully!"); 
-        
+        sonnerToast.success(t('expenses:detailsDrawer.deleteSuccess'));
+
         // Refresh expenses in background
         fetchExpenses();
       } else {
         sonnerToast.dismiss(loadingToast);
-        
+
         // Handle specific error cases
         if (response.status === 403) {
-          sonnerToast.error("Permission denied", {
-            description: "Only administrators can delete expenses. Please contact your admin.",
+          sonnerToast.error(t('expenses:detailsDrawer.permissionDenied'), {
+            description: t('expenses:detailsDrawer.permissionDeniedDescription'),
           });
         } else if (response.status === 404) {
-          sonnerToast.error("Expense not found", {
-            description: "This expense may have already been deleted.",
+          sonnerToast.error(t('expenses:detailsDrawer.expenseNotFound'), {
+            description: t('expenses:detailsDrawer.expenseNotFoundDescription'),
           });
           // Refresh the list since it might be out of sync
           fetchExpenses();
         } else {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "Failed to delete expense");
+          throw new Error(errorData.error || t('expenses:detailsDrawer.deleteError'));
         }
         return;
       }
     } catch (err) {
       console.error("Delete expense error:", err);
       sonnerToast.dismiss(loadingToast);
-      sonnerToast.error("Failed to delete expense", {
-        description: "Please try again later.",
+      sonnerToast.error(t('expenses:detailsDrawer.deleteError'), {
+        description: t('expenses:detailsDrawer.deleteErrorDescription'),
       });
     } finally {
       setDeletingId(null);
@@ -194,15 +251,6 @@ export function ExpensesContent() {
     setShowExpenseDetails(true)
   }
 
-  const formatDisplayString = (key: string | null | undefined, namespace: 'expenses' | 'donations', prefix: string, fallback: string) => {
-    const validKey = key || '';
-    const formattedKey = validKey.toLowerCase().replace(/\s+|-/g, '') || '';
-    if (!formattedKey) return fallback;
-    const translationKey = `${namespace}:${prefix}.${formattedKey}`;
-    const translated = t(translationKey, fallback);
-    return translated === translationKey ? fallback : translated;
-  };
-
   const filteredExpenses = expenses.filter((expense) => {
     // Date filter
     if (dateRange.from && dateRange.to) {
@@ -210,31 +258,54 @@ export function ExpensesContent() {
       // Create dates at start and end of day for proper comparison
       const startOfDay = new Date(dateRange.from)
       startOfDay.setHours(0, 0, 0, 0)
-      
+
       const endOfDay = new Date(dateRange.to)
       endOfDay.setHours(23, 59, 59, 999)
-      
+
       // Compare dates without timezone adjustment
       if (expenseDate < startOfDay || expenseDate > endOfDay) {
         return false
       }
     }
-    
+
+    // Category filter
+    if (selectedCategoryId && expense.ExpenseCategory?.id !== selectedCategoryId) {
+      return false
+    }
+
     // Search filter
     if (!searchTerm) return true
     const term = searchTerm.toLowerCase()
+    const categoryName = getCategoryDisplay(expense).toLowerCase();
     return (
       expense.vendor?.toLowerCase().includes(term) ||
       expense.description?.toLowerCase().includes(term) ||
       expense.amount.toString().includes(term) ||
-      (expense.category ? formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category).toLowerCase() : '').includes(term)
+      categoryName.includes(term)
     )
+  })
+
+  // Sort expenses by date
+  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
+    const dateA = new Date(a.expenseDate).getTime()
+    const dateB = new Date(b.expenseDate).getTime()
+    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
   })
 
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = filteredExpenses.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.max(1, Math.ceil(filteredExpenses.length / itemsPerPage))
+  const currentItems = sortedExpenses.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.max(1, Math.ceil(sortedExpenses.length / itemsPerPage))
+
+  // Calculate total of current page items
+  const currentPageTotal = currentItems.reduce((sum, expense) => {
+    const amount = typeof expense.amount === 'number'
+      ? expense.amount
+      : typeof expense.amount === 'string'
+      ? parseFloat(expense.amount)
+      : (expense.amount as Decimal).toNumber()
+    return sum + (isNaN(amount) ? 0 : amount)
+  }, 0)
 
   const formatCurrency = (amount: number | Decimal | string | null | undefined) => {
     // Debug logging removed: formatting currency value
@@ -260,9 +331,9 @@ export function ExpensesContent() {
         return '-';
     }
 
-    return new Intl.NumberFormat(i18n.language, {
+    return new Intl.NumberFormat('en-US', {
       style: "currency",
-      currency: "USD", // Consider making currency dynamic if needed
+      currency: "USD",
     }).format(numericAmount)
   }
 
@@ -284,6 +355,30 @@ export function ExpensesContent() {
           </div>
           
           <div className="flex gap-2">
+            {/* Category Filter */}
+            <Select
+              value={selectedCategoryId || "all"}
+              onValueChange={(value) => setSelectedCategoryId(value === "all" ? null : value)}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder={t('expenses:filterByCategory', 'Filter by category')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('expenses:allCategories', 'All Categories')}</SelectItem>
+                {expenseCategories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      {getTranslatedCategoryName(category.name)}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {/* Date Filter */}
             <Popover open={isFilterOpen} onOpenChange={(open) => {
               if (open) setTempDateRange(dateRange)
@@ -419,13 +514,13 @@ export function ExpensesContent() {
                   </div>
                   
                   <div className="flex justify-between pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => {
                         const defaultRange = {
-                          from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                          to: new Date()
+                          from: startOfMonth(new Date()),
+                          to: endOfMonth(new Date())
                         }
                         setTempDateRange(defaultRange)
                         setDateRange(defaultRange)
@@ -476,7 +571,15 @@ export function ExpensesContent() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('expenses:date')}</TableHead>
+                    <TableHead>
+                      <button
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        className="flex items-center gap-1 hover:text-foreground transition-colors"
+                      >
+                        {t('expenses:date')}
+                        <ArrowUpDown className="h-4 w-4" />
+                      </button>
+                    </TableHead>
                     <TableHead>{t('expenses:vendor')}</TableHead>
                     <TableHead>{t('expenses:category')}</TableHead>
                     <TableHead className="text-right">{t('expenses:amount')}</TableHead>
@@ -491,19 +594,33 @@ export function ExpensesContent() {
                       <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewExpenseDetails(expense)}>
                         <TableCell>{format(expenseDate, "PP")}</TableCell>
                         <TableCell>{expense.vendor || '-'}</TableCell>
-                        <TableCell>{expense.category ? formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category) : '-'}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {expense.ExpenseCategory?.color && (
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: expense.ExpenseCategory.color }}
+                              />
+                            )}
+                            <span>{getCategoryDisplay(expense)}</span>
+                          </div>
+                        </TableCell>
                         <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-              <div className="mt-4">
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{t('expenses:pageTotal', 'Page Total')}:</span>{' '}
+                  <span className="font-semibold text-foreground">{formatCurrency(currentPageTotal)}</span>
+                </div>
                 <TablePagination
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
-                  totalItems={filteredExpenses.length}
+                  totalItems={sortedExpenses.length}
                   itemsPerPage={itemsPerPage}
                   onItemsPerPageChange={(items) => { setCurrentPage(1); setItemsPerPage(items); }}
                 />

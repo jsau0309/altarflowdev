@@ -12,6 +12,8 @@ export async function GET(
   { params }: { params: Promise<Params> }
 ) {
   const { churchId } = await params;
+  const { searchParams } = new URL(request.url);
+  const includeHidden = searchParams.get('includeHidden') === 'true';
 
   if (!churchId) {
     return NextResponse.json({ error: 'Church ID (Clerk Organization ID) from path is required' }, { status: 400 });
@@ -29,10 +31,11 @@ export async function GET(
 
     const internalChurchUUID = church.id;
 
-    // Fetch DonationPaymentMethod records for that church
+    // Fetch DonationPaymentMethod records for that church (exclude hidden methods unless includeHidden is true)
     const paymentMethods = await prisma.donationPaymentMethod.findMany({
       where: {
         churchId: internalChurchUUID,
+        ...(includeHidden ? {} : { isHidden: false }),
       },
       orderBy: {
         name: 'asc',

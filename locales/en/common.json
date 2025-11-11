@@ -219,6 +219,10 @@
     "limitedFeatures": "With your current plan, you have access to Flows, Members, and Settings.",
     "upgradeNow": "Upgrade Now"
   },
+  "auditInfo": "Audit Information",
+  "createdOn": "Created on",
+  "lastModified": "Last modified",
+  "id": "ID",
   "footer": {
     "privacy": "Privacy Policy",
     "terms": "Terms of Service"

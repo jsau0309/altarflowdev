@@ -176,6 +176,7 @@ model DonationPaymentMethod {
   color               String                @default("#10B981") // Default green color
   isSystemMethod      Boolean               @default(false)
   isDeletable         Boolean               @default(true)
+  isHidden            Boolean               @default(false) // Allow hiding system methods
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   DonationTransaction DonationTransaction[]
@@ -193,6 +194,7 @@ model ExpenseCategory {
   color           String    @default("#6B7280") // Default gray color
   isSystemCategory Boolean  @default(false)
   isDeletable     Boolean   @default(true)
+  isHidden        Boolean   @default(false) // Allow hiding system categories
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   Expense         Expense[]
