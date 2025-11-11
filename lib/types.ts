@@ -197,6 +197,11 @@ export type DonationTransactionFE = Omit<Donation, 'amount'> & {
   donorId: string | null;
   idempotencyKey: string | null;
   paymentMethodType: string;
+  paymentMethodId?: string | null;
+  paymentMethod?: {
+    name: string;
+    color: string;
+  } | null;
   donationTypeId: string; // Added: Foreign key to DonationType
   donationTypeName: string;
   donationTypeIsCampaign?: boolean;

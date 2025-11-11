@@ -227,7 +227,7 @@ export function ExpensesContent() {
       expense.vendor?.toLowerCase().includes(term) ||
       expense.description?.toLowerCase().includes(term) ||
       expense.amount.toString().includes(term) ||
-      formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category).toLowerCase().includes(term)
+      (expense.category ? formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category).toLowerCase() : '').includes(term)
     )
   })
 
@@ -491,7 +491,7 @@ export function ExpensesContent() {
                       <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewExpenseDetails(expense)}>
                         <TableCell>{format(expenseDate, "PP")}</TableCell>
                         <TableCell>{expense.vendor || '-'}</TableCell>
-                        <TableCell>{formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category)}</TableCell>
+                        <TableCell>{expense.category ? formatDisplayString(expense.category, 'expenses', 'categoryOptions', expense.category) : '-'}</TableCell>
                         <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
                       </TableRow>
                     );

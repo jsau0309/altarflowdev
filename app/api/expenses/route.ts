@@ -122,6 +122,9 @@ export async function GET(request: NextRequest) {
         Profile_Expense_submitterIdToProfile: {
           select: { firstName: true, lastName: true },
         },
+        ExpenseCategory: {
+          select: { id: true, name: true, color: true },
+        },
       },
       orderBy: {
         expenseDate: 'desc',

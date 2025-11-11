@@ -376,7 +376,7 @@ export async function getExpenseCategoryBreakdown(
 
     // Group by category
     const categoryTotals = expenses.reduce((acc, expense) => {
-      const category = expense.category
+      const category = expense.category || 'Uncategorized'
       if (!acc[category]) {
         acc[category] = 0
       }
@@ -759,11 +759,12 @@ export async function getExpenseTrendData(churchId: string) {
       const amount = parseFloat(expense.amount.toString())
       monthlyData[monthKey].total += amount
       monthlyData[monthKey].count += 1
-      
-      if (!monthlyData[monthKey].categories[expense.category]) {
-        monthlyData[monthKey].categories[expense.category] = 0
+
+      const category = expense.category || 'Uncategorized'
+      if (!monthlyData[monthKey].categories[category]) {
+        monthlyData[monthKey].categories[category] = 0
       }
-      monthlyData[monthKey].categories[expense.category] += amount
+      monthlyData[monthKey].categories[category] += amount
     })
     
     // Generate all months (including empty ones)

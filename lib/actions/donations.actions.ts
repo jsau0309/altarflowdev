@@ -42,6 +42,7 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
     currency: true;
     status: true;
     paymentMethodType: true;
+    paymentMethodId: true;
     stripePaymentIntentId: true;
     stripeSubscriptionId: true;
     transactionDate: true;
@@ -64,6 +65,12 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
       select: {
         name: true;
         isCampaign: true;
+      };
+    };
+    DonationPaymentMethod: {
+      select: {
+        name: true;
+        color: true;
       };
     };
   };
@@ -143,10 +150,22 @@ export async function getDonationTransactions({
     }
 
     // Add paymentMethods filter if provided
+    // Support filtering by both new payment method names and legacy paymentMethodType
     if (paymentMethods && paymentMethods.length > 0) {
-      whereClause.paymentMethodType = {
-        in: paymentMethods,
-      };
+      whereClause.OR = [
+        {
+          paymentMethodType: {
+            in: paymentMethods.map(m => m.toLowerCase()),
+          },
+        },
+        {
+          DonationPaymentMethod: {
+            name: {
+              in: paymentMethods,
+            },
+          },
+        },
+      ];
     }
 
     const transactions: TransactionWithDonationTypeName[] = await prisma.donationTransaction.findMany({
@@ -161,6 +180,7 @@ export async function getDonationTransactions({
         currency: true,
         status: true,
         paymentMethodType: true,
+        paymentMethodId: true,
         stripePaymentIntentId: true,
         stripeSubscriptionId: true,
         transactionDate: true,
@@ -183,6 +203,12 @@ export async function getDonationTransactions({
           select: {
             name: true,
             isCampaign: true,
+          },
+        },
+        DonationPaymentMethod: {
+          select: {
+            name: true,
+            color: true,
           },
         },
       },
@@ -209,6 +235,11 @@ export async function getDonationTransactions({
       currency: t.currency,
       status: t.status,
       paymentMethodType: t.paymentMethodType ?? '',
+      paymentMethodId: t.paymentMethodId,
+      paymentMethod: t.DonationPaymentMethod ? {
+        name: t.DonationPaymentMethod.name,
+        color: t.DonationPaymentMethod.color,
+      } : null,
       stripePaymentIntentId: t.stripePaymentIntentId,
       stripeSubscriptionId: t.stripeSubscriptionId,
       transactionDate: t.transactionDate.toISOString(), // Already present in select, just mapping
@@ -466,7 +497,22 @@ export async function createManualDonation(
     }
     const donationTypeId = donationTypeRecord.id;
 
-    // 4. Create the DonationTransaction
+    // 4. Look up the DonationPaymentMethod by name
+    const paymentMethodRecord = await prisma.donationPaymentMethod.findUnique({
+      where: {
+        churchId_name: {
+          churchId: actualChurchUuid,
+          name: paymentMethod, // e.g., 'Cash', 'Check'
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!paymentMethodRecord) {
+      return { success: false, error: `Payment method "${paymentMethod}" not found for this church. Please create it in settings first.` };
+    }
+
+    // 5. Create the DonationTransaction
     // Manual donations (cash/check) have no processing fees
     const newTransaction = await prisma.donationTransaction.create({
       data: {
@@ -478,7 +524,8 @@ export async function createManualDonation(
         amount: amount, // Assumed to be in cents
         currency: "usd", // Defaulting to USD
         status: "succeeded", // Manual donations are typically considered successful immediately
-        paymentMethodType: paymentMethod.toLowerCase(), // e.g., 'cash', 'check'
+        paymentMethodId: paymentMethodRecord.id, // NEW: Link to DonationPaymentMethod
+        paymentMethodType: paymentMethod.toLowerCase(), // LEGACY: Keep for backward compatibility
         isRecurring: false, // Manual donations are one-time by default
         transactionDate: donationDate,
         processedAt: new Date(), // Mark as processed immediately
@@ -496,7 +543,7 @@ export async function createManualDonation(
       },
     });
 
-    // 5. Format the created transaction to DonationTransactionFE
+    // 6. Format the created transaction to DonationTransactionFE
     const formattedDonation: DonationTransactionFE = {
       id: newTransaction.id,
       churchId: newTransaction.churchId,
