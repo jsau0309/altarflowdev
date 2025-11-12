@@ -424,29 +424,29 @@ export function generateDonationReceiptHtml(data: DonationReceiptData, appUrl: s
           <div class="card-title">${escapeHtml(t.transactionDetailsTitle)}</div>
 
           <div class="detail-row">
-            <div class="detail-label">${escapeHtml(t.confirmationNumber)}:</div>
+            <div class="detail-label">${escapeHtml(t.confirmationNumber)}: </div>
             <div class="detail-value">
               <span class="confirmation-badge">${escapeHtml(confirmationNumber)}</span>
             </div>
           </div>
 
           <div class="detail-row">
-            <div class="detail-label">${escapeHtml(t.campus)}:</div>
+            <div class="detail-label">${escapeHtml(t.campus)}: </div>
             <div class="detail-value">${escapeHtml(t.mainCampus)}</div>
           </div>
 
           <div class="detail-row">
-            <div class="detail-label">${escapeHtml(t.fund)}:</div>
+            <div class="detail-label">${escapeHtml(t.fund)}: </div>
             <div class="detail-value">${escapeHtml(data.donationCampaign)}</div>
           </div>
 
           <div class="detail-row">
-            <div class="detail-label">${escapeHtml(t.frequency)}:</div>
+            <div class="detail-label">${escapeHtml(t.frequency)}: </div>
             <div class="detail-value">${escapeHtml(formatFrequency())}</div>
           </div>
 
           <div class="detail-row">
-            <div class="detail-label">${escapeHtml(t.paymentMethod)}:</div>
+            <div class="detail-label">${escapeHtml(t.paymentMethod)}: </div>
             <div class="detail-value">${escapeHtml(formatPaymentMethod())}</div>
           </div>
         </div>
