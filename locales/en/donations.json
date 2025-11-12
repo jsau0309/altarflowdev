@@ -80,7 +80,7 @@
       "title": "All Donations",
       "description": "View, search, and filter all donations",
       "subtitle": "View, search, and filter all donations",
-      "searchPlaceholder": "Search donations (donor, campaign, amount...)"
+      "searchPlaceholder": "Search donations"
     },
     "filter": {
       "title": "Filter Donations",
@@ -229,6 +229,8 @@
   "newManualDonation": {
     "title": "Add Donation",
     "description": "Record a donation for your church records.",
+    "tabIndividual": "Individual",
+    "tabGeneralCollection": "General Collection",
     "amount": "Amount",
     "date": "Date",
     "donor": "Donor",
@@ -432,5 +434,6 @@
     "and": "and",
     "privacyPolicy": "Privacy Policy"
   },
-  "pageTotal": "Total"
+  "pageTotal": "Total",
+  "generalCollection": "General Collection"
 }

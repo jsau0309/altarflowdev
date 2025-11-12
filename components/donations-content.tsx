@@ -45,6 +45,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   const [campaignsView, setCampaignsView] = useState<'list' | 'create' | { mode: 'edit', id: string }>('list')
   const [donorSearchTerm, setDonorSearchTerm] = useState("")
   const [donationSearchTerm, setDonationSearchTerm] = useState("")
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [showEditDonorModal, setShowEditDonorModal] = useState(false)
   const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null)
   const [showDonationDetails, setShowDonationDetails] = useState(false)
@@ -67,7 +68,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
 
   const [selectedDonationMethods, setSelectedDonationMethods] = useState<string[]>([])
   const [selectedDonationTypes, setSelectedDonationTypes] = useState<string[]>([])
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["succeeded"]) // Default to "completed" status
 
   // Temporary state for filter selections (before applying)
   const [tempDonationMethods, setTempDonationMethods] = useState<string[]>([])
@@ -166,10 +167,12 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
         clerkOrgId: churchIdFromStorage,
         page: currentPage,
         limit: itemsPerPage,
+        searchTerm: debouncedSearchTerm || undefined,
         startDate: dateRange.from || undefined,
         endDate: dateRange.to || undefined,
         donationTypes: selectedDonationTypes,
         paymentMethods: selectedDonationMethods,
+        statuses: selectedStatuses, // Pass status filter
         donorIds: [], // Donor filter removed
       });
       if (fetchedDonations) {
@@ -192,7 +195,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     if (activeTab === 'all-donations') {
       fetchDonations();
     }
-  }, [activeTab, currentPage, itemsPerPage, dateRange, selectedDonationTypes, selectedDonationMethods]);
+  }, [activeTab, currentPage, itemsPerPage, dateRange, selectedDonationTypes, selectedDonationMethods, selectedStatuses, debouncedSearchTerm]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -203,6 +206,22 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
       }
     }
   }, [])
+
+  // Debounce search term - wait 500ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(donationSearchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [donationSearchTerm]);
+
+  // Reset to page 1 when debounced search term changes
+  useEffect(() => {
+    if (debouncedSearchTerm) {
+      setCurrentPage(1);
+    }
+  }, [debouncedSearchTerm])
 
   // filteredDonors removed - donor filter removed
   // getDonorName removed - donor filter removed
@@ -313,10 +332,10 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   const resetFilters = () => {
     setTempDonationMethods([]);
     setTempDonationTypes([]);
-    setTempStatuses([]);
+    setTempStatuses(["succeeded"]); // Reset to default "completed" status
     setSelectedDonationMethods([]);
     setSelectedDonationTypes([]);
-    setSelectedStatuses([]);
+    setSelectedStatuses(["succeeded"]); // Reset to default "completed" status
     setIsFilterOpen(false);
   };
 
@@ -406,7 +425,8 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     let count = 0;
     if (selectedDonationMethods.length > 0) count++;
     if (selectedDonationTypes.length > 0) count++;
-    if (selectedStatuses.length > 0) count++;
+    // Only count status as active filter if it's not the default ["succeeded"]
+    if (selectedStatuses.length > 0 && !(selectedStatuses.length === 1 && selectedStatuses[0] === "succeeded")) count++;
     return count;
   };
 
@@ -431,6 +451,18 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
         <Badge key="methods" variant="secondary" className="flex items-center gap-2">
           {t('donations:method', 'Method')}: {selectedDonationMethods.join(', ')}
           <button onClick={() => setSelectedDonationMethods([])} className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            <X className="h-3 w-3" />
+          </button>
+        </Badge>
+      );
+    }
+
+    // Only show status badge if it's not the default ["succeeded"]
+    if (selectedStatuses.length > 0 && !(selectedStatuses.length === 1 && selectedStatuses[0] === "succeeded")) {
+      badges.push(
+        <Badge key="statuses" variant="secondary" className="flex items-center gap-2">
+          Status: {selectedStatuses.map(s => s === 'succeeded' ? t('donations:statuses.completed', 'Completed') : t(`donations:statuses.${s}`, s)).join(', ')}
+          <button onClick={() => setSelectedStatuses(["succeeded"])} className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
             <X className="h-3 w-3" />
           </button>
         </Badge>
@@ -786,22 +818,10 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
               ) : (
                 <>
                   {(() => {
-                    // Filter donations based on search term
-                    const filteredDonations = donations.filter((donation) => {
-                      if (!donationSearchTerm) return true;
-                      const searchLower = donationSearchTerm.toLowerCase();
-                      return (
-                        donation.donorName?.toLowerCase().includes(searchLower) ||
-                        donation.donationTypeName?.toLowerCase().includes(searchLower) ||
-                        donation.amount?.toString().includes(searchLower) ||
-                        donation.donorEmail?.toLowerCase().includes(searchLower)
-                      );
-                    });
+                    // Calculate total from donations (already filtered server-side)
+                    const pageTotal = donations.reduce((sum, donation) => sum + parseFloat(donation.amount), 0);
 
-                    // Calculate total from filtered donations
-                    const filteredTotal = filteredDonations.reduce((sum, donation) => sum + parseFloat(donation.amount), 0);
-
-                    return filteredDonations.length > 0 ? (
+                    return donations.length > 0 ? (
                       <>
                         <div className="rounded-md border">
                           <Table>
@@ -824,7 +844,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {[...filteredDonations]
+                              {[...donations]
                                 .sort((a, b) => {
                                   const dateA = new Date(a.transactionDate).getTime()
                                   const dateB = new Date(b.transactionDate).getTime()
@@ -844,7 +864,9 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                                   <TableCell>{format(parseISO(donation.transactionDate), 'PP')}</TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-1.5">
-                                      {donation.isAnonymous
+                                      {donation.isAnonymous && donation.donorName === "General Collection"
+                                        ? <span className="text-muted-foreground">{t('donations:generalCollection')}</span>
+                                        : donation.isAnonymous
                                         ? `Anonymous${donation.isInternational && donation.donorCountry ? ` (${donation.donorCountry})` : ''}`
                                         : donation.donorName}
                                       {donation.isInternational && !donation.isAnonymous && donation.donorCountry && (
@@ -942,7 +964,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                         <div className="text-sm text-muted-foreground">
                           <span className="font-medium text-foreground">{t('donations:pageTotal', 'Total')}:</span>{' '}
                           <span className="font-semibold text-foreground">
-                            ${filteredTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ${pageTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                         <TablePagination

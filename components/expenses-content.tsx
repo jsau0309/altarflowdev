@@ -55,7 +55,7 @@ export function ExpensesContent() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const [showExpenseDetails, setShowExpenseDetails] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(8)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
   const [userRole, setUserRole] = useState<"ADMIN" | "STAFF" | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const { t, i18n } = useTranslation(['expenses', 'donations', 'common', 'reports', 'settings'])

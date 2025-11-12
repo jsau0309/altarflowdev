@@ -15,12 +15,13 @@ interface GetDonationTransactionsParams {
   clerkOrgId: string; // Renamed from churchId, this is the Clerk Organization ID
   page?: number;
   limit?: number;
-  // searchTerm?: string; // Removed
+  searchTerm?: string; // Search across donor name, email, donation type, amount
   startDate?: Date;
   endDate?: Date;
   donationTypes?: string[];
   donorIds?: string[];
   paymentMethods?: string[]; // Added paymentMethods as it's used in donations-content.tsx
+  statuses?: string[]; // Added statuses for filtering by donation status
   // Add other filter params as needed
 }
 
@@ -84,11 +85,13 @@ export async function getDonationTransactions({
   clerkOrgId, // Renamed from churchId for clarity, this is the Clerk Organization ID
   page = 1,
   limit = 10,
+  searchTerm,
   startDate,
   endDate,
   donationTypes,
   donorIds,
   paymentMethods,
+  statuses,
 }: GetDonationTransactionsParams): Promise<GetDonationTransactionsResult> {
   if (!clerkOrgId) {
     return { donations: [], totalCount: 0, error: 'Organization ID is required.' };
@@ -149,10 +152,17 @@ export async function getDonationTransactions({
       };
     }
 
-    // Add paymentMethods filter if provided
-    // Support filtering by both new payment method names and legacy paymentMethodType
+    // Add status filter if provided
+    if (statuses && statuses.length > 0) {
+      whereClause.status = {
+        in: statuses,
+      };
+    }
+
+    // Build payment method OR conditions (if filtered)
+    const paymentMethodConditions: Prisma.DonationTransactionWhereInput[] = [];
     if (paymentMethods && paymentMethods.length > 0) {
-      whereClause.OR = [
+      paymentMethodConditions.push(
         {
           paymentMethodType: {
             in: paymentMethods.map(m => m.toLowerCase()),
@@ -164,8 +174,129 @@ export async function getDonationTransactions({
               in: paymentMethods,
             },
           },
-        },
-      ];
+        }
+      );
+    }
+
+    // Add search term filter if provided
+    if (searchTerm && searchTerm.trim().length > 0) {
+      const searchLower = searchTerm.toLowerCase().trim();
+
+      // Check if search term is numeric (for amount search)
+      const searchAsNumber = parseFloat(searchTerm);
+      const isNumeric = !isNaN(searchAsNumber);
+
+      // Spanish to English mapping for system values
+      const spanishToEnglishMap: Record<string, string[]> = {
+        // Payment methods (Spanish → English)
+        'efectivo': ['Cash'],
+        'cheque': ['Check'],
+        'tarjeta': ['Card'],
+        'transferencia': ['Bank Transfer', 'BankTransfer'],
+        'bancaria': ['Bank Transfer', 'BankTransfer'],
+        'banco': ['Bank Transfer', 'BankTransfer'],
+        'zelle': ['Zelle'],
+        // Donation types (Spanish → English system types)
+        'diezmo': ['Tithe'],
+        'ofrenda': ['Offering'],
+        // Status (Spanish → English)
+        'completado': ['completed'],
+        'pendiente': ['pending'],
+        'cancelado': ['canceled', 'cancelled'],
+        'fallido': ['failed'],
+        'exitoso': ['completed'],
+        'éxito': ['completed'],
+      };
+
+      // Get English equivalents for Spanish search terms
+      const searchTerms = [searchTerm]; // Always include original search term
+      for (const [spanish, englishTerms] of Object.entries(spanishToEnglishMap)) {
+        if (searchLower.includes(spanish)) {
+          searchTerms.push(...englishTerms);
+        }
+      }
+
+      // Build search conditions - search across: donor name, type, method, amount, status
+      const searchConditions: Prisma.DonationTransactionWhereInput[] = [];
+
+      // For each search term (original + English equivalents), add search conditions
+      for (const term of searchTerms) {
+        searchConditions.push(
+          // 1. Search in donor name
+          {
+            donorName: {
+              contains: term,
+              mode: 'insensitive',
+            },
+          },
+          // 2. Search in donation type name
+          {
+            DonationType: {
+              name: {
+                contains: term,
+                mode: 'insensitive',
+              },
+            },
+          },
+          // 3. Search in payment method type (legacy Stripe methods)
+          {
+            paymentMethodType: {
+              contains: term,
+              mode: 'insensitive',
+            },
+          },
+          // 4. Search in payment method name (custom methods)
+          {
+            DonationPaymentMethod: {
+              name: {
+                contains: term,
+                mode: 'insensitive',
+              },
+            },
+          },
+          // 5. Search in status
+          {
+            status: {
+              contains: term,
+              mode: 'insensitive',
+            },
+          }
+        );
+      }
+
+      // 6. If search is numeric, also search by amount
+      if (isNumeric) {
+        searchConditions.push({
+          amount: Math.round(searchAsNumber * 100), // Convert to cents
+        });
+      }
+
+      // 7. Special handling for "General Collection" / "Colecta General"
+      // If searching for "colecta" or "general", also match "General Collection"
+      if (searchLower.includes('colecta') || searchLower.includes('general')) {
+        searchConditions.push({
+          donorName: {
+            equals: 'General Collection',
+          },
+        });
+      }
+
+      // Combine search and payment method filters properly
+      // Both search and payment methods use OR logic
+      // If both exist, we need to AND them together
+      if (paymentMethodConditions.length > 0) {
+        // Both search and payment methods are active
+        whereClause.AND = [
+          { OR: searchConditions },         // Must match one of the search conditions
+          { OR: paymentMethodConditions },  // AND must match one of the payment methods
+        ];
+      } else {
+        // Only search is active
+        whereClause.OR = searchConditions;
+      }
+    } else if (paymentMethodConditions.length > 0) {
+      // Only payment methods filter is active (no search)
+      whereClause.OR = paymentMethodConditions;
     }
 
     const transactions: TransactionWithDonationTypeName[] = await prisma.donationTransaction.findMany({
@@ -386,10 +517,11 @@ export interface CreateManualDonationParams {
   churchId: string;
   amount: number; // In cents
   donationDate: Date;
-  donorId: string; // ID of an existing Donor record
+  donorId?: string | null; // ID of an existing Donor record (optional for general collections)
   donationTypeName: string; // e.g., "Tithe", "Offering" (campaigns included)
   paymentMethod: string; // e.g., "Cash", "Check"
   notes?: string | null;
+  isGeneralCollection?: boolean; // True for general collections (no specific donor)
 }
 
 export interface CreateManualDonationResult {
@@ -417,8 +549,13 @@ export async function createManualDonation(
     const clerkOrgId = churchId; // churchId from params is actually clerkOrgId
 
     // 1. Validate clerkOrgId and donorId (basic check)
-    if (!clerkOrgId || !donorId) {
-      return { success: false, error: "Organization ID and Donor ID are required." };
+    if (!clerkOrgId) {
+      return { success: false, error: "Organization ID is required." };
+    }
+
+    // For individual donations, donorId is required
+    if (!params.isGeneralCollection && !donorId) {
+      return { success: false, error: "Donor ID is required for individual donations." };
     }
 
     // Fetch the actual church UUID from the Church table using clerkOrgId
@@ -432,53 +569,62 @@ export async function createManualDonation(
     }
     const actualChurchUuid = churchRecord.id;
 
-    // 2. Fetch Donor details and validate church access
-    // Accept donors who are EITHER:
-    // - Manual donors (churchId matches)
-    // - Universal donors (churchId is null) linked to a member of this church
-    const donor = await prisma.donor.findFirst({
-      where: {
-        id: donorId,
-        OR: [
-          { churchId: actualChurchUuid }, // Manual donor
-          {
-            churchId: null, // Universal donor
-            Member: {
-              // Prisma requires relation filters to use the `is` wrapper for one-to-one relations
-              is: {
-                churchId: actualChurchUuid, // Linked to a member of this church
-              },
-            },
-          }
-        ]
-      },
-      select: {
-        firstName: true,
-        lastName: true,
-        email: true,
-        churchId: true,
-        Member: {
-          select: { churchId: true }
-        }
-      },
-    });
+    // 2. Fetch Donor details and validate church access (skip for general collections)
+    let donorName: string | null = null;
+    let donorEmail: string | null = null;
 
-    if (!donor) {
-      // Provide specific error messages
-      const universalDonor = await prisma.donor.findUnique({
-        where: { id: donorId },
-        select: { churchId: true, memberId: true }
+    if (params.isGeneralCollection) {
+      // For general collections, set a standard name
+      donorName = "General Collection";
+    } else {
+      // For individual donations, fetch donor details
+      // Accept donors who are EITHER:
+      // - Manual donors (churchId matches)
+      // - Universal donors (churchId is null) linked to a member of this church
+      const donor = await prisma.donor.findFirst({
+        where: {
+          id: donorId!,
+          OR: [
+            { churchId: actualChurchUuid }, // Manual donor
+            {
+              churchId: null, // Universal donor
+              Member: {
+                // Prisma requires relation filters to use the `is` wrapper for one-to-one relations
+                is: {
+                  churchId: actualChurchUuid, // Linked to a member of this church
+                },
+              },
+            }
+          ]
+        },
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          churchId: true,
+          Member: {
+            select: { churchId: true }
+          }
+        },
       });
 
-      if (universalDonor?.churchId === null && !universalDonor.memberId) {
-        return { success: false, error: 'donations:editDonorModal.errors.universalDonorNotLinked' };
-      } else if (universalDonor?.churchId === null && universalDonor.memberId) {
-        return { success: false, error: 'donations:editDonorModal.errors.universalDonorDifferentChurch' };
+      if (!donor) {
+        // Provide specific error messages
+        const universalDonor = await prisma.donor.findUnique({
+          where: { id: donorId! },
+          select: { churchId: true, memberId: true }
+        });
+
+        if (universalDonor?.churchId === null && !universalDonor.memberId) {
+          return { success: false, error: 'donations:editDonorModal.errors.universalDonorNotLinked' };
+        } else if (universalDonor?.churchId === null && universalDonor.memberId) {
+          return { success: false, error: 'donations:editDonorModal.errors.universalDonorDifferentChurch' };
+        }
+        return { success: false, error: `Donor with ID ${donorId} not found for this church.` };
       }
-      return { success: false, error: `Donor with ID ${donorId} not found for this church.` };
+      donorName = `${donor.firstName || ''} ${donor.lastName || ''}`.trim() || null;
+      donorEmail = donor.email || null;
     }
-    const donorName = `${donor.firstName || ''} ${donor.lastName || ''}`.trim() || null;
-    const donorEmail = donor.email || null;
 
 
     // 3. Find DonationType ID based on actualChurchUuid and donationTypeName
@@ -535,7 +681,7 @@ export async function createManualDonation(
       data: {
         churchId: actualChurchUuid,
         donationTypeId: donationTypeId,
-        donorId: donorId,
+        donorId: params.isGeneralCollection ? null : (donorId || null), // Null for general collections
         donorName: donorName,
         donorEmail: donorEmail,
         amount: amount, // Assumed to be in cents
@@ -547,6 +693,7 @@ export async function createManualDonation(
         transactionDate: donationDate,
         processedAt: new Date(), // Mark as processed immediately
         source: "manual", // Crucial field
+        isAnonymous: params.isGeneralCollection || false, // Mark general collections as anonymous
         // No fee tracking - will use Stripe Reports API when needed
         // notes: notes, // Temporarily removed
       },

@@ -83,7 +83,7 @@
         "title": "Todas las Donaciones",
         "description": "Ver, buscar y filtrar todas las donaciones",
         "subtitle": "Ver, buscar y filtrar todas las donaciones",
-        "searchPlaceholder": "Buscar donaciones (donante, campaña, cantidad...)"
+        "searchPlaceholder": "Buscar donaciones"
       },
       "filter": {
         "title": "Filtrar Donaciones",
@@ -236,6 +236,8 @@
     "newManualDonation": {
       "title": "Agregar Donación",
       "description": "Registra una donación para los registros de tu iglesia.",
+      "tabIndividual": "Individual",
+      "tabGeneralCollection": "Colecta General",
       "amount": "Monto",
       "date": "Fecha",
       "donor": "Donante",
@@ -445,5 +447,6 @@
       "privacyPolicy": "Política de Privacidad",
       "ofAltarflow": "de Altarflow"
     },
-    "pageTotal": "Total"
+    "pageTotal": "Total",
+    "generalCollection": "Colecta General"
   } 

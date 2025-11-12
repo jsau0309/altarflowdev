@@ -3,17 +3,17 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useOrganization } from "@clerk/nextjs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, Edit2, Trash2, Save, XCircle, Eye, EyeOff } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
+import LoaderOne from "@/components/ui/loader-one";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -42,7 +42,6 @@ interface PaymentMethod {
 export function CategoriesSettings() {
   const { t } = useTranslation();
   const { organization } = useOrganization();
-  const { toast } = useToast();
 
   // Helper function to translate system categories
   const getTranslatedName = (name: string, type: 'expense' | 'payment'): string => {
@@ -107,11 +106,7 @@ export function CategoriesSettings() {
 
   const handleAddExpenseCategory = async () => {
     if (!newExpenseName.trim()) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: t("settings:categories.nameRequired", "Name is required"),
-        variant: "destructive",
-      });
+      toast.error(t("settings:categories.nameRequired", "Name is required"));
       return;
     }
 
@@ -126,10 +121,7 @@ export function CategoriesSettings() {
       });
 
       if (response.ok) {
-        toast({
-          title: t("settings:categories.success", "Success"),
-          description: t("settings:categories.categoryAdded", "Category added successfully"),
-        });
+        toast.success(t("settings:categories.categoryAdded", "Category added successfully"));
         setNewExpenseName("");
         setNewExpenseColor("#6B7280");
         setIsAddExpenseOpen(false);
@@ -138,11 +130,7 @@ export function CategoriesSettings() {
         throw new Error("Failed to add category");
       }
     } catch (error) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: t("settings:categories.failedToAdd", "Failed to add category"),
-        variant: "destructive",
-      });
+      toast.error(t("settings:categories.failedToAddCategory", "Failed to add category"));
     }
   };
 
@@ -161,21 +149,14 @@ export function CategoriesSettings() {
       );
 
       if (response.ok) {
-        toast({
-          title: t("settings:categories.success", "Success"),
-          description: t("settings:categories.categoryUpdated", "Category updated successfully"),
-        });
+        toast.success(t("settings:categories.categoryUpdated", "Category updated successfully"));
         setEditingExpense(null);
         fetchCategories();
       } else {
         throw new Error("Failed to update category");
       }
     } catch (error) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: t("settings:categories.failedToUpdate", "Failed to update category"),
-        variant: "destructive",
-      });
+      toast.error(t("settings:categories.failedToUpdateCategory", "Failed to update category"));
     }
   };
 
@@ -187,21 +168,19 @@ export function CategoriesSettings() {
       );
 
       if (response.ok) {
-        toast({
-          title: t("settings:categories.success", "Success"),
-          description: t("settings:categories.categoryDeleted", "Category deleted successfully"),
-        });
+        toast.success(t("settings:categories.categoryDeleted", "Category deleted successfully"));
         fetchCategories();
       } else {
         const data = await response.json();
-        throw new Error(data.error || "Failed to delete category");
+        // Check if category is in use
+        if (data.inUse) {
+          toast.error(t("settings:categories.categoryInUse", "Cannot delete category that is currently in use by expenses. Hide it instead to prevent future use."));
+        } else {
+          throw new Error(data.error || "Failed to delete category");
+        }
       }
     } catch (error: any) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: error.message || t("settings:categories.failedToDelete", "Failed to delete category"),
-        variant: "destructive",
-      });
+      toast.error(error.message || t("settings:categories.failedToDeleteCategory", "Failed to delete category"));
     }
   };
 
@@ -217,22 +196,17 @@ export function CategoriesSettings() {
       );
 
       if (response.ok) {
-        toast({
-          title: t("settings:categories.success", "Success"),
-          description: currentlyHidden
+        toast.success(
+          currentlyHidden
             ? t("settings:categories.categoryShown", "Category shown successfully")
-            : t("settings:categories.categoryHidden", "Category hidden successfully"),
-        });
+            : t("settings:categories.categoryHidden", "Category hidden successfully")
+        );
         fetchCategories();
       } else {
         throw new Error("Failed to toggle category visibility");
       }
     } catch (error: unknown) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: error instanceof Error ? error.message : t("settings:categories.failedToToggle", "Failed to toggle category"),
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : t("settings:categories.failedToToggleCategory", "Failed to toggle category"));
     }
   };
 
@@ -248,32 +222,23 @@ export function CategoriesSettings() {
       );
 
       if (response.ok) {
-        toast({
-          title: t("settings:categories.success", "Success"),
-          description: currentlyHidden
+        toast.success(
+          currentlyHidden
             ? t("settings:categories.paymentMethodShown", "Payment method shown successfully")
-            : t("settings:categories.paymentMethodHidden", "Payment method hidden successfully"),
-        });
+            : t("settings:categories.paymentMethodHidden", "Payment method hidden successfully")
+        );
         fetchPaymentMethods();
       } else {
         throw new Error("Failed to toggle payment method visibility");
       }
     } catch (error: unknown) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: error instanceof Error ? error.message : t("settings:categories.failedToToggle", "Failed to toggle payment method"),
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : t("settings:categories.failedToTogglePaymentMethod", "Failed to toggle donation method"));
     }
   };
 
   const handleAddPaymentMethod = async () => {
     if (!newPaymentMethodName.trim()) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: t("settings:categories.nameRequired", "Name is required"),
-        variant: "destructive",
-      });
+      toast.error(t("settings:categories.nameRequired", "Name is required"));
       return;
     }
 
@@ -288,10 +253,7 @@ export function CategoriesSettings() {
       });
 
       if (response.ok) {
-        toast({
-          title: t("settings:categories.success", "Success"),
-          description: t("settings:categories.paymentMethodAdded", "Payment method added successfully"),
-        });
+        toast.success(t("settings:categories.paymentMethodAdded", "Payment method added successfully"));
         setNewPaymentMethodName("");
         setNewPaymentMethodColor("#10B981");
         setIsAddPaymentMethodOpen(false);
@@ -300,11 +262,7 @@ export function CategoriesSettings() {
         throw new Error("Failed to add payment method");
       }
     } catch (error) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: t("settings:categories.failedToAdd", "Failed to add payment method"),
-        variant: "destructive",
-      });
+      toast.error(t("settings:categories.failedToAddPaymentMethod", "Failed to add donation method"));
     }
   };
 
@@ -323,21 +281,14 @@ export function CategoriesSettings() {
       );
 
       if (response.ok) {
-        toast({
-          title: t("settings:categories.success", "Success"),
-          description: t("settings:categories.paymentMethodUpdated", "Payment method updated successfully"),
-        });
+        toast.success(t("settings:categories.paymentMethodUpdated", "Payment method updated successfully"));
         setEditingPaymentMethod(null);
         fetchPaymentMethods();
       } else {
         throw new Error("Failed to update payment method");
       }
     } catch (error) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: t("settings:categories.failedToUpdate", "Failed to update payment method"),
-        variant: "destructive",
-      });
+      toast.error(t("settings:categories.failedToUpdatePaymentMethod", "Failed to update donation method"));
     }
   };
 
@@ -349,26 +300,28 @@ export function CategoriesSettings() {
       );
 
       if (response.ok) {
-        toast({
-          title: t("settings:categories.success", "Success"),
-          description: t("settings:categories.paymentMethodDeleted", "Payment method deleted successfully"),
-        });
+        toast.success(t("settings:categories.paymentMethodDeleted", "Payment method deleted successfully"));
         fetchPaymentMethods();
       } else {
         const data = await response.json();
-        throw new Error(data.error || "Failed to delete payment method");
+        // Check if payment method is in use
+        if (data.inUse) {
+          toast.error(t("settings:categories.paymentMethodInUse", "Cannot delete donation method that is currently in use by donations. Hide it instead to prevent future use."));
+        } else {
+          throw new Error(data.error || "Failed to delete payment method");
+        }
       }
     } catch (error: any) {
-      toast({
-        title: t("settings:categories.error", "Error"),
-        description: error.message || t("settings:categories.failedToDelete", "Failed to delete payment method"),
-        variant: "destructive",
-      });
+      toast.error(error.message || t("settings:categories.failedToDeletePaymentMethod", "Failed to delete donation method"));
     }
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoaderOne />
+      </div>
+    );
   }
 
   return (
@@ -379,26 +332,19 @@ export function CategoriesSettings() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>{t("settings:categories.expenseCategories", "Expense Categories")}</CardTitle>
-              <CardDescription>
-                {t("settings:categories.expenseCategoriesDesc", "Manage categories for tracking expenses")}
-              </CardDescription>
             </div>
             <Dialog open={isAddExpenseOpen} onOpenChange={setIsAddExpenseOpen}>
               <DialogTrigger asChild>
                 <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t("settings:categories.add", "Add")}
+                  <Plus className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{t("settings:categories.addExpenseCategory", "Add Expense Category")}</DialogTitle>
-                  <DialogDescription>
-                    {t("settings:categories.addExpenseCategoryDesc", "Create a new category for expenses")}
-                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="expense-name">{t("settings:categories.name", "Name")}</Label>
                     <Input
                       id="expense-name"
@@ -430,16 +376,21 @@ export function CategoriesSettings() {
             {expenseCategories.map((category) => (
               <div
                 key={category.id}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700"
               >
                 {editingExpense?.id === category.id ? (
                   <div className="flex items-center gap-3 flex-1">
                     <Input
-                      value={editingExpense.name}
+                      value={
+                        editingExpense.isSystemCategory || !editingExpense.isDeletable
+                          ? getTranslatedName(editingExpense.name, 'expense')
+                          : editingExpense.name
+                      }
                       onChange={(e) =>
                         setEditingExpense({ ...editingExpense, name: e.target.value })
                       }
                       className="flex-1"
+                      disabled={editingExpense.isSystemCategory || !editingExpense.isDeletable}
                     />
                     <ColorPicker
                       color={editingExpense.color}
@@ -516,26 +467,19 @@ export function CategoriesSettings() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>{t("settings:categories.paymentMethods", "Donation Payment Methods")}</CardTitle>
-              <CardDescription>
-                {t("settings:categories.paymentMethodsDesc", "Manage payment methods for manual donation entry")}
-              </CardDescription>
             </div>
             <Dialog open={isAddPaymentMethodOpen} onOpenChange={setIsAddPaymentMethodOpen}>
               <DialogTrigger asChild>
                 <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t("settings:categories.add", "Add")}
+                  <Plus className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{t("settings:categories.addPaymentMethod", "Add Payment Method")}</DialogTitle>
-                  <DialogDescription>
-                    {t("settings:categories.addPaymentMethodDesc", "Create a new payment method for donations")}
-                  </DialogDescription>
+                  <DialogTitle>{t("settings:categories.addPaymentMethod", "Add Donation Method")}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="payment-method-name">{t("settings:categories.name", "Name")}</Label>
                     <Input
                       id="payment-method-name"
@@ -567,16 +511,21 @@ export function CategoriesSettings() {
             {paymentMethods.map((paymentMethod) => (
               <div
                 key={paymentMethod.id}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700"
               >
                 {editingPaymentMethod?.id === paymentMethod.id ? (
                   <div className="flex items-center gap-3 flex-1">
                     <Input
-                      value={editingPaymentMethod.name}
+                      value={
+                        editingPaymentMethod.isSystemMethod || !editingPaymentMethod.isDeletable
+                          ? getTranslatedName(editingPaymentMethod.name, 'payment')
+                          : editingPaymentMethod.name
+                      }
                       onChange={(e) =>
                         setEditingPaymentMethod({ ...editingPaymentMethod, name: e.target.value })
                       }
                       className="flex-1"
+                      disabled={editingPaymentMethod.isSystemMethod || !editingPaymentMethod.isDeletable}
                     />
                     <ColorPicker
                       color={editingPaymentMethod.color}

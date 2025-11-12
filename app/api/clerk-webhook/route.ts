@@ -266,15 +266,15 @@ export async function POST(req: Request) {
             isDeletable: false,
           },
           {
-            name: "Bank Transfer",
+            name: "Card",
             color: "#8B5CF6", // Purple
             churchId: newChurch.id,
             isSystemMethod: true,
             isDeletable: false,
           },
           {
-            name: "Zelle",
-            color: "#A855F7", // Violet
+            name: "Bank Transfer",
+            color: "#F59E0B", // Amber
             churchId: newChurch.id,
             isSystemMethod: true,
             isDeletable: false,
@@ -297,22 +297,36 @@ export async function POST(req: Request) {
             isDeletable: false,
           },
           {
-            name: "Supplies",
-            color: "#F59E0B", // Amber
+            name: "Salaries",
+            color: "#3B82F6", // Blue
             churchId: newChurch.id,
             isSystemCategory: true,
             isDeletable: false,
           },
           {
             name: "Maintenance",
+            color: "#F97316", // Orange
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Office Supplies",
+            color: "#10B981", // Green
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Ministry",
             color: "#8B5CF6", // Purple
             churchId: newChurch.id,
             isSystemCategory: true,
             isDeletable: false,
           },
           {
-            name: "Salaries",
-            color: "#06B6D4", // Cyan
+            name: "Building",
+            color: "#F59E0B", // Amber
             churchId: newChurch.id,
             isSystemCategory: true,
             isDeletable: false,
@@ -320,6 +334,27 @@ export async function POST(req: Request) {
           {
             name: "Events",
             color: "#EC4899", // Pink
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Technology",
+            color: "#06B6D4", // Cyan
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Transportation",
+            color: "#84CC16", // Lime
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Insurance",
+            color: "#6366F1", // Indigo
             churchId: newChurch.id,
             isSystemCategory: true,
             isDeletable: false,

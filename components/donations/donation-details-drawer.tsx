@@ -359,7 +359,11 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
               <div className="grid gap-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.name')}</span>
-                  <span>{donation.donorName || t('common:anonymous', 'Anonymous')}</span>
+                  <span>
+                    {donation.donorName === "General Collection"
+                      ? t('donations:generalCollection')
+                      : donation.donorName || t('common:anonymous', 'Anonymous')}
+                  </span>
                 </div>
                 {/* Hide email for anonymous donors to maintain privacy */}
                 {donation.donorEmail && !donation.isAnonymous && (
