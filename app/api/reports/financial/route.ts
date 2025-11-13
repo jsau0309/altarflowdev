@@ -130,10 +130,14 @@ export async function POST(request: NextRequest) {
       }, 0)
     }
     
-    // Add platform fees to total processing fees (churches see combined total)
-    const currentTotalFees = currentProcessingFees + currentPlatformFees
+    // Calculate total fees
+    // IMPORTANT: When using actual fees from reconciled payouts, platform fees are already included
+    // in Stripe's balance transaction fees. Only add platform fees when estimating.
+    const currentTotalFees = hasActualFees
+      ? currentProcessingFees // Actual fees from Stripe already include platform fees
+      : currentProcessingFees + currentPlatformFees // Estimated fees need platform fees added
 
-    // Calculate net donations (gross - total fees including platform)
+    // Calculate net donations (gross - total fees)
     const currentNet = currentGross - currentTotalFees
     
     // Calculate previous period summary
@@ -184,8 +188,10 @@ export async function POST(request: NextRequest) {
     }, 0)
 
     // Fees if no one covered = actual fees paid + fees that were covered
-    // Note: Platform fees are separate and always apply
-    const estimatedFeesWithoutCoverage = currentProcessingFees + totalCoveredFees + currentPlatformFees
+    // When using actual fees, platform fees are already included
+    const estimatedFeesWithoutCoverage = hasActualFees
+      ? currentProcessingFees + totalCoveredFees // Actual fees already include platform
+      : currentProcessingFees + totalCoveredFees + currentPlatformFees // Estimated needs platform added
     
     // Total saved by donor coverage
     // This is simply the sum of all fees that donors covered

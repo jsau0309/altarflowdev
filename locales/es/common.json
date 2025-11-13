@@ -208,6 +208,8 @@
   "donor": "Donante",
   "vendor": "Proveedor",
   "category": "Categoría",
+  "allCategories": "Todas las Categorías",
+  "customCategories": "Categorías Personalizadas",
   "payment": "Pago",
   "paymentMethod": "Método de Pago",
   "goBack": "Volver",

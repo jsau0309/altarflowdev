@@ -206,6 +206,8 @@
   "donor": "Donor",
   "vendor": "Vendor",
   "category": "Category",
+  "allCategories": "All Categories",
+  "customCategories": "Custom Categories",
   "payment": "Payment",
   "paymentMethod": "Payment Method",
   "goBack": "Go Back",

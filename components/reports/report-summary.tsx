@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTranslation } from "react-i18next"
-import { DollarSign, TrendingUp, Users, TrendingDown } from "lucide-react"
+import { DollarSign, TrendingUp, Users, Hash } from "lucide-react"
 import { ReportSummary as ReportSummaryType } from "@/lib/actions/reports.actions"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -81,15 +81,15 @@ export function ReportSummary({ type, data, loading }: ReportSummaryProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            {type === 'donations' 
-              ? t('reports:uniqueDonors') 
-              : t('reports:netIncome')
+            {type === 'donations'
+              ? t('reports:uniqueDonors')
+              : t('reports:transactionCount')
             }
           </CardTitle>
           {type === 'donations' ? (
             <Users className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+            <Hash className="h-4 w-4 text-muted-foreground" />
           )}
         </CardHeader>
         <CardContent>
@@ -101,15 +101,12 @@ export function ReportSummary({ type, data, loading }: ReportSummaryProps) {
           ) : (
             <>
               <div className="text-2xl font-bold">
-                {type === 'donations' 
-                  ? formatNumber(data.count || 0)
-                  : formatCurrency(data.netIncome || 0)
-                }
+                {formatNumber(data.count || 0)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {type === 'donations' 
+                {type === 'donations'
                   ? t('reports:contributorsInPeriod')
-                  : t('reports:donationsMinusExpenses')
+                  : t('reports:expenseTransactionsInPeriod')
                 }
               </p>
             </>

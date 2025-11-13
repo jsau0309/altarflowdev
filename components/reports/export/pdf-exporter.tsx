@@ -36,6 +36,31 @@ export function exportToPDF({
   donationTypeName,
   t
 }: PDFExporterProps) {
+  // Helper function to translate donation types (for system types like Offering, Tithe)
+  const translateDonationType = (donationType: string): string => {
+    if (!t) return donationType
+    const fundKey = donationType.toLowerCase().replace(/\s+/g, '_')
+    return t(`donations:funds.${fundKey}`, { defaultValue: donationType })
+  }
+
+  // Helper function to translate expense categories
+  const translateExpenseCategory = (category: string): string => {
+    if (!t) return category
+    // Use the same translation key as the Tag implementation in Settings/Expenses pages
+    return t(`settings:systemCategories.expenseCategories.${category}`, { defaultValue: category })
+  }
+
+  // Helper function to translate payment methods
+  const translatePaymentMethod = (method: string): string => {
+    if (!t) return method
+    // Capitalize method name to match translation keys (Card, Cash, Check, Bank Transfer)
+    const capitalizedMethod = method.split(' ').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ')
+    // Use the SAME translation key as the Tag implementation in Settings/Donations pages
+    return t(`settings:systemCategories.paymentMethods.${capitalizedMethod}`, { defaultValue: capitalizedMethod })
+  }
+
   const doc = new jsPDF()
   let yPosition = 20
   
@@ -54,12 +79,16 @@ export function exportToPDF({
   doc.text(dateRangeText, 20, yPosition)
   yPosition += 7
 
-  // Add donation type filter if present
+  // Add filter if present (donation type or expense category)
   if (donationTypeName) {
     doc.setFontSize(11)
     doc.setTextColor(100, 100, 100)
     const filterLabel = t ? t('reports:filteredBy') : 'Filtered by'
-    doc.text(`${filterLabel}: ${donationTypeName}`, 20, yPosition)
+    // Translate the filter name if it's an expense category
+    const translatedFilterName = type === 'expenses'
+      ? translateExpenseCategory(donationTypeName)
+      : donationTypeName
+    doc.text(`${filterLabel}: ${translatedFilterName}`, 20, yPosition)
     doc.setTextColor(0, 0, 0)
     yPosition += 8
   } else {
@@ -196,20 +225,24 @@ export function exportToPDF({
     doc.text(description, xPos, yPosition)
     xPos += colWidths.description
     
-    // Truncate category if needed
-    const category = transaction.category.length > 18 
-      ? transaction.category.substring(0, 15) + '...' 
-      : transaction.category
+    // Translate and truncate category if needed
+    const translatedCategory = type === 'donations'
+      ? translateDonationType(transaction.category)
+      : translateExpenseCategory(transaction.category)
+    const category = translatedCategory.length > 18
+      ? translatedCategory.substring(0, 15) + '...'
+      : translatedCategory
     doc.text(category, xPos, yPosition)
     xPos += colWidths.category
-    
+
     doc.text(formatCurrency(transaction.amount), xPos, yPosition)
-    
+
     if (type === 'donations' && transaction.paymentMethod) {
       xPos += colWidths.amount
-      const payment = transaction.paymentMethod.length > 15 
-        ? transaction.paymentMethod.substring(0, 12) + '...' 
-        : transaction.paymentMethod
+      const translatedPayment = translatePaymentMethod(transaction.paymentMethod)
+      const payment = translatedPayment.length > 15
+        ? translatedPayment.substring(0, 12) + '...'
+        : translatedPayment
       doc.text(payment, xPos, yPosition)
     }
     

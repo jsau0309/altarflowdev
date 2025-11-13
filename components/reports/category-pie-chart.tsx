@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CategoryReportData } from '@/lib/actions/reports.actions'
 import { formatCurrency } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTranslation } from 'react-i18next'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -21,6 +22,7 @@ interface CategoryPieChartProps {
   data: CategoryReportData[]
   title: string
   loading?: boolean
+  type?: 'donations' | 'expenses'
 }
 
 // Define a color palette for the pie chart with Altarflow blue theme
@@ -46,14 +48,51 @@ const CHART_BORDER_COLORS = [
   'rgb(219, 234, 254)'   // Ultra Light Blue
 ]
 
-export function CategoryPieChart({ data, title, loading }: CategoryPieChartProps) {
+export function CategoryPieChart({ data, title, loading, type = 'donations' }: CategoryPieChartProps) {
+  const { t } = useTranslation(['donations', 'expenses', 'settings'])
+
+  // Helper function to translate category names
+  const translateCategory = (category: string): string => {
+    if (type === 'donations') {
+      // Convert to lowercase and replace spaces with underscores for translation key
+      const fundKey = category.toLowerCase().replace(/\s+/g, '_')
+      // Try to translate as a fund first, fallback to original category name
+      return t(`donations:funds.${fundKey}`, { defaultValue: category })
+    } else {
+      // For expenses, use the system expense categories translation
+      return t(`settings:systemCategories.expenseCategories.${category}`, { defaultValue: category })
+    }
+  }
+
+  // Helper function to convert hex color to rgba with opacity
+  const hexToRgba = (hex: string, opacity: number = 0.9): string => {
+    // Remove # if present
+    hex = hex.replace('#', '')
+
+    // Parse hex values
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`
+  }
+
+  // Use stored colors for expenses, default colors for donations
+  const backgroundColor = type === 'expenses' && data.every(d => d.color)
+    ? data.map(d => hexToRgba(d.color!, 0.9))
+    : CHART_COLORS.slice(0, data.length)
+
+  const borderColor = type === 'expenses' && data.every(d => d.color)
+    ? data.map(d => d.color!)
+    : CHART_BORDER_COLORS.slice(0, data.length)
+
   const chartData: ChartData<'pie'> = {
-    labels: data.map(d => d.category),
+    labels: data.map(d => translateCategory(d.category)),
     datasets: [
       {
         data: data.map(d => d.amount),
-        backgroundColor: CHART_COLORS.slice(0, data.length),
-        borderColor: CHART_BORDER_COLORS.slice(0, data.length),
+        backgroundColor,
+        borderColor,
         borderWidth: 1
       }
     ]
