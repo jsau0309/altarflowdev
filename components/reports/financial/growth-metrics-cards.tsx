@@ -49,8 +49,8 @@ export function GrowthMetricsCards({ data, isLoading }: GrowthMetricsCardsProps)
     )
   }
 
-  // Calculate trends
-  const netIncomeTrend = data.previousPeriod?.netIncome
+  // Calculate trends with safe division
+  const netIncomeTrend = data.previousPeriod?.netIncome && Math.abs(data.previousPeriod.netIncome) > 0.01
     ? ((data.netIncome - data.previousPeriod.netIncome) / Math.abs(data.previousPeriod.netIncome)) * 100
     : null
 

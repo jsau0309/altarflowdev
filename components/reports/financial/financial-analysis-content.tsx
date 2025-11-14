@@ -32,6 +32,9 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
   const [lastFetchParams, setLastFetchParams] = useState<string>('')
 
   useEffect(() => {
+    // Prevent race conditions with AbortController
+    const abortController = new AbortController()
+
     if (organization && dateRange.from && dateRange.to) {
       // Create a unique key for the current fetch parameters
       const fetchKey = `${organization.id}-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`
@@ -41,13 +44,18 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
         console.log('📊 Financial Analysis: Date range changed, fetching new data...')
         console.log('  From:', dateRange.from.toLocaleDateString())
         console.log('  To:', dateRange.to.toLocaleDateString())
-        fetchFinancialData()
+        fetchFinancialData(abortController.signal)
         setLastFetchParams(fetchKey)
       }
     }
+
+    // Cleanup: abort pending requests when component unmounts or deps change
+    return () => {
+      abortController.abort()
+    }
   }, [organization, dateRange])
 
-  const fetchFinancialData = async () => {
+  const fetchFinancialData = async (signal?: AbortSignal) => {
     // Always show loading when fetching new data for better UX
     setIsLoading(true)
     onLoadingChange?.(true)
@@ -62,7 +70,7 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
       const previousPeriodEnd = new Date(dateRange.from.getTime() - 1) // Day before current period starts
       const previousPeriodStart = new Date(previousPeriodEnd.getTime() - (currentPeriodDays * 24 * 60 * 60 * 1000))
 
-      // Fetch financial data from our API
+      // Fetch financial data from our API with cancellation support
       const response = await fetch('/api/reports/financial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,7 +84,8 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
             from: previousPeriodStart.toISOString(),
             to: previousPeriodEnd.toISOString()
           }
-        })
+        }),
+        signal // Pass abort signal to fetch
       })
 
       if (!response.ok) {
@@ -110,6 +119,12 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
       })
 
     } catch (error) {
+      // Don't show error if request was cancelled (expected behavior)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('📊 Financial Analysis: Request cancelled (expected)')
+        return
+      }
+
       // Structured error logging with context
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error('[Financial Analysis Error]', {

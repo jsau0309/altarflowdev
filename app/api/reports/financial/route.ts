@@ -240,7 +240,8 @@ export async function POST(request: NextRequest) {
       select: {
         amount: true,
         expenseDate: true
-      }
+      },
+      take: 10000 // Limit to prevent memory issues with large datasets
     })
 
     // ONLY count COMPLETE calendar months (exclude current incomplete month)
