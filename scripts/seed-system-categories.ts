@@ -13,7 +13,8 @@ import { prisma } from '../lib/db';
 const SYSTEM_PAYMENT_METHODS = [
   { name: 'Cash', color: '#10B981', isSystemMethod: true },      // Green
   { name: 'Check', color: '#3B82F6', isSystemMethod: true },     // Blue
-  { name: 'Card', color: '#8B5CF6', isSystemMethod: true },      // Purple
+  { name: 'Card', color: '#000000', isSystemMethod: true },      // Black
+  { name: 'Link', color: '#000000', isSystemMethod: true },      // Black
   { name: 'Bank Transfer', color: '#F59E0B', isSystemMethod: true }, // Amber
 ];
 

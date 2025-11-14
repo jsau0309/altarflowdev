@@ -37,7 +37,7 @@ import {
   type DonationTypeForFilter,
   type ExpenseCategoryForFilter
 } from "@/lib/actions/reports.actions"
-import { startOfYear } from "date-fns"
+import { startOfYear, endOfDay } from "date-fns"
 import { toast } from "sonner"
 
 // Types
@@ -65,7 +65,7 @@ export function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'donations' | 'expenses' | 'financial'>(getInitialTab())
   const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // First day of current month
-    to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0) // Last day of current month
+    to: endOfDay(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)) // Last day of current month at 23:59:59.999
   })
   const [donationTypes, setDonationTypes] = useState<DonationTypeForFilter[]>([])
   const [selectedDonationType, setSelectedDonationType] = useState<string | null>(null)
@@ -332,23 +332,26 @@ export function ReportsPage() {
             activeTab={activeTab}
             isLoading={activeTab === 'financial' ? isFinancialLoading : isFilterLoading}
           />
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button>
-                <Download className="h-4 w-4 mr-2" />
-                {t('common:export')}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                {t('reports:exportPDF')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('csv')}>
-                {t('reports:exportCSV')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+          {/* Only show export button on Donations and Expenses tabs */}
+          {activeTab !== 'financial' && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <Download className="h-4 w-4 mr-2" />
+                  {t('common:export')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                  {t('reports:exportPDF')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                  {t('reports:exportCSV')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
       

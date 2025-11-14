@@ -840,6 +840,18 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                                 <TableHead>{t('donations:method', 'Method')}</TableHead>
                                 <TableHead>{t('donations:type', 'Type')}</TableHead>
                                 <TableHead>{t('donations:amount', 'Amount')}</TableHead>
+                                <TableHead>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger className="cursor-help">
+                                        {t('donations:fees', 'Fees')}
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        {t('donations:processingFees', 'Processing fees')}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </TableHead>
                                 <TableHead className="min-w-[150px]">Status</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -892,19 +904,17 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                                       </div>
                                     ) : (
                                       <div className="flex items-center gap-2">
-                                        {/* Show color indicator based on source */}
-                                        {donation.source === 'stripe' ? (
-                                          // Stripe donations: black (light mode) / white (dark mode) circle
+                                        {/* Show color indicator - prioritize paymentMethod color if available */}
+                                        {donation.paymentMethod?.color ? (
+                                          // Show colored circle from DonationPaymentMethod table (works for both Stripe and manual)
+                                          <div
+                                            className="w-3 h-3 rounded-full"
+                                            style={{ backgroundColor: donation.paymentMethod.color }}
+                                          />
+                                        ) : donation.source === 'stripe' ? (
+                                          // Fallback for Stripe donations without linked payment method: black/white circle
                                           <div className="w-3 h-3 rounded-full bg-foreground" />
-                                        ) : (
-                                          // Manual donations: show color from DonationPaymentMethod table
-                                          donation.paymentMethod?.color && (
-                                            <div
-                                              className="w-3 h-3 rounded-full"
-                                              style={{ backgroundColor: donation.paymentMethod.color }}
-                                            />
-                                          )
-                                        )}
+                                        ) : null}
                                         {/* Display payment method name with proper translation */}
                                         {getTranslatedPaymentMethodName(donation)}
                                       </div>
@@ -912,6 +922,42 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                                   </TableCell>
                                   <TableCell>{getTranslatedDonationTypeName(donation.donationTypeName)}</TableCell>
                                   <TableCell>${parseFloat(donation.amount).toFixed(2)}</TableCell>
+                                  <TableCell>
+                                    {(() => {
+                                      const processingFee = parseFloat(donation.processingFeeCoveredByDonor || '0')
+                                      const platformFee = parseFloat(donation.platformFeeAmount || '0')
+                                      const totalFees = processingFee + platformFee
+
+                                      // Manual payment methods (no Stripe fees)
+                                      const manualMethods = ['cash', 'check', 'zelle', 'venmo', 'bank_transfer', 'wire', 'other']
+                                      const isManual = manualMethods.includes(donation.paymentMethodType.toLowerCase())
+
+                                      // Check if it's a manual entry (has paymentMethodId) - these don't have Stripe fees
+                                      const isManualEntry = donation.paymentMethodId !== null && donation.paymentMethodId !== undefined
+
+                                      if (isManual || (isManualEntry && processingFee === 0)) {
+                                        // Manual donations or manual entries with no fees → $0.00
+                                        return <span className="text-muted-foreground">$0.00</span>
+                                      } else if (processingFee > 0) {
+                                        // Donor covered fees - show actual amount (processing + platform)
+                                        return <span className="text-green-600">${totalFees.toFixed(2)}</span>
+                                      } else {
+                                        // Online donation but fees not covered - TBD
+                                        return (
+                                          <TooltipProvider>
+                                            <Tooltip>
+                                              <TooltipTrigger className="cursor-help text-amber-600">
+                                                TBD
+                                              </TooltipTrigger>
+                                              <TooltipContent>
+                                                {t('donations:feesToBeDetermined', 'To be determined')}
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TooltipProvider>
+                                        )
+                                      }
+                                    })()}
+                                  </TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-2">
                                       {/* Status indicator with colored circle */}

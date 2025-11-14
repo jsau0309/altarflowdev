@@ -51,6 +51,9 @@ export type TransactionWithDonationTypeName = Prisma.DonationTransactionGetPaylo
     donorId: true;
     idempotencyKey: true;
     source: true; // Added source
+    // Fee tracking fields
+    processingFeeCoveredByDonor: true;
+    platformFeeAmount: true;
     // Refund tracking fields
     refundedAmount: true;
     refundedAt: true;
@@ -319,6 +322,9 @@ export async function getDonationTransactions({
         donorId: true,
         idempotencyKey: true,
         source: true, // Ensure source is selected in the actual findMany query
+        // Fee tracking fields
+        processingFeeCoveredByDonor: true,
+        platformFeeAmount: true,
         // Refund tracking fields
         refundedAmount: true,
         refundedAt: true,
@@ -354,7 +360,17 @@ export async function getDonationTransactions({
       where: whereClause,
     });
 
-    const formattedDonations: DonationTransactionFE[] = transactions.map(t => ({
+    const formattedDonations: DonationTransactionFE[] = transactions.map(t => {
+      // Calculate GROSS amount (what donor actually paid)
+      const netAmount = t.amount / 100
+      const feesCovered = (t.processingFeeCoveredByDonor || 0) / 100
+      const platformFee = (t.platformFeeAmount || 0) / 100
+      // Only add fees to amount if donor chose to cover them (processingFeeCoveredByDonor > 0)
+      const grossAmount = feesCovered > 0
+        ? netAmount + feesCovered + platformFee  // Fees covered: show what donor paid
+        : netAmount  // Fees NOT covered: show just donation amount
+
+      return {
       id: t.id,
       churchId: t.churchId,
       donationTypeId: t.donationTypeId,
@@ -362,7 +378,9 @@ export async function getDonationTransactions({
       donationTypeIsCampaign: t.DonationType.isCampaign,
       donorName: t.donorName ?? undefined,
       donorEmail: t.donorEmail ?? undefined,
-      amount: (t.amount / 100).toFixed(2),
+      amount: grossAmount.toFixed(2), // GROSS: amount + fees covered + platform fee
+      processingFeeCoveredByDonor: feesCovered.toFixed(2),
+      platformFeeAmount: platformFee.toFixed(2),
       currency: t.currency,
       status: t.status,
       paymentMethodType: t.paymentMethodType ?? '',
@@ -393,7 +411,8 @@ export async function getDonationTransactions({
       isAnonymous: t.isAnonymous,
       isInternational: t.isInternational,
       donorCountry: t.donorCountry
-    }));
+      }
+    });
 
     return { donations: formattedDonations, totalCount };
 

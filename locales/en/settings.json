@@ -531,6 +531,7 @@
       "Cash": "Cash",
       "Check": "Check",
       "Card": "Card",
+      "Link": "Link",
       "Bank Transfer": "Bank Transfer"
     }
   }

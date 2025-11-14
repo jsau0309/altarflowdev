@@ -530,6 +530,7 @@
         "Cash": "Efectivo",
         "Check": "Cheque",
         "Card": "Tarjeta",
+        "Link": "Link",
         "Bank Transfer": "Transferencia Bancaria"
       }
     }

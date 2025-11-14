@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import prisma from '@/lib/db'
-import { startOfDay, endOfDay, eachDayOfInterval } from 'date-fns'
+import { startOfDay, endOfDay, eachDayOfInterval, format } from 'date-fns'
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
         platformFeeAmount: true,
         transactionDate: true,
         paymentMethodType: true,
-        refundedAmount: true
+        refundedAmount: true,
+        donorId: true,
+        stripePaymentIntentId: true // To distinguish Stripe vs manual donations
       }
     })
     
@@ -67,10 +69,46 @@ export async function POST(request: NextRequest) {
         amount: true,
         processingFeeCoveredByDonor: true,
         platformFeeAmount: true,
-        refundedAmount: true
+        refundedAmount: true,
+        donorId: true
       }
     }) : []
-    
+
+    // Fetch current period expenses
+    const currentExpenses = await prisma.expense.findMany({
+      where: {
+        churchId: church.id,
+        expenseDate: {
+          gte: fromDate,
+          lte: toDate
+        },
+        status: {
+          in: ['APPROVED', 'PENDING']
+        }
+      },
+      select: {
+        amount: true,
+        expenseDate: true
+      }
+    })
+
+    // Fetch previous period expenses
+    const previousExpenses = prevFromDate && prevToDate ? await prisma.expense.findMany({
+      where: {
+        churchId: church.id,
+        expenseDate: {
+          gte: prevFromDate,
+          lte: prevToDate
+        },
+        status: {
+          in: ['APPROVED', 'PENDING']
+        }
+      },
+      select: {
+        amount: true
+      }
+    }) : []
+
     // Get actual fees from reconciled payouts in the selected date range
     // Payouts are our source of truth for fees from Stripe
     const reconciledPayouts = await prisma.payoutSummary.findMany({
@@ -87,55 +125,42 @@ export async function POST(request: NextRequest) {
         payoutDate: true
       }
     })
-    
+
     // Sum up the actual fees from payouts in this date range
     const currentActualFees = reconciledPayouts.reduce((sum, p) => sum + (p.totalFees || 0), 0)
-    const hasActualFees = reconciledPayouts.length > 0
-    
+
+    // Get previous period payouts for growth comparison
+    const previousPayouts = prevFromDate && prevToDate ? await prisma.payoutSummary.findMany({
+      where: {
+        churchId: church.id,
+        payoutDate: {
+          gte: prevFromDate,
+          lte: prevToDate
+        },
+        reconciledAt: { not: null }
+      },
+      select: {
+        totalFees: true
+      }
+    }) : []
+
+    const previousActualFees = previousPayouts.reduce((sum, p) => sum + (p.totalFees || 0), 0)
+
     // Calculate REAL gross donations (what donors actually paid)
     // This includes: donation amounts + fees covered by donors (Stripe + platform fees)
     const currentDonationAmounts = currentDonations.reduce((sum, d) => sum + d.amount - (d.refundedAmount || 0), 0)
     const currentFeesCovered = currentDonations.reduce((sum, d) => sum + (d.processingFeeCoveredByDonor || 0), 0)
     const currentPlatformFees = currentDonations.reduce((sum, d) => sum + (d.platformFeeAmount || 0), 0)
     const currentGross = currentDonationAmounts + currentFeesCovered + currentPlatformFees
+
+    // ALWAYS use actual fees from PayoutSummary - never estimate!
+    // This ensures 100% accuracy from reconciliation data
+    // If no payouts in the period, fees = 0 (as it should be)
+    const currentProcessingFees = currentActualFees
     
-    // Use actual fees from payouts when available, otherwise estimate
-    let currentProcessingFees = 0
-    
-    if (hasActualFees) {
-      // Use actual fees from Stripe payouts (source of truth)
-      currentProcessingFees = currentActualFees
-    } else {
-      // Only estimate if no reconciled payouts are available for this period
-      // This might happen for very recent transactions not yet paid out
-      const stripeDonations = currentDonations.filter(d => 
-        d.paymentMethodType && 
-        d.paymentMethodType !== 'cash' && 
-        d.paymentMethodType !== 'check'
-      )
-      
-      currentProcessingFees = stripeDonations.reduce((sum, d) => {
-        const netDonation = d.amount - (d.refundedAmount || 0)
-        const coveredFees = d.processingFeeCoveredByDonor || 0
-        const totalTransaction = netDonation + coveredFees
-        
-        if (totalTransaction <= 0) return sum
-        
-        if (d.paymentMethodType === 'card' || d.paymentMethodType === 'link') {
-          return sum + Math.round(totalTransaction * 0.029 + 30)
-        } else if (d.paymentMethodType === 'us_bank_account' || d.paymentMethodType === 'ach_debit') {
-          return sum + Math.round(totalTransaction * 0.008)
-        }
-        return sum + Math.round(totalTransaction * 0.029 + 30)
-      }, 0)
-    }
-    
-    // Calculate total fees
-    // IMPORTANT: When using actual fees from reconciled payouts, platform fees are already included
-    // in Stripe's balance transaction fees. Only add platform fees when estimating.
-    const currentTotalFees = hasActualFees
-      ? currentProcessingFees // Actual fees from Stripe already include platform fees
-      : currentProcessingFees + currentPlatformFees // Estimated fees need platform fees added
+    // Total fees = fees from PayoutSummary (includes Stripe fees + platform fees)
+    // Platform fees are already included in the payout reconciliation data
+    const currentTotalFees = currentProcessingFees
 
     // Calculate net donations (gross - total fees)
     const currentNet = currentGross - currentTotalFees
@@ -143,26 +168,141 @@ export async function POST(request: NextRequest) {
     // Calculate previous period summary
     const prevDonationAmounts = previousDonations.reduce((sum, d) => sum + d.amount - (d.refundedAmount || 0), 0)
     const prevFeesCovered = previousDonations.reduce((sum, d) => sum + (d.processingFeeCoveredByDonor || 0), 0)
-    const prevGross = prevDonationAmounts + prevFeesCovered
-    const prevProcessingFees = 0 // We don't have historical fee data
-    const prevNet = prevGross - prevProcessingFees
-    
+    const prevPlatformFees = previousDonations.reduce((sum, d) => sum + (d.platformFeeAmount || 0), 0)
+    const prevGross = prevDonationAmounts + prevFeesCovered + prevPlatformFees
+    const prevProcessingFees = previousActualFees // Fees from PayoutSummary
+    const prevTotalFees = prevProcessingFees
+    const prevNet = prevGross - prevTotalFees
+
     // Calculate effective fee rate (what percentage of gross donations goes to fees)
     const effectiveFeeRate = currentGross > 0 ? (currentTotalFees / currentGross) : 0
-    const prevEffectiveFeeRate = 0 // No historical fee data
-    
+    const prevEffectiveFeeRate = prevGross > 0 ? (prevTotalFees / prevGross) : 0
+
+    // ========== NEW GROWTH METRICS ==========
+
+    // Calculate total expenses (convert from dollars to cents)
+    const currentTotalExpenses = currentExpenses.reduce((sum, e) => sum + (parseFloat(e.amount.toString()) * 100), 0)
+    const previousTotalExpenses = previousExpenses.reduce((sum, e) => sum + (parseFloat(e.amount.toString()) * 100), 0)
+
+    // Calculate Net Income (Revenue - Expenses)
+    const currentNetIncome = currentNet - currentTotalExpenses
+    const previousNetIncome = prevNet - previousTotalExpenses
+
+    // ========== OPERATING EXPENSES: 12-MONTH ROLLING AVERAGE ==========
+    // This is FIXED to last 12 months (not affected by user's date filter)
+    // Professional standard for expense forecasting
+    const twelveMonthsAgo = new Date()
+    twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1)
+
+    const last12MonthsExpenses = await prisma.expense.findMany({
+      where: {
+        churchId: church.id,
+        expenseDate: {
+          gte: twelveMonthsAgo,
+          lte: new Date()
+        }
+      },
+      select: {
+        amount: true,
+        expenseDate: true
+      }
+    })
+
+    // ONLY count COMPLETE calendar months (exclude current incomplete month)
+    // CFO Standard: If today is Nov 13, we exclude all Nov expenses from average
+    // Once Dec 1 arrives, November becomes complete and gets included
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() // 0-indexed (0=Jan, 10=Nov)
+
+    // Filter to only complete months (exclude current month)
+    const completeMonthExpenses = last12MonthsExpenses.filter(e => {
+      const expenseDate = new Date(e.expenseDate)
+      const expenseYear = expenseDate.getFullYear()
+      const expenseMonth = expenseDate.getMonth()
+
+      // Exclude if expense is in current month of current year
+      return !(expenseYear === currentYear && expenseMonth === currentMonth)
+    })
+
+    // Calculate 12-month average from complete months only (convert dollars to cents)
+    const total12MonthExpenses = completeMonthExpenses.reduce((sum, e) => sum + (parseFloat(e.amount.toString()) * 100), 0)
+
+    // Calculate actual months of data by counting unique year-month combinations
+    // Use actual calendar months (28-31 days) - variance averages out over 12 months
+    const uniqueMonths = new Set(
+      completeMonthExpenses.map(e => {
+        const date = new Date(e.expenseDate)
+        return `${date.getFullYear()}-${date.getMonth()}`
+      })
+    )
+
+    // Use the count of unique complete months (minimum 1 to avoid division by zero)
+    // If no complete months exist yet, we'll show current month as baseline
+    const actualMonthsToUse = Math.max(1, uniqueMonths.size)
+
+    const operatingExpensesMonthly = total12MonthExpenses / actualMonthsToUse
+
+    // Calculate months of cushion based on current period's net income
+    const monthsOfCushion = operatingExpensesMonthly > 0
+      ? Math.max(0, currentNetIncome / operatingExpensesMonthly)
+      : 0
+
+    // Calculate Donation Growth Rate (top-line: % change in gross revenue)
+    // Handle edge cases: if no previous data, return null instead of 0
+    const donationGrowthRate = prevGross > 0
+      ? ((currentGross - prevGross) / prevGross)
+      : (prevGross === 0 && currentGross > 0 ? 1 : 0) // 100% growth if starting from 0
+
+    // Calculate Net Income Growth Rate (bottom-line: % change in net income)
+    // Use absolute value of previous if negative to get meaningful percentage
+    const netIncomeGrowthRate = previousNetIncome !== 0
+      ? ((currentNetIncome - previousNetIncome) / Math.abs(previousNetIncome))
+      : (previousNetIncome === 0 && currentNetIncome > 0 ? 1 : 0) // 100% growth if starting from 0
+
+    // Calculate Donor Metrics
+    const currentUniqueDonors = new Set(currentDonations.map(d => d.donorId).filter(Boolean)).size
+    const previousUniqueDonors = new Set(previousDonations.map(d => d.donorId).filter(Boolean)).size
+
+    // Find donors who gave in previous period
+    const previousDonorIds = new Set(previousDonations.map(d => d.donorId).filter(Boolean))
+
+    // New donors = gave this period but not in previous period
+    const newDonors = currentDonations.filter(d => d.donorId && !previousDonorIds.has(d.donorId))
+    const newDonorCount = new Set(newDonors.map(d => d.donorId)).size
+
+    // Returning donors = gave in both periods
+    const returningDonorCount = currentDonations.filter(d => d.donorId && previousDonorIds.has(d.donorId)).length
+
     // Prepare summary data
     const summary = {
-      grossRevenue: currentGross / 100, // Convert cents to dollars
-      totalFees: currentTotalFees / 100, // Combined Stripe + platform fees
+      // Revenue metrics
+      grossRevenue: currentGross / 100,
+      totalFees: currentTotalFees / 100,
       netRevenue: currentNet / 100,
       effectiveFeeRate,
-      isUsingActualFees: hasActualFees, // Indicate if fees are actual or estimated
+      isUsingActualFees: true, // Always using PayoutSummary data (never estimating)
+
+      // NEW: Growth-focused metrics
+      totalExpenses: currentTotalExpenses / 100,
+      netIncome: currentNetIncome / 100,
+      donationGrowthRate, // Top-line growth (gross revenue)
+      netIncomeGrowthRate, // Bottom-line growth (net income)
+      totalDonors: currentUniqueDonors,
+      newDonors: newDonorCount,
+      returningDonors: returningDonorCount,
+      operatingExpenses: operatingExpensesMonthly / 100, // 12-month rolling average
+      monthsOfCushion, // Based on current net income vs 12-month avg expenses
+
+      // Previous period comparison
       previousPeriod: previousDonations.length > 0 ? {
         grossRevenue: prevGross / 100,
         totalFees: prevProcessingFees / 100,
         netRevenue: prevNet / 100,
-        effectiveFeeRate: prevEffectiveFeeRate
+        effectiveFeeRate: prevEffectiveFeeRate,
+        totalExpenses: previousTotalExpenses / 100,
+        netIncome: previousNetIncome / 100,
+        totalDonors: previousUniqueDonors
       } : undefined
     }
     
@@ -188,10 +328,8 @@ export async function POST(request: NextRequest) {
     }, 0)
 
     // Fees if no one covered = actual fees paid + fees that were covered
-    // When using actual fees, platform fees are already included
-    const estimatedFeesWithoutCoverage = hasActualFees
-      ? currentProcessingFees + totalCoveredFees // Actual fees already include platform
-      : currentProcessingFees + totalCoveredFees + currentPlatformFees // Estimated needs platform added
+    // Platform fees are always included in PayoutSummary data
+    const estimatedFeesWithoutCoverage = currentProcessingFees + totalCoveredFees
     
     // Total saved by donor coverage
     // This is simply the sum of all fees that donors covered
@@ -221,12 +359,12 @@ export async function POST(request: NextRequest) {
       coveredDonations: stats.covered
     }))
     
-    // Generate daily gross vs net data (keeping for now but not using)
-    const dailyData = new Map<string, { gross: number; fees: number }>()
+    // Generate daily revenue vs expenses data
+    const dailyData = new Map<string, { gross: number; fees: number; expenses: number }>()
     
-    // If we have actual payout data, use it for the days with payouts
+    // If we have payouts in this period, fetch them for daily breakdown
     const payoutsByDate = new Map<string, { grossVolume: number; totalFees: number }>()
-    if (hasActualFees) {
+    if (currentActualFees > 0) {
       const allPayouts = await prisma.payoutSummary.findMany({
         where: {
           churchId: church.id,
@@ -252,13 +390,14 @@ export async function POST(request: NextRequest) {
     }
     
     currentDonations.forEach(donation => {
-      const date = donation.transactionDate.toISOString().split('T')[0]
+      // Use format to avoid timezone shifts (ISO conversion can change the date)
+      const date = format(donation.transactionDate, 'yyyy-MM-dd')
       const netDonation = donation.amount - (donation.refundedAmount || 0)
       const coveredFees = donation.processingFeeCoveredByDonor || 0
       const grossAmount = netDonation + coveredFees // Real amount donor paid
       
       if (!dailyData.has(date)) {
-        dailyData.set(date, { gross: 0, fees: 0 })
+        dailyData.set(date, { gross: 0, fees: 0, expenses: 0 })
       }
       
       const day = dailyData.get(date)!
@@ -269,14 +408,12 @@ export async function POST(request: NextRequest) {
         const payoutData = payoutsByDate.get(date)!
         day.fees = payoutData.totalFees
       } else {
-        // Estimate fees for this transaction
-        // Skip manual donations
-        if (donation.paymentMethodType === 'cash' || donation.paymentMethodType === 'check') {
-          // No fees
-        } else if (donation.paymentMethodType) {
-          // Calculate fee on the TOTAL transaction (donation + covered fees)
+        // Estimate fees ONLY for actual Stripe transactions (not manual donations)
+        // Manual donations (no stripePaymentIntentId) always have $0 fees
+        if (donation.stripePaymentIntentId && donation.paymentMethodType) {
+          // This is a real Stripe transaction - calculate fee on the TOTAL transaction (donation + covered fees)
           const totalTransaction = netDonation + coveredFees
-          
+
           let transactionFee = 0
           if (donation.paymentMethodType === 'card' || donation.paymentMethodType === 'link') {
             transactionFee = Math.round(totalTransaction * 0.029 + 30)
@@ -285,31 +422,51 @@ export async function POST(request: NextRequest) {
           } else {
             transactionFee = Math.round(totalTransaction * 0.029 + 30)
           }
-          
+
           day.fees += transactionFee
         }
+        // Manual donations: no Stripe ID = no fees (already handled by not adding to fees)
       }
     })
-    
+
+    // Add expenses to daily data (convert from dollars to cents)
+    currentExpenses.forEach(expense => {
+      // Use format to avoid timezone shifts
+      const date = format(expense.expenseDate, 'yyyy-MM-dd')
+
+      if (!dailyData.has(date)) {
+        dailyData.set(date, { gross: 0, fees: 0, expenses: 0 })
+      }
+
+      const day = dailyData.get(date)!
+      day.expenses += parseFloat(expense.amount.toString()) * 100
+    })
+
     // Fill in missing days with zero values
     const allDays = eachDayOfInterval({ start: fromDate, end: toDate })
-    const grossVsNet = allDays.map(day => {
+    const revenueVsExpenses = allDays.map(day => {
       const dateStr = day.toISOString().split('T')[0]
-      const data = dailyData.get(dateStr) || { gross: 0, fees: 0 }
-      
+      const data = dailyData.get(dateStr) || { gross: 0, fees: 0, expenses: 0 }
+
+      // Show GROSS donations (what donors actually paid)
+      // No fee deductions - this is the total amount donors contributed
+      const revenue = data.gross / 100
+      const expenses = data.expenses / 100
+      const netIncome = revenue - expenses
+
       return {
         date: dateStr,
-        gross: data.gross / 100,
-        net: (data.gross - Math.max(0, data.fees)) / 100,
-        fees: Math.max(0, data.fees) / 100
+        revenue,
+        expenses,
+        netIncome
       }
     })
-    
+
     // Calculate fee breakdown by payment method
     const feesByType = new Map<string, number>()
     let totalFeesForBreakdown = 0
-    
-    if (hasActualFees && currentActualFees > 0) {
+
+    if (currentActualFees > 0) {
       // When we have actual fees, distribute them proportionally by payment type
       const volumeByType = new Map<string, number>()
       
@@ -442,7 +599,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       summary,
-      grossVsNet,
+      revenueVsExpenses, // NEW: Daily revenue vs expenses data
       feeBreakdown,
       feeCoverageAnalytics,
       payouts: formattedPayouts

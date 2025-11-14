@@ -267,7 +267,14 @@ export async function POST(req: Request) {
           },
           {
             name: "Card",
-            color: "#8B5CF6", // Purple
+            color: "#000000", // Black
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+          {
+            name: "Link",
+            color: "#000000", // Black
             churchId: newChurch.id,
             isSystemMethod: true,
             isDeletable: false,

@@ -242,17 +242,41 @@ export async function POST(req: Request) {
             
             // The total amount charged to the donor (includes covered fee if applicable)
             const totalCharged = paymentIntentSucceeded.amount;
-            
+
             console.log(`[Stripe Webhook] Processing payment - Total charged: ${totalCharged}, Original donation: ${existingTransaction.amount}, Fee covered by donor: ${existingTransaction.processingFeeCoveredByDonor || 0}, Platform fee: ${existingTransaction.platformFeeAmount || 0}`);
-            
+
             // Simplified: No longer tracking fees in database
             // We'll use Stripe Reports API for fee information
-            
+
+            // Map Stripe payment method type to DonationPaymentMethod name
+            const paymentMethodNameMap: Record<string, string> = {
+              'card': 'Card',
+              'link': 'Link',
+              'us_bank_account': 'Bank Transfer',
+            };
+            const paymentMethodName = paymentMethodNameMap[actualPaymentMethodType] || null;
+
+            // Lookup the DonationPaymentMethod record if we have a matching name
+            let paymentMethodId: string | null = null;
+            if (paymentMethodName) {
+              const donationPaymentMethod = await tx.donationPaymentMethod.findUnique({
+                where: {
+                  churchId_name: {
+                    churchId: existingTransaction.churchId,
+                    name: paymentMethodName,
+                  },
+                },
+                select: { id: true },
+              });
+              paymentMethodId = donationPaymentMethod?.id || null;
+            }
+
             const updatedTransaction = await tx.donationTransaction.update({
               where: { stripePaymentIntentId: paymentIntentSucceeded.id },
               data: {
                 status: 'succeeded',
                 paymentMethodType: actualPaymentMethodType,
+                paymentMethodId: paymentMethodId, // Associate with DonationPaymentMethod for colored tag
                 processedAt: new Date(), // Set the processed timestamp
               },
             });

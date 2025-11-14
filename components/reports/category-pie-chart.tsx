@@ -114,18 +114,18 @@ export function CategoryPieChart({ data, title, loading, type = 'donations' }: C
                 const value = dataset.data[i] as number
                 const percentage = data.datasets[0].data.reduce((a, b) => (a as number) + (b as number), 0) as number
                 const percent = percentage > 0 ? Math.round((value / percentage) * 100) : 0
-                
+
                 return {
                   text: `${label} (${percent}%)`,
-                  fillStyle: dataset.backgroundColor ? 
-                    Array.isArray(dataset.backgroundColor) ? 
-                      dataset.backgroundColor[i] : 
-                      dataset.backgroundColor : 
+                  fillStyle: dataset.backgroundColor ?
+                    Array.isArray(dataset.backgroundColor) ?
+                      dataset.backgroundColor[i] :
+                      dataset.backgroundColor :
                     'rgba(0,0,0,0)',
-                  strokeStyle: dataset.borderColor ? 
-                    Array.isArray(dataset.borderColor) ? 
-                      dataset.borderColor[i] : 
-                      dataset.borderColor : 
+                  strokeStyle: dataset.borderColor ?
+                    Array.isArray(dataset.borderColor) ?
+                      dataset.borderColor[i] :
+                      dataset.borderColor :
                     'rgba(0,0,0,0)',
                   lineWidth: dataset.borderWidth as number || 1,
                   hidden: false,
