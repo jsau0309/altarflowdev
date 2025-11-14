@@ -41,9 +41,6 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
 
       // Only fetch if parameters have changed
       if (fetchKey !== lastFetchParams) {
-        console.log('📊 Financial Analysis: Date range changed, fetching new data...')
-        console.log('  From:', dateRange.from.toLocaleDateString())
-        console.log('  To:', dateRange.to.toLocaleDateString())
         fetchFinancialData(abortController.signal)
         setLastFetchParams(fetchKey)
       }
@@ -112,16 +109,9 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
       // Set payout data
       setPayoutData(data.payouts || [])
 
-      console.log('✅ Financial data updated:', {
-        dateRange: `${dateRange.from?.toLocaleDateString()} - ${dateRange.to?.toLocaleDateString()}`,
-        netIncome: data.summary?.netIncome,
-        growthRate: data.summary?.growthRate
-      })
-
     } catch (error) {
       // Don't show error if request was cancelled (expected behavior)
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('📊 Financial Analysis: Request cancelled (expected)')
         return
       }
 
