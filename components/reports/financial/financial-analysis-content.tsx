@@ -7,6 +7,7 @@ import { GrowthMetricsCards, type GrowthMetricsData } from "./growth-metrics-car
 import { RevenueVsExpensesChart, type RevenueExpenseDataPoint } from "./revenue-vs-expenses-chart"
 import { PayoutSummarySection, type PayoutSummaryData } from "./payout-summary-section"
 import { toast } from "sonner"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 interface DateRange {
   from: Date | null
@@ -109,7 +110,13 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
       })
 
     } catch (error) {
-      console.error('Error fetching financial data:', error)
+      // Structured error logging with context
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[Financial Analysis Error]', {
+        message: errorMessage,
+        timestamp: new Date().toISOString(),
+        component: 'FinancialAnalysisContent'
+      })
       toast.error(t('reports:financial.fetchingFinancialData'))
     } finally {
       setIsLoading(false)
@@ -119,24 +126,26 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
 
   // Growth-focused layout: What matters most comes first
   return (
-    <div className="space-y-6">
-      {/* 🎯 TOP PRIORITY: Growth Metrics - The numbers that drive decisions */}
-      <GrowthMetricsCards
-        data={isLoading ? null : growthData}
-        isLoading={isLoading}
-      />
+    <ErrorBoundary>
+      <div className="space-y-6">
+        {/* 🎯 TOP PRIORITY: Growth Metrics - The numbers that drive decisions */}
+        <GrowthMetricsCards
+          data={isLoading ? null : growthData}
+          isLoading={isLoading}
+        />
 
-      {/* 📈 SECONDARY: Financial Health Visualization */}
-      <RevenueVsExpensesChart
-        data={isLoading ? [] : chartData}
-        isLoading={isLoading}
-      />
+        {/* 📈 SECONDARY: Financial Health Visualization */}
+        <RevenueVsExpensesChart
+          data={isLoading ? [] : chartData}
+          isLoading={isLoading}
+        />
 
-      {/* 💰 OPERATIONAL: Recent Payouts with Total Fees */}
-      <PayoutSummarySection
-        data={isLoading ? [] : payoutData}
-        isLoading={isLoading}
-      />
-    </div>
+        {/* 💰 OPERATIONAL: Recent Payouts with Total Fees */}
+        <PayoutSummarySection
+          data={isLoading ? [] : payoutData}
+          isLoading={isLoading}
+        />
+      </div>
+    </ErrorBoundary>
   )
 }

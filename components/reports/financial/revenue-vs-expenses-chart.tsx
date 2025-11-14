@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useTranslation } from 'react-i18next'
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 export interface RevenueExpenseDataPoint {
   date: string
@@ -108,51 +109,53 @@ export function RevenueVsExpensesChart({ data, isLoading }: RevenueVsExpensesCha
   }))
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('reports:financial.donationsVsExpenses')}</CardTitle>
-        <CardDescription>{t('reports:financial.revenueVsExpensesSubtitle')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 12 }}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis
-                tickFormatter={(value: number) => formatCurrency(value)}
-                tick={{ fontSize: 12 }}
-              />
-              <Tooltip content={CustomTooltip} />
-              <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
-              <Line
-                type="monotone"
-                dataKey="donations"
-                stroke="var(--color-donations)"
-                strokeWidth={1.5}
-                name="Donations"
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="expenses"
-                stroke="var(--color-expenses)"
-                strokeWidth={1.5}
-                name="Expenses"
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <ErrorBoundary>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('reports:financial.donationsVsExpenses')}</CardTitle>
+          <CardDescription>{t('reports:financial.revenueVsExpensesSubtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis
+                  tickFormatter={(value: number) => formatCurrency(value)}
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip content={CustomTooltip} />
+                <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
+                <Line
+                  type="monotone"
+                  dataKey="donations"
+                  stroke="var(--color-donations)"
+                  strokeWidth={1.5}
+                  name="Donations"
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="expenses"
+                  stroke="var(--color-expenses)"
+                  strokeWidth={1.5}
+                  name="Expenses"
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+    </ErrorBoundary>
   )
 }

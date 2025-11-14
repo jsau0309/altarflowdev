@@ -9,6 +9,7 @@ import { format } from "date-fns"
 import { ArrowUpRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 export interface PayoutSummaryData {
   id: string
@@ -90,22 +91,23 @@ export function PayoutSummarySection({ data, isLoading }: PayoutSummarySectionPr
   const totalNetAmount = recentPayouts.reduce((sum, payout) => sum + (payout.netAmount || 0), 0)
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="space-y-1.5">
-          <CardTitle>{t('reports:financial.recentPayouts')}</CardTitle>
-          <CardDescription>{t('reports:financial.recentPayoutsSubtitle')}</CardDescription>
-        </div>
-        <Button
-          onClick={handleViewReconciliation}
-          size="sm"
-          variant="outline"
-        >
-          {t('reports:financial.viewInReconciliation')}
-          <ArrowUpRight className="h-4 w-4 ml-2" />
-        </Button>
-      </CardHeader>
-      <CardContent>
+    <ErrorBoundary>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="space-y-1.5">
+            <CardTitle>{t('reports:financial.recentPayouts')}</CardTitle>
+            <CardDescription>{t('reports:financial.recentPayoutsSubtitle')}</CardDescription>
+          </div>
+          <Button
+            onClick={handleViewReconciliation}
+            size="sm"
+            variant="outline"
+          >
+            {t('reports:financial.viewInReconciliation')}
+            <ArrowUpRight className="h-4 w-4 ml-2" />
+          </Button>
+        </CardHeader>
+        <CardContent>
         {recentPayouts.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground">
             {t('reports:financial.noDataAvailable')}
@@ -157,5 +159,6 @@ export function PayoutSummarySection({ data, isLoading }: PayoutSummarySectionPr
         )}
       </CardContent>
     </Card>
+    </ErrorBoundary>
   )
 }

@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useTranslation } from "react-i18next"
 import { TrendingUp, TrendingDown, DollarSign, Activity, Flame } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 export interface GrowthMetricsData {
   netIncome: number
@@ -54,7 +55,8 @@ export function GrowthMetricsCards({ data, isLoading }: GrowthMetricsCardsProps)
     : null
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <ErrorBoundary>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {/* Net Income Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -170,5 +172,6 @@ export function GrowthMetricsCards({ data, isLoading }: GrowthMetricsCardsProps)
         </CardContent>
       </Card>
     </div>
+    </ErrorBoundary>
   )
 }

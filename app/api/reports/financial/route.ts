@@ -3,32 +3,61 @@ import { auth } from '@clerk/nextjs/server'
 import prisma from '@/lib/db'
 import { startOfDay, endOfDay, eachDayOfInterval, format } from 'date-fns'
 
+// Stripe fee rate constants - move to config later if rates change
+const STRIPE_CARD_FEE_RATE = 0.029 // 2.9%
+const STRIPE_CARD_FEE_FIXED = 30 // 30 cents
+const STRIPE_ACH_FEE_RATE = 0.008 // 0.8%
+const EPSILON = 0.01 // 1 cent - for division safety
+
+// Helper function to validate ISO date strings
+function isValidISODate(dateString: any): boolean {
+  if (typeof dateString !== 'string') return false
+  const date = new Date(dateString)
+  return date instanceof Date && !isNaN(date.getTime())
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    // CRITICAL: Verify authentication and organization membership
+    const { userId, orgId } = await auth()
+    if (!userId || !orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
+
     const body = await request.json()
     const { churchId, dateRange, previousPeriod } = body
-    
+
+    // CRITICAL: Validate required parameters
     if (!churchId || !dateRange?.from || !dateRange?.to) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
     }
-    
-    // Parse dates
+
+    // CRITICAL: Verify user belongs to the organization they're requesting data for
+    if (orgId !== churchId) {
+      return NextResponse.json({ error: 'Forbidden - organization mismatch' }, { status: 403 })
+    }
+
+    // CRITICAL: Validate date formats before parsing
+    if (!isValidISODate(dateRange.from) || !isValidISODate(dateRange.to)) {
+      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 })
+    }
+
+    if (previousPeriod && (!isValidISODate(previousPeriod.from) || !isValidISODate(previousPeriod.to))) {
+      return NextResponse.json({ error: 'Invalid previous period date format' }, { status: 400 })
+    }
+
+    // Parse dates (now safe after validation)
     const fromDate = startOfDay(new Date(dateRange.from))
     const toDate = endOfDay(new Date(dateRange.to))
     const prevFromDate = previousPeriod ? startOfDay(new Date(previousPeriod.from)) : null
     const prevToDate = previousPeriod ? endOfDay(new Date(previousPeriod.to)) : null
-    
-    // First get the actual churchId from clerkOrgId
+
+    // Get the actual churchId from clerkOrgId (already verified above)
     const church = await prisma.church.findUnique({
       where: { clerkOrgId: churchId },
       select: { id: true }
     })
-    
+
     if (!church) {
       return NextResponse.json({ error: 'Church not found' }, { status: 404 })
     }
@@ -111,6 +140,7 @@ export async function POST(request: NextRequest) {
 
     // Get actual fees from reconciled payouts in the selected date range
     // Payouts are our source of truth for fees from Stripe
+    // HIGH PRIORITY FIX: Add pagination to prevent memory issues with large datasets
     const reconciledPayouts = await prisma.payoutSummary.findMany({
       where: {
         churchId: church.id,
@@ -123,7 +153,9 @@ export async function POST(request: NextRequest) {
       select: {
         totalFees: true,
         payoutDate: true
-      }
+      },
+      orderBy: { payoutDate: 'desc' },
+      take: 1000 // Limit to prevent memory issues
     })
 
     // Sum up the actual fees from payouts in this date range
@@ -141,7 +173,9 @@ export async function POST(request: NextRequest) {
       },
       select: {
         totalFees: true
-      }
+      },
+      orderBy: { payoutDate: 'desc' },
+      take: 1000 // Limit to prevent memory issues
     }) : []
 
     const previousActualFees = previousPayouts.reduce((sum, p) => sum + (p.totalFees || 0), 0)
@@ -175,8 +209,9 @@ export async function POST(request: NextRequest) {
     const prevNet = prevGross - prevTotalFees
 
     // Calculate effective fee rate (what percentage of gross donations goes to fees)
-    const effectiveFeeRate = currentGross > 0 ? (currentTotalFees / currentGross) : 0
-    const prevEffectiveFeeRate = prevGross > 0 ? (prevTotalFees / prevGross) : 0
+    // Use EPSILON to avoid division by zero/near-zero amounts
+    const effectiveFeeRate = currentGross > EPSILON ? (currentTotalFees / currentGross) : 0
+    const prevEffectiveFeeRate = prevGross > EPSILON ? (prevTotalFees / prevGross) : 0
 
     // ========== NEW GROWTH METRICS ==========
 
@@ -244,21 +279,24 @@ export async function POST(request: NextRequest) {
     const operatingExpensesMonthly = total12MonthExpenses / actualMonthsToUse
 
     // Calculate months of cushion based on current period's net income
-    const monthsOfCushion = operatingExpensesMonthly > 0
+    // Use EPSILON to avoid division by zero
+    const monthsOfCushion = operatingExpensesMonthly > EPSILON
       ? Math.max(0, currentNetIncome / operatingExpensesMonthly)
       : 0
 
     // Calculate Donation Growth Rate (top-line: % change in gross revenue)
-    // Handle edge cases: if no previous data, return null instead of 0
-    const donationGrowthRate = prevGross > 0
+    // Use EPSILON to avoid division by zero/near-zero amounts
+    const donationGrowthRate = prevGross > EPSILON
       ? ((currentGross - prevGross) / prevGross)
-      : (prevGross === 0 && currentGross > 0 ? 1 : 0) // 100% growth if starting from 0
+      : (prevGross < EPSILON && currentGross > EPSILON ? 1 : 0) // 100% growth if starting from ~0
 
     // Calculate Net Income Growth Rate (bottom-line: % change in net income)
     // Use absolute value of previous if negative to get meaningful percentage
-    const netIncomeGrowthRate = previousNetIncome !== 0
-      ? ((currentNetIncome - previousNetIncome) / Math.abs(previousNetIncome))
-      : (previousNetIncome === 0 && currentNetIncome > 0 ? 1 : 0) // 100% growth if starting from 0
+    // Use EPSILON for safer division check
+    const absPrevNetIncome = Math.abs(previousNetIncome)
+    const netIncomeGrowthRate = absPrevNetIncome > EPSILON
+      ? ((currentNetIncome - previousNetIncome) / absPrevNetIncome)
+      : (absPrevNetIncome < EPSILON && Math.abs(currentNetIncome) > EPSILON ? 1 : 0) // 100% growth if starting from ~0
 
     // Calculate Donor Metrics
     const currentUniqueDonors = new Set(currentDonations.map(d => d.donorId).filter(Boolean)).size
@@ -377,7 +415,9 @@ export async function POST(request: NextRequest) {
           payoutDate: true,
           grossVolume: true,
           totalFees: true
-        }
+        },
+        orderBy: { payoutDate: 'desc' },
+        take: 1000 // Limit to prevent memory issues
       })
       
       allPayouts.forEach(payout => {
@@ -416,11 +456,11 @@ export async function POST(request: NextRequest) {
 
           let transactionFee = 0
           if (donation.paymentMethodType === 'card' || donation.paymentMethodType === 'link') {
-            transactionFee = Math.round(totalTransaction * 0.029 + 30)
+            transactionFee = Math.round(totalTransaction * STRIPE_CARD_FEE_RATE + STRIPE_CARD_FEE_FIXED)
           } else if (donation.paymentMethodType === 'us_bank_account' || donation.paymentMethodType === 'ach_debit') {
-            transactionFee = Math.round(totalTransaction * 0.008)
+            transactionFee = Math.round(totalTransaction * STRIPE_ACH_FEE_RATE)
           } else {
-            transactionFee = Math.round(totalTransaction * 0.029 + 30)
+            transactionFee = Math.round(totalTransaction * STRIPE_CARD_FEE_RATE + STRIPE_CARD_FEE_FIXED)
           }
 
           day.fees += transactionFee
@@ -521,14 +561,14 @@ export async function POST(request: NextRequest) {
         // Calculate fee on the total transaction amount
         if (donation.paymentMethodType === 'card' || donation.paymentMethodType === 'link') {
           type = 'Card Fees'
-          fee = Math.round(totalTransaction * 0.029 + 30)
+          fee = Math.round(totalTransaction * STRIPE_CARD_FEE_RATE + STRIPE_CARD_FEE_FIXED)
         } else if (donation.paymentMethodType === 'us_bank_account' || donation.paymentMethodType === 'ach_debit') {
           type = 'ACH Fees'
-          fee = Math.round(totalTransaction * 0.008)
+          fee = Math.round(totalTransaction * STRIPE_ACH_FEE_RATE)
         } else if (donation.paymentMethodType) {
           // Unknown payment type, use card fees as default
           type = 'Card Fees'
-          fee = Math.round(totalTransaction * 0.029 + 30)
+          fee = Math.round(totalTransaction * STRIPE_CARD_FEE_RATE + STRIPE_CARD_FEE_FIXED)
         }
         
         if (fee > 0) {
@@ -545,8 +585,9 @@ export async function POST(request: NextRequest) {
     }))
     
     // Fetch payouts for the selected date range
+    // HIGH PRIORITY FIX: Add pagination to prevent memory issues
     const payouts = await prisma.payoutSummary.findMany({
-      where: { 
+      where: {
         churchId: church.id,
         payoutDate: {
           gte: fromDate,
@@ -554,6 +595,7 @@ export async function POST(request: NextRequest) {
         }
       },
       orderBy: { payoutDate: 'desc' },
+      take: 100, // Limit for frontend display
       select: {
         id: true,
         stripePayoutId: true,
@@ -606,7 +648,20 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Error fetching financial data:', error)
+    // Structured error logging with context
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+
+    console.error('[Financial API Error]', {
+      message: errorMessage,
+      stack: errorStack,
+      timestamp: new Date().toISOString(),
+      // Don't log sensitive data in production
+      ...(process.env.NODE_ENV === 'development' && {
+        requestBody: JSON.stringify({ hasDateRange: !!request.body })
+      })
+    })
+
     return NextResponse.json(
       { error: 'Failed to fetch financial data' },
       { status: 500 }
