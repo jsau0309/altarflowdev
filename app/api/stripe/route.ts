@@ -66,28 +66,28 @@ async function withIdempotency(
   });
   
   if (cachedResponse) {
-    console.log(`[DEBUG] Idempotency: Returning cached response for key: ${cacheKey}`);
+    console.log('[DEBUG] Idempotency: Returning cached response', { cacheKey });
     const parsedData = JSON.parse(cachedResponse.responseData);
-    
+
     // If body is empty or undefined, ensure we return an empty string not null/undefined
     const bodyContent = parsedData.body || '';
-    
+
     // Reconstruct the NextResponse from cached parts
     const reconstructedResponse = new NextResponse(bodyContent, {
       status: parsedData.status,
       headers: parsedData.headers,
     });
-    
-    console.log(`[DEBUG] Idempotency: Reconstructed response with body length: ${bodyContent.length}`);
+
+    console.log('[DEBUG] Idempotency: Reconstructed response', { bodyLength: bodyContent.length });
     return reconstructedResponse;
   }
-  
+
   // Execute the operation, which returns a NextResponse
   let response: NextResponse;
   try {
     response = await operation();
   } catch (operationError) {
-    console.error(`Idempotent operation failed for key ${cacheKey}:`, operationError);
+    console.error('[Idempotency] Operation failed', { cacheKey, error: operationError });
     throw operationError;
   }
 
@@ -96,23 +96,29 @@ async function withIdempotency(
 
   // Don't cache error responses (4xx, 5xx) - only cache successful operations
   if (response.status >= 400) {
-    console.warn(`[DEBUG] Idempotency: Skipping cache for error response (status: ${response.status}, key: ${cacheKey})`);
+    console.warn('[DEBUG] Idempotency: Skipping cache for error response', {
+      status: response.status,
+      cacheKey
+    });
     return response;
   }
 
   // Don't cache empty responses for successful operations
   if (response.status === 200 && (!bodyText || bodyText.trim() === '')) {
-    console.warn(`[DEBUG] Idempotency: Skipping cache for empty 200 response (key: ${cacheKey})`);
+    console.warn('[DEBUG] Idempotency: Skipping cache for empty 200 response', { cacheKey });
     return response;
   }
-  
+
   const responseToCache = {
     body: bodyText,
     status: response.status,
     headers: Object.fromEntries(response.headers.entries()),
   };
-  
-  console.log(`[DEBUG] Idempotency: Caching response with body length: ${bodyText.length}, status: ${response.status}`);
+
+  console.log('[DEBUG] Idempotency: Caching response', {
+    bodyLength: bodyText.length,
+    status: response.status
+  });
 
   try {
     await prisma.idempotency_cache.create({
@@ -122,28 +128,28 @@ async function withIdempotency(
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Cache for 24 hours
       },
     });
-    console.log(`[DEBUG] Idempotency: Cached response for key: ${cacheKey}`);
-  } catch (cacheError: any) { 
+    console.log('[DEBUG] Idempotency: Cached response', { cacheKey });
+  } catch (cacheError: any) {
     if (
       cacheError instanceof Prisma.PrismaClientKnownRequestError &&
       cacheError.code === 'P2002'
     ) {
       const target = cacheError.meta?.target as string[] | undefined;
       if (target && target.includes('key')) {
-        console.warn(
-          `Idempotency cache write failed due to a race condition for key: ${cacheKey}. ` +
-          `The result was likely cached by a concurrent request. Returning current operation's result.`
-        );
+        console.warn('[Idempotency] Cache write failed due to race condition', {
+          cacheKey,
+          message: 'The result was likely cached by a concurrent request. Returning current operation\'s result.'
+        });
       } else {
-        console.error(
-          `Idempotency cache write failed with P2002 on unexpected fields or missing/invalid meta.target for key: ${cacheKey}.`,
-          cacheError
-        );
-        throw cacheError; 
+        console.error('[Idempotency] Cache write failed with P2002 on unexpected fields', {
+          cacheKey,
+          error: cacheError
+        });
+        throw cacheError;
       }
     } else {
-      console.error(`Idempotency cache write failed for key: ${cacheKey}.`, cacheError);
-      throw cacheError; 
+      console.error('[Idempotency] Cache write failed', { cacheKey, error: cacheError });
+      throw cacheError;
     }
   }
   
