@@ -49,11 +49,16 @@ async function withIdempotency(
   
   if (!idempotencyKey) {
     console.error('[withIdempotency] Idempotency-Key header is MISSING from the request.');
-    const headersObject: Record<string, string> = {};
-    // Log headers from the 'req' object passed into withIdempotency
+
+    // SECURITY: Use Map to prevent prototype pollution via malicious header names
+    // Attackers could send headers like __proto__, constructor, etc.
+    const headersMap = new Map<string, string>();
     req.headers.forEach((value, key) => {
-      headersObject[key] = value;
+      headersMap.set(key, value);
     });
+
+    // Convert Map to plain object safely using Object.fromEntries
+    const headersObject = Object.fromEntries(headersMap);
     console.error('[withIdempotency] Received headers on req object:', JSON.stringify(headersObject));
     throw new Error('Idempotency-Key header is required');
   }
