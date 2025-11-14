@@ -308,6 +308,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SECURITY: Validate expenseCategoryId belongs to this church (prevent cross-tenant reference)
+    if (expenseCategoryId) {
+      const category = await prisma.expenseCategory.findUnique({
+        where: { id: expenseCategoryId },
+        select: { churchId: true, name: true },
+      });
+
+      if (!category) {
+        return NextResponse.json(
+          { error: 'Expense category not found.' },
+          { status: 404 }
+        );
+      }
+
+      if (category.churchId !== church.id) {
+        return NextResponse.json(
+          { error: 'Forbidden: Expense category does not belong to your organization.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // 4. Create the expense with the church UUID
     const newExpense = await prisma.expense.create({
       data: {

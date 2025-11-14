@@ -12,8 +12,19 @@ export async function GET(
   { params }: { params: Promise<Params> }
 ) {
   const { churchId } = await params;
+  const { userId, orgId } = await auth();
   const { searchParams } = new URL(request.url);
   const includeHidden = searchParams.get('includeHidden') === 'true';
+
+  // SECURITY: Require authentication
+  if (!userId || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // SECURITY: Verify caller belongs to the requested organization
+  if (orgId !== churchId) {
+    return NextResponse.json({ error: 'Forbidden: Organization mismatch' }, { status: 403 });
+  }
 
   if (!churchId) {
     return NextResponse.json({ error: 'Church ID (Clerk Organization ID) from path is required' }, { status: 400 });
