@@ -10,6 +10,9 @@
     "recurringDonations": "Donaciones Recurrentes",
     "campaigns": "Campañas",
     "amount": "Cantidad",
+    "fees": "Fees",
+    "processingFees": "Tarifas de procesamiento",
+    "feesToBeDetermined": "Por determinar",
     "donor": "Donante",
     "date": "Fecha",
     "method": "Método",
@@ -32,6 +35,12 @@
       "other": "Otro",
       "nfc": "Pago NFC"
     },
+
+    "stripePaymentMethods": {
+      "card": "Tarjeta",
+      "bankaccount": "Cuenta de Banco",
+      "link": "Link"
+    },
     
     "types": {
       "oneTime": "Una vez",
@@ -49,9 +58,15 @@
     
     "statuses": {
       "completed": "Completado",
+      "succeeded": "Exitoso",
       "pending": "Pendiente",
-      "failed": "Fallado",
-      "cancelled": "Cancelado"
+      "processing": "Procesando",
+      "failed": "Fallido",
+      "refunded": "Reembolsado",
+      "partiallyRefunded": "Reembolso Parcial",
+      "canceled": "Cancelado",
+      "cancelled": "Cancelado",
+      "disputed": "Disputado"
     },
     "funds": {
       "offering": "Ofrenda",
@@ -71,7 +86,7 @@
         "title": "Todas las Donaciones",
         "description": "Ver, buscar y filtrar todas las donaciones",
         "subtitle": "Ver, buscar y filtrar todas las donaciones",
-        "searchPlaceholder": "Buscar donaciones (donante, campaña, cantidad...)"
+        "searchPlaceholder": "Buscar donaciones"
       },
       "filter": {
         "title": "Filtrar Donaciones",
@@ -222,8 +237,10 @@
     },
     
     "newManualDonation": {
-      "title": "Nueva Donación Manual",
-      "description": "Registra una donación hecha en efectivo, cheque u otros métodos que no sean de Stripe.",
+      "title": "Agregar Donación",
+      "description": "Registra una donación para los registros de tu iglesia.",
+      "tabIndividual": "Individual",
+      "tabGeneralCollection": "Colecta General",
       "amount": "Monto",
       "date": "Fecha",
       "donor": "Donante",
@@ -241,7 +258,7 @@
       "cancelButton": "Cancelar",
       "saving": "Guardando...",
       "success": "Éxito",
-      "success_message": "Donación manual agregada exitosamente.",
+      "success_message": "Donación agregada exitosamente.",
       "validation": {
         "invalid_amount": "Por favor ingrese un monto de donación válido.",
         "date_required": "La fecha de la donación es requerida.",
@@ -393,15 +410,22 @@
       "locked": "Esta donación está bloqueada (período de edición expirado)",
       "editDonation": "Editar Donación",
       "donationInfo": "Información de Donación",
+      "amount": "Cantidad",
+      "type": "Tipo",
+      "date": "Fecha",
+      "method": "Método",
+      "status": "Estado",
+      "source": "Fuente",
       "donorInfo": "Información del Donante",
+      "name": "Nombre",
+      "email": "Correo Electrónico",
+      "country": "País",
       "editHistory": "Historial de Ediciones",
       "lastEdited": "Última edición",
       "editReason": "Razón de Edición",
       "transactionDetails": "Detalles de Transacción",
       "transactionId": "ID de Transacción",
-      "processed": "Procesado",
-      "source": "Fuente",
-      "status": "Estado"
+      "processed": "Procesado"
     },
     "editDonation": {
       "title": "Editar Donación Manual",
@@ -425,5 +449,7 @@
       "and": "y la",
       "privacyPolicy": "Política de Privacidad",
       "ofAltarflow": "de Altarflow"
-    }
+    },
+    "pageTotal": "Total",
+    "generalCollection": "Colecta General"
   } 

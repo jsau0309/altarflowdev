@@ -145,6 +145,8 @@
   "tabs": {
     "general": "General",
     "generalDesc": "Basic church information and preferences",
+    "categories": "Tags",
+    "categoriesDesc": "Manage expense categories and donation types",
     "account": "Account Management",
     "accountDesc": "Manage users and permissions",
     "landing": "Landing Manager",
@@ -472,5 +474,65 @@
     "adminDescription": "Full access to all features",
     "you": "You",
     "inviteTeamMember": "Invite Team Member"
+  },
+
+  "categories": {
+    "expenseCategories": "Expense Categories",
+    "paymentMethods": "Donation Methods",
+    "addExpenseCategory": "Add Expense Category",
+    "addPaymentMethod": "Add Donation Method",
+    "name": "Name",
+    "namePlaceholder": "e.g., Office Supplies",
+    "paymentMethodNamePlaceholder": "e.g., Zelle, Cash, Check",
+    "color": "Color",
+    "system": "System",
+    "show": "Show",
+    "hide": "Hide",
+    "error": "Error",
+    "success": "Success",
+    "nameRequired": "Name is required",
+    "categoryAdded": "Expense category added successfully",
+    "categoryUpdated": "Category updated successfully",
+    "categoryDeleted": "Category deleted successfully",
+    "categoryShown": "Category shown successfully",
+    "categoryHidden": "Category hidden successfully",
+    "paymentMethodAdded": "Donation method added successfully",
+    "paymentMethodUpdated": "Donation method updated successfully",
+    "paymentMethodDeleted": "Donation method deleted successfully",
+    "paymentMethodShown": "Donation method shown successfully",
+    "paymentMethodHidden": "Donation method hidden successfully",
+    "failedToAddCategory": "Failed to add category",
+    "failedToUpdateCategory": "Failed to update category",
+    "failedToDeleteCategory": "Failed to delete category",
+    "failedToToggleCategory": "Failed to toggle category",
+    "failedToAddPaymentMethod": "Failed to add donation method",
+    "failedToUpdatePaymentMethod": "Failed to update donation method",
+    "failedToDeletePaymentMethod": "Failed to delete donation method",
+    "failedToTogglePaymentMethod": "Failed to toggle donation method",
+    "categoryInUse": "Cannot delete category that is currently in use by expenses. Hide it instead to prevent future use.",
+    "paymentMethodInUse": "Cannot delete donation method that is currently in use by donations. Hide it instead to prevent future use."
+  },
+
+  "systemCategories": {
+    "expenseCategories": {
+      "Utilities": "Utilities",
+      "Salaries": "Salaries",
+      "Maintenance": "Maintenance",
+      "Office Supplies": "Office Supplies",
+      "Ministry": "Ministry",
+      "Building": "Building",
+      "Events": "Events",
+      "Technology": "Technology",
+      "Transportation": "Transportation",
+      "Insurance": "Insurance",
+      "Other": "Other"
+    },
+    "paymentMethods": {
+      "Cash": "Cash",
+      "Check": "Check",
+      "Card": "Card",
+      "Link": "Link",
+      "Bank Transfer": "Bank Transfer"
+    }
   }
 } 

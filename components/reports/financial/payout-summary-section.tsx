@@ -9,6 +9,7 @@ import { format } from "date-fns"
 import { ArrowUpRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 export interface PayoutSummaryData {
   id: string
@@ -82,24 +83,31 @@ export function PayoutSummarySection({ data, isLoading }: PayoutSummarySectionPr
   
   // Get only the 5 most recent payouts
   const recentPayouts = data.slice(0, 5)
-  
+
+  // Calculate totals
+  const totalAmount = recentPayouts.reduce((sum, payout) => sum + (payout.amount || 0), 0)
+  const totalTransactions = recentPayouts.reduce((sum, payout) => sum + (payout.transactionCount || 0), 0)
+  const totalFees = recentPayouts.reduce((sum, payout) => sum + (payout.totalFees || 0), 0)
+  const totalNetAmount = recentPayouts.reduce((sum, payout) => sum + (payout.netAmount || 0), 0)
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="space-y-1.5">
-          <CardTitle>{t('reports:financial.recentPayouts')}</CardTitle>
-          <CardDescription>{t('reports:financial.recentPayoutsSubtitle')}</CardDescription>
-        </div>
-        <Button 
-          onClick={handleViewReconciliation}
-          size="sm"
-          variant="outline"
-        >
-          {t('reports:financial.viewInReconciliation')}
-          <ArrowUpRight className="h-4 w-4 ml-2" />
-        </Button>
-      </CardHeader>
-      <CardContent>
+    <ErrorBoundary>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="space-y-1.5">
+            <CardTitle>{t('reports:financial.recentPayouts')}</CardTitle>
+            <CardDescription>{t('reports:financial.recentPayoutsSubtitle')}</CardDescription>
+          </div>
+          <Button
+            onClick={handleViewReconciliation}
+            size="sm"
+            variant="outline"
+          >
+            {t('reports:financial.viewInReconciliation')}
+            <ArrowUpRight className="h-4 w-4 ml-2" />
+          </Button>
+        </CardHeader>
+        <CardContent>
         {recentPayouts.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground">
             {t('reports:financial.noDataAvailable')}
@@ -136,11 +144,21 @@ export function PayoutSummarySection({ data, isLoading }: PayoutSummarySectionPr
                     </TableCell>
                   </TableRow>
                 ))}
+                {/* Total Row */}
+                <TableRow className="font-semibold bg-muted/50">
+                  <TableCell>Total</TableCell>
+                  <TableCell>{formatCurrency(totalAmount)}</TableCell>
+                  <TableCell>{totalTransactions}</TableCell>
+                  <TableCell>{formatCurrency(totalFees)}</TableCell>
+                  <TableCell>{formatCurrency(totalNetAmount)}</TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </div>
         )}
       </CardContent>
     </Card>
+    </ErrorBoundary>
   )
 }

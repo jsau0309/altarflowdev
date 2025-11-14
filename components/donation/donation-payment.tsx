@@ -98,8 +98,20 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
   const baseAmount = formData.amount || 0;
   let displayAmount = baseAmount;
   if (formData.coverFees && baseAmount > 0) {
-    const fee = (baseAmount * 0.029) + 0.30;
-    displayAmount = baseAmount + fee;
+    const STRIPE_PERCENTAGE_FEE_RATE = 0.029;
+    const STRIPE_FIXED_FEE_CENTS = 30;
+    const PLATFORM_FEE_RATE = 0.01; // 1% platform fee
+
+    const baseAmountInCents = Math.round(baseAmount * 100);
+
+    // Correct gross-up calculation: combine both percentage fees in the divisor
+    // Formula: final_amount = (base_amount + fixed_fee) / (1 - stripe_rate - platform_rate)
+    const finalAmountForStripeInCents = Math.ceil(
+      (baseAmountInCents + STRIPE_FIXED_FEE_CENTS) /
+      (1 - STRIPE_PERCENTAGE_FEE_RATE - PLATFORM_FEE_RATE)
+    );
+
+    displayAmount = finalAmountForStripeInCents / 100;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

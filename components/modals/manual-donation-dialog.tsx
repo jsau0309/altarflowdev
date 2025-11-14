@@ -10,6 +10,7 @@ import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { createManualDonation, CreateManualDonationParams } from "@/lib/actions/donations.actions";
 import { DonorFilterItem } from "@/lib/actions/donations.actions";
@@ -31,7 +32,17 @@ interface ManualDonationDialogProps {
 }
 
 export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonationDialogProps) {
-  const { t } = useTranslation(['donations', 'common']); // Load donations and common namespaces
+  const { t } = useTranslation(['donations', 'common', 'settings']); // Load donations, common, and settings namespaces
+
+  // Helper function to get translated payment method name (EXACT same pattern as Settings page)
+  const getTranslatedPaymentMethodName = (methodName: string): string => {
+    // Use the SAME translation namespace as the Settings page
+    const key = `settings:systemCategories.paymentMethods.${methodName}`;
+    const translated = t(key, methodName);
+    // If translation returns the key itself, it means no translation exists (user-created method)
+    return translated === key ? methodName : translated;
+  };
+
   const [manualDonationAmount, setManualDonationAmount] = useState<string>("");
   const [manualDonationDate, setManualDonationDate] = useState<Date | undefined>(new Date());
   const [selectedDonorId, setSelectedDonorId] = useState<string | null>(null);
@@ -42,8 +53,13 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [donors, setDonors] = useState<DonorFilterItem[]>([]);
   const [isLoadingDonors, setIsLoadingDonors] = useState<boolean>(false);
+  const [donationTypes, setDonationTypes] = useState<Array<{ id: string; name: string; isCampaign: boolean }>>([]);
+  const [isLoadingDonationTypes, setIsLoadingDonationTypes] = useState<boolean>(false);
+  const [paymentMethods, setPaymentMethods] = useState<Array<{ id: string; name: string; color: string; isSystemMethod: boolean }>>([]);
+  const [isLoadingPaymentMethods, setIsLoadingPaymentMethods] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"individual" | "general">("individual");
 
-  // Effect to fetch donors when modal opens
+  // Effect to fetch donors and donation types when modal opens
   useEffect(() => {
     if (isOpen) {
       // Reset fields when modal opens
@@ -54,7 +70,8 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
       setSelectedPaymentMethod(undefined);
       setManualDonationNotes("");
       setIsSaving(false);
-      
+      setActiveTab("individual"); // Reset to individual tab
+
       // Always fetch donors for manual donation to get the correct list
       // This ensures we get both manual donors AND universal donors who have donated
       const fetchDonors = async () => {
@@ -70,9 +87,65 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
           setIsLoadingDonors(false);
         }
       };
-      
-      // Always fetch the correct donor list
+
+      // Fetch donation types (system types + campaigns)
+      const fetchDonationTypes = async () => {
+        setIsLoadingDonationTypes(true);
+        try {
+          const churchId = safeStorage.getItem("churchId");
+          if (!churchId) {
+            throw new Error("Church ID not found");
+          }
+
+          // Fetch all donation types for this church (both system and campaigns)
+          const response = await fetch(`/api/churches/${churchId}/donation-types`);
+          if (!response.ok) {
+            throw new Error("Failed to fetch donation types");
+          }
+
+          const data = await response.json();
+          setDonationTypes(data);
+        } catch (error) {
+          console.error("Failed to fetch donation types:", error);
+          setDonationTypes([]);
+          toast.error(t('donations:newManualDonation.failedToLoadDonationTypes', 'Failed to load donation types'));
+        } finally {
+          setIsLoadingDonationTypes(false);
+        }
+      };
+
+      // Fetch payment methods (system methods + custom methods)
+      const fetchPaymentMethods = async () => {
+        setIsLoadingPaymentMethods(true);
+        try {
+          const churchId = safeStorage.getItem("churchId");
+          if (!churchId) {
+            throw new Error("Church ID not found");
+          }
+
+          // Fetch all payment methods for this church
+          const response = await fetch(`/api/churches/${churchId}/donation-payment-methods`);
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Payment methods fetch failed:", response.status, errorText);
+            throw new Error(`Failed to fetch payment methods: ${response.status}`);
+          }
+
+          const data = await response.json();
+          setPaymentMethods(data);
+        } catch (error) {
+          console.error("Failed to fetch payment methods:", error);
+          setPaymentMethods([]);
+          toast.error(t('donations:newManualDonation.failedToLoadPaymentMethods', 'Failed to load payment methods'));
+        } finally {
+          setIsLoadingPaymentMethods(false);
+        }
+      };
+
+      // Fetch all lists
       fetchDonors();
+      fetchDonationTypes();
+      fetchPaymentMethods();
     }
   }, [isOpen, t]);
 
@@ -95,7 +168,8 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
       toast.error(t('donations:newManualDonation.validation.date_required'));
       setIsSaving(false); return;
     }
-    if (!selectedDonorId) {
+    // Only require donor for individual donations
+    if (activeTab === "individual" && !selectedDonorId) {
       toast.error(t('donations:newManualDonation.validation.donor_required'));
       setIsSaving(false); return;
     }
@@ -112,10 +186,11 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
       churchId,
       amount: Math.round(parseFloat(manualDonationAmount) * 100), // Convert to cents
       donationDate: manualDonationDate,
-      donorId: selectedDonorId,
+      donorId: activeTab === "individual" ? selectedDonorId : null,
       donationTypeName: selectedDonationType,
       paymentMethod: selectedPaymentMethod,
       notes: manualDonationNotes || null,
+      isGeneralCollection: activeTab === "general",
     };
 
     try {
@@ -126,16 +201,16 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
           ? t(result.error, result.error) // Translate if it's an i18n key
           : result.error; // Use as-is if it's a regular error message
         toast.error(errorMessage);
-        setIsSaving(false);
       } else {
-        toast.success(t('donations:newManualDonation.success_message', 'Donation created successfully!'));
+        // Success - let parent handle toast and data refresh
         onSuccess(); // Call parent's success handler to refresh data
         onClose(); // Close the modal
-        return; // Exit early to prevent setIsSaving(false) below
+        return; // Exit early
       }
     } catch (error) {
       console.error("Failed to save manual donation:", error);
       toast.error(t('common:errors.unexpected_error', 'An unexpected error occurred'));
+    } finally {
       setIsSaving(false);
     }
   };
@@ -152,7 +227,14 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
           </DialogDescription>
         </DialogHeader>
         <div className="overflow-y-auto overflow-x-hidden px-6 sm:px-1 flex-grow">
-          <div className="grid gap-4 py-4">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "individual" | "general")} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="individual">{t('donations:newManualDonation.tabIndividual')}</TabsTrigger>
+              <TabsTrigger value="general">{t('donations:newManualDonation.tabGeneralCollection')}</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="individual" className="mt-0">
+              <div className="grid gap-4 py-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="amount">{t('donations:newManualDonation.amount')}</Label>
@@ -255,9 +337,21 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
                   <SelectValue placeholder={t('donations:newManualDonation.selectDonationType')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Tithe">{t('donations:funds.tithe')}</SelectItem>
-                  <SelectItem value="Offering">{t('donations:funds.offering')}</SelectItem>
-                  {/* TODO: Add other fund types if necessary */}
+                  {isLoadingDonationTypes ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      {t('donations:newManualDonation.loadingDonationTypes', 'Loading donation types...')}
+                    </div>
+                  ) : donationTypes.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      {t('donations:newManualDonation.noDonationTypes', 'No donation types available')}
+                    </div>
+                  ) : (
+                    donationTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.name}>
+                        {type.isCampaign ? type.name : t(`donations:funds.${type.name.toLowerCase()}`, type.name)}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -268,10 +362,24 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
                   <SelectValue placeholder={t('donations:newManualDonation.selectPaymentMethod')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Cash">{t('donations:methods.cash')}</SelectItem>
-                  <SelectItem value="Check">{t('donations:methods.check')}</SelectItem>
-                  <SelectItem value="Bank Transfer">{t('donations:methods.bankTransfer')}</SelectItem>
-                  <SelectItem value="Other">{t('donations:methods.other')}</SelectItem>
+                  {isLoadingPaymentMethods ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      {t('donations:newManualDonation.loadingPaymentMethods', 'Loading payment methods...')}
+                    </div>
+                  ) : paymentMethods.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      {t('donations:newManualDonation.noPaymentMethods', 'No payment methods available')}
+                    </div>
+                  ) : (
+                    paymentMethods.map((method) => (
+                      <SelectItem key={method.id} value={method.name}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: method.color }} />
+                          {getTranslatedPaymentMethodName(method.name)}
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -287,7 +395,120 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
               className="mt-1"
             />
           </div>
-        </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="general" className="mt-0">
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="amount-general">{t('donations:newManualDonation.amount')}</Label>
+                    <Input
+                      id="amount-general"
+                      type="number"
+                      value={manualDonationAmount}
+                      onChange={(e) => setManualDonationAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="date-general">{t('donations:newManualDonation.date')}</Label>
+                    <Popover modal={true}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal mt-1",
+                            !manualDonationDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {manualDonationDate ? format(manualDonationDate, "MMMM d, yyyy") : <span>{t('donations:newManualDonation.pickDate')}</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <DatePickerCalendar
+                          mode="single"
+                          selected={manualDonationDate}
+                          onSelect={setManualDonationDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="donationType-general">{t('donations:newManualDonation.donationType')}</Label>
+                    <Select value={selectedDonationType} onValueChange={setSelectedDonationType}>
+                      <SelectTrigger id="donationType-general" className="mt-1">
+                        <SelectValue placeholder={t('donations:newManualDonation.selectDonationType')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isLoadingDonationTypes ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            {t('donations:newManualDonation.loadingDonationTypes', 'Loading donation types...')}
+                          </div>
+                        ) : donationTypes.length === 0 ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            {t('donations:newManualDonation.noDonationTypes', 'No donation types available')}
+                          </div>
+                        ) : (
+                          donationTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.name}>
+                              {type.isCampaign ? type.name : t(`donations:funds.${type.name.toLowerCase()}`, type.name)}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="paymentMethod-general">{t('donations:newManualDonation.paymentMethod')}</Label>
+                    <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                      <SelectTrigger id="paymentMethod-general" className="mt-1">
+                        <SelectValue placeholder={t('donations:newManualDonation.selectPaymentMethod')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isLoadingPaymentMethods ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            {t('donations:newManualDonation.loadingPaymentMethods', 'Loading payment methods...')}
+                          </div>
+                        ) : paymentMethods.length === 0 ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            {t('donations:newManualDonation.noPaymentMethods', 'No payment methods available')}
+                          </div>
+                        ) : (
+                          paymentMethods.map((method) => (
+                            <SelectItem key={method.id} value={method.name}>
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: method.color }} />
+                                {getTranslatedPaymentMethodName(method.name)}
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="notes-general">{t('donations:newManualDonation.notes')}</Label>
+                  <Textarea
+                    id="notes-general"
+                    value={manualDonationNotes}
+                    onChange={(e) => setManualDonationNotes(e.target.value)}
+                    placeholder={t('donations:newManualDonation.notesPlaceholder')}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
         <DialogFooter className="pt-4 pb-6 px-6 mt-auto border-t sm:px-0 sm:pb-0 flex-col-reverse sm:flex-row gap-2">
           <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">{t('donations:newManualDonation.cancelButton')}</Button>

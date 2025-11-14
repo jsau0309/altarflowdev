@@ -6,12 +6,15 @@ interface Params {
   churchId: string; // This is the Clerk Organization ID from the path
 }
 
+// GET - Fetch all donation payment methods for a church
 export async function GET(
   request: Request,
   { params }: { params: Promise<Params> }
 ) {
-  const { churchId } = await params; // This 'churchId' variable now holds the Clerk Organization ID
+  const { churchId } = await params;
   const { userId, orgId } = await auth();
+  const { searchParams } = new URL(request.url);
+  const includeHidden = searchParams.get('includeHidden') === 'true';
 
   // SECURITY: Require authentication
   if (!userId || !orgId) {
@@ -28,38 +31,38 @@ export async function GET(
   }
 
   try {
-    // 1. Find the internal Church record using the clerkOrgId
+    // Find the internal Church record using the clerkOrgId
     const church = await prisma.church.findUnique({
-      where: { clerkOrgId: churchId.trim() }, // Use the churchId from path (which is clerkOrgId) to find the Church
+      where: { clerkOrgId: churchId.trim() },
     });
 
     if (!church) {
       return NextResponse.json({ error: `Church not found for Clerk Organization ID: ${churchId}` }, { status: 404 });
     }
 
-    const internalChurchUUID = church.id; // This is the actual UUID for the church
+    const internalChurchUUID = church.id;
 
-    // 2. Fetch DonationType records for that internalChurchUUID
-    const donationTypes = await prisma.donationType.findMany({
+    // Fetch DonationPaymentMethod records for that church (exclude hidden methods unless includeHidden is true)
+    const paymentMethods = await prisma.donationPaymentMethod.findMany({
       where: {
         churchId: internalChurchUUID,
-        // isActive: true, // Optional: You might want to only return active types later
+        ...(includeHidden ? {} : { isHidden: false }),
       },
       orderBy: {
-        name: 'asc', // Optional: Order them alphabetically or by creation date
+        name: 'asc',
       },
     });
 
-    return NextResponse.json(donationTypes, { status: 200 });
+    return NextResponse.json(paymentMethods, { status: 200 });
 
   } catch (error) {
-    console.error(`Error fetching donation types for church (Clerk Org ID: ${churchId}):`, error);
+    console.error(`Error fetching donation payment methods for church (Clerk Org ID: ${churchId}):`, error);
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json({ error: 'Failed to fetch donation types', details: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch donation payment methods', details: errorMessage }, { status: 500 });
   }
 }
 
-// POST - Create a new donation type
+// POST - Create a new donation payment method
 export async function POST(
   request: Request,
   { params }: { params: Promise<Params> }
@@ -77,10 +80,10 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { name, description, isCampaign, goalAmount, startDate, endDate, isRecurringAllowed } = body;
+    const { name, color } = body;
 
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    if (!name || !color) {
+      return NextResponse.json({ error: 'Name and color are required' }, { status: 400 });
     }
 
     // Find the internal Church record
@@ -92,28 +95,22 @@ export async function POST(
       return NextResponse.json({ error: `Church not found for Clerk Organization ID: ${churchId}` }, { status: 404 });
     }
 
-    // Create the donation type
-    const donationType = await prisma.donationType.create({
+    // Create the donation payment method
+    const paymentMethod = await prisma.donationPaymentMethod.create({
       data: {
         name: name.trim(),
-        description: description?.trim() || null,
+        color: color.trim(),
         churchId: church.id,
-        isCampaign: isCampaign || false,
-        goalAmount: goalAmount ? parseFloat(goalAmount) : null,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        isRecurringAllowed: isRecurringAllowed !== undefined ? isRecurringAllowed : true,
-        isSystemType: false,
+        isSystemMethod: false,
         isDeletable: true,
-        isActive: true,
       },
     });
 
-    return NextResponse.json(donationType, { status: 201 });
+    return NextResponse.json(paymentMethod, { status: 201 });
 
   } catch (error) {
-    console.error(`Error creating donation type for church (Clerk Org ID: ${churchId}):`, error);
+    console.error(`Error creating donation payment method for church (Clerk Org ID: ${churchId}):`, error);
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json({ error: 'Failed to create donation type', details: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create donation payment method', details: errorMessage }, { status: 500 });
   }
 }

@@ -35,13 +35,15 @@ model Church {
   setupFeePaid         Boolean               @default(false)
   setupFeeAmount       Int?
   setupFeePaidAt       DateTime?
-  freeTrialStartedAt   DateTime?
-  promotionalEndsAt    DateTime?
-  promotionalCouponId  String?
-  DonationTransaction  DonationTransaction[]
-  DonationType         DonationType[]
-  Donor                Donor[]
-  EmailCampaign        EmailCampaign[]
+  freeTrialStartedAt      DateTime?
+  promotionalEndsAt       DateTime?
+  promotionalCouponId     String?
+  DonationTransaction     DonationTransaction[]
+  DonationType            DonationType[]
+  DonationPaymentMethod   DonationPaymentMethod[]
+  Donor                   Donor[]
+  ExpenseCategory         ExpenseCategory[]
+  EmailCampaign           EmailCampaign[]
   EmailQuota           EmailQuota[]
   EmailSettings        EmailSettings?
   Event                Event[]
@@ -67,7 +69,8 @@ model DonationTransaction {
   amount                      Int
   currency                    String
   status                      String
-  paymentMethodType           String?
+  paymentMethodType           String?      // Legacy field for Stripe payment methods
+  paymentMethodId             String?      // New relation to DonationPaymentMethod for manual donations
   isRecurring                 Boolean      @default(false)
   stripePaymentIntentId       String?      @unique
   stripeSubscriptionId        String?      @unique
@@ -94,9 +97,10 @@ model DonationTransaction {
   donorCountry                String?
   platformFeeAmount           Int?         @default(0)
   donorLanguage               String?      @default("en")
-  Church                      Church       @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  DonationType                DonationType @relation(fields: [donationTypeId], references: [id])
-  Donor                       Donor?       @relation(fields: [donorId], references: [id])
+  Church                      Church                 @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  DonationType                DonationType           @relation(fields: [donationTypeId], references: [id])
+  DonationPaymentMethod       DonationPaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  Donor                       Donor?                 @relation(fields: [donorId], references: [id])
 
   @@index([churchId])
   @@index([churchId, transactionDate])
@@ -104,6 +108,7 @@ model DonationTransaction {
   @@index([donationTypeId])
   @@index([donorId])
   @@index([paymentMethodType])
+  @@index([paymentMethodId])
   @@index([stripePaymentIntentId], map: "idx_donation_transaction_stripe")
   @@index([churchId, createdAt(sort: Desc)], map: "idx_donations_church_date")
   @@index([churchId, donationTypeId, createdAt(sort: Desc)], map: "idx_donations_church_fund_date")
@@ -161,6 +166,42 @@ model Donor {
   @@index([churchId])
   @@index([memberId])
   @@index([churchId], map: "idx_donor_church")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model DonationPaymentMethod {
+  id                  String                @id @default(cuid())
+  churchId            String                @db.Uuid
+  name                String
+  color               String                @default("#10B981") // Default green color
+  isSystemMethod      Boolean               @default(false)
+  isDeletable         Boolean               @default(true)
+  isHidden            Boolean               @default(false) // Allow hiding system methods
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  DonationTransaction DonationTransaction[]
+  Church              Church                @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([churchId, name])
+  @@index([churchId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ExpenseCategory {
+  id              String    @id @default(cuid())
+  churchId        String    @db.Uuid
+  name            String
+  color           String    @default("#6B7280") // Default gray color
+  isSystemCategory Boolean  @default(false)
+  isDeletable     Boolean   @default(true)
+  isHidden        Boolean   @default(false) // Allow hiding system categories
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  Expense         Expense[]
+  Church          Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@unique([churchId, name])
+  @@index([churchId])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -268,28 +309,31 @@ model EmailSettings {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Expense {
-  id                                   String        @id @default(cuid())
-  amount                               Decimal       @db.Decimal(10, 2)
-  currency                             String        @default("USD")
+  id                                   String           @id @default(cuid())
+  amount                               Decimal          @db.Decimal(10, 2)
+  currency                             String           @default("USD")
   expenseDate                          DateTime
-  category                             String
+  category                             String?          // Legacy field, kept for backward compatibility
+  expenseCategoryId                    String?          // New relation to ExpenseCategory
   vendor                               String?
   description                          String?
   receiptUrl                           String?
   receiptPath                          String?
-  status                               ExpenseStatus @default(PENDING)
+  status                               ExpenseStatus    @default(PENDING)
   submitterId                          String
   approverId                           String?
-  churchId                             String        @db.Uuid
-  createdAt                            DateTime      @default(now())
-  updatedAt                            DateTime      @default(now())
-  Profile_Expense_approverIdToProfile  Profile?      @relation("Expense_approverIdToProfile", fields: [approverId], references: [id])
-  Church                               Church        @relation(fields: [churchId], references: [id])
-  Profile_Expense_submitterIdToProfile Profile       @relation("Expense_submitterIdToProfile", fields: [submitterId], references: [id])
+  churchId                             String           @db.Uuid
+  createdAt                            DateTime         @default(now())
+  updatedAt                            DateTime         @default(now())
+  ExpenseCategory                      ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
+  Profile_Expense_approverIdToProfile  Profile?         @relation("Expense_approverIdToProfile", fields: [approverId], references: [id])
+  Church                               Church           @relation(fields: [churchId], references: [id])
+  Profile_Expense_submitterIdToProfile Profile          @relation("Expense_submitterIdToProfile", fields: [submitterId], references: [id])
 
   @@index([churchId, expenseDate])
   @@index([churchId])
   @@index([submitterId])
+  @@index([expenseCategoryId])
   @@index([churchId, expenseDate(sort: Desc)], map: "idx_expenses_church_date")
   @@index([churchId, createdAt], map: "idx_expense_church_date")
 }

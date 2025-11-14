@@ -14,6 +14,7 @@ export interface CategoryReportData {
   category: string
   amount: number
   percentage: number
+  color?: string // Optional color from expense categories
 }
 
 export interface ReportSummary {
@@ -28,6 +29,12 @@ export interface DonationTypeForFilter {
   name: string
   isCampaign: boolean
   isSystemType: boolean
+}
+
+export interface ExpenseCategoryForFilter {
+  id: string
+  name: string
+  isSystemCategory: boolean
 }
 
 // Get donation types for filter dropdown
@@ -71,6 +78,50 @@ export async function getDonationTypesForFilter(
     return donationTypes
   } catch (error) {
     console.error('Error fetching donation types for filter:', error)
+    return []
+  }
+}
+
+// Get expense categories for filter dropdown
+export async function getExpenseCategoriesForFilter(
+  churchId: string
+): Promise<ExpenseCategoryForFilter[]> {
+  try {
+    // Authorization check - verify user has access to this church
+    const authResult = await authorizeChurchAccess(churchId);
+    if (!authResult.success) {
+      console.error('[getExpenseCategoriesForFilter] Authorization failed:', authResult.error);
+      return [];
+    }
+
+    const church = await prisma.church.findUnique({
+      where: { id: authResult.churchId },
+      select: { id: true }
+    })
+
+    if (!church) {
+      return []
+    }
+
+    const expenseCategories = await prisma.expenseCategory.findMany({
+      where: {
+        churchId: church.id,
+        isHidden: false
+      },
+      select: {
+        id: true,
+        name: true,
+        isSystemCategory: true
+      },
+      orderBy: [
+        { isSystemCategory: 'desc' }, // System categories first
+        { name: 'asc' }
+      ]
+    })
+
+    return expenseCategories
+  } catch (error) {
+    console.error('Error fetching expense categories for filter:', error)
     return []
   }
 }
@@ -280,7 +331,8 @@ export async function getDonationSummary(
 export async function getMonthlyExpenseSummary(
   churchId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  categoryId?: string
 ): Promise<MonthlyReportData[]> {
   try {
     // Authorization check - verify user has access to this church
@@ -299,7 +351,8 @@ export async function getMonthlyExpenseSummary(
         },
         status: {
           in: ['APPROVED', 'PENDING']
-        }
+        },
+        ...(categoryId && { expenseCategoryId: categoryId })
       },
       select: {
         expenseDate: true,
@@ -347,7 +400,8 @@ export async function getMonthlyExpenseSummary(
 export async function getExpenseCategoryBreakdown(
   churchId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  categoryId?: string
 ): Promise<CategoryReportData[]> {
   try {
     // Authorization check - verify user has access to this church
@@ -366,29 +420,37 @@ export async function getExpenseCategoryBreakdown(
         },
         status: {
           in: ['APPROVED', 'PENDING']
-        }
+        },
+        ...(categoryId && { expenseCategoryId: categoryId })
       },
       select: {
         amount: true,
-        category: true
+        ExpenseCategory: {
+          select: {
+            name: true,
+            color: true
+          }
+        }
       }
     })
 
-    // Group by category
+    // Group by category and store color
     const categoryTotals = expenses.reduce((acc, expense) => {
-      const category = expense.category
+      const category = expense.ExpenseCategory?.name || 'Uncategorized'
+      const color = expense.ExpenseCategory?.color || '#3B82F6' // Default blue if no color
       if (!acc[category]) {
-        acc[category] = 0
+        acc[category] = { amount: 0, color }
       }
-      acc[category] += parseFloat(expense.amount.toString())
+      acc[category].amount += parseFloat(expense.amount.toString())
       return acc
-    }, {} as Record<string, number>)
+    }, {} as Record<string, { amount: number; color: string }>)
 
     // Calculate percentages
-    const total = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0)
-    
-    const categoryData = Object.entries(categoryTotals).map(([category, amount]) => ({
+    const total = Object.values(categoryTotals).reduce((sum, item) => sum + item.amount, 0)
+
+    const categoryData = Object.entries(categoryTotals).map(([category, { amount, color }]) => ({
       category,
+      color,
       amount,
       percentage: total > 0 ? Math.round((amount / total) * 100) : 0
     }))
@@ -404,14 +466,15 @@ export async function getExpenseCategoryBreakdown(
 export async function getExpenseSummary(
   churchId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  categoryId?: string
 ): Promise<ReportSummary> {
   try {
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
       console.error('[getExpenseSummary] Authorization failed:', authResult.error);
-      return { total: 0, average: 0, netIncome: 0 };
+      return { total: 0, average: 0, count: 0 };
     }
 
     const expenses = await prisma.expense.findMany({
@@ -423,23 +486,8 @@ export async function getExpenseSummary(
         },
         status: {
           in: ['APPROVED', 'PENDING']
-        }
-      },
-      select: {
-        amount: true
-      }
-    })
-
-    const donations = await prisma.donationTransaction.findMany({
-      where: {
-        churchId: authResult.churchId,
-        transactionDate: {
-          gte: startDate,
-          lte: endDate
         },
-        status: {
-          in: ['succeeded', 'succeeded\n']
-        }
+        ...(categoryId && { expenseCategoryId: categoryId })
       },
       select: {
         amount: true
@@ -447,18 +495,16 @@ export async function getExpenseSummary(
     })
 
     const totalExpenses = expenses.reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0)
-    const totalDonations = donations.reduce((sum, d) => sum + parseFloat(d.amount.toString()) / 100, 0)
     const average = expenses.length > 0 ? totalExpenses / expenses.length : 0
-    const netIncome = totalDonations - totalExpenses
 
     return {
       total: totalExpenses,
       average,
-      netIncome
+      count: expenses.length
     }
   } catch (error) {
     console.error('Error fetching expense summary:', error)
-    return { total: 0, average: 0, netIncome: 0 }
+    return { total: 0, average: 0, count: 0 }
   }
 }
 
@@ -468,7 +514,8 @@ export async function getTransactionsForExport(
   type: 'donations' | 'expenses',
   startDate: Date,
   endDate: Date,
-  donationTypeId?: string
+  donationTypeId?: string,
+  expenseCategoryId?: string
 ) {
   try {
     // Authorization check - verify user has access to this church
@@ -524,7 +571,15 @@ export async function getTransactionsForExport(
           },
           status: {
           in: ['APPROVED', 'PENDING']
-        }
+        },
+          ...(expenseCategoryId && { expenseCategoryId: expenseCategoryId })
+        },
+        include: {
+          ExpenseCategory: {
+            select: {
+              name: true
+            }
+          }
         },
         orderBy: {
           expenseDate: 'desc'
@@ -534,7 +589,7 @@ export async function getTransactionsForExport(
       return expenses.map(e => ({
         date: e.expenseDate,
         description: e.vendor || e.description || 'Expense',
-        category: e.category,
+        category: e.ExpenseCategory?.name || 'Uncategorized',
         amount: parseFloat(e.amount.toString())
       }))
     }
@@ -759,11 +814,12 @@ export async function getExpenseTrendData(churchId: string) {
       const amount = parseFloat(expense.amount.toString())
       monthlyData[monthKey].total += amount
       monthlyData[monthKey].count += 1
-      
-      if (!monthlyData[monthKey].categories[expense.category]) {
-        monthlyData[monthKey].categories[expense.category] = 0
+
+      const category = expense.category || 'Uncategorized'
+      if (!monthlyData[monthKey].categories[category]) {
+        monthlyData[monthKey].categories[category] = 0
       }
-      monthlyData[monthKey].categories[expense.category] += amount
+      monthlyData[monthKey].categories[category] += amount
     })
     
     // Generate all months (including empty ones)

@@ -34,6 +34,31 @@ export function exportToCSV({
   donationTypeName,
   t
 }: CSVExporterProps) {
+  // Helper function to translate donation types (for system types like Offering, Tithe)
+  const translateDonationType = (donationType: string): string => {
+    if (!t) return donationType
+    const fundKey = donationType.toLowerCase().replace(/\s+/g, '_')
+    return t(`donations:funds.${fundKey}`, { defaultValue: donationType })
+  }
+
+  // Helper function to translate expense categories
+  const translateExpenseCategory = (category: string): string => {
+    if (!t) return category
+    // Use the same translation key as the Tag implementation in Settings/Expenses pages
+    return t(`settings:systemCategories.expenseCategories.${category}`, { defaultValue: category })
+  }
+
+  // Helper function to translate payment methods
+  const translatePaymentMethod = (method: string): string => {
+    if (!t) return method
+    // Capitalize method name to match translation keys (Card, Cash, Check, Bank Transfer)
+    const capitalizedMethod = method.split(' ').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ')
+    // Use the SAME translation key as the Tag implementation in Settings/Donations pages
+    return t(`settings:systemCategories.paymentMethods.${capitalizedMethod}`, { defaultValue: capitalizedMethod })
+  }
+
   // Create CSV content
   const rows: string[] = []
   
@@ -43,10 +68,14 @@ export function exportToCSV({
   const dateRangeLabel = t ? t('reports:dateRange') : 'Date Range'
   rows.push(`${dateRangeLabel}: ${dateRange.from ? format(dateRange.from, 'MMM d, yyyy') : ''} - ${dateRange.to ? format(dateRange.to, 'MMM d, yyyy') : ''}`)
 
-  // Add donation type filter if present
+  // Add filter if present (donation type or expense category)
   if (donationTypeName) {
     const filterLabel = t ? t('reports:filteredBy') : 'Filtered by'
-    rows.push(`${filterLabel}: ${donationTypeName}`)
+    // Translate the filter name if it's an expense category
+    const translatedFilterName = type === 'expenses'
+      ? translateExpenseCategory(donationTypeName)
+      : donationTypeName
+    rows.push(`${filterLabel}: ${translatedFilterName}`)
   }
 
   rows.push('') // Empty line
@@ -91,11 +120,17 @@ export function exportToCSV({
   data.forEach(transaction => {
     const date = format(new Date(transaction.date), 'MM/dd/yyyy')
     const description = transaction.description.replace(/,/g, ';') // Replace commas to avoid CSV issues
-    const category = transaction.category
+    const translatedCategory = type === 'donations'
+      ? translateDonationType(transaction.category)
+      : translateExpenseCategory(transaction.category)
+    const category = translatedCategory.replace(/,/g, ';') // Replace commas to avoid CSV issues
     const amount = `$${transaction.amount.toFixed(2)}`
-    
+
     if (type === 'donations') {
-      const paymentMethod = transaction.paymentMethod || 'N/A'
+      const translatedPayment = transaction.paymentMethod
+        ? translatePaymentMethod(transaction.paymentMethod)
+        : 'N/A'
+      const paymentMethod = translatedPayment.replace(/,/g, ';') // Replace commas to avoid CSV issues
       rows.push(`${date},${description},${category},${amount},${paymentMethod}`)
     } else {
       rows.push(`${date},${description},${category},${amount}`)

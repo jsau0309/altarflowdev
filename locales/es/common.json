@@ -208,6 +208,8 @@
   "donor": "Donante",
   "vendor": "Proveedor",
   "category": "Categoría",
+  "allCategories": "Todas las Categorías",
+  "customCategories": "Categorías Personalizadas",
   "payment": "Pago",
   "paymentMethod": "Método de Pago",
   "goBack": "Volver",
@@ -221,6 +223,10 @@
     "limitedFeatures": "Con tu plan actual, tienes acceso a Flujos, Miembros y Configuración.",
     "upgradeNow": "Actualizar Ahora"
   },
+  "auditInfo": "Información de Auditoría",
+  "createdOn": "Creado el",
+  "lastModified": "Última modificación",
+  "id": "ID",
   "footer": {
     "privacy": "Política de Privacidad",
     "terms": "Términos de Servicio"

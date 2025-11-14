@@ -155,7 +155,7 @@ export function TablePagination({
 
         <Select value={itemsPerPage.toString()} onValueChange={(value) => onItemsPerPageChange(Number(value))}>
           <SelectTrigger className="w-[100px]">
-            <SelectValue />
+            <SelectValue placeholder="10 per page" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="5">{t('pagination.perPage', { count: 5 })}</SelectItem>

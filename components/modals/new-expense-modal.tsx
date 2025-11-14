@@ -13,11 +13,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as DatePickerCalendar } from "@/components/ui/calendar"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react"
 import { ReceiptScannerButton } from "@/components/receipt-scanner/receipt-scanner-button"
 import { useTranslation } from "react-i18next";
 import { toast } from 'sonner';
 import type { Expense } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library';
+import { useOrganization } from "@clerk/nextjs";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface NewExpenseModalProps {
   isOpen: boolean;
@@ -26,13 +33,22 @@ interface NewExpenseModalProps {
   onSuccess?: () => void; // For refreshing data after action
 }
 
+interface ExpenseCategory {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: NewExpenseModalProps) {
   const router = useRouter()
+  const { organization } = useOrganization();
   const [isLoading, setIsLoading] = useState(false)
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptMetadata, setReceiptMetadata] = useState<Record<string, unknown> | null>(null);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const [isCategoryComboboxOpen, setIsCategoryComboboxOpen] = useState(false);
   
   // Function to safely format date string to YYYY-MM-DD
   const formatDateForInput = (dateInput: Date | string | undefined | null): string => {
@@ -53,12 +69,29 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
 
   const [formData, setFormData] = useState({
     amount: "",
-    expenseDate: new Date().toISOString().split("T")[0],
     vendor: "",
     category: "",
     description: "",
   })
+  const [expenseDate, setExpenseDate] = useState<Date | undefined>(new Date())
   const { t } = useTranslation('expenses');
+
+  // Helper function to translate system category names
+  const getTranslatedCategoryName = (categoryName: string): string => {
+    const key = `settings:systemCategories.expenseCategories.${categoryName}`;
+    const translated = t(key, categoryName);
+    return translated === key ? categoryName : translated;
+  };
+
+  // Fetch expense categories when modal opens
+  useEffect(() => {
+    if (isOpen && organization?.id) {
+      fetch(`/api/churches/${organization.id}/expense-categories`)
+        .then((res) => res.json())
+        .then((data) => setExpenseCategories(data))
+        .catch((error) => console.error("Error fetching expense categories:", error));
+    }
+  }, [isOpen, organization?.id]);
 
   // useEffect to update form when expenseToEdit changes or modal opens
   useEffect(() => {
@@ -67,11 +100,13 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
         // Edit mode: Populate form with expenseToEdit data
         setFormData({
           amount: expenseToEdit.amount?.toString() || "",
-          expenseDate: formatDateForInput(expenseToEdit.expenseDate),
           vendor: expenseToEdit.vendor || "",
-          category: expenseToEdit.category || "",
+          category: expenseToEdit.expenseCategoryId || expenseToEdit.category || "", // Support both new and legacy fields
           description: expenseToEdit.description || "",
         });
+        // Parse the expense date
+        const parsedDate = expenseToEdit.expenseDate ? new Date(expenseToEdit.expenseDate) : new Date();
+        setExpenseDate(parsedDate);
         setReceiptImage(expenseToEdit.receiptUrl || null);
         setReceiptPath(expenseToEdit.receiptPath || null); // Populate receiptPath for editing
         setReceiptFile(null);
@@ -86,11 +121,11 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
   const resetForm = () => {
     setFormData({
       amount: "",
-      expenseDate: formatDateForInput(new Date()), // Use formatDateForInput for consistency
       vendor: "",
       category: "",
       description: "",
     });
+    setExpenseDate(new Date());
     setReceiptImage(null);
     setReceiptPath(null);
     setReceiptFile(null);
@@ -120,7 +155,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
     }
 
     // Client-side validation for date
-    if (!formData.expenseDate) {
+    if (!expenseDate) {
       toast.error(t('expenses:newExpenseModal.validation.dateRequired', 'Please select a date.'));
       return; // Prevent submission
     }
@@ -135,16 +170,15 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
     let apiError: string | null = null;
 
     // Create date at noon local time to avoid timezone issues
-    const expenseDate = formData.expenseDate 
-      ? new Date(`${formData.expenseDate}T12:00:00`) // Noon in local timezone
-      : new Date();
+    const expenseDateAtNoon = new Date(expenseDate);
+    expenseDateAtNoon.setHours(12, 0, 0, 0);
 
     const normalizedAmount = parseFloat(formData.amount) || 0
 
     const formPayload = new FormData()
     formPayload.append('amount', String(normalizedAmount))
-    formPayload.append('expenseDate', expenseDate.toISOString())
-    formPayload.append('category', formData.category)
+    formPayload.append('expenseDate', expenseDateAtNoon.toISOString())
+    formPayload.append('expenseCategoryId', formData.category) // Now stores category ID
 
     formPayload.append('vendor', formData.vendor ?? '')
     formPayload.append('description', formData.description ?? '')
@@ -240,11 +274,18 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
     setFormData((prev) => ({
       ...prev,
       amount: expenseData.total ? String(expenseData.total) : prev.amount,
-      expenseDate: expenseData.date || prev.expenseDate,
       description: expenseData.description || prev.description,
       vendor: expenseData.vendor || prev.vendor,
       category: expenseData.category || prev.category,
     }))
+
+    // Update expense date if provided
+    if (expenseData.date) {
+      const parsedDate = new Date(expenseData.date);
+      if (!isNaN(parsedDate.getTime())) {
+        setExpenseDate(parsedDate);
+      }
+    }
 
     if (expenseData.receiptFile instanceof File) {
       setReceiptFile(expenseData.receiptFile)
@@ -306,15 +347,28 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
 
               <div className="space-y-2">
                 <Label htmlFor="expenseDate">{t('expenses:newExpenseModal.dateLabel')}</Label>
-                <Input
-                  id="expenseDate"
-                  name="expenseDate"
-                  type="date"
-                  required
-                  value={formData.expenseDate}
-                  onChange={handleInputChange}
-                  className="w-full h-10 text-base"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal h-10",
+                        !expenseDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {expenseDate ? format(expenseDate, "PPP") : <span>{t('common:pickDate', 'Pick a date')}</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePickerCalendar
+                      mode="single"
+                      selected={expenseDate}
+                      onSelect={setExpenseDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
@@ -330,22 +384,61 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
 
             <div className="space-y-2">
               <Label htmlFor="category">{t('expenses:newExpenseModal.categoryLabel')}</Label>
-              <select 
-                id="category" 
-                name="category" 
-                required 
-                value={formData.category} 
-                onChange={(e) => handleSelectChange("category", e.target.value)}
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
-              >
-                <option value="" disabled>{t('expenses:newExpenseModal.categoryPlaceholder')}</option>
-                <option value="utilities">{t('expenses:newExpenseModal.categoryOptions.utilities')}</option>
-                <option value="supplies">{t('expenses:newExpenseModal.categoryOptions.supplies')}</option>
-                <option value="maintenance">{t('expenses:newExpenseModal.categoryOptions.maintenance')}</option>
-                <option value="salaries">{t('expenses:newExpenseModal.categoryOptions.salaries')}</option>
-                <option value="events">{t('expenses:newExpenseModal.categoryOptions.events')}</option>
-                <option value="other">{t('expenses:newExpenseModal.categoryOptions.other')}</option>
-              </select>
+              <Popover open={isCategoryComboboxOpen} onOpenChange={setIsCategoryComboboxOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isCategoryComboboxOpen}
+                    className="w-full justify-between h-10"
+                  >
+                    {formData.category ? (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: expenseCategories.find(c => c.id === formData.category)?.color }}
+                        />
+                        <span>{getTranslatedCategoryName(expenseCategories.find(c => c.id === formData.category)?.name || '')}</span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">{t('expenses:newExpenseModal.categoryPlaceholder')}</span>
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                  <Command>
+                    <CommandList>
+                      <CommandGroup>
+                        {expenseCategories.map((category) => (
+                          <CommandItem
+                            key={category.id}
+                            value={category.id}
+                            onSelect={(currentValue) => {
+                              handleSelectChange("category", currentValue === formData.category ? "" : currentValue);
+                              setIsCategoryComboboxOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.category === category.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded"
+                                style={{ backgroundColor: category.color }}
+                              />
+                              <span>{getTranslatedCategoryName(category.name)}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">

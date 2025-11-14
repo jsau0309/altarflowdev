@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Filter, Plus, Users, X, DollarSign, Edit3, Lock, ArrowLeft, Calendar as CalendarIcon, Globe } from "lucide-react"
+import { Filter, Plus, Users, X, DollarSign, Edit3, Lock, ArrowLeft, Calendar as CalendarIcon, Globe, ArrowUpDown, Search } from "lucide-react"
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -43,6 +44,8 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   const [activeTab, setActiveTab] = useState("all-donations")
   const [campaignsView, setCampaignsView] = useState<'list' | 'create' | { mode: 'edit', id: string }>('list')
   const [donorSearchTerm, setDonorSearchTerm] = useState("")
+  const [donationSearchTerm, setDonationSearchTerm] = useState("")
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [showEditDonorModal, setShowEditDonorModal] = useState(false)
   const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null)
   const [showDonationDetails, setShowDonationDetails] = useState(false)
@@ -57,20 +60,31 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     to: Date | null
   }
   const [dateRange, setDateRange] = useState<DateRangeState>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // First day of current month
-    to: new Date() // Today
+    from: startOfMonth(new Date()), // First day of current month
+    to: endOfMonth(new Date()) // Last day of current month
   })
   const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
   const [tempDateRange, setTempDateRange] = useState<DateRangeState>(dateRange)
 
   const [selectedDonationMethods, setSelectedDonationMethods] = useState<string[]>([])
   const [selectedDonationTypes, setSelectedDonationTypes] = useState<string[]>([])
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["succeeded"]) // Default to "completed" status
+
+  // Temporary state for filter selections (before applying)
+  const [tempDonationMethods, setTempDonationMethods] = useState<string[]>([])
+  const [tempDonationTypes, setTempDonationTypes] = useState<string[]>([])
+  const [tempStatuses, setTempStatuses] = useState<string[]>([])
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+
+  // State for fetched payment methods (for filter dropdown)
+  const [paymentMethods, setPaymentMethods] = useState<Array<{ id: string; name: string; color: string }>>([])
 
   const [donations, setDonations] = useState<DonationTransactionFE[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [totalItems, setTotalItems] = useState(0);
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // State for donors tab
   const [donors, setDonors] = useState<DonorFE[]>([]);
@@ -111,6 +125,28 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     }
   }, [activeTab, donorsCurrentPage, donorsItemsPerPage, donorSearchTerm]);
 
+  // Fetch payment methods for filter dropdown
+  const fetchPaymentMethods = async () => {
+    try {
+      const churchId = safeStorage.getItem("churchId");
+      if (!churchId) return;
+
+      const response = await fetch(`/api/churches/${churchId}/donation-payment-methods`);
+      if (!response.ok) throw new Error("Failed to fetch payment methods");
+
+      const data = await response.json();
+      setPaymentMethods(data);
+    } catch (error) {
+      console.error("Failed to fetch payment methods:", error);
+      setPaymentMethods([]);
+    }
+  };
+
+  // Fetch payment methods on mount
+  useEffect(() => {
+    fetchPaymentMethods();
+  }, []);
+
   const fetchDonations = async () => {
     setIsLoading(true)
     const churchIdFromStorage = typeof window !== 'undefined' ? safeStorage.getItem("churchId") : null;
@@ -131,10 +167,12 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
         clerkOrgId: churchIdFromStorage,
         page: currentPage,
         limit: itemsPerPage,
+        searchTerm: debouncedSearchTerm || undefined,
         startDate: dateRange.from || undefined,
         endDate: dateRange.to || undefined,
         donationTypes: selectedDonationTypes,
         paymentMethods: selectedDonationMethods,
+        statuses: selectedStatuses, // Pass status filter
         donorIds: [], // Donor filter removed
       });
       if (fetchedDonations) {
@@ -157,7 +195,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     if (activeTab === 'all-donations') {
       fetchDonations();
     }
-  }, [activeTab, currentPage, itemsPerPage, dateRange, selectedDonationTypes, selectedDonationMethods]);
+  }, [activeTab, currentPage, itemsPerPage, dateRange, selectedDonationTypes, selectedDonationMethods, selectedStatuses, debouncedSearchTerm]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -168,6 +206,22 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
       }
     }
   }, [])
+
+  // Debounce search term - wait 500ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(donationSearchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [donationSearchTerm]);
+
+  // Reset to page 1 when debounced search term changes
+  useEffect(() => {
+    if (debouncedSearchTerm) {
+      setCurrentPage(1);
+    }
+  }, [debouncedSearchTerm])
 
   // filteredDonors removed - donor filter removed
   // getDonorName removed - donor filter removed
@@ -183,9 +237,10 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
 
   const handleManualDonationSuccess = () => {
     setShowModal(false);
-    toast.success(t('donations:createSuccess', 'Donation created successfully!'));
-    fetchDonations();
-    fetchDonors();
+    toast.success(t('donations:newManualDonation.success_message', 'Donation saved successfully.'));
+    setCurrentPage(1); // Reset to first page to show new donation
+    fetchDonations(); // Manually refresh donations (also triggers if page unchanged)
+    fetchDonors(); // Refresh donors list
   };
 
   const handleEditDonorFromList = (donor: DonorFE) => {
@@ -250,52 +305,128 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   };
 
   const handleDonationTypeFilterChange = (type: string) => {
-    setSelectedDonationTypes(prev =>
+    setTempDonationTypes(prev =>
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
 
   const handleDonationMethodFilterChange = (method: string) => {
-    setSelectedDonationMethods(prev =>
+    setTempDonationMethods(prev =>
       prev.includes(method) ? prev.filter(m => m !== method) : [...prev, method]
     );
   };
 
-
-  // handleDonorFilterChange removed - donor filter removed
-
-  const clearFilters = () => {
-    // Date filter removed - now in separate button
-    // Donor filter removed
-    setSelectedDonationMethods([]);
-    setSelectedDonationTypes([]);
+  const handleStatusFilterChange = (status: string) => {
+    setTempStatuses(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
   };
 
-  // Helper function to normalize payment method for translation key
-  const getPaymentMethodKey = (method: string) => {
-    // Convert various formats to translation keys
-    const methodMap: Record<string, string> = {
-      'Bank Transfer': 'bankTransfer',
-      'banktransfer': 'bankTransfer',  // Handle lowercase no space
-      'bankTransfer': 'bankTransfer',  // Handle camelCase
-      'Credit/Debit Card': 'card',
-      'card': 'card',
-      'cash': 'cash',
-      'check': 'check',
-      'other': 'other',
-      'Cash': 'cash',
-      'Check': 'check',
-      'Other': 'other'
+  const applyFilters = () => {
+    setSelectedDonationMethods(tempDonationMethods);
+    setSelectedDonationTypes(tempDonationTypes);
+    setSelectedStatuses(tempStatuses);
+    setIsFilterOpen(false);
+  };
+
+  const resetFilters = () => {
+    setTempDonationMethods([]);
+    setTempDonationTypes([]);
+    setTempStatuses(["succeeded"]); // Reset to default "completed" status
+    setSelectedDonationMethods([]);
+    setSelectedDonationTypes([]);
+    setSelectedStatuses(["succeeded"]); // Reset to default "completed" status
+    setIsFilterOpen(false);
+  };
+
+  // Helper function to get status color
+  const getStatusColor = (status: string): string => {
+    const statusColors: Record<string, string> = {
+      'succeeded': '#3B82F6',      // Blue - success
+      'completed': '#3B82F6',      // Blue - success (manual)
+      'pending': '#94A3B8',        // Gray - waiting
+      'processing': '#F59E0B',     // Amber - in progress
+      'failed': '#EF4444',         // Red - error
+      'refunded': '#8B5CF6',       // Purple - reversed
+      'partially_refunded': '#A855F7', // Violet - partial reverse
+      'canceled': '#6B7280',       // Gray - canceled
+      'disputed': '#DC2626',       // Dark red - disputed
     };
-    return methodMap[method] || method;
+    return statusColors[status] || '#94A3B8'; // Default gray
+  };
+
+  // Helper function to get translated status text
+  const getTranslatedStatus = (donation: DonationTransactionFE): string => {
+    // All succeeded donations (both manual and Stripe) show "Completed"
+    if (donation.status === 'succeeded') {
+      return t('donations:statuses.completed', 'Completed');
+    }
+
+    // Map status to translation key
+    const statusKey = donation.status === 'partially_refunded' ? 'partiallyRefunded' : donation.status;
+    return t(`donations:statuses.${statusKey}`, donation.status);
+  };
+
+  // Helper function to translate donation type names
+  // System types (Tithe, Offering) use translation keys
+  // Custom campaigns show their custom names as-is
+  const getTranslatedDonationTypeName = (typeName: string): string => {
+    // Check if it's a system type (Tithe or Offering)
+    const systemTypes: Record<string, string> = {
+      'Tithe': 'tithe',
+      'Offering': 'offering',
+    };
+
+    if (systemTypes[typeName]) {
+      const key = `donations:types.${systemTypes[typeName]}`;
+      return t(key, typeName);
+    }
+
+    // For custom campaigns, return the name as-is
+    return typeName;
+  };
+
+  // Helper function to map Stripe payment method types to display names
+  const getStripePaymentMethodDisplayName = (stripeType: string): string => {
+    const stripeMethodMap: Record<string, string> = {
+      'card': 'Card',
+      'us_bank_account': 'Bank Account',
+      'link': 'Link',
+    };
+    return stripeMethodMap[stripeType] || stripeType;
+  };
+
+  // Helper function to get translated payment method name
+  // For manual donations: Uses Settings namespace for system methods and custom method names
+  // For Stripe donations: Maps Stripe types and translates them
+  const getTranslatedPaymentMethodName = (donation: DonationTransactionFE): string => {
+    // For Stripe donations (no paymentMethodId), use Stripe payment method type
+    if (donation.source === 'stripe' && !donation.paymentMethodId) {
+      const displayName = getStripePaymentMethodDisplayName(donation.paymentMethodType);
+      // Translate Stripe payment methods
+      const key = `donations:stripePaymentMethods.${displayName.toLowerCase().replace(' ', '')}`;
+      const translated = t(key, displayName);
+      return translated === key ? displayName : translated;
+    }
+
+    // For manual donations with paymentMethodId, use the payment method name from DonationPaymentMethod table
+    if (donation.paymentMethod?.name) {
+      // Use the SAME translation namespace as the Settings page
+      const key = `settings:systemCategories.paymentMethods.${donation.paymentMethod.name}`;
+      const translated = t(key, donation.paymentMethod.name);
+      return translated === key ? donation.paymentMethod.name : translated;
+    }
+
+    // Fallback to raw paymentMethodType
+    return donation.paymentMethodType;
   };
 
   const getActiveFilterCount = () => {
     let count = 0;
-    // Date filter removed - now in separate button
-    // Donor filter removed - only showed manual donors
     if (selectedDonationMethods.length > 0) count++;
     if (selectedDonationTypes.length > 0) count++;
+    // Only count status as active filter if it's not the default ["succeeded"]
+    if (selectedStatuses.length > 0 && !(selectedStatuses.length === 1 && selectedStatuses[0] === "succeeded")) count++;
     return count;
   };
 
@@ -320,6 +451,18 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
         <Badge key="methods" variant="secondary" className="flex items-center gap-2">
           {t('donations:method', 'Method')}: {selectedDonationMethods.join(', ')}
           <button onClick={() => setSelectedDonationMethods([])} className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            <X className="h-3 w-3" />
+          </button>
+        </Badge>
+      );
+    }
+
+    // Only show status badge if it's not the default ["succeeded"]
+    if (selectedStatuses.length > 0 && !(selectedStatuses.length === 1 && selectedStatuses[0] === "succeeded")) {
+      badges.push(
+        <Badge key="statuses" variant="secondary" className="flex items-center gap-2">
+          Status: {selectedStatuses.map(s => s === 'succeeded' ? t('donations:statuses.completed', 'Completed') : t(`donations:statuses.${s}`, s)).join(', ')}
+          <button onClick={() => setSelectedStatuses(["succeeded"])} className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
             <X className="h-3 w-3" />
           </button>
         </Badge>
@@ -506,8 +649,8 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                           size="sm"
                           onClick={() => {
                             const defaultRange = {
-                              from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                              to: new Date()
+                              from: startOfMonth(new Date()),
+                              to: endOfMonth(new Date())
                             }
                             setTempDateRange(defaultRange)
                             setDateRange(defaultRange)
@@ -530,8 +673,16 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                   </PopoverContent>
                 </Popover>
 
-                {/* Other Filters (Type, Method) */}
-                <Popover>
+                {/* Other Filters (Type, Method, Status) */}
+                <Popover open={isFilterOpen} onOpenChange={(open) => {
+                  if (open) {
+                    // Initialize temp state with current filter values
+                    setTempDonationMethods(selectedDonationMethods);
+                    setTempDonationTypes(selectedDonationTypes);
+                    setTempStatuses(selectedStatuses);
+                  }
+                  setIsFilterOpen(open);
+                }}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="flex items-center gap-2">
                       <Filter className="h-4 w-4" />
@@ -544,7 +695,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">{t('donations:donationsContent.filter.title', 'Filter Donations')}</h4>
                         <div className="space-y-4">
-                          {/* Date filter removed - now in separate button */}
+                          {/* Type Filter */}
                           <div className="space-y-2">
                             <Label>{t('donations:type', 'Type')}</Label>
                             <ScrollArea className="max-h-[200px]">
@@ -553,11 +704,11 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                                   <div key={typeName} className="flex items-center gap-2">
                                     <Checkbox
                                       id={`type-${typeName}`}
-                                      checked={selectedDonationTypes.includes(typeName)}
+                                      checked={tempDonationTypes.includes(typeName)}
                                       onCheckedChange={() => handleDonationTypeFilterChange(typeName)}
                                     />
                                     <Label htmlFor={`type-${typeName}`} className="cursor-pointer">
-                                      {typeName}
+                                      {getTranslatedDonationTypeName(typeName)}
                                     </Label>
                                   </div>
                                 ))}
@@ -567,37 +718,70 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                               </div>
                             </ScrollArea>
                           </div>
+
+                          {/* Method Filter */}
                           <div className="space-y-2">
                             <Label>{t('donations:method', 'Method')}</Label>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <Checkbox id="cash" checked={selectedDonationMethods.includes('cash')} onCheckedChange={() => handleDonationMethodFilterChange('cash')} />
-                                <Label htmlFor="cash">{t('donations:methods.cash', 'Cash')}</Label>
+                            <ScrollArea className="max-h-[200px]">
+                              <div className="space-y-1 pr-4">
+                                {paymentMethods.map((method) => (
+                                  <div key={method.id} className="flex items-center gap-2">
+                                    <Checkbox
+                                      id={`method-${method.id}`}
+                                      checked={tempDonationMethods.includes(method.name)}
+                                      onCheckedChange={() => handleDonationMethodFilterChange(method.name)}
+                                    />
+                                    <Label htmlFor={`method-${method.id}`} className="cursor-pointer flex items-center gap-2">
+                                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: method.color }} />
+                                      {t(`settings:systemCategories.paymentMethods.${method.name}`, method.name)}
+                                    </Label>
+                                  </div>
+                                ))}
+                                {paymentMethods.length === 0 && (
+                                  <p className="text-sm text-muted-foreground">{t('common:noOptions', 'No options available')}</p>
+                                )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Checkbox id="check" checked={selectedDonationMethods.includes('check')} onCheckedChange={() => handleDonationMethodFilterChange('check')} />
-                                <Label htmlFor="check">{t('donations:methods.check', 'Check')}</Label>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Checkbox id="bankTransfer" checked={selectedDonationMethods.includes('bankTransfer')} onCheckedChange={() => handleDonationMethodFilterChange('bankTransfer')} />
-                                <Label htmlFor="bankTransfer">{t('donations:methods.bankTransfer', 'Bank Transfer')}</Label>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Checkbox id="other" checked={selectedDonationMethods.includes('other')} onCheckedChange={() => handleDonationMethodFilterChange('other')} />
-                                <Label htmlFor="other">{t('donations:methods.other', 'Other')}</Label>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Checkbox id="card" checked={selectedDonationMethods.includes('card')} onCheckedChange={() => handleDonationMethodFilterChange('card')} />
-                                <Label htmlFor="card">{t('donations:methods.card', 'Credit/Debit Card')}</Label>
-                              </div>
-                            </div>
+                            </ScrollArea>
                           </div>
-                          {/* Donor filter removed - only shows manual donors, not universal donors from Stripe */}
+
+                          {/* Status Filter */}
+                          <div className="space-y-2">
+                            <Label>Status</Label>
+                            <ScrollArea className="max-h-[200px]">
+                              <div className="space-y-1 pr-4">
+                                {['succeeded', 'pending', 'processing', 'failed', 'refunded', 'canceled', 'disputed'].map((status) => (
+                                  <div key={status} className="flex items-center gap-2">
+                                    <Checkbox
+                                      id={`status-${status}`}
+                                      checked={tempStatuses.includes(status)}
+                                      onCheckedChange={() => handleStatusFilterChange(status)}
+                                    />
+                                    <Label htmlFor={`status-${status}`} className="cursor-pointer flex items-center gap-2">
+                                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getStatusColor(status) }} />
+                                      {status === 'succeeded' ? t('donations:statuses.completed', 'Completed') : t(`donations:statuses.${status}`, status)}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex justify-end pt-2 border-t">
-                        <Button variant="ghost" size="sm" onClick={clearFilters}>{t('donations:donationsContent.filter.clear', 'Clear')}</Button>
+                      <div className="flex justify-between pt-2 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={resetFilters}
+                        >
+                          {t('common:reset', 'Reset')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={applyFilters}
+                        >
+                          {t('common:apply', 'Apply')}
+                        </Button>
                       </div>
                     </div>
                   </PopoverContent>
@@ -610,6 +794,16 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={t('donations:donationsContent.allDonations.searchPlaceholder', 'Search donations (donor, campaign, amount...)')}
+                  value={donationSearchTerm}
+                  onChange={(e) => setDonationSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
               {getActiveFilterCount() > 0 && (
                 <div className="flex items-center gap-2 mb-4">
@@ -623,22 +817,51 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                 </div>
               ) : (
                 <>
-                  {donations.length > 0 ? (
-                    <>
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>{t('donations:date', 'Date')}</TableHead>
-                              <TableHead>{t('donations:donor', 'Donor')}</TableHead>
-                              <TableHead>{t('donations:method', 'Method')}</TableHead>
-                              <TableHead>{t('donations:type', 'Type')}</TableHead>
-                              <TableHead className="text-right">{t('donations:amount', 'Amount')}</TableHead>
-                              <TableHead className="text-center min-w-[150px]">Status</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {donations.map((donation) => {
+                  {(() => {
+                    // Calculate total from donations (already filtered server-side)
+                    const pageTotal = donations.reduce((sum, donation) => sum + parseFloat(donation.amount), 0);
+
+                    return donations.length > 0 ? (
+                      <>
+                        <div className="rounded-md border">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>
+                                  <button
+                                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                                  >
+                                    {t('donations:date', 'Date')}
+                                    <ArrowUpDown className="h-4 w-4" />
+                                  </button>
+                                </TableHead>
+                                <TableHead>{t('donations:donor', 'Donor')}</TableHead>
+                                <TableHead>{t('donations:method', 'Method')}</TableHead>
+                                <TableHead>{t('donations:type', 'Type')}</TableHead>
+                                <TableHead>{t('donations:amount', 'Amount')}</TableHead>
+                                <TableHead>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger className="cursor-help">
+                                        {t('donations:fees', 'Fees')}
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        {t('donations:processingFees', 'Processing fees')}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </TableHead>
+                                <TableHead className="min-w-[150px]">Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {[...donations]
+                                .sort((a, b) => {
+                                  const dateA = new Date(a.transactionDate).getTime()
+                                  const dateB = new Date(b.transactionDate).getTime()
+                                  return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+                                }).map((donation) => {
                               // Check if donation is editable (manual and within 24 hours)
                               const isManual = donation.source === 'manual';
                               // Use processedAt if available, otherwise use transactionDate
@@ -653,7 +876,9 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                                   <TableCell>{format(parseISO(donation.transactionDate), 'PP')}</TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-1.5">
-                                      {donation.isAnonymous
+                                      {donation.isAnonymous && donation.donorName === "General Collection"
+                                        ? <span className="text-muted-foreground">{t('donations:generalCollection')}</span>
+                                        : donation.isAnonymous
                                         ? `Anonymous${donation.isInternational && donation.donorCountry ? ` (${donation.donorCountry})` : ''}`
                                         : donation.donorName}
                                       {donation.isInternational && !donation.isAnonymous && donation.donorCountry && (
@@ -670,38 +895,83 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                                       )}
                                     </div>
                                   </TableCell>
-                                  <TableCell>{t(`donations:methods.${getPaymentMethodKey(donation.paymentMethodType)}`, donation.paymentMethodType)}</TableCell>
-                                  <TableCell>{donation.donationTypeName}</TableCell>
-                                  <TableCell className="text-right">${parseFloat(donation.amount).toFixed(2)}</TableCell>
-                                  <TableCell className="text-center">
-                                    <div className="flex items-center justify-center gap-1">
-                                      <Badge 
-                                        variant={
-                                          donation.status === 'succeeded' ? 'default' :
-                                          donation.status === 'pending' ? 'secondary' :
-                                          donation.status === 'processing' ? 'secondary' :
-                                          donation.status === 'failed' ? 'destructive' :
-                                          donation.status === 'refunded' ? 'destructive' :
-                                          donation.status === 'partially_refunded' ? 'destructive' :
-                                          donation.status === 'canceled' ? 'outline' :
-                                          donation.status === 'disputed' ? 'destructive' : 'secondary'
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {donation.source === 'manual' && donation.status === 'succeeded' ? 'Completed' :
-                                         donation.status === 'partially_refunded' ? 'Partial Refund' : 
-                                         donation.status === 'refunded' ? 'Refunded' :
-                                         donation.status === 'disputed' ? 'Disputed' :
-                                         donation.status === 'succeeded' ? 'Succeeded' :
-                                         donation.status === 'processing' ? 'Processing' :
-                                         donation.status === 'pending' ? 'Pending' :
-                                         donation.status === 'failed' ? 'Failed' :
-                                         donation.status === 'canceled' ? t('donations:statuses.cancelled', 'Canceled') :
-                                         donation.status}
-                                      </Badge>
+                                  <TableCell>
+                                    {donation.status === 'canceled' || donation.status === 'pending' ? (
+                                      // Show two dashes close together for canceled/pending transactions
+                                      <div className="flex items-center gap-0.5">
+                                        <span className="text-muted-foreground">-</span>
+                                        <span className="text-muted-foreground">-</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        {/* Show color indicator - prioritize paymentMethod color if available */}
+                                        {donation.paymentMethod?.color ? (
+                                          // Show colored circle from DonationPaymentMethod table (works for both Stripe and manual)
+                                          <div
+                                            className="w-3 h-3 rounded-full"
+                                            style={{ backgroundColor: donation.paymentMethod.color }}
+                                          />
+                                        ) : donation.source === 'stripe' ? (
+                                          // Fallback for Stripe donations without linked payment method: black/white circle
+                                          <div className="w-3 h-3 rounded-full bg-foreground" />
+                                        ) : null}
+                                        {/* Display payment method name with proper translation */}
+                                        {getTranslatedPaymentMethodName(donation)}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>{getTranslatedDonationTypeName(donation.donationTypeName)}</TableCell>
+                                  <TableCell>${parseFloat(donation.amount).toFixed(2)}</TableCell>
+                                  <TableCell>
+                                    {(() => {
+                                      const processingFee = parseFloat(donation.processingFeeCoveredByDonor || '0')
+                                      const platformFee = parseFloat(donation.platformFeeAmount || '0')
+                                      const totalFees = processingFee + platformFee
+
+                                      // Manual payment methods (no Stripe fees)
+                                      const manualMethods = ['cash', 'check', 'zelle', 'venmo', 'bank_transfer', 'wire', 'other']
+                                      const isManual = manualMethods.includes(donation.paymentMethodType.toLowerCase())
+
+                                      // Check if it's a manual entry (has paymentMethodId) - these don't have Stripe fees
+                                      const isManualEntry = donation.paymentMethodId !== null && donation.paymentMethodId !== undefined
+
+                                      if (isManual || (isManualEntry && processingFee === 0)) {
+                                        // Manual donations or manual entries with no fees → $0.00
+                                        return <span className="text-muted-foreground">$0.00</span>
+                                      } else if (processingFee > 0) {
+                                        // Donor covered fees - show actual amount (processing + platform)
+                                        return <span className="text-green-600">${totalFees.toFixed(2)}</span>
+                                      } else {
+                                        // Online donation but fees not covered - TBD
+                                        return (
+                                          <TooltipProvider>
+                                            <Tooltip>
+                                              <TooltipTrigger className="cursor-help text-amber-600">
+                                                TBD
+                                              </TooltipTrigger>
+                                              <TooltipContent>
+                                                {t('donations:feesToBeDetermined', 'To be determined')}
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TooltipProvider>
+                                        )
+                                      }
+                                    })()}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      {/* Status indicator with colored circle */}
+                                      <div className="flex items-center gap-2">
+                                        <div
+                                          className="w-3 h-3 rounded-full"
+                                          style={{ backgroundColor: getStatusColor(donation.status) }}
+                                        />
+                                        <span className="text-sm">{getTranslatedStatus(donation)}</span>
+                                      </div>
+
                                       {/* Show dispute status badge if there's an active dispute */}
                                       {donation.disputeStatus && (
-                                        <Badge 
+                                        <Badge
                                           variant={
                                             donation.disputeStatus === 'won' ? 'default' :
                                             donation.disputeStatus === 'lost' ? 'destructive' :
@@ -736,7 +1006,13 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                           </TableBody>
                         </Table>
                       </div>
-                      <div className="mt-4">
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground">{t('donations:pageTotal', 'Total')}:</span>{' '}
+                          <span className="font-semibold text-foreground">
+                            ${pageTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
                         <TablePagination
                           currentPage={currentPage}
                           totalPages={totalPages}
@@ -760,7 +1036,8 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                       </p>
                       <Button onClick={handleNewDonationClick}>{t('donations:newDonation', 'Add New Donation')}</Button>
                     </div>
-                  )}
+                  );
+                })()}
                 </>
               )}
             </CardContent>

@@ -30,12 +30,14 @@ import {
   getExpenseSummary,
   getTransactionsForExport,
   getDonationTypesForFilter,
+  getExpenseCategoriesForFilter,
   type MonthlyReportData,
   type CategoryReportData,
   type ReportSummary as ReportSummaryType,
-  type DonationTypeForFilter
+  type DonationTypeForFilter,
+  type ExpenseCategoryForFilter
 } from "@/lib/actions/reports.actions"
-import { startOfYear } from "date-fns"
+import { startOfYear, endOfDay } from "date-fns"
 import { toast } from "sonner"
 
 // Types
@@ -45,7 +47,7 @@ export interface DateRange {
 }
 
 export function ReportsPage() {
-  const { t } = useTranslation(['reports', 'common'])
+  const { t } = useTranslation(['reports', 'common', 'donations', 'settings'])
   const { organization } = useOrganization()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -63,21 +65,29 @@ export function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'donations' | 'expenses' | 'financial'>(getInitialTab())
   const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // First day of current month
-    to: new Date() // Today
+    to: endOfDay(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)) // Last day of current month at 23:59:59.999
   })
   const [donationTypes, setDonationTypes] = useState<DonationTypeForFilter[]>([])
   const [selectedDonationType, setSelectedDonationType] = useState<string | null>(null)
   const [selectedDonationTypeName, setSelectedDonationTypeName] = useState<string | null>(null)
-  
-  // Fetch donation types on mount
+
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategoryForFilter[]>([])
+  const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null)
+  const [selectedExpenseCategoryName, setSelectedExpenseCategoryName] = useState<string | null>(null)
+
+  // Fetch donation types and expense categories on mount
   useEffect(() => {
-    const fetchDonationTypes = async () => {
+    const fetchFilters = async () => {
       if (organization?.id) {
-        const types = await getDonationTypesForFilter(organization.id)
+        const [types, categories] = await Promise.all([
+          getDonationTypesForFilter(organization.id),
+          getExpenseCategoriesForFilter(organization.id)
+        ])
         setDonationTypes(types)
+        setExpenseCategories(categories)
       }
     }
-    fetchDonationTypes()
+    fetchFilters()
   }, [organization?.id])
 
   // Sync tab state with URL when using browser navigation
@@ -116,7 +126,8 @@ export function ReportsPage() {
       }
       
       // Create a unique key for the current fetch parameters
-      const fetchKey = `${organization.id}-${activeTab}-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}-${selectedDonationType || 'all'}`
+      const filterParam = activeTab === 'donations' ? selectedDonationType : selectedExpenseCategory
+      const fetchKey = `${organization.id}-${activeTab}-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}-${filterParam || 'all'}`
 
       // Check if tab changed
       const tabChanged = activeTab !== lastActiveTab
@@ -128,7 +139,7 @@ export function ReportsPage() {
         setLastActiveTab(activeTab)
       }
     }
-  }, [activeTab, dateRange, organization, selectedDonationType, lastFetchParams, lastActiveTab])
+  }, [activeTab, dateRange, organization, selectedDonationType, selectedExpenseCategory, lastFetchParams, lastActiveTab])
   
   const fetchReportData = async (isTabChange: boolean = false) => {
     // Always show loading when fetching new data
@@ -167,13 +178,13 @@ export function ReportsPage() {
       } else {
         // Fetch all expense data in parallel
         const [monthly, categories, summary, exportData] = await Promise.all([
-          getMonthlyExpenseSummary(organization.id, yearStart, dateRange.to),
-          getExpenseCategoryBreakdown(organization.id, dateRange.from, dateRange.to),
-          getExpenseSummary(organization.id, dateRange.from, dateRange.to),
-          getTransactionsForExport(organization.id, 'expenses', dateRange.from, dateRange.to)
+          getMonthlyExpenseSummary(organization.id, yearStart, dateRange.to, selectedExpenseCategory || undefined),
+          getExpenseCategoryBreakdown(organization.id, dateRange.from, dateRange.to, selectedExpenseCategory || undefined),
+          getExpenseSummary(organization.id, dateRange.from, dateRange.to, selectedExpenseCategory || undefined),
+          getTransactionsForExport(organization.id, 'expenses', dateRange.from, dateRange.to, undefined, selectedExpenseCategory || undefined)
         ])
-        
-        
+
+
         setMonthlyData(monthly)
         setCategoryData(categories)
         setSummaryData(summary)
@@ -206,6 +217,22 @@ export function ReportsPage() {
       setSelectedDonationTypeName(donationType?.name || null)
     } else {
       setSelectedDonationTypeName(null)
+    }
+
+    // Set loading when filter changes
+    if (activeTab !== 'financial') {
+      setIsFilterLoading(true)
+    }
+  }
+
+  const handleExpenseCategoryChange = (categoryId: string | null) => {
+    setSelectedExpenseCategory(categoryId)
+    // Find and store the expense category name for export filename
+    if (categoryId) {
+      const category = expenseCategories.find(cat => cat.id === categoryId)
+      setSelectedExpenseCategoryName(category?.name || null)
+    } else {
+      setSelectedExpenseCategoryName(null)
     }
 
     // Set loading when filter changes
@@ -273,7 +300,7 @@ export function ReportsPage() {
       type: activeTab as 'donations' | 'expenses',
       dateRange,
       churchName: organization.name,
-      donationTypeName: selectedDonationTypeName,
+      donationTypeName: activeTab === 'donations' ? selectedDonationTypeName : selectedExpenseCategoryName,
       t
     }
     
@@ -299,25 +326,32 @@ export function ReportsPage() {
             donationTypes={donationTypes}
             selectedDonationType={selectedDonationType}
             onDonationTypeChange={handleDonationTypeChange}
+            expenseCategories={expenseCategories}
+            selectedExpenseCategory={selectedExpenseCategory}
+            onExpenseCategoryChange={handleExpenseCategoryChange}
+            activeTab={activeTab}
             isLoading={activeTab === 'financial' ? isFinancialLoading : isFilterLoading}
           />
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button>
-                <Download className="h-4 w-4 mr-2" />
-                {t('common:export')}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                {t('reports:exportPDF')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('csv')}>
-                {t('reports:exportCSV')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+          {/* Only show export button on Donations and Expenses tabs */}
+          {activeTab !== 'financial' && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <Download className="h-4 w-4 mr-2" />
+                  {t('common:export')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                  {t('reports:exportPDF')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                  {t('reports:exportCSV')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
       
@@ -359,10 +393,11 @@ export function ReportsPage() {
                   loading={isLoading || isFilterLoading}
                 />
                 
-                <CategoryPieChart 
+                <CategoryPieChart
                   data={categoryData}
                   title={activeTab === 'donations' ? t('reports:donationsByFund') : t('reports:expenseCategories')}
                   loading={isLoading || isFilterLoading}
+                  type={activeTab as 'donations' | 'expenses'}
                 />
               </div>
             </>

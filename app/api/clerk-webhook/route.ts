@@ -249,6 +249,138 @@ export async function POST(req: Request) {
         });
         console.log(`Successfully created default donation types for church ID: ${newChurch.id}`);
 
+        // Create default donation payment methods for the new church
+        const defaultPaymentMethodsData = [
+          {
+            name: "Cash",
+            color: "#10B981", // Green
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+          {
+            name: "Check",
+            color: "#3B82F6", // Blue
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+          {
+            name: "Card",
+            color: "#000000", // Black
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+          {
+            name: "Link",
+            color: "#000000", // Black
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+          {
+            name: "Bank Transfer",
+            color: "#F59E0B", // Amber
+            churchId: newChurch.id,
+            isSystemMethod: true,
+            isDeletable: false,
+          },
+        ];
+
+        await prisma.donationPaymentMethod.createMany({
+          data: defaultPaymentMethodsData,
+          skipDuplicates: true,
+        });
+        console.log(`Successfully created default donation payment methods for church ID: ${newChurch.id}`);
+
+        // Create default expense categories for the new church
+        const defaultExpenseCategoriesData = [
+          {
+            name: "Utilities",
+            color: "#EF4444", // Red
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Salaries",
+            color: "#3B82F6", // Blue
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Maintenance",
+            color: "#F97316", // Orange
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Office Supplies",
+            color: "#10B981", // Green
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Ministry",
+            color: "#8B5CF6", // Purple
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Building",
+            color: "#F59E0B", // Amber
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Events",
+            color: "#EC4899", // Pink
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Technology",
+            color: "#06B6D4", // Cyan
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Transportation",
+            color: "#84CC16", // Lime
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Insurance",
+            color: "#6366F1", // Indigo
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+          {
+            name: "Other",
+            color: "#6B7280", // Gray
+            churchId: newChurch.id,
+            isSystemCategory: true,
+            isDeletable: false,
+          },
+        ];
+
+        await prisma.expenseCategory.createMany({
+          data: defaultExpenseCategoriesData,
+          skipDuplicates: true,
+        });
+        console.log(`Successfully created default expense categories for church ID: ${newChurch.id}`);
+
         // Fix race condition: Update the creator's role to ADMIN immediately
         if (createdByUserId) {
           try {

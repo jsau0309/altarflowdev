@@ -23,7 +23,7 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns"
 import { Calendar as CalendarIcon, Filter, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { DateRange } from "./reports-page"
-import type { DonationTypeForFilter } from "@/lib/actions/reports.actions"
+import type { DonationTypeForFilter, ExpenseCategoryForFilter } from "@/lib/actions/reports.actions"
 
 interface ReportFiltersProps {
   dateRange: DateRange
@@ -31,6 +31,10 @@ interface ReportFiltersProps {
   donationTypes: DonationTypeForFilter[]
   selectedDonationType: string | null
   onDonationTypeChange: (donationTypeId: string | null) => void
+  expenseCategories?: ExpenseCategoryForFilter[]
+  selectedExpenseCategory?: string | null
+  onExpenseCategoryChange?: (categoryId: string | null) => void
+  activeTab: 'donations' | 'expenses' | 'financial'
   isLoading?: boolean
 }
 
@@ -40,12 +44,17 @@ export function ReportFilters({
   donationTypes,
   selectedDonationType,
   onDonationTypeChange,
+  expenseCategories = [],
+  selectedExpenseCategory = null,
+  onExpenseCategoryChange,
+  activeTab,
   isLoading = false
 }: ReportFiltersProps) {
-  const { t } = useTranslation(['reports', 'common'])
+  const { t } = useTranslation(['reports', 'common', 'settings'])
   const [isOpen, setIsOpen] = useState(false)
   const [tempRange, setTempRange] = useState<DateRange>(dateRange)
   const [tempDonationType, setTempDonationType] = useState<string | null>(selectedDonationType)
+  const [tempExpenseCategory, setTempExpenseCategory] = useState<string | null>(selectedExpenseCategory)
   const [wasApplyClicked, setWasApplyClicked] = useState(false)
   
   // Close popover when loading completes after Apply was clicked
@@ -59,19 +68,28 @@ export function ReportFilters({
   const handleApply = () => {
     setWasApplyClicked(true)
     onDateRangeChange(tempRange)
-    onDonationTypeChange(tempDonationType)
+    if (activeTab === 'donations') {
+      onDonationTypeChange(tempDonationType)
+    } else if (activeTab === 'expenses' && onExpenseCategoryChange) {
+      onExpenseCategoryChange(tempExpenseCategory)
+    }
     // Don't close immediately - wait for loading to complete
   }
 
   const handleReset = () => {
     const defaultRange = {
       from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      to: new Date()
+      to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
     }
     setTempRange(defaultRange)
     setTempDonationType(null)
+    setTempExpenseCategory(null)
     onDateRangeChange(defaultRange)
-    onDonationTypeChange(null)
+    if (activeTab === 'donations') {
+      onDonationTypeChange(null)
+    } else if (activeTab === 'expenses' && onExpenseCategoryChange) {
+      onExpenseCategoryChange(null)
+    }
     setIsOpen(false)
   }
   
@@ -108,11 +126,21 @@ export function ReportFilters({
   const systemTypes = donationTypes.filter(dt => dt.isSystemType)
   const campaigns = donationTypes.filter(dt => dt.isCampaign && !dt.isSystemType)
 
+  // Helper function to translate expense category names
+  const translateExpenseCategory = (name: string): string => {
+    return t(`settings:systemCategories.expenseCategories.${name}`, { defaultValue: name })
+  }
+
+  // Separate expense categories into system and custom
+  const systemCategories = expenseCategories.filter(cat => cat.isSystemCategory)
+  const customCategories = expenseCategories.filter(cat => !cat.isSystemCategory)
+
   return (
     <Popover open={isOpen} onOpenChange={(open) => {
       if (open) {
         setTempRange(dateRange)
         setTempDonationType(selectedDonationType)
+        setTempExpenseCategory(selectedExpenseCategory)
       }
       setIsOpen(open)
     }}>
@@ -227,49 +255,96 @@ export function ReportFilters({
             </div>
           </div>
 
-          {/* Donation Type Filter */}
-          <div className="space-y-2 border-t pt-3">
-            <h4 className="font-medium text-sm">{t('reports:donationType')}</h4>
-            <Select
-              value={tempDonationType || 'all'}
-              onValueChange={(value) => setTempDonationType(value === 'all' ? null : value)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('reports:allDonationTypes')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('reports:allDonationTypes')}</SelectItem>
+          {/* Conditional Filter based on Active Tab */}
+          {activeTab === 'donations' && (
+            <div className="space-y-2 border-t pt-3">
+              <h4 className="font-medium text-sm">{t('reports:donationType')}</h4>
+              <Select
+                value={tempDonationType || 'all'}
+                onValueChange={(value) => setTempDonationType(value === 'all' ? null : value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('reports:allDonationTypes')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('reports:allDonationTypes')}</SelectItem>
 
-                {systemTypes.length > 0 && (
-                  <>
-                    <SelectSeparator />
-                    <SelectGroup>
-                      <SelectLabel>{t('reports:systemTypes')}</SelectLabel>
-                      {systemTypes.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {translateDonationType(type.name)}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </>
-                )}
+                  {systemTypes.length > 0 && (
+                    <>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>{t('reports:systemTypes')}</SelectLabel>
+                        {systemTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {translateDonationType(type.name)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </>
+                  )}
 
-                {campaigns.length > 0 && (
-                  <>
-                    <SelectSeparator />
-                    <SelectGroup>
-                      <SelectLabel>{t('reports:campaigns')}</SelectLabel>
-                      {campaigns.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+                  {campaigns.length > 0 && (
+                    <>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>{t('reports:campaigns')}</SelectLabel>
+                        {campaigns.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {activeTab === 'expenses' && (
+            <div className="space-y-2 border-t pt-3">
+              <h4 className="font-medium text-sm">{t('common:category')}</h4>
+              <Select
+                value={tempExpenseCategory || 'all'}
+                onValueChange={(value) => setTempExpenseCategory(value === 'all' ? null : value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('common:allCategories')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('common:allCategories')}</SelectItem>
+
+                  {systemCategories.length > 0 && (
+                    <>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>{t('settings:systemCategories.title', 'System Categories')}</SelectLabel>
+                        {systemCategories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {translateExpenseCategory(category.name)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </>
+                  )}
+
+                  {customCategories.length > 0 && (
+                    <>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>{t('common:customCategories', 'Custom Categories')}</SelectLabel>
+                        {customCategories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex justify-between pt-2">
             <Button variant="outline" size="sm" onClick={handleReset}>

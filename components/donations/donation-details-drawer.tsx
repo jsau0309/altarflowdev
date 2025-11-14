@@ -85,66 +85,83 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
     onDonationUpdated?.() // Notify parent to refresh list
   }
 
-  const getPaymentMethodDisplay = (method: string) => {
-    // Normalize payment method for translation key
-    const methodMap: Record<string, string> = {
-      'Bank Transfer': 'bankTransfer',
-      'banktransfer': 'bankTransfer',  // Handle lowercase no space
-      'bankTransfer': 'bankTransfer',  // Handle camelCase
-      'Credit/Debit Card': 'card',
-      'card': 'card',
-      'cash': 'cash',
-      'check': 'check',
-      'other': 'other',
-      'Cash': 'cash',
-      'Check': 'check',
-      'Other': 'other'
+  const getStripePaymentMethodDisplayName = (stripeType: string): string => {
+    const stripeMethodMap: Record<string, string> = {
+      'card': 'Card',
+      'us_bank_account': 'Bank Account',
+      'link': 'Link',
     };
-    const translationKey = methodMap[method] || method;
-    return t(`donations:methods.${translationKey}`, method)
-  }
+    return stripeMethodMap[stripeType] || stripeType;
+  };
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'succeeded':
-        return 'default'
-      case 'pending':
-      case 'processing':
-        return 'secondary'
-      case 'failed':
-      case 'refunded':
-      case 'partially_refunded':
-      case 'disputed':
-        return 'destructive'
-      case 'canceled':
-        return 'outline'
-      default:
-        return 'outline'
+  const getTranslatedPaymentMethodName = (donation: DonationWithEditHistory): string => {
+    // For Stripe donations (no paymentMethodId), use Stripe payment method type
+    if (donation.source === 'stripe' && !donation.paymentMethodId) {
+      const displayName = getStripePaymentMethodDisplayName(donation.paymentMethodType);
+      const key = `donations:stripePaymentMethods.${displayName.toLowerCase().replace(' ', '')}`;
+      const translated = t(key, displayName);
+      return translated === key ? displayName : translated;
     }
-  }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'succeeded':
-        return 'Succeeded'
-      case 'processing':
-        return 'Processing'
-      case 'pending':
-        return 'Pending'
-      case 'failed':
-        return 'Failed'
-      case 'canceled':
-        return t('donations:statuses.cancelled', 'Canceled')
-      case 'refunded':
-        return 'Refunded'
-      case 'partially_refunded':
-        return 'Partial Refund'
-      case 'disputed':
-        return 'Disputed'
-      default:
-        return status
+    // For manual donations with paymentMethodId
+    if (donation.paymentMethod?.name) {
+      const key = `settings:systemCategories.paymentMethods.${donation.paymentMethod.name}`;
+      const translated = t(key, donation.paymentMethod.name);
+      return translated === key ? donation.paymentMethod.name : translated;
     }
-  }
+
+    return donation.paymentMethodType;
+  };
+
+  const getStatusColor = (status: string): string => {
+    const statusColors: Record<string, string> = {
+      'succeeded': '#3B82F6',      // Blue
+      'completed': '#3B82F6',      // Blue
+      'pending': '#94A3B8',        // Gray
+      'processing': '#F59E0B',     // Amber
+      'failed': '#EF4444',         // Red
+      'refunded': '#8B5CF6',       // Purple
+      'partially_refunded': '#A855F7', // Violet
+      'canceled': '#6B7280',       // Gray
+      'disputed': '#DC2626',       // Dark red
+    };
+    return statusColors[status] || '#94A3B8';
+  };
+
+  const getTranslatedStatus = (donation: DonationWithEditHistory): string => {
+    // All succeeded donations show "Completed"
+    if (donation.status === 'succeeded') {
+      return t('donations:statuses.completed', 'Completed');
+    }
+
+    const statusKey = donation.status === 'partially_refunded' ? 'partiallyRefunded' : donation.status;
+    return t(`donations:statuses.${statusKey}`, donation.status);
+  };
+
+  const getSourceColor = (source: string): string => {
+    return source === 'manual' ? '#10B981' : '#000000'; // Green for manual, Black for Stripe
+  };
+
+  const getTranslatedSource = (source: string): string => {
+    if (source === 'manual') {
+      return t('common:manual', 'Manual');
+    }
+    return 'Stripe';
+  };
+
+  const getTranslatedDonationTypeName = (typeName: string): string => {
+    const systemTypes: Record<string, string> = {
+      'Tithe': 'tithe',
+      'Offering': 'offering',
+    };
+
+    if (systemTypes[typeName]) {
+      const key = `donations:types.${systemTypes[typeName]}`;
+      return t(key, typeName);
+    }
+
+    return typeName; // For custom campaigns
+  };
 
   const renderContent = () => {
     if (isLoading) {
@@ -173,28 +190,28 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
         <div className="space-y-6 pr-4 pt-4">
           {/* Edit Status Banner */}
           {donation.source === 'manual' && (
-            <div className={`p-3 rounded-lg ${isEditable ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'}`}>
+            <div className={`p-3 rounded-lg ${isEditable ? 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900' : 'bg-muted border border-border'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {isEditable ? (
                     <>
-                      <Clock className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-900">
+                      <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
                         {t('donations:donationDetailsDrawer.editableFor')} {editTimeRemaining}
                       </span>
                     </>
                   ) : (
                     <>
-                      <Lock className="h-4 w-4 text-gray-600" />
-                      <span className="text-sm font-medium text-gray-700">
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">
                         {t('donations:donationDetailsDrawer.locked')}
                       </span>
                     </>
                   )}
                 </div>
                 {isEditable && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => setShowEditDialog(true)}
                     className="gap-1"
@@ -213,34 +230,43 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
               <h3 className="text-lg font-semibold mb-3">{t('donations:donationDetailsDrawer.donationInfo')}</h3>
               <div className="grid gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Amount</span>
+                  <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.amount')}</span>
                   <span className="font-medium text-lg">${donation.amount}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Type</span>
-                  <span>{donation.donationTypeName}</span>
+                  <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.type')}</span>
+                  <span>{getTranslatedDonationTypeName(donation.donationTypeName)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Date</span>
+                  <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.date')}</span>
                   <span>{format(new Date(donation.transactionDate), 'PPP')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Method</span>
-                  <span>{getPaymentMethodDisplay(donation.paymentMethodType)}</span>
+                  <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.method')}</span>
+                  <div className="flex items-center gap-2">
+                    {donation.source === 'stripe' ? (
+                      <div className="w-3 h-3 rounded-full bg-foreground" />
+                    ) : (
+                      donation.paymentMethod?.color && (
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: donation.paymentMethod.color }} />
+                      )
+                    )}
+                    <span>{getTranslatedPaymentMethodName(donation)}</span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.status')}</span>
-                  <Badge variant={getStatusBadgeVariant(donation.status)}>
-                    {donation.source === 'manual' && donation.status === 'succeeded'
-                      ? t('donations:statuses.completed', 'Completed')
-                      : getStatusLabel(donation.status)}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getStatusColor(donation.status) }} />
+                    <span>{getTranslatedStatus(donation)}</span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.source')}</span>
-                  <Badge variant={donation.source === 'manual' ? 'secondary' : 'default'}>
-                    {donation.source || 'stripe'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getSourceColor(donation.source || 'stripe') }} />
+                    <span>{getTranslatedSource(donation.source || 'stripe')}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -332,19 +358,23 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
               <h3 className="text-lg font-semibold mb-3">{t('donations:donationDetailsDrawer.donorInfo')}</h3>
               <div className="grid gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Name</span>
-                  <span>{donation.donorName || t('common:anonymous', 'Anonymous')}</span>
+                  <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.name')}</span>
+                  <span>
+                    {donation.donorName === "General Collection"
+                      ? t('donations:generalCollection')
+                      : donation.donorName || t('common:anonymous', 'Anonymous')}
+                  </span>
                 </div>
                 {/* Hide email for anonymous donors to maintain privacy */}
                 {donation.donorEmail && !donation.isAnonymous && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Email</span>
+                    <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.email')}</span>
                     <span className="text-sm">{donation.donorEmail}</span>
                   </div>
                 )}
                 {donation.isInternational && donation.donorCountry && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Country</span>
+                    <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.country')}</span>
                     <span className="text-sm">{donation.donorCountry}</span>
                   </div>
                 )}
@@ -365,7 +395,7 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
                       {t('donations:donationDetailsDrawer.lastEdited')}: {format(new Date(donation.updatedAt), 'PPp')}
                     </div>
                     {donation.editReason && (
-                      <div className="p-3 bg-gray-50 rounded-md">
+                      <div className="p-3 bg-muted rounded-md border border-border">
                         <p className="text-sm font-medium">{t('donations:donationDetailsDrawer.editReason')}:</p>
                         <p className="text-sm text-muted-foreground mt-1">{donation.editReason}</p>
                       </div>
@@ -383,7 +413,7 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
                   <h3 className="text-lg font-semibold mb-3">{t('donations:donationDetailsDrawer.transactionDetails')}</h3>
                   <div className="grid gap-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Transaction ID</span>
+                      <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.transactionId')}</span>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -399,7 +429,7 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
                     </div>
                     {donation.processedAt && (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Processed</span>
+                        <span className="text-sm text-muted-foreground">{t('donations:donationDetailsDrawer.processed')}</span>
                         <span className="text-sm">
                           {format(new Date(donation.processedAt), 'PPp')}
                         </span>

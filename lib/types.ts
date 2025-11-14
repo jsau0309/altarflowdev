@@ -197,6 +197,11 @@ export type DonationTransactionFE = Omit<Donation, 'amount'> & {
   donorId: string | null;
   idempotencyKey: string | null;
   paymentMethodType: string;
+  paymentMethodId?: string | null;
+  paymentMethod?: {
+    name: string;
+    color: string;
+  } | null;
   donationTypeId: string; // Added: Foreign key to DonationType
   donationTypeName: string;
   donationTypeIsCampaign?: boolean;
@@ -204,6 +209,9 @@ export type DonationTransactionFE = Omit<Donation, 'amount'> & {
   source: string; // Added: 'manual' or 'stripe'
   status: string; // Added: e.g., 'succeeded', 'pending', 'failed', 'refunded', 'disputed'
   notes?: string | null; // Added: Optional notes
+  // Fee tracking fields
+  processingFeeCoveredByDonor?: string; // Stripe fees covered by donor (as string)
+  platformFeeAmount?: string; // Platform fees (as string)
   // Refund tracking fields
   refundedAmount?: number | null;
   refundedAt?: string | null; // ISO string
