@@ -126,9 +126,17 @@ jobs:
           mkdir -p storage-backups
 
           # List all buckets
-          BUCKETS=$(curl -s "${SUPABASE_URL}/storage/v1/bucket" \
-            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
-            | jq -r '.[].name')
+          BUCKET_RESPONSE=$(curl -s "${SUPABASE_URL}/storage/v1/bucket" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}")
+
+          echo "Bucket API response: ${BUCKET_RESPONSE}"
+
+          BUCKETS=$(echo "${BUCKET_RESPONSE}" | jq -r '.[].name' 2>/dev/null || echo "")
+
+          if [ -z "$BUCKETS" ]; then
+            echo "Error: Could not list buckets. Response: ${BUCKET_RESPONSE}"
+            exit 1
+          fi
 
           echo "Found buckets: ${BUCKETS}"
 
@@ -139,12 +147,22 @@ jobs:
             echo "Backing up bucket: ${BUCKET}"
             mkdir -p "storage-backups/${BUCKET}"
 
-            # List all objects in bucket (up to 1000)
-            OBJECTS=$(curl -s -X POST "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
+            # List all objects in bucket
+            LIST_RESPONSE=$(curl -s -X POST "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
               -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
               -H "Content-Type: application/json" \
-              -d '{"limit": 1000, "offset": 0, "sortBy": {"column": "name", "order": "asc"}}' \
-              | jq -r '.[].name')
+              -d '{"limit": 1000, "offset": 0}')
+
+            echo "  List response for ${BUCKET}: ${LIST_RESPONSE:0:200}..."
+
+            # Check if response is an error
+            if echo "${LIST_RESPONSE}" | jq -e '.error' >/dev/null 2>&1; then
+              ERROR_MSG=$(echo "${LIST_RESPONSE}" | jq -r '.error')
+              echo "  Error listing objects: ${ERROR_MSG}"
+              continue
+            fi
+
+            OBJECTS=$(echo "${LIST_RESPONSE}" | jq -r '.[].name' 2>/dev/null || echo "")
 
             if [ -z "$OBJECTS" ]; then
               echo "  No objects in ${BUCKET}"
