@@ -151,7 +151,7 @@ jobs:
             LIST_RESPONSE=$(curl -s -X POST "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
               -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
               -H "Content-Type: application/json" \
-              -d '{"limit": 1000, "offset": 0}')
+              -d '{"limit": 1000, "offset": 0, "prefix": ""}')
 
             echo "  List response for ${BUCKET}: ${LIST_RESPONSE:0:200}..."
 
