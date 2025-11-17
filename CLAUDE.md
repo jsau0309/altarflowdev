@@ -96,6 +96,14 @@ TWILIO_*               # SMS verification
 - No bypass flags in production
 - Email content escaping
 
+## Backup & Disaster Recovery
+- Automated GitHub Actions workflow (`.github/workflows/database-backup.yml`) runs pg_dump hourly (top of every hour, UTC) using `DIRECT_URL` and uploads gzip-compressed dumps to the `altarflow-backups` S3 bucket (`database/YYYY/MM/<timestamp>.sql.gz`).
+- Backups are retained for 30 days; the workflow removes older objects, maintains `database/LATEST.txt` (timestamp + S3 URI + checksum), and publishes a companion `database/LATEST.sha256` file so engineers can verify downloads before restores.
+- S3 hardening: bucket encryption is enforced via SSE-S3 default encryption, and access should be limited to the dedicated `altarflow-backup-user` IAM principal via a bucket policy.
+- AWS IAM user credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) plus `DIRECT_URL` must be stored in GitHub secrets before enabling the workflow.
+- On workflow failure, an issue is opened automatically so the on-call engineer can respond.
+- Recovery playbook lives in `docs/DISASTER_RECOVERY.md` and includes restoration + communication steps; review monthly alongside the recurring restore drill (download + checksum verify + test restore) so the process never goes stale.
+
 ## 🚨 PRODUCTION SAFETY: Prisma Schema Changes
 
 **⚠️ CRITICAL: We have REAL USERS and REAL DATA in production!**

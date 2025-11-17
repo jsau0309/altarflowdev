@@ -1,0 +1,148 @@
+name: Database Backups
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET: altarflow-backups
+  BACKUP_PREFIX: database
+  RETENTION_DAYS: '30'
+
+jobs:
+  backup:
+    name: Run pg_dump and upload to S3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client and AWS CLI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client awscli
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create compressed backup
+        id: create_backup
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DIRECT_URL" ]; then
+            echo "DIRECT_URL secret is required" >&2
+            exit 1
+          fi
+
+          mkdir -p backups
+          TIMESTAMP="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
+          YEAR="$(date -u +"%Y")"
+          MONTH="$(date -u +"%m")"
+          BACKUP_FILE="backups/${TIMESTAMP}.sql.gz"
+          S3_KEY="${BACKUP_PREFIX}/${YEAR}/${MONTH}/${TIMESTAMP}.sql.gz"
+
+          echo "Creating backup ${BACKUP_FILE}"
+          pg_dump --no-owner --no-privileges "$DIRECT_URL" | gzip > "$BACKUP_FILE"
+
+          SIZE_BYTES=$(stat -c%s "$BACKUP_FILE")
+          if [ "$SIZE_BYTES" -lt 1024 ]; then
+            echo "Backup file is unexpectedly small (${SIZE_BYTES} bytes)" >&2
+            exit 1
+          fi
+
+          echo "Backup size: ${SIZE_BYTES} bytes"
+          CHECKSUM=$(sha256sum "$BACKUP_FILE" | awk '{print $1}')
+          echo "Backup checksum: ${CHECKSUM}"
+
+          echo "backup_file=${BACKUP_FILE}" >> "$GITHUB_OUTPUT"
+          echo "s3_key=${S3_KEY}" >> "$GITHUB_OUTPUT"
+          echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
+          echo "checksum=${CHECKSUM}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to S3
+        id: upload
+        run: |
+          set -euo pipefail
+          BACKUP_FILE="${{ steps.create_backup.outputs.backup_file }}"
+          S3_KEY="${{ steps.create_backup.outputs.s3_key }}"
+          aws s3 cp "$BACKUP_FILE" "s3://${S3_BUCKET}/${S3_KEY}"
+          aws s3api head-object --bucket "$S3_BUCKET" --key "$S3_KEY"
+          echo "Uploaded backup to s3://${S3_BUCKET}/${S3_KEY}"
+          echo "s3_uri=s3://${S3_BUCKET}/${S3_KEY}" >> "$GITHUB_OUTPUT"
+
+      - name: Update LATEST pointer and checksum
+        run: |
+          set -euo pipefail
+          S3_URI="${{ steps.upload.outputs.s3_uri }}"
+          TIMESTAMP="${{ steps.create_backup.outputs.timestamp }}"
+          CHECKSUM="${{ steps.create_backup.outputs.checksum }}"
+          POINTER_FILE="LATEST.txt"
+          printf '%s\n' "${TIMESTAMP}" "${S3_URI}" "${CHECKSUM}" > "$POINTER_FILE"
+          aws s3 cp "$POINTER_FILE" "s3://${S3_BUCKET}/${BACKUP_PREFIX}/LATEST.txt"
+          CHECKSUM_FILE="LATEST.sha256"
+          printf '%s  %s.sql.gz\n' "${CHECKSUM}" "${TIMESTAMP}" > "$CHECKSUM_FILE"
+          aws s3 cp "$CHECKSUM_FILE" "s3://${S3_BUCKET}/${BACKUP_PREFIX}/LATEST.sha256"
+
+      - name: Cleanup old backups
+        run: |
+          set -euo pipefail
+          # Calculate retention cutoff (timestamp minus RETENTION_DAYS)
+          CUTOFF="$(date -u -d "-${RETENTION_DAYS} days" +"%Y-%m-%dT%H:%M:%SZ")"
+          export CUTOFF
+          echo "Deleting backups older than ${RETENTION_DAYS} days (before ${CUTOFF})"
+          python3 <<'EOF'
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+
+          bucket = os.environ['S3_BUCKET']
+          prefix = os.environ['BACKUP_PREFIX'] + '/'
+          cutoff_str = os.environ['CUTOFF']
+          cutoff = datetime.strptime(cutoff_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+
+          result = subprocess.run(
+              ["aws", "s3api", "list-objects-v2", "--bucket", bucket, "--prefix", prefix],
+              check=True,
+              capture_output=True,
+              text=True,
+          )
+          if not result.stdout.strip():
+              raise SystemExit(0)
+          data = json.loads(result.stdout)
+          contents = data.get("Contents", [])
+          old_keys = [obj["Key"] for obj in contents if datetime.strptime(obj["LastModified"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc) < cutoff]
+          for key in old_keys:
+              print(f"Deleting {key}")
+              subprocess.run(["aws", "s3", "rm", f"s3://{bucket}/{key}"], check=True)
+          print(f"Removed {len(old_keys)} expired backups")
+          EOF
+
+      - name: Open issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const title = `Database backup failed (${new Date().toISOString()})`;
+            const body = `Automated database backup failed. Please review the workflow logs and rerun if needed.\n\nRun URL: ${runUrl}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['automation', 'database', 'incident']
+            });
