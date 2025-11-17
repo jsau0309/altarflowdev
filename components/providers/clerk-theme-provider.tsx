@@ -30,10 +30,16 @@ function ClerkThemeWrapper({ children }: ClerkThemeProviderProps) {
     setCurrentLanguage(detectedLang)
   }, [i18n])
 
-  // Listen to language changes
+  // Listen to language changes and reload page to ensure Clerk components update
   useEffect(() => {
     const handleLanguageChanged = (lng: string) => {
-      console.log('[ClerkThemeProvider] Language changed to:', lng)
+      // Only reload if the language actually changed (not initial mount)
+      if (mounted && currentLanguage !== lng) {
+        // Small delay to ensure localStorage is updated
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
+      }
       setCurrentLanguage(lng)
     }
 
@@ -42,7 +48,7 @@ function ClerkThemeWrapper({ children }: ClerkThemeProviderProps) {
     return () => {
       i18n.off('languageChanged', handleLanguageChanged)
     }
-  }, [i18n])
+  }, [i18n, mounted, currentLanguage])
 
   const isDark = mounted && resolvedTheme === 'dark'
 
@@ -50,10 +56,9 @@ function ClerkThemeWrapper({ children }: ClerkThemeProviderProps) {
   // i18n.language returns 'en' or 'es'
   const clerkLocalization = currentLanguage === 'es' ? esES : enUS
 
-  console.log('[ClerkThemeProvider] Current language:', currentLanguage, 'Using localization:', currentLanguage === 'es' ? 'Spanish (esES)' : 'English (enUS)')
-
   return (
     <ClerkProvider
+      key={currentLanguage} // Force remount when language changes
       appearance={{
         baseTheme: isDark ? dark : undefined,
       }}

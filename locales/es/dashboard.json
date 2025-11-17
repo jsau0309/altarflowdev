@@ -28,6 +28,11 @@
   
   "memberActivity": {
     "title": "Actividad de Miembros",
+    "newMembers": "Nuevos miembros",
+    "thisMonth": "Este mes",
+    "activeMembers": "Miembros activos",
+    "total": "Total",
+    "recentMembers": "Miembros recientes",
     "newMembersLabel": "Nuevos miembros",
     "newMembersSubtitle": "Este mes",
     "activeMembersLabel": "Miembros activos",
