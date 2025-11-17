@@ -128,7 +128,7 @@ jobs:
               raise SystemExit(0)
           data = json.loads(result.stdout)
           contents = data.get("Contents", [])
-          old_keys = [obj["Key"] for obj in contents if datetime.strptime(obj["LastModified"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc) < cutoff]
+          old_keys = [obj["Key"] for obj in contents if datetime.fromisoformat(obj["LastModified"].replace('Z', '+00:00')) < cutoff]
           for key in old_keys:
               print(f"Deleting {key}")
               subprocess.run(["aws", "s3", "rm", f"s3://{bucket}/{key}"], check=True)
