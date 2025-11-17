@@ -20,17 +20,20 @@ function ClerkThemeWrapper({ children }: ClerkThemeProviderProps) {
   const { resolvedTheme } = useTheme()
   const { i18n } = useTranslation()
   const [mounted, setMounted] = useState(false)
-  const [currentLanguage, setCurrentLanguage] = useState('en')
+  const [currentLanguage, setCurrentLanguage] = useState<string>('en')
 
   // Prevent hydration mismatch by only applying theme after mount
   useEffect(() => {
     setMounted(true)
-    setCurrentLanguage(i18n.language)
-  }, [])
+    // Set initial language from i18n
+    const detectedLang = i18n.language || i18n.resolvedLanguage || 'en'
+    setCurrentLanguage(detectedLang)
+  }, [i18n])
 
   // Listen to language changes
   useEffect(() => {
     const handleLanguageChanged = (lng: string) => {
+      console.log('[ClerkThemeProvider] Language changed to:', lng)
       setCurrentLanguage(lng)
     }
 
@@ -44,8 +47,10 @@ function ClerkThemeWrapper({ children }: ClerkThemeProviderProps) {
   const isDark = mounted && resolvedTheme === 'dark'
 
   // Select Clerk localization based on current language
-  // i18n.language returns 'en' or 'es', so we check if it starts with 'es'
-  const clerkLocalization = currentLanguage.startsWith('es') ? esES : enUS
+  // i18n.language returns 'en' or 'es'
+  const clerkLocalization = currentLanguage === 'es' ? esES : enUS
+
+  console.log('[ClerkThemeProvider] Current language:', currentLanguage, 'Using localization:', currentLanguage === 'es' ? 'Spanish (esES)' : 'English (enUS)')
 
   return (
     <ClerkProvider
