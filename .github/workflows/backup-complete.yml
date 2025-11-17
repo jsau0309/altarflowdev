@@ -147,11 +147,12 @@ jobs:
             echo "Backing up bucket: ${BUCKET}"
             mkdir -p "storage-backups/${BUCKET}"
 
-            # List all objects in bucket
+            # Use Supabase Storage public API to list ALL objects recursively
+            # We'll use the search parameter with empty string to get all files
             LIST_RESPONSE=$(curl -s -X POST "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
               -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
               -H "Content-Type: application/json" \
-              -d '{"limit": 1000, "offset": 0, "prefix": ""}')
+              -d '{"limit": 1000, "offset": 0, "prefix": "", "search": ""}')
 
             echo "  List response for ${BUCKET}: ${LIST_RESPONSE:0:200}..."
 
@@ -162,16 +163,46 @@ jobs:
               continue
             fi
 
-            OBJECTS=$(echo "${LIST_RESPONSE}" | jq -r '.[].name' 2>/dev/null || echo "")
+            # Get all file objects (filter out folders by checking if id is not null)
+            FILE_LIST=$(echo "${LIST_RESPONSE}" | jq -r '.[] | select(.id != null) | .name' 2>/dev/null || echo "")
 
-            if [ -z "$OBJECTS" ]; then
-              echo "  No objects in ${BUCKET}"
+            if [ -z "$FILE_LIST" ]; then
+              # No files found, might be folders - need to list recursively
+              echo "  No files found at root, listing recursively..."
+
+              # Get all prefixes (folders)
+              PREFIXES=$(echo "${LIST_RESPONSE}" | jq -r '.[] | select(.id == null) | .name' 2>/dev/null || echo "")
+
+              if [ -z "$PREFIXES" ]; then
+                echo "  No objects in ${BUCKET}"
+                continue
+              fi
+
+              # For each prefix, list files recursively
+              FILE_LIST=""
+              for PREFIX in $PREFIXES; do
+                echo "    Listing prefix: ${PREFIX}"
+                PREFIX_RESPONSE=$(curl -s -X POST "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
+                  -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"limit\": 1000, \"offset\": 0, \"prefix\": \"${PREFIX}/\"}")
+
+                # Recursively get all files under this prefix
+                PREFIX_FILES=$(echo "${PREFIX_RESPONSE}" | jq -r '.. | select(.id? != null) | select(.name? != null) | .name' 2>/dev/null || echo "")
+                if [ -n "$PREFIX_FILES" ]; then
+                  FILE_LIST="${FILE_LIST}${PREFIX_FILES}"$'\n'
+                fi
+              done
+            fi
+
+            if [ -z "$FILE_LIST" ]; then
+              echo "  No files found in ${BUCKET}"
               continue
             fi
 
             FILE_COUNT=0
             while IFS= read -r OBJECT; do
-              if [ -z "$OBJECT" ]; then
+              if [ -z "$OBJECT" ] || [ "$OBJECT" = "null" ]; then
                 continue
               fi
 
@@ -185,10 +216,13 @@ jobs:
 
               if [ -f "$DEST_PATH" ]; then
                 FILE_SIZE=$(stat -c%s "$DEST_PATH")
-                TOTAL_SIZE=$((TOTAL_SIZE + FILE_SIZE))
-                FILE_COUNT=$((FILE_COUNT + 1))
+                if [ "$FILE_SIZE" -gt 0 ]; then
+                  TOTAL_SIZE=$((TOTAL_SIZE + FILE_SIZE))
+                  FILE_COUNT=$((FILE_COUNT + 1))
+                  echo "    Downloaded: ${OBJECT} (${FILE_SIZE} bytes)"
+                fi
               fi
-            done <<< "$OBJECTS"
+            done <<< "$FILE_LIST"
 
             echo "  Downloaded ${FILE_COUNT} files from ${BUCKET}"
             TOTAL_FILES=$((TOTAL_FILES + FILE_COUNT))
