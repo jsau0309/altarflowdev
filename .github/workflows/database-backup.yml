@@ -102,33 +102,33 @@ jobs:
           CUTOFF="$(date -u -d "-${RETENTION_DAYS} days" +"%Y-%m-%dT%H:%M:%SZ")"
           export CUTOFF
           echo "Deleting backups older than ${RETENTION_DAYS} days (before ${CUTOFF})"
-          python - <<'PY'
-import json
-import os
-import subprocess
-from datetime import datetime, timezone
+          python3 <<'EOF'
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
 
-bucket = os.environ['S3_BUCKET']
-prefix = os.environ['BACKUP_PREFIX'] + '/'
-cutoff_str = os.environ['CUTOFF']
-cutoff = datetime.strptime(cutoff_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+          bucket = os.environ['S3_BUCKET']
+          prefix = os.environ['BACKUP_PREFIX'] + '/'
+          cutoff_str = os.environ['CUTOFF']
+          cutoff = datetime.strptime(cutoff_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 
-result = subprocess.run(
-    ["aws", "s3api", "list-objects-v2", "--bucket", bucket, "--prefix", prefix],
-    check=True,
-    capture_output=True,
-    text=True,
-)
-if not result.stdout.strip():
-    raise SystemExit(0)
-data = json.loads(result.stdout)
-contents = data.get("Contents", [])
-old_keys = [obj["Key"] for obj in contents if datetime.strptime(obj["LastModified"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc) < cutoff]
-for key in old_keys:
-    print(f"Deleting {key}")
-    subprocess.run(["aws", "s3", "rm", f"s3://{bucket}/{key}"], check=True)
-print(f"Removed {len(old_keys)} expired backups")
-PY
+          result = subprocess.run(
+              ["aws", "s3api", "list-objects-v2", "--bucket", bucket, "--prefix", prefix],
+              check=True,
+              capture_output=True,
+              text=True,
+          )
+          if not result.stdout.strip():
+              raise SystemExit(0)
+          data = json.loads(result.stdout)
+          contents = data.get("Contents", [])
+          old_keys = [obj["Key"] for obj in contents if datetime.strptime(obj["LastModified"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc) < cutoff]
+          for key in old_keys:
+              print(f"Deleting {key}")
+              subprocess.run(["aws", "s3", "rm", f"s3://{bucket}/{key}"], check=True)
+          print(f"Removed {len(old_keys)} expired backups")
+          EOF
 
       - name: Open issue on failure
         if: failure()
