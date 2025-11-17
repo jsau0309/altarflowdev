@@ -1,0 +1,318 @@
+name: Complete Backup (Database + Storage)
+
+on:
+  schedule:
+    # Run every hour at :00
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET: altarflow-backups
+  SUPABASE_PROJECT_ID: uhoovjoeitxecfcbzndj
+
+jobs:
+  backup:
+    name: Backup Database and Storage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          # PostgreSQL 17 client
+          sudo apt-get install -y curl ca-certificates jq
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set backup metadata
+        id: metadata
+        run: |
+          TIMESTAMP="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
+          YEAR="$(date -u +"%Y")"
+          MONTH="$(date -u +"%m")"
+          DAY="$(date -u +"%d")"
+          HOUR="$(date -u +"%H")"
+
+          echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
+          echo "year=${YEAR}" >> "$GITHUB_OUTPUT"
+          echo "month=${MONTH}" >> "$GITHUB_OUTPUT"
+          echo "day=${DAY}" >> "$GITHUB_OUTPUT"
+          echo "hour=${HOUR}" >> "$GITHUB_OUTPUT"
+
+          # Determine backup tier
+          if [ "$DAY" = "01" ] && [ "$HOUR" = "00" ]; then
+            echo "tier=monthly" >> "$GITHUB_OUTPUT"
+          elif [ "$HOUR" = "00" ]; then
+            echo "tier=daily" >> "$GITHUB_OUTPUT"
+          else
+            echo "tier=hourly" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ========================================
+      # DATABASE BACKUP
+      # ========================================
+
+      - name: Backup database
+        id: backup_database
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          set -euo pipefail
+
+          TIMESTAMP="${{ steps.metadata.outputs.timestamp }}"
+          TIER="${{ steps.metadata.outputs.tier }}"
+          YEAR="${{ steps.metadata.outputs.year }}"
+          MONTH="${{ steps.metadata.outputs.month }}"
+
+          mkdir -p backups
+          BACKUP_FILE="backups/${TIMESTAMP}.sql.gz"
+
+          echo "Creating database backup..."
+          /usr/lib/postgresql/17/bin/pg_dump --no-owner --no-privileges "$DIRECT_URL" | gzip > "$BACKUP_FILE"
+
+          SIZE_BYTES=$(stat -c%s "$BACKUP_FILE")
+          if [ "$SIZE_BYTES" -lt 1024 ]; then
+            echo "Backup file is unexpectedly small (${SIZE_BYTES} bytes)" >&2
+            exit 1
+          fi
+
+          CHECKSUM=$(sha256sum "$BACKUP_FILE" | awk '{print $1}')
+          echo "Database backup: ${SIZE_BYTES} bytes (checksum: ${CHECKSUM})"
+
+          # Upload to S3 with tier-based path
+          S3_KEY="database/${TIER}/${YEAR}/${MONTH}/${TIMESTAMP}.sql.gz"
+          aws s3 cp "$BACKUP_FILE" "s3://${S3_BUCKET}/${S3_KEY}"
+
+          # Upload checksum
+          echo "${CHECKSUM}  ${TIMESTAMP}.sql.gz" > "backups/${TIMESTAMP}.sha256"
+          aws s3 cp "backups/${TIMESTAMP}.sha256" "s3://${S3_BUCKET}/database/${TIER}/checksums/${TIMESTAMP}.sha256"
+
+          echo "database_backup_s3=s3://${S3_BUCKET}/${S3_KEY}" >> "$GITHUB_OUTPUT"
+          echo "database_checksum=${CHECKSUM}" >> "$GITHUB_OUTPUT"
+
+      # ========================================
+      # STORAGE BACKUP
+      # ========================================
+
+      - name: Backup storage buckets
+        id: backup_storage
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_URL: https://${{ env.SUPABASE_PROJECT_ID }}.supabase.co
+        run: |
+          set -euo pipefail
+
+          TIMESTAMP="${{ steps.metadata.outputs.timestamp }}"
+          TIER="${{ steps.metadata.outputs.tier }}"
+          YEAR="${{ steps.metadata.outputs.year }}"
+          MONTH="${{ steps.metadata.outputs.month }}"
+
+          mkdir -p storage-backups
+
+          # List all buckets
+          BUCKETS=$(curl -s "${SUPABASE_URL}/storage/v1/bucket" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+            | jq -r '.[].name')
+
+          echo "Found buckets: ${BUCKETS}"
+
+          TOTAL_FILES=0
+          TOTAL_SIZE=0
+
+          for BUCKET in $BUCKETS; do
+            echo "Backing up bucket: ${BUCKET}"
+            mkdir -p "storage-backups/${BUCKET}"
+
+            # List all objects in bucket (up to 1000)
+            OBJECTS=$(curl -s -X POST "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
+              -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+              -H "Content-Type: application/json" \
+              -d '{"limit": 1000, "offset": 0, "sortBy": {"column": "name", "order": "asc"}}' \
+              | jq -r '.[].name')
+
+            if [ -z "$OBJECTS" ]; then
+              echo "  No objects in ${BUCKET}"
+              continue
+            fi
+
+            FILE_COUNT=0
+            while IFS= read -r OBJECT; do
+              if [ -z "$OBJECT" ]; then
+                continue
+              fi
+
+              # Download object
+              DEST_PATH="storage-backups/${BUCKET}/${OBJECT}"
+              mkdir -p "$(dirname "$DEST_PATH")"
+
+              curl -s "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${OBJECT}" \
+                -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+                -o "$DEST_PATH"
+
+              if [ -f "$DEST_PATH" ]; then
+                FILE_SIZE=$(stat -c%s "$DEST_PATH")
+                TOTAL_SIZE=$((TOTAL_SIZE + FILE_SIZE))
+                FILE_COUNT=$((FILE_COUNT + 1))
+              fi
+            done <<< "$OBJECTS"
+
+            echo "  Downloaded ${FILE_COUNT} files from ${BUCKET}"
+            TOTAL_FILES=$((TOTAL_FILES + FILE_COUNT))
+
+            # Upload bucket to S3 with tier-based path
+            if [ "$FILE_COUNT" -gt 0 ]; then
+              aws s3 sync "storage-backups/${BUCKET}" \
+                "s3://${S3_BUCKET}/storage/${TIER}/${YEAR}/${MONTH}/${TIMESTAMP}/${BUCKET}/" \
+                --delete
+            fi
+          done
+
+          echo "Total files backed up: ${TOTAL_FILES}"
+          echo "Total size: ${TOTAL_SIZE} bytes"
+
+          echo "storage_files=${TOTAL_FILES}" >> "$GITHUB_OUTPUT"
+          echo "storage_size=${TOTAL_SIZE}" >> "$GITHUB_OUTPUT"
+
+      # ========================================
+      # UPDATE LATEST POINTERS
+      # ========================================
+
+      - name: Update LATEST pointers
+        run: |
+          TIMESTAMP="${{ steps.metadata.outputs.timestamp }}"
+          TIER="${{ steps.metadata.outputs.tier }}"
+          DB_S3="${{ steps.backup_database.outputs.database_backup_s3 }}"
+          DB_CHECKSUM="${{ steps.backup_database.outputs.database_checksum }}"
+          STORAGE_FILES="${{ steps.backup_storage.outputs.storage_files }}"
+
+          # Database LATEST
+          printf '%s\n' "${TIMESTAMP}" "${DB_S3}" "${DB_CHECKSUM}" > LATEST_${TIER}.txt
+          aws s3 cp "LATEST_${TIER}.txt" "s3://${S3_BUCKET}/database/LATEST_${TIER}.txt"
+
+          # Global LATEST (always points to most recent regardless of tier)
+          aws s3 cp "LATEST_${TIER}.txt" "s3://${S3_BUCKET}/database/LATEST.txt"
+
+          # Storage LATEST
+          printf '%s\n' "${TIMESTAMP}" "${STORAGE_FILES} files backed up" > STORAGE_LATEST_${TIER}.txt
+          aws s3 cp "STORAGE_LATEST_${TIER}.txt" "s3://${S3_BUCKET}/storage/LATEST_${TIER}.txt"
+          aws s3 cp "STORAGE_LATEST_${TIER}.txt" "s3://${S3_BUCKET}/storage/LATEST.txt"
+
+      # ========================================
+      # CLEANUP OLD BACKUPS (TIERED RETENTION)
+      # ========================================
+
+      - name: Cleanup old backups
+        run: |
+          set -euo pipefail
+
+          # Calculate retention cutoffs
+          HOURLY_CUTOFF="$(date -u -d "-7 days" +"%Y-%m-%dT%H:%M:%SZ")"
+          DAILY_CUTOFF="$(date -u -d "-90 days" +"%Y-%m-%dT%H:%M:%SZ")"
+          MONTHLY_CUTOFF="$(date -u -d "-7 years" +"%Y-%m-%dT%H:%M:%SZ")"
+
+          export HOURLY_CUTOFF DAILY_CUTOFF MONTHLY_CUTOFF S3_BUCKET
+
+          echo "Retention cutoffs:"
+          echo "  Hourly:  ${HOURLY_CUTOFF} (7 days)"
+          echo "  Daily:   ${DAILY_CUTOFF} (90 days)"
+          echo "  Monthly: ${MONTHLY_CUTOFF} (7 years)"
+
+          python3 <<'EOF'
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+
+          bucket = os.environ['S3_BUCKET']
+          cutoffs = {
+              'hourly': datetime.strptime(os.environ['HOURLY_CUTOFF'], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc),
+              'daily': datetime.strptime(os.environ['DAILY_CUTOFF'], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc),
+              'monthly': datetime.strptime(os.environ['MONTHLY_CUTOFF'], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc),
+          }
+
+          total_deleted = 0
+
+          for tier, cutoff in cutoffs.items():
+              for prefix in [f'database/{tier}/', f'storage/{tier}/']:
+                  print(f"\nChecking {prefix} (delete before {cutoff})")
+
+                  result = subprocess.run(
+                      ["aws", "s3api", "list-objects-v2", "--bucket", bucket, "--prefix", prefix],
+                      check=True,
+                      capture_output=True,
+                      text=True,
+                  )
+
+                  if not result.stdout.strip():
+                      continue
+
+                  data = json.loads(result.stdout)
+                  contents = data.get("Contents", [])
+
+                  old_keys = []
+                  for obj in contents:
+                      last_modified = datetime.fromisoformat(obj["LastModified"].replace('Z', '+00:00'))
+                      if last_modified < cutoff:
+                          old_keys.append(obj["Key"])
+
+                  for key in old_keys:
+                      print(f"  Deleting {key}")
+                      subprocess.run(["aws", "s3", "rm", f"s3://{bucket}/{key}"], check=True)
+                      total_deleted += 1
+
+                  if old_keys:
+                      print(f"  Deleted {len(old_keys)} old {tier} backups from {prefix}")
+
+          print(f"\nTotal deleted: {total_deleted} files")
+          EOF
+
+      # ========================================
+      # FAILURE NOTIFICATION
+      # ========================================
+
+      - name: Open issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const title = `Backup failed (${new Date().toISOString()})`;
+            const body = `Automated backup (database + storage) failed. Please review immediately.
+
+            **Run Details:**
+            - Timestamp: ${new Date().toISOString()}
+            - Tier: ${{ steps.metadata.outputs.tier }}
+            - Run URL: ${runUrl}
+
+            **Action Required:**
+            1. Check workflow logs for error details
+            2. Verify AWS and Supabase credentials
+            3. Run manual backup if needed
+            4. Fix root cause before next hourly run
+
+            See: \`docs/DISASTER_RECOVERY.md\` for manual backup procedures.`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['automation', 'backup', 'incident', 'urgent']
+            });
