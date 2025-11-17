@@ -59,7 +59,7 @@ jobs:
           S3_KEY="${BACKUP_PREFIX}/${YEAR}/${MONTH}/${TIMESTAMP}.sql.gz"
 
           echo "Creating backup ${BACKUP_FILE}"
-          pg_dump --no-owner --no-privileges "$DIRECT_URL" | gzip > "$BACKUP_FILE"
+          /usr/lib/postgresql/17/bin/pg_dump --no-owner --no-privileges "$DIRECT_URL" | gzip > "$BACKUP_FILE"
 
           SIZE_BYTES=$(stat -c%s "$BACKUP_FILE")
           if [ "$SIZE_BYTES" -lt 1024 ]; then
