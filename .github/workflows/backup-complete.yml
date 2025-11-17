@@ -115,6 +115,7 @@ jobs:
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           SUPABASE_URL: https://${{ env.SUPABASE_PROJECT_ID }}.supabase.co
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
         run: |
           set -euo pipefail
 
@@ -125,118 +126,78 @@ jobs:
 
           mkdir -p storage-backups
 
-          # List all buckets
-          BUCKET_RESPONSE=$(curl -s "${SUPABASE_URL}/storage/v1/bucket" \
-            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}")
+          echo "Querying database for all storage objects..."
 
-          echo "Bucket API response: ${BUCKET_RESPONSE}"
+          # Use PostgreSQL to get all file paths from storage.objects table
+          # This is more reliable than trying to recursively list via API
+          FILE_LIST=$(/usr/lib/postgresql/17/bin/psql "$DIRECT_URL" -t -c "
+            SELECT bucket_id, name
+            FROM storage.objects
+            WHERE bucket_id IN ('receipts', 'landing-logos')
+            ORDER BY bucket_id, name;
+          " 2>&1)
 
-          BUCKETS=$(echo "${BUCKET_RESPONSE}" | jq -r '.[].name' 2>/dev/null || echo "")
-
-          if [ -z "$BUCKETS" ]; then
-            echo "Error: Could not list buckets. Response: ${BUCKET_RESPONSE}"
+          if [ $? -ne 0 ]; then
+            echo "Error querying storage objects: ${FILE_LIST}"
             exit 1
           fi
 
-          echo "Found buckets: ${BUCKETS}"
+          echo "Found files in database"
 
           TOTAL_FILES=0
           TOTAL_SIZE=0
 
-          for BUCKET in $BUCKETS; do
-            echo "Backing up bucket: ${BUCKET}"
-            mkdir -p "storage-backups/${BUCKET}"
+          # Process each file
+          while IFS='|' read -r BUCKET_RAW OBJECT_RAW; do
+            # Trim whitespace
+            BUCKET=$(echo "$BUCKET_RAW" | xargs)
+            OBJECT=$(echo "$OBJECT_RAW" | xargs)
 
-            # Use Supabase Storage public API to list ALL objects recursively
-            # We'll use the search parameter with empty string to get all files
-            LIST_RESPONSE=$(curl -s -X POST "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
+            if [ -z "$BUCKET" ] || [ -z "$OBJECT" ]; then
+              continue
+            fi
+
+            echo "Downloading: ${BUCKET}/${OBJECT}"
+
+            # Download object
+            DEST_PATH="storage-backups/${BUCKET}/${OBJECT}"
+            mkdir -p "$(dirname "$DEST_PATH")"
+
+            HTTP_CODE=$(curl -s -w "%{http_code}" "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${OBJECT}" \
               -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
-              -H "Content-Type: application/json" \
-              -d '{"limit": 1000, "offset": 0, "prefix": "", "search": ""}')
+              -o "$DEST_PATH")
 
-            echo "  List response for ${BUCKET}: ${LIST_RESPONSE:0:200}..."
-
-            # Check if response is an error
-            if echo "${LIST_RESPONSE}" | jq -e '.error' >/dev/null 2>&1; then
-              ERROR_MSG=$(echo "${LIST_RESPONSE}" | jq -r '.error')
-              echo "  Error listing objects: ${ERROR_MSG}"
-              continue
-            fi
-
-            # Get all file objects (filter out folders by checking if id is not null)
-            FILE_LIST=$(echo "${LIST_RESPONSE}" | jq -r '.[] | select(.id != null) | .name' 2>/dev/null || echo "")
-
-            if [ -z "$FILE_LIST" ]; then
-              # No files found, might be folders - need to list recursively
-              echo "  No files found at root, listing recursively..."
-
-              # Get all prefixes (folders)
-              PREFIXES=$(echo "${LIST_RESPONSE}" | jq -r '.[] | select(.id == null) | .name' 2>/dev/null || echo "")
-
-              if [ -z "$PREFIXES" ]; then
-                echo "  No objects in ${BUCKET}"
-                continue
+            if [ "$HTTP_CODE" = "200" ] && [ -f "$DEST_PATH" ]; then
+              FILE_SIZE=$(stat -c%s "$DEST_PATH")
+              if [ "$FILE_SIZE" -gt 0 ]; then
+                TOTAL_SIZE=$((TOTAL_SIZE + FILE_SIZE))
+                TOTAL_FILES=$((TOTAL_FILES + 1))
+                echo "  ✓ Downloaded (${FILE_SIZE} bytes)"
+              else
+                echo "  ✗ Empty file"
+                rm -f "$DEST_PATH"
               fi
-
-              # For each prefix, list files recursively
-              FILE_LIST=""
-              for PREFIX in $PREFIXES; do
-                echo "    Listing prefix: ${PREFIX}"
-                PREFIX_RESPONSE=$(curl -s -X POST "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
-                  -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"limit\": 1000, \"offset\": 0, \"prefix\": \"${PREFIX}/\"}")
-
-                # Recursively get all files under this prefix
-                PREFIX_FILES=$(echo "${PREFIX_RESPONSE}" | jq -r '.. | select(.id? != null) | select(.name? != null) | .name' 2>/dev/null || echo "")
-                if [ -n "$PREFIX_FILES" ]; then
-                  FILE_LIST="${FILE_LIST}${PREFIX_FILES}"$'\n'
-                fi
-              done
+            else
+              echo "  ✗ Failed (HTTP ${HTTP_CODE})"
+              rm -f "$DEST_PATH"
             fi
+          done <<< "$FILE_LIST"
 
-            if [ -z "$FILE_LIST" ]; then
-              echo "  No files found in ${BUCKET}"
-              continue
-            fi
-
-            FILE_COUNT=0
-            while IFS= read -r OBJECT; do
-              if [ -z "$OBJECT" ] || [ "$OBJECT" = "null" ]; then
-                continue
-              fi
-
-              # Download object
-              DEST_PATH="storage-backups/${BUCKET}/${OBJECT}"
-              mkdir -p "$(dirname "$DEST_PATH")"
-
-              curl -s "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${OBJECT}" \
-                -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
-                -o "$DEST_PATH"
-
-              if [ -f "$DEST_PATH" ]; then
-                FILE_SIZE=$(stat -c%s "$DEST_PATH")
-                if [ "$FILE_SIZE" -gt 0 ]; then
-                  TOTAL_SIZE=$((TOTAL_SIZE + FILE_SIZE))
-                  FILE_COUNT=$((FILE_COUNT + 1))
-                  echo "    Downloaded: ${OBJECT} (${FILE_SIZE} bytes)"
-                fi
-              fi
-            done <<< "$FILE_LIST"
-
-            echo "  Downloaded ${FILE_COUNT} files from ${BUCKET}"
-            TOTAL_FILES=$((TOTAL_FILES + FILE_COUNT))
-
-            # Upload bucket to S3 with tier-based path
-            if [ "$FILE_COUNT" -gt 0 ]; then
-              aws s3 sync "storage-backups/${BUCKET}" \
-                "s3://${S3_BUCKET}/storage/${TIER}/${YEAR}/${MONTH}/${TIMESTAMP}/${BUCKET}/" \
-                --delete
-            fi
-          done
-
+          echo ""
           echo "Total files backed up: ${TOTAL_FILES}"
           echo "Total size: ${TOTAL_SIZE} bytes"
+
+          if [ "$TOTAL_FILES" -gt 0 ]; then
+            # Upload to S3 with tier-based path
+            echo "Uploading to S3..."
+            for BUCKET in receipts landing-logos; do
+              if [ -d "storage-backups/${BUCKET}" ]; then
+                aws s3 sync "storage-backups/${BUCKET}" \
+                  "s3://${S3_BUCKET}/storage/${TIER}/${YEAR}/${MONTH}/${TIMESTAMP}/${BUCKET}/" \
+                  --delete
+              fi
+            done
+          fi
 
           echo "storage_files=${TOTAL_FILES}" >> "$GITHUB_OUTPUT"
           echo "storage_size=${TOTAL_SIZE}" >> "$GITHUB_OUTPUT"
