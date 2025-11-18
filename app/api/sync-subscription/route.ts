@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
+import { Prisma } from "@prisma/client";
 
 export async function POST() {
   try {
@@ -35,7 +36,7 @@ export async function POST() {
       : stripeSubscription.status;
     
     // Update database
-    const updateData: any = {
+    const updateData: Prisma.ChurchUpdateInput = {
       subscriptionStatus: status,
     };
     

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 // GET /api/public/landing-settings/[slug] - Get public landing page settings
 export async function GET(
@@ -25,10 +26,11 @@ export async function GET(
     }
 
     // Extract landing page settings from settingsJson
-    const settings = church.settingsJson as any || {};
+    const settings = (church.settingsJson as Record<string, Prisma.JsonValue>) || {};
+    const landing = (settings.landing as Record<string, unknown>) || {};
     const landingSettings = {
-      showDonateButton: settings.landing?.showDonateButton ?? true,
-      showConnectButton: settings.landing?.showConnectButton ?? true,
+      showDonateButton: (landing.showDonateButton as boolean | undefined) ?? true,
+      showConnectButton: (landing.showConnectButton as boolean | undefined) ?? true,
       churchName: church.name
     };
 
