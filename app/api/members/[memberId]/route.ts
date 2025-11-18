@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { revalidateTag } from 'next/cache';
+import { MembershipStatus, Prisma } from '@prisma/client';
 
 // Schema for validating updated member data (PATCH)
 const memberUpdateSchema = z.object({
@@ -103,27 +104,26 @@ export async function PATCH(
     const memberData = validation.data;
 
     // 3. Prepare data for update
-    const dataToUpdate: any = { ...memberData };
-    if (memberData.joinDate !== undefined) {
-      dataToUpdate.joinDate = memberData.joinDate ? new Date(memberData.joinDate) : null;
-      // Debug logging removed: prepared join date for update
-    }
-    if (memberData.smsConsentDate !== undefined) {
-      dataToUpdate.smsConsentDate = memberData.smsConsentDate ? new Date(memberData.smsConsentDate) : null;
-    }
+    const dataToUpdate: Partial<Prisma.MemberUpdateInput> = {
+      ...memberData,
+      joinDate: memberData.joinDate ? new Date(memberData.joinDate) : (memberData.joinDate === null ? null : undefined),
+      smsConsentDate: memberData.smsConsentDate ? new Date(memberData.smsConsentDate) : (memberData.smsConsentDate === null ? null : undefined),
+      membershipStatus: memberData.membershipStatus as MembershipStatus | null | undefined,
+    };
+
     if (memberData.email !== undefined && memberData.email === '') {
       dataToUpdate.email = null;
     }
 
     // 4. Perform the update using updateMany with compound where clause
     const updateResult = await prisma.member.updateMany({
-      where: { 
+      where: {
         id: memberId,
         Church: { // Ensure update only happens for the correct org
           clerkOrgId: orgId
         }
       },
-      data: dataToUpdate,
+      data: dataToUpdate as Prisma.MemberUpdateManyMutationInput,
     });
 
     // 5. Check if the update was successful (if count is 0, member wasn't found in this org)

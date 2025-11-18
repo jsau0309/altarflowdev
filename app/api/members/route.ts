@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { revalidateTag } from 'next/cache';
+import { MembershipStatus, Prisma } from '@prisma/client';
 
 // Schema for validating new member data (POST)
 const memberCreateSchema = z.object({
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Prepare data for creation
-    const dataToCreate: any = {
+    const dataToCreate = {
         ...memberData,
         joinDate: memberData.joinDate ? new Date(memberData.joinDate) : new Date(),
         smsConsentDate: memberData.smsConsentDate ? new Date(memberData.smsConsentDate) : null,
@@ -120,12 +121,13 @@ export async function POST(request: NextRequest) {
     const newMember = await prisma.member.create({
       data: {
         ...dataToCreate,
+        membershipStatus: dataToCreate.membershipStatus as MembershipStatus | null | undefined,
         Church: {
           connect: {
             clerkOrgId: orgId // orgId is guaranteed to be a string here
           }
         }
-      },
+      } as Prisma.MemberCreateInput,
     });
 
     // Invalidate dashboard cache after creating member
