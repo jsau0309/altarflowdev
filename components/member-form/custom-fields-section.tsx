@@ -74,7 +74,7 @@ function CustomFieldInput({
         return (
           <FormField
             control={form.control}
-            name={fieldName as any}
+            name={fieldName as keyof MemberFormValues}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>
@@ -93,7 +93,7 @@ function CustomFieldInput({
         return (
           <FormField
             control={form.control}
-            name={fieldName as any}
+            name={fieldName as keyof MemberFormValues}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>
@@ -119,7 +119,7 @@ function CustomFieldInput({
         return (
           <FormField
             control={form.control}
-            name={fieldName as any}
+            name={fieldName as keyof MemberFormValues}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>
@@ -138,7 +138,7 @@ function CustomFieldInput({
         return (
           <FormField
             control={form.control}
-            name={fieldName as any}
+            name={fieldName as keyof MemberFormValues}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>
@@ -169,7 +169,7 @@ function CustomFieldInput({
         return (
           <FormField
             control={form.control}
-            name={fieldName as any}
+            name={fieldName as keyof MemberFormValues}
             render={({ field: formField }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                 <FormControl>

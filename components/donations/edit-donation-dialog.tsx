@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -88,13 +88,7 @@ export function EditDonationDialog({ isOpen, onClose, onSuccess, donation }: Edi
     },
   })
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchDonors()
-    }
-  }, [isOpen])
-
-  const fetchDonors = async () => {
+  const fetchDonors = useCallback(async () => {
     try {
       const donorList = await getDistinctDonorsForFilter()
       setDonors(donorList)
@@ -102,7 +96,13 @@ export function EditDonationDialog({ isOpen, onClose, onSuccess, donation }: Edi
       console.error("Failed to fetch donors:", error)
       toast.error(t('common:errors.fetchFailed', 'Failed to load donors'))
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchDonors()
+    }
+  }, [isOpen, fetchDonors])
 
   const handleReasonTypeChange = (value: string) => {
     form.setValue("editReasonType", value as any)

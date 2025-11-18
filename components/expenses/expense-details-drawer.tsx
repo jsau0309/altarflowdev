@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { format } from "date-fns"
-import { Download, Edit, FileText, Loader2, Trash2 } from "lucide-react"
+import { Edit, FileText, Loader2, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -16,7 +16,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import type { Expense } from "@prisma/client"
 import { Decimal } from '@prisma/client/runtime/library';
@@ -169,7 +168,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
     } finally {
       setIsLoadingReceipt(false);
     }
-  }, [expense?.id, t, setIsLoadingReceipt, setCurrentReceiptUrl, setReceiptUrlExpiry]);
+  }, [expense, t]);
 
   useEffect(() => {
     // Debug logging removed: expense details drawer effect triggered

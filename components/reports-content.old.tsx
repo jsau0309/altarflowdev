@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { useOrganization } from "@clerk/nextjs"
 
 interface ReportsContentProps {
+  // Component accepts no props
 }
 
 interface ReportSummary {

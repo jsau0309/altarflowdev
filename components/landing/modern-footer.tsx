@@ -10,6 +10,7 @@ export function ModernFooter() {
           {/* Brand Section */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/altarflow-logo.svg" alt="Altarflow" className="w-[191px] h-[45px]" />
             </div>
             <p className="text-gray-600 max-w-md text-sm leading-relaxed">

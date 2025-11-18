@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval } from "date-fns"
+import { format, startOfMonth, endOfMonth, subMonths } from "date-fns"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { NewExpenseModal } from "@/components/modals/new-expense-modal"
 import { ExpenseDetailsDrawer } from "./expenses/expense-details-drawer"

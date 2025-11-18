@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { format } from "date-fns"
 import { DollarSign, Loader2, AlertTriangle, Edit, Clock, Lock, History } from "lucide-react"
 
@@ -36,20 +36,7 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
   const [editTimeRemaining, setEditTimeRemaining] = useState<string | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
 
-  useEffect(() => {
-    if (isOpen && donationId) {
-      fetchDonationDetails()
-    } else if (!isOpen) {
-      // Reset state when drawer closes
-      setDonation(null)
-      setIsLoading(false)
-      setError(null)
-      setIsEditable(false)
-      setEditTimeRemaining(null)
-    }
-  }, [isOpen, donationId])
-
-  const fetchDonationDetails = async () => {
+  const fetchDonationDetails = useCallback(async () => {
     if (!donationId) return
 
     setIsLoading(true)
@@ -77,7 +64,20 @@ export function DonationDetailsDrawer({ isOpen, onClose, donationId, onDonationU
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [donationId, t])
+
+  useEffect(() => {
+    if (isOpen && donationId) {
+      fetchDonationDetails()
+    } else if (!isOpen) {
+      // Reset state when drawer closes
+      setDonation(null)
+      setIsLoading(false)
+      setError(null)
+      setIsEditable(false)
+      setEditTimeRemaining(null)
+    }
+  }, [isOpen, donationId, fetchDonationDetails])
 
   const handleEditSuccess = () => {
     setShowEditDialog(false)

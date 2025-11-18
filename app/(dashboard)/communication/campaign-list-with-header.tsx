@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useTranslation } from "react-i18next";
 import {
@@ -87,13 +87,7 @@ export function CampaignListWithHeader({ returnFrom }: CampaignListWithHeaderPro
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
 
-  useEffect(() => {
-    fetchCampaigns();
-    fetchQuota();
-    fetchUserRole();
-  }, []);
-
-  const fetchUserRole = async () => {
+  const fetchUserRole = useCallback(async () => {
     try {
       const token = await getToken();
       const response = await fetch("/api/users/me", {
@@ -109,9 +103,9 @@ export function CampaignListWithHeader({ returnFrom }: CampaignListWithHeaderPro
     } catch (error) {
       console.error("Error fetching user role:", error);
     }
-  };
+  }, [getToken]);
 
-  const fetchQuota = async () => {
+  const fetchQuota = useCallback(async () => {
     try {
       const token = await getToken();
       const response = await fetch("/api/communication/quota", {
@@ -127,9 +121,9 @@ export function CampaignListWithHeader({ returnFrom }: CampaignListWithHeaderPro
     } catch (error) {
       console.error("Error fetching quota:", error);
     }
-  };
+  }, [getToken]);
 
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
     try {
       const token = await getToken();
       const response = await fetch("/api/communication/campaigns", {
@@ -150,7 +144,13 @@ export function CampaignListWithHeader({ returnFrom }: CampaignListWithHeaderPro
     } finally {
       setLoading(false);
     }
-  };
+  }, [getToken, t]);
+
+  useEffect(() => {
+    fetchCampaigns();
+    fetchQuota();
+    fetchUserRole();
+  }, [fetchCampaigns, fetchQuota, fetchUserRole]);
 
   const handleDelete = (campaign: Campaign) => {
     // Check permission first

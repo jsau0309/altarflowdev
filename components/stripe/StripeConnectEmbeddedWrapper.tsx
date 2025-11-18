@@ -193,7 +193,8 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
     };
 
     initializeStripeConnect();
-  }, [i18n.language, isDarkMode]); // Reinitialize when language or theme changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i18n.language, isDarkMode]); // error and getStripeLocale intentionally excluded - stable function references
 
   // Update appearance when theme changes after initial load
   useEffect(() => {

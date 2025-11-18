@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/lib/db';
 import { ResendEmailService } from "@/lib/email/resend-service";
 
@@ -67,7 +68,6 @@ export async function GET(request: NextRequest) {
           });
 
           if (!emailPreference) {
-            const { v4: uuidv4 } = require('uuid');
             emailPreference = await prisma.emailPreference.create({
               data: {
                 memberId: recipient.memberId,

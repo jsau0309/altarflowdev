@@ -53,7 +53,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
       setIsLoading(false)
       setError(null)
     }
-  }, [donorId, isOpen])
+  }, [donorId, isOpen, t])
 
 
   // Only count donations that were successfully processed (status === 'succeeded')

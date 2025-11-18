@@ -92,7 +92,8 @@ export const MobileFeatures = () => {
           >
             <div className="relative">
               {/* Mockup Image (already includes phone frame) */}
-              <img 
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src="/features/donate-mockup.png" 
                 alt="Mobile Donations Interface"
                 className="w-full h-auto max-w-[480px] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[720px]"
@@ -132,7 +133,8 @@ export const MobileFeatures = () => {
           >
             <div className="relative">
               {/* Mockup Image (already includes phone frame) */}
-              <img 
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src="/features/connect-mockup.png" 
                 alt="Connect Card Interface"
                 className="w-full h-auto max-w-[480px] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[720px]"

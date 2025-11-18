@@ -128,8 +128,9 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
         throw new Error(data.error || data.message || 'Failed to send OTP.');
       }
       setPhoneVerificationStage('otp_sent');
-    } catch (error: any) {
-      setApiErrorMessage(error.message || 'An unexpected error occurred while sending OTP.');
+    } catch (error) {
+      const err = error as Error;
+      setApiErrorMessage(err.message || 'An unexpected error occurred while sending OTP.');
       setPhoneVerificationStage('verification_error'); // Or keep 'initial' depending on desired UX
     } finally {
       setIsLoadingOtpAction(false);
@@ -214,9 +215,10 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
         // This case might be redundant if !response.ok covers it, but good for explicit API contracts
         throw new Error(data.message || 'OTP verification failed.');
       }
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       console.error("OTP Check Catch Block Error:", error);
-      setApiErrorMessage(`Catch Block: ${error.message || 'An unexpected error occurred.'}`);
+      setApiErrorMessage(`Catch Block: ${err.message || 'An unexpected error occurred.'}`);
       setPhoneVerificationStage('otp_failed');
     } finally {
       setIsLoadingOtpAction(false);
@@ -224,7 +226,18 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
   };
 
   // NEW: Function to create payment intent after OTP verification
-  const createPaymentIntent = async (donorData: any) => {
+  const createPaymentIntent = async (donorData: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    addressLine1?: string | null;
+    addressLine2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+  }) => {
     setIsCreatingPaymentIntent(true);
     setApiErrorMessage(null);
 
@@ -288,9 +301,10 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
       } else {
         throw new Error(piData.error || piData.message || 'Failed to retrieve payment information.');
       }
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       console.error("Payment Intent Creation Error:", error);
-      setApiErrorMessage(`Payment preparation failed: ${error.message || 'An unexpected error occurred.'}`);
+      setApiErrorMessage(`Payment preparation failed: ${err.message || 'An unexpected error occurred.'}`);
       setPhoneVerificationStage('verification_error');
     } finally {
       setIsCreatingPaymentIntent(false);
@@ -342,9 +356,10 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
       // This ensures we use the persisted data, not just form state
       await createPaymentIntent(updateData.donorData);
 
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       console.error('[DonationForm] Error in createPaymentIntentForNewDonor:', error);
-      setApiErrorMessage(`Failed to prepare payment: ${error.message || 'An unexpected error occurred.'}`);
+      setApiErrorMessage(`Failed to prepare payment: ${err.message || 'An unexpected error occurred.'}`);
       setPhoneVerificationStage('verification_error');
       setIsCreatingPaymentIntent(false);
     }

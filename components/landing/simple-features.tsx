@@ -173,7 +173,8 @@ export const SimpleFeatures = () => {
                   {/* Screenshot */}
                   {selectedFeature.screenshot && (
                     <div className="rounded-lg overflow-hidden border border-gray-200">
-                      <img 
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={selectedFeature.screenshot} 
                         alt={selectedFeature.title}
                         className="w-full h-auto"

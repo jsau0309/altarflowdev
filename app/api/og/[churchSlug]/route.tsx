@@ -95,6 +95,7 @@ export async function GET(
                 border: '6px solid rgba(255, 255, 255, 0.3)',
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={validatedLogoUrl}
                 width={200}

@@ -51,7 +51,7 @@ interface CheckoutFormProps {
 const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: CheckoutFormProps) => {
   useEffect(() => {
     // Listen for CSP violations
-    const handleCSPViolation = (_e: SecurityPolicyViolationEvent) => {
+    const handleCSPViolation = () => {
       // Debug logging removed: CSP violation details
       // Consider sending to error tracking service in production instead
     };
@@ -342,7 +342,7 @@ export default function DonationPayment({
       initializationRef.current = null;
       hasInitiatedRef.current = false; // Reset on error to allow retry
     }
-  }, [formData, churchId, donorId, propClientSecret, t]);
+  }, [formData, churchId, donorId, propClientSecret, t, i18n.language]);
 
   // Effect to initialize payment for anonymous/international donors
   useEffect(() => {

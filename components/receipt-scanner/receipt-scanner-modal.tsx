@@ -331,6 +331,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
 
         {scanningStage === "preview" && capturedImage && (
           <div className="relative flex h-full w-full flex-col bg-black">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={capturedImage} alt={t('modal.scanTitle')} className="h-full w-full object-contain" />
             <div className="absolute inset-x-0 top-0 flex items-center justify-between px-6 pt-6">
               <Button

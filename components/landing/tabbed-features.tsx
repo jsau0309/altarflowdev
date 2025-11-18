@@ -160,7 +160,8 @@ export const TabbedFeatures = () => {
                 className="relative rounded-xl overflow-hidden shadow-2xl group cursor-pointer"
                 onClick={() => setIsImageExpanded(true)}
               >
-                <img 
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={activeFeatureData.screenshot}
                   alt={activeFeatureData.title}
                   className="w-full h-auto transition-transform duration-500 ease-out group-hover:scale-105"
@@ -212,9 +213,10 @@ export const TabbedFeatures = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                
+
                 {/* Expanded image */}
-                <img 
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={activeFeatureData.screenshot}
                   alt={activeFeatureData.title}
                   className="w-full h-auto rounded-xl shadow-2xl"

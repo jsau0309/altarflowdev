@@ -121,7 +121,8 @@ export function ReviewDataView({ data, onAccept, onCancel, onRescan }: ReviewDat
 
   const hasLowConfidence = useMemo(
     () => Object.values(fieldConfidence).some(level => level === "low"),
-    [fieldConfidence]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.confidence] // Using data.confidence instead of fieldConfidence to avoid recalculation on every render
   )
 
   const fieldConfigs: Array<{

@@ -31,11 +31,12 @@ export function ImageDropzone({ onImageSelected, disabled }: ImageDropzoneProps)
     return true;
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = useCallback((file: File) => {
     if (validateFile(file)) {
       onImageSelected(file);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onImageSelected]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -50,7 +51,7 @@ export function ImageDropzone({ onImageSelected, disabled }: ImageDropzoneProps)
         handleFile(files[0]);
       }
     },
-    [disabled]
+    [disabled, handleFile]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {

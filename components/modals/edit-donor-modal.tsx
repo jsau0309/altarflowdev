@@ -144,7 +144,7 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
       });
       setErrors({});
     }
-  }, [isOpen, donor]); // Depend on donor prop
+  }, [isOpen, donor, t]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target

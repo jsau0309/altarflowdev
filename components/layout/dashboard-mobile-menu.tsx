@@ -120,6 +120,7 @@ export function DashboardMobileMenu() {
                 {/* Footer */}
                 <div className="p-4 border-t">
                   <div className="flex items-center justify-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/images/Altarflow-Cloud-Blue.png"
                       alt="AltarFlow"

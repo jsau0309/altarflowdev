@@ -430,6 +430,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
 
               {receiptImage ? (
                 <div className="relative border rounded-md p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={receiptImage || "/placeholder.svg"}
                     alt="Receipt"

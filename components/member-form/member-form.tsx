@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next"
 import { TFunction } from "i18next" // For explicit t function type
 import { toast as sonnerToast } from 'sonner'
 
-import { useFormConfig } from "./form-config-context" // If used
+// import { useFormConfig } from "./form-config-context" // If used
 import { PersonalInfoSection } from "./personal-info-section"
 import { AddressSection } from "./address-section" // Assuming you have this for address fields
 // Import other sections if MemberForm uses them:
@@ -89,7 +89,7 @@ export type MemberFormValues = z.infer<ReturnType<typeof createFormSchema>>;
 // Optional: If MemberForm component itself is defined in this file
 // This is a basic structure; adapt if your MemberForm is more complex or defined elsewhere.
 export function MemberForm({ onSubmitSuccess }: { onSubmitSuccess?: (data: MemberFormValues) => void }) {
-  const { toast } = useToast(); // Or sonner's toast
+  // const { toast } = useToast(); // Or sonner's toast
   const { t } = useTranslation(['members', 'common']);
   // const { config } = useFormConfig(); // Uncomment if useFormConfig is used
 

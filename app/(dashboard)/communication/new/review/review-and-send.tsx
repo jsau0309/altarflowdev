@@ -111,7 +111,7 @@ export function ReviewAndSend() {
     };
 
     loadData();
-  }, [campaignId, getToken, router]);
+  }, [campaignId, getToken, router, t]);
 
   const handleSendNow = async () => {
     setIsSending(true);

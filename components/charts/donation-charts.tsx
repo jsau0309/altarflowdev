@@ -306,9 +306,9 @@ export function DonationCharts({ donations, startDate, endDate }: DonationCharts
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }: any) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }: { name: string; percent: number }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 >
-                  {pieChartData.map((_entry: any, index: number) => (
+                  {pieChartData.map((_entry, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

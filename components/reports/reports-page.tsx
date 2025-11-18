@@ -139,7 +139,8 @@ export function ReportsPage() {
         setLastActiveTab(activeTab)
       }
     }
-  }, [activeTab, dateRange, organization, selectedDonationType, selectedExpenseCategory, lastFetchParams, lastActiveTab])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, dateRange, organization, selectedDonationType, selectedExpenseCategory, lastFetchParams, lastActiveTab]) // fetchReportData intentionally excluded to prevent infinite loop
   
   const fetchReportData = async (isTabChange: boolean = false) => {
     // Always show loading when fetching new data
