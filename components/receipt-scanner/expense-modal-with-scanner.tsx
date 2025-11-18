@@ -20,7 +20,7 @@ export function ExpenseModalWithScanner(/* props: Record<string, never> */) {
   )
 
   // Mock data for the extracted receipt information
-  const [extractedData, setExtractedData] = useState({
+  const [extractedData] = useState({
     vendor: "Office Depot",
     amount: "125.47",
     date: "2025-03-24",

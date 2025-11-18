@@ -141,7 +141,7 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
 
     // Get selected frequencies as an array
     const frequencies = Object.entries(selectedFrequencies)
-      .filter(([_, isSelected]) => isSelected)
+      .filter(([_freq, isSelected]) => isSelected)
       .map(([freq]) => freq) as FrequencyOption[]
 
     // Ensure at least one frequency is selected if recurring is enabled

@@ -15,13 +15,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as DatePickerCalendar } from "@/components/ui/calendar"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react"
 import { ReceiptScannerButton } from "@/components/receipt-scanner/receipt-scanner-button"
 import { useTranslation } from "react-i18next";
 import { toast } from 'sonner';
 import type { Expense } from '@prisma/client'
-import { Decimal } from '@prisma/client/runtime/library';
 import { useOrganization } from "@clerk/nextjs";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -49,23 +48,6 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
   const [receiptMetadata, setReceiptMetadata] = useState<Record<string, unknown> | null>(null);
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [isCategoryComboboxOpen, setIsCategoryComboboxOpen] = useState(false);
-  
-  // Function to safely format date string to YYYY-MM-DD
-  const formatDateForInput = (dateInput: Date | string | undefined | null): string => {
-    if (!dateInput) return new Date().toISOString().split("T")[0];
-    try {
-      // Date constructor handles both Date objects and ISO strings
-      const dateObj = new Date(dateInput);
-      // Check if the date is valid after parsing
-      if (isNaN(dateObj.getTime())) {
-          throw new Error("Invalid date input");
-      }
-      return dateObj.toISOString().split("T")[0];
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return new Date().toISOString().split("T")[0]; // Fallback to today
-    }
-  };
 
   const [formData, setFormData] = useState({
     amount: "",
@@ -501,7 +483,8 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
             type="button"
             disabled={isLoading}
             onClick={(e) => {
-              handleSubmit(e as any);
+              const form = e.currentTarget.closest("div")?.querySelector("form")
+              if (form) form.requestSubmit()
             }}
             className="w-full sm:w-auto"
           >

@@ -2,16 +2,15 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  DollarSign, 
-  FileText, 
-  BarChart3, 
-  Users, 
-  Mail, 
+import {
+  DollarSign,
+  FileText,
+  BarChart3,
+  Users,
+  Mail,
   Brain,
   X
 } from "lucide-react"
-import { useTranslation } from "react-i18next"
 
 interface Feature {
   id: string

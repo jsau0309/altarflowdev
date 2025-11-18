@@ -47,11 +47,6 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
     to: undefined,
   })
   const [exportFormat, setExportFormat] = useState<"pdf" | "csv">("pdf")
-  const [includeOptions, setIncludeOptions] = useState({
-    charts: true,
-    summary: true,
-    details: true,
-  })
   const { t } = useTranslation(['reports', 'common']);
 
   // Calculate date range based on selection

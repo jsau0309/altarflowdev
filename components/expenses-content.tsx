@@ -58,7 +58,7 @@ export function ExpensesContent() {
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [userRole, setUserRole] = useState<"ADMIN" | "STAFF" | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const { t, i18n } = useTranslation(['expenses', 'donations', 'common', 'reports', 'settings'])
+  const { t } = useTranslation(['expenses', 'donations', 'common', 'reports', 'settings'])
   const { toast } = useToast()
 
   // Helper function to translate system category names

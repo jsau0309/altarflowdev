@@ -5,7 +5,6 @@ import { useForm, FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useTranslation } from "react-i18next"
-import { TFunction } from "i18next" // For explicit t function type
 import { toast as sonnerToast } from 'sonner'
 
 // import { useFormConfig } from "./form-config-context" // If used
@@ -20,7 +19,6 @@ import { ServiceTimesSelector } from "./service-times-selector"
 // import { PrayerRequestSection } from "./prayer-request-section"
 // import { CustomFieldsSection } from "./custom-fields-section"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/hooks/use-toast" // Or sonner if that's the standard
 
 // Interface for pre-translated messages
 export interface PhoneValidationMessages {

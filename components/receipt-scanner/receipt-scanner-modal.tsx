@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next"
 interface ReceiptScannerModalProps {
   isOpen: boolean
   onClose: () => void
-  onDataCaptured: (data: any) => void
+  onDataCaptured: (data: unknown) => void
 }
 
 type ScanningStage = "initial" | "camera" | "upload" | "preview" | "processing" | "review"
@@ -25,7 +25,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
   const { t } = useTranslation('receiptScanner')
   const [scanningStage, setScanningStage] = useState<ScanningStage>("initial")
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
-  const [extractedData, setExtractedData] = useState<any>(null)
+  const [extractedData, setExtractedData] = useState<Record<string, unknown> | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [receiptMetadata, setReceiptMetadata] = useState<Record<string, unknown> | null>(null)
