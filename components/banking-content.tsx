@@ -162,7 +162,7 @@ export function BankingContent() {
         let account;
         try {
           account = JSON.parse(responseText);
-        } catch (parseError) {
+        } catch {
           console.error('Failed to parse response:', responseText);
           throw new Error('Invalid JSON response from server');
         }

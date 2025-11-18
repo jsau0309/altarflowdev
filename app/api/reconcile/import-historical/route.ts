@@ -266,14 +266,14 @@ export async function GET() {
       );
       
       availableInStripe = stripePayouts.data.length;
-      
+
       if (stripePayouts.data.length > 0) {
         // Get date range
         const dates = stripePayouts.data.map(p => new Date(p.created * 1000));
         oldestPayout = new Date(Math.min(...dates.map(d => d.getTime())));
         newestPayout = new Date(Math.max(...dates.map(d => d.getTime())));
       }
-    } catch (_error) {
+    } catch {
       console.log('[Import] No payouts available in Stripe account yet');
     }
     

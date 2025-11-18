@@ -23,7 +23,6 @@ interface Feature {
 }
 
 export const SimpleFeatures = () => {
-  const { t } = useTranslation('landing')
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null)
 
   const features: Feature[] = [

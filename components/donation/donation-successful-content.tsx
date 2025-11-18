@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from "react-i18next";
@@ -14,11 +13,11 @@ import { Confetti, ConfettiRef } from '@/components/ui/confetti';
 interface DonationSuccessfulContentProps {
   churchSlug: string;
   backgroundStyle: string;
-  logoUrl: string;
-  displayTitle: string;
+  logoUrl?: string;
+  displayTitle?: string;
 }
 
-function DonationSuccessfulInner({ churchSlug, backgroundStyle, logoUrl, displayTitle }: DonationSuccessfulContentProps) {
+function DonationSuccessfulInner({ churchSlug, backgroundStyle }: DonationSuccessfulContentProps) {
   const { t } = useTranslation('donations');
   const searchParams = useSearchParams();
   const { trackEvent } = usePostHog();

@@ -4,7 +4,6 @@ import { Widget } from '@typeform/embed-react';
 import { DotPattern } from '@/components/ui/dot-pattern';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import DOMPurify from 'isomorphic-dompurify';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function WaitlistFullPage() {

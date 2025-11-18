@@ -11,7 +11,7 @@ interface I18nClientProviderProps {
 const I18nClientProvider: React.FC<I18nClientProviderProps> = ({ children }) => {
   // Add state to track language changes and force re-renders
   const [isMounted, setIsMounted] = useState(false); // Track mount state
-  const [language, setLanguage] = useState(i18nInstance.language);
+  const [, setLanguage] = useState(i18nInstance.language);
 
   useEffect(() => {
     setIsMounted(true); // Set mounted state on client

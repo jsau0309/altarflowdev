@@ -1,6 +1,5 @@
 "use client";
 
-import type { Metadata } from "next";
 import { useTranslation } from "react-i18next";
 import { LandingManagerEnhanced } from "@/components/settings/landing-manager-enhanced";
 

@@ -58,7 +58,6 @@ interface Feature {
 }
 
 export const TabbedFeatures = () => {
-  const { t } = useTranslation('landing')
   const [activeFeature, setActiveFeature] = useState("donations")
   const [isImageExpanded, setIsImageExpanded] = useState(false)
 

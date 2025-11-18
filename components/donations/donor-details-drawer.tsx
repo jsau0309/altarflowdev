@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { User, Mail, Phone, CreditCard, FileText, Home, Loader2, AlertTriangle } from "lucide-react"
+import { User, Mail, Phone, FileText, Home, Loader2, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"

@@ -65,7 +65,7 @@ function validateEventData(data: EventUpdateData): { isValid: boolean; error?: s
       if (isNaN(eventDate.getTime())) {
         return { isValid: false, error: "Invalid event date" };
       }
-    } catch (error) {
+    } catch {
       return { isValid: false, error: "Invalid event date format" };
     }
   }

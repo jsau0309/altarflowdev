@@ -13,9 +13,6 @@ import {
   YAxis,
   CartesianGrid,
   Legend,
-  // Bar, // Unused
-  // BarChart, // Unused
-  Tooltip as ChartTooltipRecharts,
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { useTranslation } from "react-i18next"
@@ -38,7 +35,7 @@ interface DonationChartsProps {
   endDate?: Date;
 }
 
-export function DonationCharts({ donations, campaigns, startDate, endDate }: DonationChartsProps) {
+export function DonationCharts({ donations, startDate, endDate }: DonationChartsProps) {
   // Load charts namespace
   const { t, i18n } = useTranslation();
 

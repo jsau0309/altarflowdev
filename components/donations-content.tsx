@@ -43,7 +43,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   const [showDonorModal, setShowDonorModal] = useState(false)
   const [activeTab, setActiveTab] = useState("all-donations")
   const [campaignsView, setCampaignsView] = useState<'list' | 'create' | { mode: 'edit', id: string }>('list')
-  const [donorSearchTerm, setDonorSearchTerm] = useState("")
+  const [donorSearchTerm] = useState("")
   const [donationSearchTerm, setDonationSearchTerm] = useState("")
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [showEditDonorModal, setShowEditDonorModal] = useState(false)

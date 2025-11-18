@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Smartphone, CreditCard, Heart, Users } from "lucide-react"
+import { CreditCard, Heart, Users } from "lucide-react"
 
 export const MobileFeatures = () => {
   return (

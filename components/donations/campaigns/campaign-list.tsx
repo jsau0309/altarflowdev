@@ -132,7 +132,7 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
       }
 
       await load();
-    } catch (e) {
+    } catch {
       toast.error(
         t('common:errors.default', 'An error occurred'),
         {

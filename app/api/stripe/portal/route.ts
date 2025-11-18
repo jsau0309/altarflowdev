@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const { userId, orgId } = await auth();
     

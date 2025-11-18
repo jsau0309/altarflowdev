@@ -14,7 +14,7 @@ interface CampaignChartsProps {
   endDate?: Date;
 }
 
-export function CampaignCharts({ donations, expenses, campaigns }: CampaignChartsProps) {
+export function CampaignCharts({ donations, campaigns }: CampaignChartsProps) {
   // Load charts namespace
   const { t } = useTranslation('charts')
 

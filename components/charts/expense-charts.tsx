@@ -5,7 +5,6 @@ import { format } from "date-fns"
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Expense } from "@/lib/types"
-import { TrendingUp, TrendingDown, CheckCircle, AlertCircle, DollarSign } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 interface ExpenseChartsProps {
@@ -33,12 +32,6 @@ export function ExpenseCharts({ expenses, startDate, endDate }: ExpenseChartsPro
   })
 
   // Prepare data for charts
-  const expensesByCategory = filteredExpenses.reduce((acc: { [key: string]: number }, expense: Expense) => {
-    const category = expense.category || "Uncategorized"
-    acc[category] = (acc[category] || 0) + expense.amount
-    return acc
-  }, {})
-
   const expensesByMonth = filteredExpenses.reduce((acc: { [key: string]: number }, expense: Expense) => {
     const month = format(new Date(expense.date), "MMM yyyy") // Group by month
     acc[month] = (acc[month] || 0) + expense.amount
