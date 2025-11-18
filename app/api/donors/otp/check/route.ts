@@ -84,13 +84,16 @@ export async function POST(request: NextRequest) {
       // OTP is invalid or another issue occurred
       return NextResponse.json({ success: false, error: 'Invalid OTP or verification failed. Status: ' + verificationCheck.status }, { status: 400 });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error checking OTP:', error);
     let errorMessage = 'Failed to check OTP.';
-    if (error.code === 60202 || error.message?.includes('VerificationCheck was not found')) { // 60202 is often 'No pending verification found'
+    // Twilio errors have code and message properties
+    if (error && typeof error === 'object' && 'code' in error && 'message' in error) {
+      if (error.code === 60202 || (typeof error.message === 'string' && error.message.includes('VerificationCheck was not found'))) {
         errorMessage = 'Invalid or expired OTP. Please try sending a new one.';
-    } else if (error.message) {
+      } else if (typeof error.message === 'string') {
         errorMessage = error.message;
+      }
     }
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }

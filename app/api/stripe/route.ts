@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { headers } from 'next/headers';
 import { getStripeInstance } from '@/lib/stripe-server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db'; // Use centralized Prisma instance
-import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
+import { clerkClient } from '@clerk/nextjs/server';
 import type { OrganizationMembership } from '@clerk/backend';
-import { getBaseUrl } from '@/lib/stripe';
 
 // Helper types for our API requests
 type CreateAccountRequest = {
@@ -134,7 +132,7 @@ async function withIdempotency(
       },
     });
     console.log('[DEBUG] Idempotency: Cached response', { cacheKey });
-  } catch (cacheError: any) {
+  } catch (cacheError) {
     if (
       cacheError instanceof Prisma.PrismaClientKnownRequestError &&
       cacheError.code === 'P2002'
@@ -299,26 +297,28 @@ export async function POST(req: Request) {
           }
         });
       }
-      else { 
-        console.warn(`[WARN] Unknown action received: ${(body as any).action}`);
+      else {
+        console.warn(`[WARN] Unknown action received: ${(body as StripeApiRequest & { action: string }).action}`);
         return NextResponse.json(
-            { error: `Unknown action: ${(body as any).action}` },
+            { error: `Unknown action: ${(body as StripeApiRequest & { action: string }).action}` },
             { status: 400 }
         );
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[CRITICAL] Error caught in POST handler main try...catch:', error);
-      console.error('[CRITICAL] Error name:', error?.name);
-      console.error('[CRITICAL] Error message:', error?.message);
-      console.error('[CRITICAL] Error stack:', error?.stack);
-      console.error('[CRITICAL] Error type (if any):', error?.type);
-      console.error('[CRITICAL] Error code (if any):', error?.code);
+      console.error('[CRITICAL] Error name:', error instanceof Error ? error.name : 'Unknown');
+      console.error('[CRITICAL] Error message:', error instanceof Error ? error.message : String(error));
+      console.error('[CRITICAL] Error stack:', error instanceof Error ? error.stack : 'N/A');
+      if (error instanceof Stripe.errors.StripeError) {
+        console.error('[CRITICAL] Error type (if any):', error.type);
+        console.error('[CRITICAL] Error code (if any):', error.code);
+      }
 
       try {
         if (error instanceof Stripe.errors.StripeError) {
           console.log('[CRITICAL] Detected StripeError, returning specific response.');
           return NextResponse.json(
-            { 
+            {
               error: 'Stripe API Error: ' + error.message,
               type: error.type,
               code: error.code,
@@ -332,12 +332,12 @@ export async function POST(req: Request) {
             { status: 500 }
           );
         }
-      } catch (responseError: any) {
+      } catch (responseError) {
         console.error('[ULTRA_CRITICAL] Failed to create NextResponse in error handler:', responseError);
         throw new Error('PANIC: Failed to construct error response in POST handler.');
       }
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Invalid request body' },
       { status: 400 }
@@ -521,13 +521,7 @@ async function handleGetAccount({
   churchId,
 }: GetAccountRequest): Promise<NextResponse> {
   try {
-    let whereClause = {};
-    
-    if (accountId) {
-      whereClause = { stripeAccountId: accountId };
-    } else if (churchId) {
-      whereClause = { churchId };
-    } else {
+    if (!accountId && !churchId) {
       return NextResponse.json(
         { error: 'Either accountId or churchId must be provided' },
         { status: 400 }
@@ -626,67 +620,19 @@ async function handleGetAccount({
 }
 
 // Helper function to determine verification status from Stripe account
-function getVerificationStatus(account: any): string {
+function getVerificationStatus(account: Stripe.Account): string {
   if (account.charges_enabled && account.payouts_enabled) {
     return 'verified';
   } else if (account.details_submitted) {
     if (account.requirements?.disabled_reason) {
-      return account.requirements.disabled_reason === 'requirements.past_due' 
-        ? 'action_required' 
+      return account.requirements.disabled_reason === 'requirements.past_due'
+        ? 'action_required'
         : 'restricted';
     } else {
       return 'pending';
     }
   }
   return 'unverified';
-}
-
-// Create an account link for onboarding
-async function handleCreateAccountLink({
-  accountId,
-  refreshUrl = `${getBaseUrl()}/dashboard/banking/account`,
-  returnUrl = `${getBaseUrl()}/dashboard/banking/account?success=true`,
-}: {
-  accountId: string;
-  refreshUrl?: string;
-  returnUrl?: string;
-}): Promise<NextResponse> {
-  try {
-    try {
-      await stripe.accounts.update(accountId, {
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-          link_payments: { requested: true }, // Enable Link
-          us_bank_account_ach_payments: { requested: true }, // Enable ACH bank payments
-        },
-      });
-      console.log(`Ensured capabilities (card_payments, transfers) are requested for account: ${accountId}`);
-    } catch (capabilityError: any) {
-      console.error(`Error requesting capabilities for account ${accountId} before creating account link:`, capabilityError.message);
-    }
-
-    const accountLink = await stripe.accountLinks.create({
-      account: accountId,
-      refresh_url: refreshUrl,
-      return_url: returnUrl,
-      type: 'account_onboarding',
-    });
-    
-    if (!accountLink.url) {
-      throw new Error('Failed to create account link');
-    }
-    
-    return NextResponse.json({
-      url: accountLink.url,
-    });
-  } catch (error) {
-    console.error('Error creating account link:', error);
-    return NextResponse.json(
-      { error: 'Failed to create account link' },
-      { status: 500 }
-    );
-  }
 }
 
 // Delete a Stripe Connect account
@@ -715,21 +661,21 @@ async function handleDeleteAccount(stripeAccountId: string): Promise<NextRespons
       // Ensure your StripeConnectAccount model has a unique constraint on stripeAccountId
       // or adjust the where clause if deletion needs to be based on another unique field found via stripeAccountId.
       const deletedDbRecord = await prisma.stripeConnectAccount.delete({
-        where: { stripeAccountId: stripeAccountId }, 
+        where: { stripeAccountId: stripeAccountId },
       });
       console.log(`[DEBUG] Successfully deleted StripeConnectAccount record from DB for Stripe Account ID: ${stripeAccountId}. DB Record ID: ${deletedDbRecord.id}`);
-    } catch (dbError: any) {
+    } catch (dbError) {
       if (dbError instanceof Prisma.PrismaClientKnownRequestError && dbError.code === 'P2025') {
         console.warn(`[WARN] StripeConnectAccount record for ${stripeAccountId} not found in DB for deletion, or already deleted. Stripe deletion was successful.`);
       } else {
         console.error(`[ERROR] Failed to delete StripeConnectAccount record from DB for ${stripeAccountId} after successful Stripe deletion:`, dbError);
         return NextResponse.json(
-          { 
+          {
             message: `Stripe account ${stripeAccountId} deleted successfully, but failed to clean up local record. Please check server logs.`,
             stripeAccountId: stripeAccountId,
             deletedOnStripe: true
           },
-          { status: 207 } 
+          { status: 207 }
         );
       }
     }
@@ -737,10 +683,10 @@ async function handleDeleteAccount(stripeAccountId: string): Promise<NextRespons
     return NextResponse.json({
       message: `Stripe account ${stripeAccountId} and associated local record deleted successfully.`,
       stripeAccountId: stripeAccountId,
-      deleted: true, 
+      deleted: true,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error(`[ERROR] Failed to delete Stripe account ${stripeAccountId}:`, error);
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(
