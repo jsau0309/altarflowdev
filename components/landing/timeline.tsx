@@ -48,7 +48,7 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
             The Smarter Way to Run Your Church
           </GradientText>
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Altarflow centralizes your ministry's operations, making it easier to manage, measure, and grow — all in one
+            Altarflow centralizes your ministry&apos;s operations, making it easier to manage, measure, and grow — all in one
             place.
           </p>
         </motion.div>

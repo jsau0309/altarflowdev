@@ -56,8 +56,8 @@ export default function TermsOfServicePage() {
       <p className="mb-4">To access donation and banking functionality, your organization must:</p>
       <ul className="list-disc pl-6 space-y-2 mb-4">
         <li>Successfully complete Stripe Connect account verification</li>
-        <li>Meet Stripe's requirements for nonprofit organizations</li>
-        <li>Maintain good standing with Stripe's terms of service</li>
+        <li>Meet Stripe&apos;s requirements for nonprofit organizations</li>
+        <li>Maintain good standing with Stripe&apos;s terms of service</li>
       </ul>
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
         <p className="text-sm font-semibold text-yellow-800">
@@ -186,7 +186,7 @@ export default function TermsOfServicePage() {
       {/* Section 9 */}
       <h2 className="text-2xl font-semibold mt-8 mb-4">9. Donation Processing and Financial Services</h2>
       
-      <h3 className="text-xl font-semibold mb-3 mt-6">Our Role vs. Stripe's Role</h3>
+      <h3 className="text-xl font-semibold mb-3 mt-6">Our Role vs. Stripe&apos;s Role</h3>
       <div className="bg-blue-50 rounded-lg p-4 mb-6">
         <ul className="space-y-2">
           <li><strong>Altarflow&apos;s Role:</strong> We provide the platform interface and donation management tools</li>
@@ -244,7 +244,7 @@ export default function TermsOfServicePage() {
       <h2 className="text-2xl font-semibold mt-8 mb-4">12. Third-Party Services</h2>
       <p className="mb-4">Our Service integrates with third-party providers:</p>
       <ul className="list-disc pl-6 space-y-2 mb-4">
-        <li><strong>Stripe:</strong> Payment processing (subject to Stripe's terms)</li>
+        <li><strong>Stripe:</strong> Payment processing (subject to Stripe&apos;s terms)</li>
         <li><strong>Clerk:</strong> Authentication services</li>
         <li><strong>Others:</strong> Various service providers as listed in our Privacy Policy</li>
       </ul>

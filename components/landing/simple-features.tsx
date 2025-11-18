@@ -86,7 +86,7 @@ export const SimpleFeatures = () => {
             The Smarter Way to Run Your Church
           </h2>
           <p className="text-xl text-gray-600 max-w-[800px] mx-auto">
-            Altarflow centralizes your ministry's operations, making it easier to manage, measure, and grow — all in one place.
+            Altarflow centralizes your ministry&apos;s operations, making it easier to manage, measure, and grow — all in one place.
           </p>
         </div>
 

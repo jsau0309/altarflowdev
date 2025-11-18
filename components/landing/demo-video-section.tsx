@@ -60,7 +60,7 @@ export function DemoVideoSection() {
                   <div className="space-y-3">
                     <h3 className="text-2xl md:text-3xl font-bold">Demo Video Coming Soon</h3>
                     <p className="text-blue-100 text-lg max-w-md mx-auto leading-relaxed">
-                      Get an exclusive preview of Altarflow's powerful features
+                      Get an exclusive preview of Altarflow&apos;s powerful features
                     </p>
                   </div>
                 </div>

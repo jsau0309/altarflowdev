@@ -165,7 +165,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="text-xl text-blue-100"
             >
-              Join the first churches to unlock smarter ministry operations, more intelligent insights, and simpler management with Altarflow's complete platform.
+              Join the first churches to unlock smarter ministry operations, more intelligent insights, and simpler management with Altarflow&apos;s complete platform.
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
