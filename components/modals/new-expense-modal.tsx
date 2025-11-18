@@ -482,8 +482,8 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
           <Button
             type="button"
             disabled={isLoading}
-            onClick={(e) => {
-              const form = e.currentTarget.closest("div")?.querySelector("form")
+            onClick={() => {
+              const form = document.getElementById("expense-form") as HTMLFormElement
               if (form) form.requestSubmit()
             }}
             className="w-full sm:w-auto"
