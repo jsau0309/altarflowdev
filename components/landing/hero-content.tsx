@@ -7,10 +7,10 @@ import { useRouter } from "next/navigation"
 
 export const HeroContent = () => {
   return (
-    {/* eslint-disable-next-line @next/next/no-img-element */}
+    // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/altarflow-dashboard-hd.png" 
-      alt="Altarflow Dashboard" 
+      src="/altarflow-dashboard-hd.png"
+      alt="Altarflow Dashboard"
       className="w-full h-full object-cover object-top rounded-lg"
     />
   )
