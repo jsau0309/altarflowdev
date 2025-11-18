@@ -297,7 +297,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
                 onFormChange={handleChange}
                 phoneError={phoneError}
                 emailError={emailError}
-                t={t}
+                t={(key: string, options?: string) => t(key, options || '')}
               />
             </form>
           ) : (

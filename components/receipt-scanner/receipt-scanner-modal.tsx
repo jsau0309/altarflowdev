@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { MobileScanView } from "./mobile-scan-view"
 import { ProcessingView, type ProcessingStageKey } from "./processing-view"
-import { ReviewDataView } from "./review-data-view"
+import { ReviewDataView, type ReviewData } from "./review-data-view"
 import { useTranslation } from "react-i18next"
 
 interface ReceiptScannerModalProps {
@@ -25,7 +25,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
   const { t } = useTranslation('receiptScanner')
   const [scanningStage, setScanningStage] = useState<ScanningStage>("initial")
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
-  const [extractedData, setExtractedData] = useState<Record<string, unknown> | null>(null)
+  const [extractedData, setExtractedData] = useState<ReviewData | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [receiptMetadata, setReceiptMetadata] = useState<Record<string, unknown> | null>(null)
@@ -103,7 +103,6 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
         description: "",
         items: apiData.items || [],
         receiptUrl: null,
-        receiptPath: null,
         receiptImage: previewImage,
         confidence: apiData.confidence
       })

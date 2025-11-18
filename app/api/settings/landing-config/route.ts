@@ -447,7 +447,7 @@ export async function PUT(request: Request) {
         }
       }
 
-      body.buttons = buttonValidation.validButtons;
+      body.buttons = buttonValidation.validButtons as unknown as Prisma.JsonValue;
     }
 
     const church = await prisma.church.findFirst({
@@ -476,7 +476,7 @@ export async function PUT(request: Request) {
         titleColor: body.titleColor ?? '#1F2937',
         backgroundType: body.backgroundType ?? 'PRESET',
         backgroundValue: body.backgroundValue ?? 'preset-1',
-        socialLinks: (body.socialLinks || {}) as Prisma.JsonValue,
+        socialLinks: (body.socialLinks || {}) as Prisma.InputJsonValue,
         showDonateButton: body.showDonateButton ?? false,
         showConnectButton: body.showConnectButton ?? false,
         donateButtonText: body.donateButtonText ?? 'Donate',
@@ -504,7 +504,7 @@ export async function PUT(request: Request) {
             enabled: true,
             order: 1,
           },
-        ]) as Prisma.JsonValue,
+        ]) as Prisma.InputJsonValue,
       },
       update: {
         ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl }),

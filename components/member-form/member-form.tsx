@@ -5,6 +5,7 @@ import { useForm, FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { toast as sonnerToast } from 'sonner'
 
 // import { useFormConfig } from "./form-config-context" // If used

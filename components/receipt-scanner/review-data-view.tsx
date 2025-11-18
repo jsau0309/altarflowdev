@@ -18,7 +18,7 @@ interface ExtractedConfidence {
   description?: ConfidenceLevel
 }
 
-interface ReviewData {
+export interface ReviewData {
   vendor: string
   total: string
   date: string
