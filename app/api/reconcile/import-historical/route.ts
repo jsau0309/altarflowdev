@@ -56,14 +56,14 @@ export async function POST(req: Request) {
     
     if (startDate) {
       queryParams.created = {
-        ...queryParams.created as any,
+        ...(queryParams.created as Stripe.RangeQueryParam | number | undefined),
         gte: Math.floor(new Date(startDate).getTime() / 1000)
       };
     }
-    
+
     if (endDate) {
       queryParams.created = {
-        ...queryParams.created as any,
+        ...(queryParams.created as Stripe.RangeQueryParam | number | undefined),
         lte: Math.floor(new Date(endDate).getTime() / 1000)
       };
     }
@@ -79,11 +79,12 @@ export async function POST(req: Request) {
       );
       payouts = stripePayouts.data;
       console.log(`[Import] Found ${payouts.length} payouts from Stripe`);
-    } catch (stripeError: any) {
+    } catch (stripeError) {
       console.error('[Import] Error fetching payouts from Stripe:', stripeError);
-      
+
       // If no payouts exist yet, that's okay
-      if (stripeError.code === 'resource_missing' || stripeError.statusCode === 404) {
+      if (stripeError instanceof Stripe.errors.StripeError &&
+          (stripeError.code === 'resource_missing' || stripeError.statusCode === 404)) {
         return NextResponse.json({
           success: true,
           message: 'No payouts found in your Stripe account yet. Payouts will appear here once you start processing donations.',
@@ -91,9 +92,10 @@ export async function POST(req: Request) {
           skipped: 0
         });
       }
-      
+
+
       return NextResponse.json(
-        { error: `Failed to fetch payouts from Stripe: ${stripeError.message}` },
+        { error: `Failed to fetch payouts from Stripe: ${stripeError instanceof Error ? stripeError.message : 'Unknown error'}` },
         { status: 500 }
       );
     }
@@ -149,7 +151,7 @@ export async function POST(req: Request) {
               failureReason: payout.failure_message || null,
               payoutSchedule: payout.automatic ? 'automatic' : 'manual',
               netAmount: payout.amount, // Initially set to payout amount
-              metadata: payout.metadata as any || null,
+              metadata: (payout.metadata as Stripe.Metadata) || null,
               // Transaction details will be populated by reconciliation
               transactionCount: 0,
               grossVolume: 0,

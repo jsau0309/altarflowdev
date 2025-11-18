@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
-import { BackgroundType } from "@prisma/client";
+import { BackgroundType, Prisma } from "@prisma/client";
 import { validateAndSanitizeUrl, validateUrlObject } from "@/lib/validation/url-validation";
 import { validateDescription, validateCustomTitle } from "@/lib/validation/input-validation";
 import { validateButtons, safeParseButtons } from "@/lib/validation/button-validation";
@@ -63,7 +63,7 @@ interface LandingConfigUpdateData {
   connectButtonText?: string;
   buttonBackgroundColor?: string | null;
   buttonTextColor?: string | null;
-  buttons?: any; // JSON array of button configurations
+  buttons?: Prisma.JsonValue; // JSON array of button configurations
   ogBackgroundColor?: string | null;
   announcementText?: string | null;
   announcementLink?: string | null;
@@ -476,7 +476,7 @@ export async function PUT(request: Request) {
         titleColor: body.titleColor ?? '#1F2937',
         backgroundType: body.backgroundType ?? 'PRESET',
         backgroundValue: body.backgroundValue ?? 'preset-1',
-        socialLinks: (body.socialLinks || {}) as any,
+        socialLinks: (body.socialLinks || {}) as Prisma.JsonValue,
         showDonateButton: body.showDonateButton ?? false,
         showConnectButton: body.showConnectButton ?? false,
         donateButtonText: body.donateButtonText ?? 'Donate',
@@ -504,7 +504,7 @@ export async function PUT(request: Request) {
             enabled: true,
             order: 1,
           },
-        ]) as any,
+        ]) as Prisma.JsonValue,
       },
       update: {
         ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl }),
@@ -516,7 +516,7 @@ export async function PUT(request: Request) {
         ...(body.titleColor !== undefined && { titleColor: body.titleColor }),
         ...(body.backgroundType !== undefined && { backgroundType: body.backgroundType }),
         ...(body.backgroundValue !== undefined && { backgroundValue: body.backgroundValue }),
-        ...(body.socialLinks !== undefined && { socialLinks: body.socialLinks as any }),
+        ...(body.socialLinks !== undefined && { socialLinks: body.socialLinks as Prisma.InputJsonValue }),
         ...(body.showDonateButton !== undefined && { showDonateButton: body.showDonateButton }),
         ...(body.showConnectButton !== undefined && { showConnectButton: body.showConnectButton }),
         ...(body.donateButtonText !== undefined && { donateButtonText: body.donateButtonText }),
@@ -529,7 +529,7 @@ export async function PUT(request: Request) {
         ...(body.showAnnouncement !== undefined && { showAnnouncement: body.showAnnouncement }),
         ...(body.eventTitleColor !== undefined && { eventTitleColor: body.eventTitleColor }),
         ...(body.eventDetailsColor !== undefined && { eventDetailsColor: body.eventDetailsColor }),
-        ...(body.buttons !== undefined && { buttons: body.buttons as any }),
+        ...(body.buttons !== undefined && { buttons: body.buttons as Prisma.InputJsonValue }),
       }
     });
 
