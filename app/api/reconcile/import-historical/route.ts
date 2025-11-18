@@ -56,16 +56,16 @@ export async function POST(req: Request) {
     
     if (startDate) {
       queryParams.created = {
-        ...(queryParams.created as Stripe.RangeQueryParam | number | undefined),
+        ...(typeof queryParams.created === 'object' ? queryParams.created : {}),
         gte: Math.floor(new Date(startDate).getTime() / 1000)
-      };
+      } as Stripe.RangeQueryParam;
     }
 
     if (endDate) {
       queryParams.created = {
-        ...(queryParams.created as Stripe.RangeQueryParam | number | undefined),
+        ...(typeof queryParams.created === 'object' ? queryParams.created : {}),
         lte: Math.floor(new Date(endDate).getTime() / 1000)
-      };
+      } as Stripe.RangeQueryParam;
     }
     
     // Fetch payouts from Stripe

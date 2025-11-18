@@ -202,14 +202,44 @@ export async function POST(request: Request) {
     }
 
     const church = await prisma.church.findUnique({
-      where: { id: churchUUIDFromInput }, 
+      where: { id: churchUUIDFromInput },
+      select: {
+        id: true,
+        clerkOrgId: true,
+        onboardingCompleted: true,
+        subscriptionStatus: true,
+        name: true,
+      }
     });
 
     // Debug logging removed: church lookup result
 
     if (!church) {
       // Debug logging removed: all church IDs in database
+      logger.warn('Church not found for donation', { churchId: churchUUIDFromInput });
       return NextResponse.json({ error: 'Church not found for the provided churchId (UUID).' }, { status: 404 });
+    }
+
+    // SECURITY: Only allow donations to churches that have completed onboarding
+    if (!church.onboardingCompleted) {
+      logger.warn('Donation attempted to church without completed onboarding', {
+        churchId: church.id,
+        churchName: church.name
+      });
+      return NextResponse.json({
+        error: 'This church is not currently accepting donations.'
+      }, { status: 403 });
+    }
+
+    // SECURITY: Don't allow donations to suspended churches
+    if (church.subscriptionStatus === 'suspended' || church.subscriptionStatus === 'cancelled') {
+      logger.warn('Donation attempted to suspended/cancelled church', {
+        churchId: church.id,
+        subscriptionStatus: church.subscriptionStatus
+      });
+      return NextResponse.json({
+        error: 'This church is not currently accepting donations.'
+      }, { status: 403 });
     }
 
     const donationTypeRecord = await prisma.donationType.findFirst({

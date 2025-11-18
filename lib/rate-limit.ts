@@ -22,7 +22,7 @@ interface RateLimitConfig {
 }
 
 export function rateLimit(config: RateLimitConfig = { windowMs: 60000, max: 10 }) {
-  return async function checkRateLimit(req: NextRequest): Promise<{ success: boolean; remaining: number }> {
+  return async function checkRateLimit(req: NextRequest): Promise<{ success: boolean; remaining: number; resetTime?: number }> {
     // Get client identifier (IP or user ID)
     const identifier = req.headers.get('x-forwarded-for') || 
                       req.headers.get('x-real-ip') || 
@@ -91,10 +91,11 @@ export function rateLimit(config: RateLimitConfig = { windowMs: 60000, max: 10 }
     let entry = rateLimitMap.get(identifier);
     
     if (!entry || entry.resetTime < now) {
-      // Prevent adding new entries if at capacity
+      // SECURITY: Prevent adding new entries if at capacity
+      // Reject instead of allowing to prevent bypass attacks
       if (rateLimitMap.size >= MAX_RATE_LIMIT_ENTRIES && !rateLimitMap.has(identifier)) {
         Sentry.captureMessage(
-          'Rate limit map at capacity - cannot track new entries',
+          'Rate limit map at capacity - rejecting request',
           {
             level: 'error',
             extra: {
@@ -104,10 +105,12 @@ export function rateLimit(config: RateLimitConfig = { windowMs: 60000, max: 10 }
             },
           }
         );
-        // Allow request but don't track it
+        // SECURITY FIX: Reject request instead of allowing bypass
+        // This prevents attackers from filling the map and bypassing rate limiting
         return {
-          success: true,
-          remaining: config.max
+          success: false,
+          remaining: 0,
+          resetTime: now + config.windowMs
         };
       }
       

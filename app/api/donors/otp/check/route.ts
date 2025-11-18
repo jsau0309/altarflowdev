@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { prisma } from '@/lib/db';
+import { rateLimit } from '@/lib/rate-limit';
+
+// SECURITY: Rate limit OTP verification to prevent brute force attacks
+// Allow 5 attempts per 5 minutes per phone number
+const otpCheckLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 5, // 5 attempts
+});
 
 export async function POST(request: NextRequest) {
   // Check Twilio configuration
@@ -24,6 +32,16 @@ export async function POST(request: NextRequest) {
 
     if (!phoneNumber || !code) {
       return NextResponse.json({ success: false, error: 'Phone number and OTP code are required.' }, { status: 400 });
+    }
+
+    // SECURITY: Apply rate limiting per phone number to prevent brute force
+    const rateLimitResult = await otpCheckLimiter(request);
+    if (!rateLimitResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: 'Too many verification attempts. Please try again later.',
+        resetTime: rateLimitResult.resetTime
+      }, { status: 429 });
     }
 
     // Validate churchId for new donor creation
