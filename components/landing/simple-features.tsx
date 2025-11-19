@@ -2,16 +2,15 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  DollarSign, 
-  FileText, 
-  BarChart3, 
-  Users, 
-  Mail, 
+import {
+  DollarSign,
+  FileText,
+  BarChart3,
+  Users,
+  Mail,
   Brain,
   X
 } from "lucide-react"
-import { useTranslation } from "react-i18next"
 
 interface Feature {
   id: string
@@ -23,7 +22,6 @@ interface Feature {
 }
 
 export const SimpleFeatures = () => {
-  const { t } = useTranslation('landing')
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null)
 
   const features: Feature[] = [
@@ -86,7 +84,7 @@ export const SimpleFeatures = () => {
             The Smarter Way to Run Your Church
           </h2>
           <p className="text-xl text-gray-600 max-w-[800px] mx-auto">
-            Altarflow centralizes your ministry's operations, making it easier to manage, measure, and grow — all in one place.
+            Altarflow centralizes your ministry&apos;s operations, making it easier to manage, measure, and grow — all in one place.
           </p>
         </div>
 
@@ -174,7 +172,8 @@ export const SimpleFeatures = () => {
                   {/* Screenshot */}
                   {selectedFeature.screenshot && (
                     <div className="rounded-lg overflow-hidden border border-gray-200">
-                      <img 
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={selectedFeature.screenshot} 
                         alt={selectedFeature.title}
                         className="w-full h-auto"

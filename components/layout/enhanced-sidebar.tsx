@@ -223,7 +223,6 @@ const Sidebar = React.forwardRef<
       fetchSubscription();
     }, []);
 
-    const premiumRoutes = ['/donations', '/expenses', '/reports', '/banking'];
     const isRestrictedUser = subscriptionInfo?.status === 'free' || subscriptionInfo?.status === 'grace_period';
 
     const routes = [

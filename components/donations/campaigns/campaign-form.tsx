@@ -7,15 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shell, Save, X, Target, Calendar as CalendarIcon, Loader2, Lock } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { Target, Calendar as CalendarIcon, Loader2, Lock } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import LoaderOne from '@/components/ui/loader-one';
-import { createFundraisingCampaign, updateFundraisingCampaign, getFundraisingCampaignById, FundraisingCampaignFE } from '@/lib/actions/fundraising-campaigns.actions';
+import { createFundraisingCampaign, updateFundraisingCampaign, getFundraisingCampaignById } from '@/lib/actions/fundraising-campaigns.actions';
 import { safeStorage } from '@/lib/safe-storage';
 import { useTranslation } from 'react-i18next';
 import { NumericFormat } from 'react-number-format';
@@ -77,14 +76,15 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
         }
 
         setRaised(data.raised || 0);
-      } catch (e: any) {
-        setError(e.message || t('common:errors.fetchFailed', 'Failed to load data. Please try again.'));
+      } catch (e) {
+        const error = e as Error;
+        setError(error.message || t('common:errors.fetchFailed', 'Failed to load data. Please try again.'));
       } finally {
         setInitialLoading(false);
       }
     }
     load();
-  }, [mode, campaignId]);
+  }, [mode, campaignId, t]);
 
   const validate = () => {
     const errs: typeof fieldErrors = {};
@@ -249,8 +249,8 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
       } else {
         if (!campaignId) throw new Error('Missing campaign id');
         const res = await updateFundraisingCampaign(orgId, campaignId, payload);
-        if (!res.success && (res as any).fieldErrors) {
-          setFieldErrors((res as any).fieldErrors || {});
+        if (!res.success && 'fieldErrors' in res) {
+          setFieldErrors(res.fieldErrors || {});
           throw new Error(t('common:errors.default', 'An unexpected error occurred. Please try again.'));
         }
 
@@ -271,8 +271,9 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
         router.push('/donations?tab=campaigns');
         router.refresh();
       }
-    } catch (e: any) {
-      setError(e.message || t('common:errors.default', 'An unexpected error occurred. Please try again.'));
+    } catch (e) {
+      const error = e as Error;
+      setError(error.message || t('common:errors.default', 'An unexpected error occurred. Please try again.'));
       setLoading(false); // Only reset loading on error
     }
     // Note: Don't reset loading on success - let the navigation handle it
@@ -331,7 +332,7 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
                   {t('donations:donationsContent.campaigns.form.nameLockedHelper', 'Campaign name cannot be changed after receiving donations.')}
                 </p>
               )}
-              {fieldErrors.name && (<p id="name-error" className="text-sm text-red-600" role="alert">{t(fieldErrors.name as any, fieldErrors.name)}</p>)}
+              {fieldErrors.name && (<p id="name-error" className="text-sm text-red-600" role="alert">{fieldErrors.name}</p>)}
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">{t('donations:donationsContent.campaigns.form.description', 'Internal Description')}</Label>
@@ -363,7 +364,7 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
                 <Label htmlFor="goal">{t('donations:donationsContent.campaigns.form.goal', 'Goal Amount (USD)')} *</Label>
                 <NumericFormat
                   id="goal"
-                  customInput={Input as any}
+                  customInput={Input}
                   value={goalAmount}
                   disabled={noGoalCheckbox}
                   thousandSeparator=","
@@ -393,7 +394,7 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
                       `Already raised: $${raised.toFixed(2)}. You can increase the goal or set it to "no goal".`)}
                   </p>
                 )}
-                {fieldErrors.goalAmount && (<p id="goal-error" className="text-sm text-red-600" role="alert">{t(fieldErrors.goalAmount as any, fieldErrors.goalAmount)}</p>)}
+                {fieldErrors.goalAmount && (<p id="goal-error" className="text-sm text-red-600" role="alert">{fieldErrors.goalAmount}</p>)}
 
                 {/* Checkbox for campaigns without specific goal */}
                 <div className="flex items-start space-x-2 pt-2">
@@ -490,7 +491,7 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
                     {t('donations:donationsContent.campaigns.form.startDateLockedHelper', 'Start date cannot be changed after receiving donations.')}
                   </p>
                 )}
-                {fieldErrors.startDate && (<p id="startDate-error" className="text-sm text-red-600" role="alert">{t(fieldErrors.startDate as any, fieldErrors.startDate)}</p>)}
+                {fieldErrors.startDate && (<p id="startDate-error" className="text-sm text-red-600" role="alert">{fieldErrors.startDate}</p>)}
               </div>
               <div className="space-y-2">
                 <Label>{t('donations:endDate', 'End Date')}</Label>
@@ -542,7 +543,7 @@ export default function CampaignForm({ mode, campaignId, onSuccess }: Props) {
                     />
                   </PopoverContent>
                 </Popover>
-                {fieldErrors.endDate && (<p id="endDate-error" className="text-sm text-red-600" role="alert">{t(fieldErrors.endDate as any, fieldErrors.endDate)}</p>)}
+                {fieldErrors.endDate && (<p id="endDate-error" className="text-sm text-red-600" role="alert">{fieldErrors.endDate}</p>)}
               </div>
               <p className="text-sm text-muted-foreground">{t('donations:donationsContent.campaigns.form.durationHelper', 'Optional: Leave blank for ongoing campaigns.')}</p>
             </CardContent>

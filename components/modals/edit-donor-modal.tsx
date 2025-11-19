@@ -67,7 +67,7 @@ interface FormData {
   memberId: string | null; 
 }
 
-export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSuccess, currentChurchId }: EditDonorModalProps) {
+export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSuccess }: EditDonorModalProps) {
   // const router = useRouter() // Unused
   const [isLoading, setIsLoading] = useState(false);
   const [members, setMembers] = useState<MemberForLinkingSummary[]>([]);
@@ -144,7 +144,7 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
       });
       setErrors({});
     }
-  }, [isOpen, donor]); // Depend on donor prop
+  }, [isOpen, donor, t]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
@@ -226,9 +226,10 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
       };
 
       // Remove undefined fields to avoid sending them, unless they are explicitly set to null (like email/phone)
-      Object.keys(payloadForUpdate).forEach(key => 
-        (payloadForUpdate as any)[key] === undefined && delete (payloadForUpdate as any)[key]
-      );
+      Object.keys(payloadForUpdate).forEach(key => {
+        const payload = payloadForUpdate as Record<string, unknown>;
+        if (payload[key] === undefined) delete payload[key];
+      });
 
       // Debug logging removed: submitting donor update payload
       const result = await updateDonorDetails(donor.id, payloadForUpdate);

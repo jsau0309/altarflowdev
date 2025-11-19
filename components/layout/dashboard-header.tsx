@@ -1,16 +1,13 @@
 "use client"
 
 import type React from "react"
-import { useTranslation } from 'react-i18next';
 import { UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 
-import { Button } from "@/components/ui/button"
-// Import the new sidebar trigger 
-import { SidebarTrigger } from "@/components/layout/enhanced-sidebar" 
+// Import the new sidebar trigger
+import { SidebarTrigger } from "@/components/layout/enhanced-sidebar"
 // Import the mobile menu
 import { DashboardMobileMenu } from "@/components/layout/dashboard-mobile-menu"
-export function DashboardHeader() {
-  const { t } = useTranslation(['layout', 'common']); 
+export function DashboardHeader() { 
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between bg-background px-4 md:px-6">

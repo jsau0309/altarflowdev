@@ -13,9 +13,6 @@ import {
   YAxis,
   CartesianGrid,
   Legend,
-  // Bar, // Unused
-  // BarChart, // Unused
-  Tooltip as ChartTooltipRecharts,
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { useTranslation } from "react-i18next"
@@ -38,7 +35,7 @@ interface DonationChartsProps {
   endDate?: Date;
 }
 
-export function DonationCharts({ donations, campaigns, startDate, endDate }: DonationChartsProps) {
+export function DonationCharts({ donations, startDate, endDate }: DonationChartsProps) {
   // Load charts namespace
   const { t, i18n } = useTranslation();
 
@@ -309,9 +306,9 @@ export function DonationCharts({ donations, campaigns, startDate, endDate }: Don
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }: any) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }: { name: string; percent: number }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 >
-                  {pieChartData.map((_entry: any, index: number) => (
+                  {pieChartData.map((_entry, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

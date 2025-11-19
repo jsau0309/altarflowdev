@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { useTranslation } from "react-i18next";
@@ -37,14 +37,7 @@ export function CampaignDetailsForm() {
   const campaignId = searchParams.get("campaignId");
   const returnTo = searchParams.get("returnTo");
 
-  // Load existing campaign data if campaignId is present
-  useEffect(() => {
-    if (campaignId) {
-      loadCampaign();
-    }
-  }, [campaignId]);
-
-  const loadCampaign = async () => {
+  const loadCampaign = useCallback(async () => {
     setIsLoadingCampaign(true);
     try {
       const token = await getToken();
@@ -65,7 +58,14 @@ export function CampaignDetailsForm() {
     } finally {
       setIsLoadingCampaign(false);
     }
-  };
+  }, [campaignId, getToken, t]);
+
+  // Load existing campaign data if campaignId is present
+  useEffect(() => {
+    if (campaignId) {
+      loadCampaign();
+    }
+  }, [campaignId, loadCampaign]);
 
   const handleSaveAndContinue = async () => {
     if (!subject.trim()) {

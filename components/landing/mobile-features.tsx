@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Smartphone, CreditCard, Heart, Users } from "lucide-react"
+import { CreditCard, Heart, Users } from "lucide-react"
 
 export const MobileFeatures = () => {
   return (
@@ -16,7 +16,7 @@ export const MobileFeatures = () => {
             </span>
           </h2>
           <p className="text-xl text-gray-600 max-w-[800px] mx-auto">
-            From tracking generosity to sending updates, every Altarflow feature is built to go with you. Whether you're at church, home, or traveling, your ministry's mission is always just a tap away.
+            From tracking generosity to sending updates, every Altarflow feature is built to go with you. Whether you&apos;re at church, home, or traveling, your ministry&apos;s mission is always just a tap away.
           </p>
         </div>
 
@@ -41,7 +41,7 @@ export const MobileFeatures = () => {
               </h3>
               
               <p className="text-lg text-gray-600 leading-relaxed">
-                Passing the plate isn't the only way to give anymore. In today's digital world, most contributions happen on a phone and Altarflow makes it easier than ever. Whether in service, at home, or traveling, your congregation can give in seconds, fueling your church's mission and impact.
+                Passing the plate isn&apos;t the only way to give anymore. In today&apos;s digital world, most contributions happen on a phone and Altarflow makes it easier than ever. Whether in service, at home, or traveling, your congregation can give in seconds, fueling your church&apos;s mission and impact.
               </p>
               
               <ul className="space-y-4">
@@ -92,7 +92,8 @@ export const MobileFeatures = () => {
           >
             <div className="relative">
               {/* Mockup Image (already includes phone frame) */}
-              <img 
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src="/features/donate-mockup.png" 
                 alt="Mobile Donations Interface"
                 className="w-full h-auto max-w-[480px] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[720px]"
@@ -132,7 +133,8 @@ export const MobileFeatures = () => {
           >
             <div className="relative">
               {/* Mockup Image (already includes phone frame) */}
-              <img 
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src="/features/connect-mockup.png" 
                 alt="Connect Card Interface"
                 className="w-full h-auto max-w-[480px] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[720px]"
@@ -178,7 +180,7 @@ export const MobileFeatures = () => {
               </h3>
               
               <p className="text-lg text-gray-600 leading-relaxed">
-                First-time guests aren't just visitors — they're potential members of your church family. In today's digital world, paper cards get lost, but digital connections last. Altarflow makes it simple for visitors to share their info, receive a warm welcome, and feel part of your mission from day one.
+                First-time guests aren&apos;t just visitors — they&apos;re potential members of your church family. In today&apos;s digital world, paper cards get lost, but digital connections last. Altarflow makes it simple for visitors to share their info, receive a warm welcome, and feel part of your mission from day one.
               </p>
               
               <ul className="space-y-4">

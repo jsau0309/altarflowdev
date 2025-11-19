@@ -123,14 +123,21 @@ export function validateClientEnv() {
 /**
  * Get validated environment variables with type safety
  * Use this instead of process.env to ensure all required vars are present
+ *
+ * SECURITY: SKIP_ENV_VALIDATION is only allowed in development.
+ * Production ALWAYS validates to prevent deployment with missing credentials.
  */
-export const serverEnv = process.env.SKIP_ENV_VALIDATION === '1' 
-  ? (process.env as unknown as ServerEnv)
-  : validateServerEnv();
+export const serverEnv = process.env.NODE_ENV === 'production'
+  ? validateServerEnv() // ALWAYS validate in production
+  : (process.env.SKIP_ENV_VALIDATION === '1'
+      ? (process.env as unknown as ServerEnv)
+      : validateServerEnv());
 
-export const clientEnv = process.env.SKIP_ENV_VALIDATION === '1'
-  ? (process.env as unknown as ClientEnv)  
-  : validateClientEnv();
+export const clientEnv = process.env.NODE_ENV === 'production'
+  ? validateClientEnv() // ALWAYS validate in production
+  : (process.env.SKIP_ENV_VALIDATION === '1'
+      ? (process.env as unknown as ClientEnv)
+      : validateClientEnv());
 
 /**
  * Combined env object for convenience

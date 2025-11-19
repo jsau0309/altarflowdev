@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,12 +85,7 @@ export function EventManager() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
 
-  // Load events
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     try {
       const response = await fetch("/api/settings/events");
       if (!response.ok) throw new Error("Failed to load events");
@@ -106,7 +101,12 @@ export function EventManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
+
+  // Load events
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
 
   const handleOpenDialog = (event?: Event) => {
     if (event) {

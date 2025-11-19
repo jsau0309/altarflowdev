@@ -89,7 +89,7 @@ export function CampaignSuccessAnimation({
           {/* Campaign Details */}
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6 mb-8 max-w-lg mx-auto">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 truncate">
-              "{subject}"
+              &quot;{subject}&quot;
             </h2>
             <div className="flex items-center justify-center gap-6 text-sm">
               <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export function CampaignSuccessAnimation({
               Your email is being delivered to all recipients.
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              You'll receive a confirmation once delivery is complete.
+              You&apos;ll receive a confirmation once delivery is complete.
             </p>
           </div>
 

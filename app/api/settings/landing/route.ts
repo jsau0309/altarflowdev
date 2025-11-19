@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 interface LandingPageSettings {
   showDonateButton: boolean;
@@ -36,10 +37,11 @@ export async function GET() {
     }
 
     // Extract landing page settings from settingsJson
-    const settings = church.settingsJson as any || {};
+    const settings = (church.settingsJson as Record<string, Prisma.JsonValue>) || {};
+    const landing = (settings.landing as Record<string, unknown>) || {};
     const landingSettings: LandingPageSettings = {
-      showDonateButton: settings.landing?.showDonateButton ?? false,
-      showConnectButton: settings.landing?.showConnectButton ?? false,
+      showDonateButton: (landing.showDonateButton as boolean | undefined) ?? false,
+      showConnectButton: (landing.showConnectButton as boolean | undefined) ?? false,
     };
 
     return NextResponse.json({
@@ -94,7 +96,7 @@ export async function PUT(request: Request) {
     }
 
     // Update settings
-    const currentSettings = (church.settingsJson as any) || {};
+    const currentSettings = (church.settingsJson as Record<string, Prisma.JsonValue>) || {};
     const updatedSettings = {
       ...currentSettings,
       landing: {

@@ -35,7 +35,6 @@ export function EmailPreviewDialog({
   onOpenChange,
   emailDesign,
   subject,
-  previewText,
   fromName,
   recipientCount,
   campaignId,

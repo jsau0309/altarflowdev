@@ -10,13 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { MobileScanView } from "./mobile-scan-view"
 import { ProcessingView, type ProcessingStageKey } from "./processing-view"
-import { ReviewDataView } from "./review-data-view"
+import { ReviewDataView, type ReviewData } from "./review-data-view"
 import { useTranslation } from "react-i18next"
 
 interface ReceiptScannerModalProps {
   isOpen: boolean
   onClose: () => void
-  onDataCaptured: (data: any) => void
+  onDataCaptured: (data: unknown) => void
 }
 
 type ScanningStage = "initial" | "camera" | "upload" | "preview" | "processing" | "review"
@@ -25,7 +25,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
   const { t } = useTranslation('receiptScanner')
   const [scanningStage, setScanningStage] = useState<ScanningStage>("initial")
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
-  const [extractedData, setExtractedData] = useState<any>(null)
+  const [extractedData, setExtractedData] = useState<ReviewData | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [receiptMetadata, setReceiptMetadata] = useState<Record<string, unknown> | null>(null)
@@ -103,7 +103,6 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
         description: "",
         items: apiData.items || [],
         receiptUrl: null,
-        receiptPath: null,
         receiptImage: previewImage,
         confidence: apiData.confidence
       })
@@ -331,6 +330,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
 
         {scanningStage === "preview" && capturedImage && (
           <div className="relative flex h-full w-full flex-col bg-black">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={capturedImage} alt={t('modal.scanTitle')} className="h-full w-full object-contain" />
             <div className="absolute inset-x-0 top-0 flex items-center justify-between px-6 pt-6">
               <Button

@@ -90,7 +90,7 @@ export interface MemberFormData {
   referralSource?: string
   prayerRequested: boolean
   prayerRequest?: string
-  customFields: Record<string, any>
+  customFields: Record<string, string | number | boolean | undefined>
 }
 
 export interface Option {
@@ -100,7 +100,7 @@ export interface Option {
 }
 
 export interface SelectFieldConfig {
-  // ... existing code ...
+  options: Array<{ label: string; value: string }>;
 }
 
 // --- Add Default Exports --- 

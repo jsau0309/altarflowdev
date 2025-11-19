@@ -50,7 +50,8 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
     return () => {
       abortController.abort()
     }
-  }, [organization, dateRange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organization, dateRange]) // fetchFinancialData and lastFetchParams intentionally excluded to prevent infinite loop
 
   const fetchFinancialData = async (signal?: AbortSignal) => {
     // Always show loading when fetching new data for better UX

@@ -13,15 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Calendar as CalendarIcon, Clock, Loader2, MapPin } from "lucide-react";
-import { format, setHours, setMinutes, addDays, startOfDay } from "date-fns";
+import { format, setHours, setMinutes, addDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";

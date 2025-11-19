@@ -10,7 +10,7 @@ const STRIPE_ACH_FEE_RATE = 0.008 // 0.8%
 const EPSILON = 0.01 // 1 cent - for division safety
 
 // Helper function to validate ISO date strings
-function isValidISODate(dateString: any): boolean {
+function isValidISODate(dateString: unknown): boolean {
   if (typeof dateString !== 'string') return false
   const date = new Date(dateString)
   return date instanceof Date && !isNaN(date.getTime())

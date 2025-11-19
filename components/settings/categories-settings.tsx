@@ -76,6 +76,7 @@ export function CategoriesSettings() {
       fetchCategories();
       fetchPaymentMethods();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization?.id]);
 
   const fetchCategories = async () => {

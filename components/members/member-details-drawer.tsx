@@ -2,19 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { Edit, Phone, Mail, MapPin, Check, X, MoreVertical, Trash, Trash2, Loader2, MailX, Calendar } from "lucide-react"
+import { Edit, Phone, Mail, Trash2, Loader2, MailX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
 import type { Member } from "@/lib/types"
 import { EditMemberForm, type FormData as EditFormData } from "./edit-member-form"
 import { useTranslation } from "react-i18next"
@@ -35,17 +28,6 @@ interface MemberDetailsDrawerProps {
   onClose: () => void
   onActionComplete: () => void
 }
-
-// Function to safely parse date string
-const parseDateSafe = (dateString: string | null | undefined): Date | null => {
-  if (!dateString) return null;
-  try {
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? null : date; // Return null if parsing results in Invalid Date
-  } catch (e) {
-    return null;
-  }
-};
 
 // Helper function like in NewExpenseModal (adjust if needed)
 const formatDateForInput = (dateInput: Date | string | undefined | null): string => {
@@ -164,11 +146,11 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
     if (formData.joinDate) { // Check if date string is not empty
         try {
             // Parse YYYY-MM-DD and format as full ISO string (assumes UTC start of day)
-            finalJoinDate = new Date(`${formData.joinDate}T00:00:00Z`).toISOString(); 
-        } catch (dateError) {
+            finalJoinDate = new Date(`${formData.joinDate}T00:00:00Z`).toISOString();
+        } catch {
             console.error("Invalid date format before submit:", formData.joinDate);
             // Handle error - maybe show a toast? For now, set to null.
-            finalJoinDate = null; 
+            finalJoinDate = null;
         }
     }
 
@@ -201,7 +183,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
         try {
           const errorData = await response.json();
           errorMsg = errorData.error || (errorData.details ? JSON.stringify(errorData.details) : errorMsg);
-        } catch (jsonError) { /* Ignore */ }
+        } catch { /* Ignore */ }
         throw new Error(errorMsg);
       }
 
@@ -250,7 +232,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
         try {
           const errorData = await response.json();
           errorMsg = errorData.error || errorMsg;
-        } catch (e) { /* Ignore JSON parse error */ }
+        } catch { /* Ignore JSON parse error */ }
         throw new Error(errorMsg);
       }
 
@@ -315,7 +297,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
                 onFormChange={handleChange}
                 phoneError={phoneError}
                 emailError={emailError}
-                t={t}
+                t={(key: string, options?: string) => t(key, options || '')}
               />
             </form>
           ) : (

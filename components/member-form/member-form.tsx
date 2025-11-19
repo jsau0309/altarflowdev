@@ -5,10 +5,10 @@ import { useForm, FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useTranslation } from "react-i18next"
-import { TFunction } from "i18next" // For explicit t function type
+import type { TFunction } from "i18next"
 import { toast as sonnerToast } from 'sonner'
 
-import { useFormConfig } from "./form-config-context" // If used
+// import { useFormConfig } from "./form-config-context" // If used
 import { PersonalInfoSection } from "./personal-info-section"
 import { AddressSection } from "./address-section" // Assuming you have this for address fields
 // Import other sections if MemberForm uses them:
@@ -20,7 +20,6 @@ import { ServiceTimesSelector } from "./service-times-selector"
 // import { PrayerRequestSection } from "./prayer-request-section"
 // import { CustomFieldsSection } from "./custom-fields-section"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/hooks/use-toast" // Or sonner if that's the standard
 
 // Interface for pre-translated messages
 export interface PhoneValidationMessages {
@@ -89,7 +88,7 @@ export type MemberFormValues = z.infer<ReturnType<typeof createFormSchema>>;
 // Optional: If MemberForm component itself is defined in this file
 // This is a basic structure; adapt if your MemberForm is more complex or defined elsewhere.
 export function MemberForm({ onSubmitSuccess }: { onSubmitSuccess?: (data: MemberFormValues) => void }) {
-  const { toast } = useToast(); // Or sonner's toast
+  // const { toast } = useToast(); // Or sonner's toast
   const { t } = useTranslation(['members', 'common']);
   // const { config } = useFormConfig(); // Uncomment if useFormConfig is used
 

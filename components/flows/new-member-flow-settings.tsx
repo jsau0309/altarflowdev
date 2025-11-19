@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
-import type { FormConfiguration, ServiceTime, Ministry } from "../member-form/types" // Might need adjustment if types move
+import type { FormConfiguration } from "../member-form/types" // Might need adjustment if types move
 import { defaultServiceTimes, defaultMinistries, defaultSettings } from "../member-form/types" // Might need adjustment if types move
 import { PlusCircle, Trash2, ExternalLink, Loader2, AlertCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"

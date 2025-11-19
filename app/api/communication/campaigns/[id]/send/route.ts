@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { v4 as uuidv4 } from 'uuid';
 import { prisma, withRetryTransaction } from '@/lib/db';
 import { ResendEmailService } from "@/lib/email/resend-service";
 import { validateEmail } from "@/lib/email/validate-email";
@@ -138,7 +139,6 @@ export async function POST(
 
       if (recipientsNeedingPreferences.length > 0) {
         // Use createMany for bulk insert (much faster than individual creates)
-        const { v4: uuidv4 } = require('uuid');
         await tx.emailPreference.createMany({
           data: recipientsNeedingPreferences.map(recipient => ({
             memberId: recipient.memberId,

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { prisma } from '@/lib/db';
+import { rateLimitByIdentifier } from '@/lib/rate-limit';
+
+// SECURITY: Rate limit OTP verification to prevent brute force attacks
+// Allow 5 attempts per 5 minutes PER PHONE NUMBER (not per IP)
+const otpCheckLimiter = rateLimitByIdentifier({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 5, // 5 attempts
+});
 
 export async function POST(request: NextRequest) {
   // Check Twilio configuration
@@ -24,6 +32,18 @@ export async function POST(request: NextRequest) {
 
     if (!phoneNumber || !code) {
       return NextResponse.json({ success: false, error: 'Phone number and OTP code are required.' }, { status: 400 });
+    }
+
+    // SECURITY: Apply rate limiting per phone number to prevent brute force
+    // Normalize phone number to prevent bypasses via formatting variations
+    const normalizedPhone = phoneNumber.replace(/\D/g, ''); // Remove all non-digits
+    const rateLimitResult = await otpCheckLimiter(normalizedPhone);
+    if (!rateLimitResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: 'Too many verification attempts for this phone number. Please try again later.',
+        resetTime: rateLimitResult.resetTime
+      }, { status: 429 });
     }
 
     // Validate churchId for new donor creation
@@ -84,13 +104,16 @@ export async function POST(request: NextRequest) {
       // OTP is invalid or another issue occurred
       return NextResponse.json({ success: false, error: 'Invalid OTP or verification failed. Status: ' + verificationCheck.status }, { status: 400 });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error checking OTP:', error);
     let errorMessage = 'Failed to check OTP.';
-    if (error.code === 60202 || error.message?.includes('VerificationCheck was not found')) { // 60202 is often 'No pending verification found'
+    // Twilio errors have code and message properties
+    if (error && typeof error === 'object' && 'code' in error && 'message' in error) {
+      if (error.code === 60202 || (typeof error.message === 'string' && error.message.includes('VerificationCheck was not found'))) {
         errorMessage = 'Invalid or expired OTP. Please try sending a new one.';
-    } else if (error.message) {
+      } else if (typeof error.message === 'string') {
         errorMessage = error.message;
+      }
     }
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }

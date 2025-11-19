@@ -418,18 +418,42 @@ export async function POST(req: Request) {
 
       try {
         // Find the corresponding Church using the Clerk Org ID
-        const church = await prisma.church.findUnique({
+        let church = await prisma.church.findUnique({
           where: { clerkOrgId: orgId },
           select: { id: true } // Only select the ID
         });
 
         if (!church) {
           console.error(`Church not found for Org ID: ${orgId}`);
-          
-          // This is likely a race condition - the organization.created webhook hasn't processed yet
-          // Return 202 Accepted to tell Clerk to retry later
-          console.log(`Church not yet created for Org ID: ${orgId}. Returning 202 for retry.`);
-          return new Response('Accepted - retry later', { status: 202 });
+
+          // RACE CONDITION FIX: The organization.created webhook may not have processed yet
+          // Implement retry logic with exponential backoff
+          const maxRetries = 3;
+          const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
+
+          for (let attempt = 0; attempt < maxRetries; attempt++) {
+            console.log(`Retry attempt ${attempt + 1}/${maxRetries} for Org ID: ${orgId}`);
+
+            // Wait before retry
+            await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+
+            // Try to find church again
+            church = await prisma.church.findUnique({
+              where: { clerkOrgId: orgId },
+              select: { id: true }
+            });
+
+            if (church) {
+              console.log(`Church found on retry attempt ${attempt + 1}`);
+              break;
+            }
+          }
+
+          if (!church) {
+            // After all retries, still not found - ask Clerk to retry the webhook later
+            console.log(`Church not yet created for Org ID: ${orgId} after ${maxRetries} retries. Returning 202 for Clerk retry.`);
+            return new Response('Accepted - retry later', { status: 202 });
+          }
         }
 
         // Determine the application-specific role based on the Clerk role

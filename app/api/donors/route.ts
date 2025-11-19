@@ -54,13 +54,18 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, donor: donor }, { status: donor ? 200 : 201 }); // 200 if updated, 201 if created
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating/updating donor:', error);
     // P2002 can still occur if email is unique and conflicts during an update where phoneNumber didn't match an existing record.
-    if (error.code === 'P2002') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
         let conflictField = 'unknown';
-        if (error.meta?.target?.includes('phone')) conflictField = 'phone number'; // Corrected from 'phoneNumber' to 'phone'
-        else if (error.meta?.target?.includes('email')) conflictField = 'email address';
+        if ('meta' in error && error.meta && typeof error.meta === 'object' && 'target' in error.meta) {
+          const target = error.meta.target;
+          if (Array.isArray(target)) {
+            if (target.includes('phone')) conflictField = 'phone number';
+            else if (target.includes('email')) conflictField = 'email address';
+          }
+        }
       return NextResponse.json({ success: false, error: `A donor with this ${conflictField} already exists.` }, { status: 409 });
     }
     return NextResponse.json({ success: false, error: 'Failed to create or update donor.' }, { status: 500 });

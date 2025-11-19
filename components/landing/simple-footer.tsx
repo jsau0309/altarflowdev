@@ -25,6 +25,7 @@ export const AltarflowFooter = () => {
         <div className="flex flex-col md:flex-row items-start justify-between gap-4 md:gap-10 px-2 md:px-8 flex-1">
           <div className="flex flex-col items-start gap-2 w-full md:w-auto">
             <Link href="/" className="flex flex-row gap-1 items-center justify-start">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/altarflow-logo.svg" alt="Altarflow" className="w-[191px] h-[45px]" />
             </Link>
             <p className="text-gray-500 font-medium text-base w-full md:w-4/5">{t('footer.tagline')}</p>
@@ -158,6 +159,7 @@ export const AltarflowFooter = () => {
                   {t('footer.company.blog')}{" "}
                   <span className="inline-flex ml-1 py-0.5 px-3 bg-gray-100 text-xs rounded-xl rotate-3">{t('footer.soon')}</span>
                 </Link>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
                 <Link className="pointer-events-none text-gray-400 whitespace-nowrap font-medium" href="#">
                   {t('footer.company.careers')}{" "}
                   <span className="inline-flex ml-1 py-0.5 px-3 bg-gray-100 text-xs rounded-xl rotate-3">{t('footer.soon')}</span>
@@ -170,6 +172,7 @@ export const AltarflowFooter = () => {
                 </Link>
               </div>
             </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
 
             <div className="flex flex-col gap-1 md:gap-4">
               <h4 className="uppercase whitespace-nowrap font-semibold text-md text-gray-500 font-semibold">
@@ -210,6 +213,7 @@ export const AltarflowFooter = () => {
           <p className="whitespace-nowrap">{t('footer.copyright', { year: currentYear })}</p>
           <p className="text-xs text-gray-500 whitespace-nowrap">{t('footer.subsidiary')}</p>
         </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
 
         {/* Policy links moved to the right */}
         <div className="flex flex-row gap-4 items-center mt-4 md:mt-0">

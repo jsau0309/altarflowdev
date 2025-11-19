@@ -1,14 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-// import { mockDataService } from "@/lib/mock-data"
+import { useEffect, useRef } from "react"
 import { format, subDays } from "date-fns"
 import Chart from "chart.js/auto"
-import { processTimeSeriesData, processCategoryData } from "@/lib/chart-utils"
-import { ChartData, ChartOptions } from 'chart.js/auto'
-import { Bar, Line, Pie } from "react-chartjs-2"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslation } from "react-i18next"
 
 // Define basic types if not already defined elsewhere
@@ -35,10 +29,10 @@ interface DashboardChartsProps {
     expenses: Expense[];
     // campaigns: Campaign[];
     timeRange: string;
-    onTimeRangeChange: (value: string) => void;
+    onTimeRangeChange?: (value: string) => void;
 }
 
-export function DashboardCharts({ donations: initialDonations, expenses: initialExpenses, /* campaigns, */ timeRange, onTimeRangeChange }: DashboardChartsProps) {
+export function DashboardCharts({ donations: initialDonations, expenses: initialExpenses, /* campaigns, */ timeRange }: DashboardChartsProps) {
   // Load charts namespace
   const { t } = useTranslation('charts');
   const financialChartRef = useRef<HTMLCanvasElement | null>(null)

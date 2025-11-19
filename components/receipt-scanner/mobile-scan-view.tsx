@@ -104,7 +104,8 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
     if (!track) return
 
     try {
-      // @ts-ignore - torch is a valid constraint but not in TypeScript types
+      // @ts-expect-error - torch is a valid constraint but not in TypeScript types
+      // See: https://www.w3.org/TR/mediacapture-streams/#dom-constrainablevideo
       await track.applyConstraints({ advanced: [{ torch: !isFlashOn }] })
       setIsFlashOn(prev => !prev)
     } catch (error) {
@@ -138,7 +139,8 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
     if (stream) {
       if (isFlashOn) {
         try {
-          // @ts-ignore - torch is a valid constraint but not in TypeScript types
+          // @ts-expect-error - torch is a valid constraint but not in TypeScript types
+          // See: https://www.w3.org/TR/mediacapture-streams/#dom-constrainablevideo
           await stream.getVideoTracks()[0]?.applyConstraints({ advanced: [{ torch: false }] })
         } catch (error) {
           console.warn("Unable to disable torch", error)

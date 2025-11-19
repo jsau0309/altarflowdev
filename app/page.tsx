@@ -37,6 +37,7 @@ export default function LandingPage() {
       <header className="absolute top-0 left-0 right-0 z-40 w-full bg-transparent">
         <div className="container flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/altarflow-logo-white.svg" alt="Altarflow" className="w-[191px] h-[45px]" />
           </div>
 
@@ -105,7 +106,8 @@ export default function LandingPage() {
                 {/* Dashboard container - crisp and clear */}
                 <div className="relative rounded-lg sm:rounded-xl md:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl bg-white">
                   {/* Dashboard image - optimized for sharpness */}
-                  <img 
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src="/features/altarflow-dashboard-hero.png" 
                     alt="Altarflow Dashboard" 
                     className="w-full h-auto object-cover object-top"
@@ -165,7 +167,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="text-xl text-blue-100"
             >
-              Join the first churches to unlock smarter ministry operations, more intelligent insights, and simpler management with Altarflow's complete platform.
+              Join the first churches to unlock smarter ministry operations, more intelligent insights, and simpler management with Altarflow&apos;s complete platform.
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}

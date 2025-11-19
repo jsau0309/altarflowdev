@@ -3,7 +3,7 @@ import { Users, Filter } from "lucide-react"
 import { EnhancedMemberDirectory } from "@/components/members/enhanced-member-directory"
 import { AddMemberButton } from "@/components/members/add-member-button"
 import { useTranslation } from 'react-i18next'
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { type Member } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,7 +23,7 @@ export function MembersContent() {
   const [error, setError] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
 
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -43,11 +43,11 @@ export function MembersContent() {
     } finally {
       setIsLoading(false)
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchMembers();
-  }, [])
+  }, [fetchMembers])
 
   const handleAddMemberSuccess = () => {
     fetchMembers();

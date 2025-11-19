@@ -60,7 +60,6 @@ function validateEventData(data: EventCreateData): { isValid: boolean; error?: s
     }
 
     // Validate date is within reasonable range
-    const now = new Date();
     const maxFutureDate = new Date();
     maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 5); // 5 years in future
 
@@ -74,7 +73,7 @@ function validateEventData(data: EventCreateData): { isValid: boolean; error?: s
     if (eventDate < minPastDate) {
       return { isValid: false, error: "Event date cannot be more than 10 years in the past" };
     }
-  } catch (_error) {
+  } catch {
     return { isValid: false, error: "Invalid event date format" };
   }
 

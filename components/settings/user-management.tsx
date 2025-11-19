@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +22,7 @@ export function UserManagementContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -40,11 +40,11 @@ export function UserManagementContent() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchUsers();
-  }, []); // Remove t from dependency array if only used in error fallback
+  }, [fetchUsers]);
 
   const renderLoadingSkeleton = () => (
     <TableBody>

@@ -1,14 +1,8 @@
 "use client"
 
 import type React from "react"
-import { Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon } from "lucide-react"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
 
 // Define and Export the expected structure of formData
 export interface FormData {
@@ -30,7 +24,7 @@ interface EditMemberFormProps {
   onFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void; // Receive change handler
   phoneError: string | null; // Receive phone error
   emailError: string | null; // Receive email error
-  t: (key: string, options?: any) => string; // Receive translation function
+  t: (key: string, options?: string) => string; // Receive translation function
 }
 
 // Make it a functional component receiving props

@@ -45,19 +45,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'OTP sent successfully.' });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error sending OTP:', error);
     // Check for specific Twilio error codes if needed
     // Example: error.code === 20003 (Permission Denied - might be invalid SID/Token)
     // Example: error.code === 60200 (Invalid parameter - often phone number format)
     // Example: error.code === 60203 (Max send attempts reached)
     let errorMessage = 'Failed to send OTP.';
-    if (error.code === 60200) {
-      errorMessage = 'Invalid phone number. Please check the format and try again.';
-    } else if (error.message) {
-      errorMessage = error.message;
+    if (error && typeof error === 'object' && 'code' in error && 'message' in error) {
+      if (error.code === 60200) {
+        errorMessage = 'Invalid phone number. Please check the format and try again.';
+      } else if (typeof error.message === 'string') {
+        errorMessage = error.message;
+      }
     }
-    
+
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

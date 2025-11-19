@@ -2,15 +2,14 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  DollarSign, 
-  FileText, 
-  BarChart3, 
-  Users, 
-  Mail, 
+import {
+  DollarSign,
+  FileText,
+  BarChart3,
+  Users,
+  Mail,
   Brain
 } from "lucide-react"
-import { useTranslation } from "react-i18next"
 
 // Glass Filter Component for liquid glass effect
 const GlassFilter = () => {
@@ -58,7 +57,6 @@ interface Feature {
 }
 
 export const TabbedFeatures = () => {
-  const { t } = useTranslation('landing')
   const [activeFeature, setActiveFeature] = useState("donations")
   const [isImageExpanded, setIsImageExpanded] = useState(false)
 
@@ -88,7 +86,7 @@ export const TabbedFeatures = () => {
       id: "members",
       icon: <Users className="h-5 w-5" />,
       title: "Members",
-      description: "Manage member profiles, track engagement, and follow each person's journey in your ministry; from first visit to active involvement.",
+      description: "Manage member profiles, track engagement, and follow each person&apos;s journey in your ministry; from first visit to active involvement.",
       screenshot: "/features/altarflow-members.png"
     },
     {
@@ -102,7 +100,7 @@ export const TabbedFeatures = () => {
       id: "insights",
       icon: <Brain className="h-5 w-5" />,
       title: "AI Insights",
-      description: "Our smart AI engine learns your church's patterns to provide valuable insights, recommend actions, and help you make data-driven decisions.",
+      description: "Our smart AI engine learns your church&apos;s patterns to provide valuable insights, recommend actions, and help you make data-driven decisions.",
       screenshot: "/features/altarflow-ai.png"
     }
   ]
@@ -120,7 +118,7 @@ export const TabbedFeatures = () => {
             <span className="block">and Grow Your Church</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-[800px] mx-auto pt-4 pb-4">
-            From donations to member care, Altarflow simplifies your ministry's daily operations so you can focus more on people and less on paperwork.
+            From donations to member care, Altarflow simplifies your ministry&apos;s daily operations so you can focus more on people and less on paperwork.
           </p>
         </div>
 
@@ -161,7 +159,8 @@ export const TabbedFeatures = () => {
                 className="relative rounded-xl overflow-hidden shadow-2xl group cursor-pointer"
                 onClick={() => setIsImageExpanded(true)}
               >
-                <img 
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={activeFeatureData.screenshot}
                   alt={activeFeatureData.title}
                   className="w-full h-auto transition-transform duration-500 ease-out group-hover:scale-105"
@@ -213,9 +212,10 @@ export const TabbedFeatures = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                
+
                 {/* Expanded image */}
-                <img 
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={activeFeatureData.screenshot}
                   alt={activeFeatureData.title}
                   className="w-full h-auto rounded-xl shadow-2xl"

@@ -9,7 +9,7 @@ import { ReceiptScannerModal } from "./receipt-scanner-modal"
 import { useTranslation } from "react-i18next"
 
 interface ReceiptScannerButtonProps {
-  onDataCaptured: (data: any) => void
+  onDataCaptured: (data: unknown) => void
   children?: React.ReactNode
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
   size?: "default" | "sm" | "lg" | "icon"
@@ -24,7 +24,7 @@ export function ReceiptScannerButton({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const { t } = useTranslation()
 
-  const handleDataCaptured = (data: any) => {
+  const handleDataCaptured = (data: unknown) => {
     onDataCaptured(data)
     setIsModalOpen(false)
   }

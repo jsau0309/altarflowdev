@@ -216,7 +216,7 @@ export async function DELETE(
         // Hard delete if no donations
         try {
           await tx.donationType.delete({ where: { id: campaignId } });
-        } catch (e) {
+        } catch {
           // Fallback to soft delete on constraint error
           await tx.donationType.update({
             where: { id: campaignId },

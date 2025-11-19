@@ -4,10 +4,9 @@ import { DialogFooter } from "@/components/ui/dialog"
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, X, Receipt, Plus, Upload, Trash2, Info } from "lucide-react"
-import { format } from "date-fns"
+import { Loader2, X, Receipt } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,7 +45,7 @@ const initialLocalFormData: NewDonationFormData = {
   notes: "",
 };
 
-export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initialData, onSuccess }: NewDonationModalProps) {
+export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initialData }: NewDonationModalProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useTranslation('donations')
@@ -73,12 +72,8 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
     email: "",
     phone: "",
   })
-  const [selectedDonor, setSelectedDonor] = useState<Member | null>(null)
-
   // Photo/receipt related states
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
-  const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
-  // const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -182,15 +177,6 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
       })
       setIsLoading(false)
       return
-    }
-
-    const donationPayload = {
-      ...formData,
-      amount: parsedAmount,
-      memberId: memberIdToSave,
-      isDigital: formData.paymentMethod === "online",
-      receiptUrl: receiptImage,
-      donationDate: formData.donationDate,
     }
 
     try {
@@ -430,6 +416,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
 
               {receiptImage ? (
                 <div className="relative border rounded-md p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={receiptImage || "/placeholder.svg"}
                     alt="Receipt"

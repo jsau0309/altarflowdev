@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod'; // Using Zod for validation
 import { createAdminClient } from '@/utils/supabase/admin';
@@ -467,14 +468,14 @@ export async function PATCH(
 
     // 5. Perform the update using updateMany to ensure org boundary
     const updateResult = await prisma.expense.updateMany({
-      where: { 
+      where: {
         id: expenseId,
         Church: { clerkOrgId: orgId },
         // Optional: Add status/submitter checks again for extra safety, though checked above
-        // submitterId: userId, 
-        // status: 'PENDING' 
+        // submitterId: userId,
+        // status: 'PENDING'
       },
-      data: updateData as any,
+      data: updateData as Prisma.ExpenseUpdateManyMutationInput,
     });
 
     // Invalidate dashboard cache after updating expense

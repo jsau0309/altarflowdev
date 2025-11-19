@@ -121,6 +121,7 @@ export function LandingShareModal({
                 {/* Logo Circle */}
                 {logoUrl && (
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-white mb-4 flex items-center justify-center border-2 border-white/30">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={logoUrl}
                       alt="Church logo"

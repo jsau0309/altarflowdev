@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { TFunction } from "i18next" // For explicit t function type
 
 import { Button } from "@/components/ui/button"
 import {
@@ -33,7 +32,7 @@ import type { Ministry, ServiceTime } from "@/components/member-form/types"
 interface AddMemberModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess?: (newMember: any) => void;
+  onSuccess?: (newMember: unknown) => void;
 }
 
 export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps) {
@@ -153,14 +152,14 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || (errorData.details ? JSON.stringify(errorData.details) : errorMessage);
-        } catch (jsonError) {
+        } catch {
           errorMessage = `${t('common:httpError', 'HTTP error!')} status: ${response.status}`;
         }
         toast.error(t('members:modal.addErrorTitle', 'Error Adding Member'), {
           description: errorMessage,
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error submitting form:", error);
       toast.error(t('members:modal.addErrorTitle', 'Error Adding Member'), {
         description: t('common:networkError', 'A network error occurred. Please try again.'),

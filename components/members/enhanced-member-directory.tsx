@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Search, Filter, Phone, Mail, MailX } from "lucide-react"
+import { Search, Phone, Mail, MailX } from "lucide-react"
 import LoaderOne from "@/components/ui/loader-one";
 import { format } from "date-fns"
 
@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { type Member } from "@/lib/types"
 import { MemberDetailsDrawer } from "./member-details-drawer"
-import { AddMemberButton } from "./add-member-button"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslation } from "react-i18next"
@@ -27,12 +26,12 @@ interface EnhancedMemberDirectoryProps {
 }
 
 // Destructure new props
-export function EnhancedMemberDirectory({ 
-  members, 
-  isLoading, 
-  error, 
-  filterStatus, 
-  onFilterChange, 
+export function EnhancedMemberDirectory({
+  members,
+  isLoading,
+  error,
+  filterStatus,
+  onFilterChange,
   onActionComplete
 }: EnhancedMemberDirectoryProps) {
   const [searchTerm, setSearchTerm] = useState("")
@@ -301,15 +300,15 @@ export function EnhancedMemberDirectory({
                   <TableCell>
                     {(() => {
                       // console.log('[Table] member.joinDate:', member.joinDate, typeof member.joinDate);
-                      const joinDate = member.joinDate as any; // Type assertion to satisfy instanceof check
+                      const joinDate = member.joinDate as Date | string | null | undefined;
                       // Check if it looks like a Date object and is valid
-                      if (joinDate && typeof joinDate.getTime === 'function' && !isNaN(joinDate.getTime())) {
+                      if (joinDate && typeof (joinDate as Date).getTime === 'function' && !isNaN((joinDate as Date).getTime())) {
                         // The 'joinDate' variable here is already confirmed to be a valid Date object
                         // representing a UTC timestamp (e.g., 2025-05-14T00:00:00.000Z).
                         // We want to display the calendar date as it is in UTC, regardless of local timezone.
-                        const year = joinDate.getUTCFullYear();
-                        const month = joinDate.getUTCMonth(); // 0-indexed
-                        const day = joinDate.getUTCDate();
+                        const year = (joinDate as Date).getUTCFullYear();
+                        const month = (joinDate as Date).getUTCMonth(); // 0-indexed
+                        const day = (joinDate as Date).getUTCDate();
                         // Construct a new Date object using these UTC components.
                         // new Date(year, month, day) creates a date at 00:00:00 in the *local* timezone.
                         // This is what we want for display, so "May 14" is shown for "May 14 UTC".

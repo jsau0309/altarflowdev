@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { disableStripeAutomaticReceipts, getStripeConnectAccount } from '@/lib/stripe-connect';
+import { disableStripeAutomaticReceipts } from '@/lib/stripe-connect';
 import { prisma } from '@/lib/db';
 
 // IMPORTANT: This endpoint should be protected and only accessible by admins
@@ -9,7 +9,7 @@ import { prisma } from '@/lib/db';
 export async function POST(request: Request) {
   try {
     // Basic auth check - you may want to add more security
-    const { userId, orgId } = await auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

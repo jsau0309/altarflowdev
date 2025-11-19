@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import type { DonationFormData } from "./donation-form"
 import { Gift, Loader2 } from "lucide-react"
 
@@ -53,7 +51,7 @@ interface CheckoutFormProps {
 const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: CheckoutFormProps) => {
   useEffect(() => {
     // Listen for CSP violations
-    const handleCSPViolation = (e: SecurityPolicyViolationEvent) => {
+    const handleCSPViolation = () => {
       // Debug logging removed: CSP violation details
       // Consider sending to error tracking service in production instead
     };
@@ -88,7 +86,7 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
   const stripe = useStripe();
   const elements = useElements();
   const { t } = useTranslation(['donations', 'common']);
-  const { trackDonation, trackEvent } = usePostHog();
+  const { trackEvent } = usePostHog();
 
   const [message, setMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -225,7 +223,6 @@ const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: Ch
 
 export default function DonationPayment({
   formData,
-  updateFormData,
   onBack,
   churchId,
   churchSlug,
@@ -345,7 +342,7 @@ export default function DonationPayment({
       initializationRef.current = null;
       hasInitiatedRef.current = false; // Reset on error to allow retry
     }
-  }, [formData, churchId, donorId, propClientSecret, t]);
+  }, [formData, churchId, donorId, propClientSecret, t, i18n.language]);
 
   // Effect to initialize payment for anonymous/international donors
   useEffect(() => {

@@ -103,7 +103,7 @@ export function UnsubscribeContent() {
           <div className="mx-auto w-16 h-16 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4">
             <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
-          <CardTitle className="text-2xl">You've Been Unsubscribed</CardTitle>
+          <CardTitle className="text-2xl">You&apos;ve Been Unsubscribed</CardTitle>
           <CardDescription className="text-base mt-2">
             You have been successfully removed from our email list.
           </CardDescription>
@@ -112,7 +112,7 @@ export function UnsubscribeContent() {
         <CardContent className="text-center space-y-6 pt-6">
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              We're sorry to see you go. You will no longer receive:
+              We&apos;re sorry to see you go. You will no longer receive:
             </p>
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 text-left space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">

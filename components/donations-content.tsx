@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Filter, Plus, Users, X, DollarSign, Edit3, Lock, ArrowLeft, Calendar as CalendarIcon, Globe, ArrowUpDown, Search } from "lucide-react"
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from "date-fns"
 
@@ -31,6 +31,8 @@ import { safeStorage } from "@/lib/safe-storage";
 import { DonorFE, DonationTransactionFE, DonorDetailsData } from "@/lib/types";
 import { useTranslation } from 'react-i18next';
 import { ManualDonationDialog } from "@/components/modals/manual-donation-dialog";
+import CampaignList from "@/components/donations/campaigns/campaign-list";
+import CampaignForm from "@/components/donations/campaigns/campaign-form";
 
 
 interface DonationsContentProps {
@@ -43,7 +45,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   const [showDonorModal, setShowDonorModal] = useState(false)
   const [activeTab, setActiveTab] = useState("all-donations")
   const [campaignsView, setCampaignsView] = useState<'list' | 'create' | { mode: 'edit', id: string }>('list')
-  const [donorSearchTerm, setDonorSearchTerm] = useState("")
+  const [donorSearchTerm] = useState("")
   const [donationSearchTerm, setDonationSearchTerm] = useState("")
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [showEditDonorModal, setShowEditDonorModal] = useState(false)
@@ -95,7 +97,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   const donorsTotalPages = Math.ceil(donorsTotalItems / donorsItemsPerPage);
   const { t } = useTranslation(['donations', 'common', 'expenses', 'members'])
 
-  const fetchDonors = async () => {
+  const fetchDonors = useCallback(async () => {
     setIsDonorsLoading(true);
     try {
       const data = await getDonors({
@@ -117,13 +119,13 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     } finally {
       setIsDonorsLoading(false);
     }
-  };
+  }, [donorsCurrentPage, donorsItemsPerPage, donorSearchTerm]);
 
   useEffect(() => {
     if (activeTab === 'donors') {
       fetchDonors();
     }
-  }, [activeTab, donorsCurrentPage, donorsItemsPerPage, donorSearchTerm]);
+  }, [activeTab, fetchDonors]);
 
   // Fetch payment methods for filter dropdown
   const fetchPaymentMethods = async () => {
@@ -147,7 +149,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     fetchPaymentMethods();
   }, []);
 
-  const fetchDonations = async () => {
+  const fetchDonations = useCallback(async () => {
     setIsLoading(true)
     const churchIdFromStorage = typeof window !== 'undefined' ? safeStorage.getItem("churchId") : null;
 
@@ -189,13 +191,13 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentPage, itemsPerPage, dateRange, selectedDonationTypes, selectedDonationMethods, selectedStatuses, debouncedSearchTerm, t]);
 
   useEffect(() => {
     if (activeTab === 'all-donations') {
       fetchDonations();
     }
-  }, [activeTab, currentPage, itemsPerPage, dateRange, selectedDonationTypes, selectedDonationMethods, selectedStatuses, debouncedSearchTerm]);
+  }, [activeTab, fetchDonations]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -1092,46 +1094,30 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
           {campaignsView === 'list' && (
             <>
               {/* List with inline actions */}
-              {/* eslint-disable-next-line @typescript-eslint/no-var-requires */}
-              {(() => {
-                const CampaignList = require('@/components/donations/campaigns/campaign-list').default;
-                return (
-                  <CampaignList
-                    onNew={() => setCampaignsView('create')}
-                    onEdit={(id: string) => setCampaignsView({ mode: 'edit', id })}
-                  />
-                );
-              })()}
+              <CampaignList
+                onNew={() => setCampaignsView('create')}
+                onEdit={(id: string) => setCampaignsView({ mode: 'edit', id })}
+              />
             </>
           )}
           {campaignsView === 'create' && (
             <div>
-              {(() => {
-                const CampaignForm = require('@/components/donations/campaigns/campaign-form').default;
-                return (
-                  <div className="space-y-4">
-                    <Button variant="ghost" size="icon" onClick={() => setCampaignsView('list')} className="h-8 w-8">
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <CampaignForm mode="create" onSuccess={() => setCampaignsView('list')} />
-                  </div>
-                );
-              })()}
+              <div className="space-y-4">
+                <Button variant="ghost" size="icon" onClick={() => setCampaignsView('list')} className="h-8 w-8">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <CampaignForm mode="create" onSuccess={() => setCampaignsView('list')} />
+              </div>
             </div>
           )}
           {typeof campaignsView === 'object' && campaignsView.mode === 'edit' && (
             <div>
-              {(() => {
-                const CampaignForm = require('@/components/donations/campaigns/campaign-form').default;
-                return (
-                  <div className="space-y-4">
-                    <Button variant="ghost" size="icon" onClick={() => setCampaignsView('list')} className="h-8 w-8">
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <CampaignForm mode="edit" campaignId={campaignsView.id} onSuccess={() => setCampaignsView('list')} />
-                  </div>
-                );
-              })()}
+              <div className="space-y-4">
+                <Button variant="ghost" size="icon" onClick={() => setCampaignsView('list')} className="h-8 w-8">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <CampaignForm mode="edit" campaignId={campaignsView.id} onSuccess={() => setCampaignsView('list')} />
+              </div>
             </div>
           )}
         </TabsContent>

@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval } from "date-fns"
+import { format, startOfMonth, endOfMonth, subMonths } from "date-fns"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { NewExpenseModal } from "@/components/modals/new-expense-modal"
 import { ExpenseDetailsDrawer } from "./expenses/expense-details-drawer"
@@ -58,7 +58,7 @@ export function ExpensesContent() {
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [userRole, setUserRole] = useState<"ADMIN" | "STAFF" | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const { t, i18n } = useTranslation(['expenses', 'donations', 'common', 'reports', 'settings'])
+  const { t } = useTranslation(['expenses', 'donations', 'common', 'reports', 'settings'])
   const { toast } = useToast()
 
   // Helper function to translate system category names

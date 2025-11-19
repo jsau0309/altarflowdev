@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       success: true,
       donorData: updatedDonor,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API] Error updating donor:', error);
 
     // Don't expose internal error details to client

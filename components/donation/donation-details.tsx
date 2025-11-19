@@ -23,7 +23,7 @@ interface DonationDetailsProps {
   churchSlug: string; // Keeping for potential future use
 }
 
-export default function DonationDetails({ formData, updateFormData, onNext, donationTypes, churchSlug }: DonationDetailsProps) { // Destructure donationTypes
+export default function DonationDetails({ formData, updateFormData, onNext, donationTypes }: DonationDetailsProps) { // Destructure donationTypes
   const [amount, setAmount] = useState<string>(formData.amount === 0 ? "" : (formData.amount?.toString() || ""));
   const { t } = useTranslation(['donations', 'common']);
   const [calculatedFee, setCalculatedFee] = useState<number>(0);

@@ -2,8 +2,6 @@
 
 import { useFormContext } from "react-hook-form"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { useTranslation } from "react-i18next"
 import type { MemberFormValues } from "./member-form"
