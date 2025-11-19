@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { prisma } from '@/lib/db';
-import { rateLimit } from '@/lib/rate-limit';
+import { rateLimitByIdentifier } from '@/lib/rate-limit';
 
 // SECURITY: Rate limit OTP verification to prevent brute force attacks
-// Allow 5 attempts per 5 minutes per phone number
-const otpCheckLimiter = rateLimit({
+// Allow 5 attempts per 5 minutes PER PHONE NUMBER (not per IP)
+const otpCheckLimiter = rateLimitByIdentifier({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 5, // 5 attempts
 });
@@ -35,11 +35,13 @@ export async function POST(request: NextRequest) {
     }
 
     // SECURITY: Apply rate limiting per phone number to prevent brute force
-    const rateLimitResult = await otpCheckLimiter(request);
+    // Normalize phone number to prevent bypasses via formatting variations
+    const normalizedPhone = phoneNumber.replace(/\D/g, ''); // Remove all non-digits
+    const rateLimitResult = await otpCheckLimiter(normalizedPhone);
     if (!rateLimitResult.success) {
       return NextResponse.json({
         success: false,
-        error: 'Too many verification attempts. Please try again later.',
+        error: 'Too many verification attempts for this phone number. Please try again later.',
         resetTime: rateLimitResult.resetTime
       }, { status: 429 });
     }

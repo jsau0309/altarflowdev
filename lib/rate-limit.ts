@@ -24,10 +24,130 @@ interface RateLimitConfig {
 export function rateLimit(config: RateLimitConfig = { windowMs: 60000, max: 10 }) {
   return async function checkRateLimit(req: NextRequest): Promise<{ success: boolean; remaining: number; resetTime?: number }> {
     // Get client identifier (IP or user ID)
-    const identifier = req.headers.get('x-forwarded-for') || 
-                      req.headers.get('x-real-ip') || 
+    const identifier = req.headers.get('x-forwarded-for') ||
+                      req.headers.get('x-real-ip') ||
                       'anonymous';
-    
+
+    const now = Date.now();
+
+    // Periodic cleanup to prevent memory leak
+    if (now - lastCleanup > CLEANUP_INTERVAL) {
+      let deletedCount = 0;
+      for (const [key, value] of rateLimitMap.entries()) {
+        // Remove entries that have been expired for more than TTL
+        if (value.resetTime + RATE_LIMIT_TTL < now) {
+          rateLimitMap.delete(key);
+          deletedCount++;
+        }
+      }
+
+      // Update cleanup statistics
+      cleanupStats.totalCleaned += deletedCount;
+      cleanupStats.lastCleanupTime = now;
+      cleanupStats.cleanupRuns++;
+
+      lastCleanup = now;
+
+      // If still too many entries, remove oldest ones
+      if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
+        cleanupStats.maxSizeReached++;
+        const entriesToDelete = rateLimitMap.size - MAX_RATE_LIMIT_ENTRIES;
+        const sortedEntries = Array.from(rateLimitMap.entries())
+          .sort((a, b) => a[1].resetTime - b[1].resetTime);
+
+        for (let i = 0; i < entriesToDelete; i++) {
+          rateLimitMap.delete(sortedEntries[i][0]);
+          deletedCount++;
+        }
+
+        Sentry.captureMessage(
+          `Rate limit map exceeded capacity. Removed ${entriesToDelete} oldest entries`,
+          {
+            level: 'warning',
+            extra: {
+              deletedCount,
+              mapSize: rateLimitMap.size,
+              maxSize: MAX_RATE_LIMIT_ENTRIES,
+              cleanupRun: cleanupStats.cleanupRuns,
+            },
+          }
+        );
+      } else if (deletedCount > 0) {
+        // Log cleanup metrics to Sentry breadcrumbs for debugging
+        Sentry.addBreadcrumb({
+          category: 'rate-limit',
+          message: `Cleanup: Removed ${deletedCount} expired entries`,
+          level: 'info',
+          data: {
+            cleanupRun: cleanupStats.cleanupRuns,
+            currentSize: rateLimitMap.size,
+            totalCleaned: cleanupStats.totalCleaned,
+          },
+        });
+      }
+    }
+
+    // Get or create rate limit entry
+    let entry = rateLimitMap.get(identifier);
+
+    if (!entry || entry.resetTime < now) {
+      // SECURITY: Prevent adding new entries if at capacity
+      // Reject instead of allowing to prevent bypass attacks
+      if (rateLimitMap.size >= MAX_RATE_LIMIT_ENTRIES && !rateLimitMap.has(identifier)) {
+        Sentry.captureMessage(
+          'Rate limit map at capacity - rejecting request',
+          {
+            level: 'error',
+            extra: {
+              identifier,
+              mapSize: MAX_RATE_LIMIT_ENTRIES,
+              utilizationPercent: 100,
+            },
+          }
+        );
+        // SECURITY FIX: Reject request instead of allowing bypass
+        // This prevents attackers from filling the map and bypassing rate limiting
+        return {
+          success: false,
+          remaining: 0,
+          resetTime: now + config.windowMs
+        };
+      }
+
+      entry = {
+        count: 0,
+        resetTime: now + config.windowMs
+      };
+      rateLimitMap.set(identifier, entry);
+    }
+
+    // Check rate limit
+    if (entry.count >= config.max) {
+      return {
+        success: false,
+        remaining: 0
+      };
+    }
+
+    // Increment counter
+    entry.count++;
+
+    return {
+      success: true,
+      remaining: config.max - entry.count
+    };
+  };
+}
+
+/**
+ * Rate limiter that accepts a custom identifier (e.g., phone number, user ID)
+ * Use this for resource-specific rate limiting instead of IP-based limiting
+ *
+ * @param config - Rate limit configuration (windowMs, max)
+ * @returns Function that accepts custom identifier and returns rate limit result
+ */
+export function rateLimitByIdentifier(config: RateLimitConfig = { windowMs: 60000, max: 10 }) {
+  return async function checkRateLimit(identifier: string): Promise<{ success: boolean; remaining: number; resetTime?: number }> {
     const now = Date.now();
     
     // Periodic cleanup to prevent memory leak
