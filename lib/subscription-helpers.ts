@@ -35,13 +35,3 @@ export function hasPaidSubscription(church: {
   
   return false;
 }
-
-/**
- * Get the email campaign quota limit based on subscription status
- */
-export function getQuotaLimit(church: {
-  subscriptionStatus: string;
-  subscriptionEndsAt: Date | string | null;
-}): number {
-  return hasPaidSubscription(church) ? 10000 : 4;
-}
