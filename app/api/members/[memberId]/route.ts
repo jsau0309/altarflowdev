@@ -186,16 +186,6 @@ export async function DELETE(
 
     // 2. Delete related records first (in a transaction)
     const deleteResult = await prisma.$transaction(async (tx) => {
-      // Delete related EmailRecipient records
-      await tx.emailRecipient.deleteMany({
-        where: { memberId }
-      });
-
-      // Delete related EmailPreference if exists
-      await tx.emailPreference.deleteMany({
-        where: { memberId }
-      });
-
       // Delete related Submission records
       await tx.submission.deleteMany({
         where: { memberId }

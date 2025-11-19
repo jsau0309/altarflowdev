@@ -48,14 +48,6 @@ export async function GET(request: NextRequest) {
           clerkOrgId: orgId // Use the Clerk Organization ID
         }
       },
-      include: {
-        EmailPreference: {
-          select: {
-            isSubscribed: true,
-            unsubscribedAt: true,
-          },
-        },
-      },
       orderBy: {
         joinDate: 'desc',
       },
