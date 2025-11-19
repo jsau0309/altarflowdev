@@ -274,14 +274,6 @@ const Sidebar = React.forwardRef<
         icon: Globe,
         isPremium: false,
       },
-      // HIDDEN: Communication tab - not used much, costs money to maintain
-      // Uncomment to re-enable or delete permanently if no longer needed
-      // {
-      //   name: t('layout:sidebar.communication', 'Communication'),
-      //   path: "/communication",
-      //   icon: Mail,
-      //   isPremium: false,
-      // },
       {
         name: t('layout:sidebar.settings', 'Settings'),
         path: "/settings",

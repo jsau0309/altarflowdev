@@ -90,13 +90,6 @@ export const TabbedFeatures = () => {
       screenshot: "/features/altarflow-members.png"
     },
     {
-      id: "communications",
-      icon: <Mail className="h-5 w-5" />,
-      title: "Communications",
-      description: "Send beautiful newsletters and announcements so your congregation never misses an important event, update, or opportunity to get involved.",
-      screenshot: "/features/altarflow-communication.png"
-    },
-    {
       id: "insights",
       icon: <Brain className="h-5 w-5" />,
       title: "AI Insights",
