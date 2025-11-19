@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import prisma from '@/lib/db'
 import { startOfDay, endOfDay, eachDayOfInterval, format } from 'date-fns'
+import { rateLimit } from '@/lib/rate-limit'
+
+// Rate limiter for financial reports (expensive query)
+const financialReportsLimiter = rateLimit({ windowMs: 60000, max: 10 }) // 10 requests per minute
 
 // Stripe fee rate constants - move to config later if rates change
 const STRIPE_CARD_FEE_RATE = 0.029 // 2.9%
@@ -22,6 +26,21 @@ export async function POST(request: NextRequest) {
     const { userId, orgId } = await auth()
     if (!userId || !orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // SECURITY: Apply rate limiting to prevent abuse
+    const rateLimitResult = await financialReportsLimiter(request)
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+            'X-RateLimit-Remaining': '0'
+          }
+        }
+      )
     }
 
     const body = await request.json()
