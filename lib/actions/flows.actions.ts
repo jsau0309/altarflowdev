@@ -257,6 +257,7 @@ export async function saveFlowConfiguration(
                     data: {
                         configJson: configToSave as unknown as Prisma.JsonObject,
                         name: flowName,
+                        updatedAt: new Date(),
                     },
                 });
                 console.log(`${flowType} configuration updated successfully for org ${orgId} (Flow ID: ${existingFlow.id})`);

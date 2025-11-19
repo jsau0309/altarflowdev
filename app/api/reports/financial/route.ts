@@ -181,11 +181,21 @@ export async function POST(request: NextRequest) {
     const previousActualFees = previousPayouts.reduce((sum, p) => sum + (p.totalFees || 0), 0)
 
     // Calculate REAL gross donations (what donors actually paid)
-    // This includes: donation amounts + fees covered by donors (Stripe + platform fees)
-    const currentDonationAmounts = currentDonations.reduce((sum, d) => sum + d.amount - (d.refundedAmount || 0), 0)
-    const currentFeesCovered = currentDonations.reduce((sum, d) => sum + (d.processingFeeCoveredByDonor || 0), 0)
-    const currentPlatformFees = currentDonations.reduce((sum, d) => sum + (d.platformFeeAmount || 0), 0)
-    const currentGross = currentDonationAmounts + currentFeesCovered + currentPlatformFees
+    // GROSS LOGIC:
+    // - If fees covered: amount + processingFeeCoveredByDonor + platformFeeAmount
+    // - If fees NOT covered: amount only (no platform fee added)
+    const currentGross = currentDonations.reduce((sum, d) => {
+      const netAmount = d.amount - (d.refundedAmount || 0)
+      const feesCovered = d.processingFeeCoveredByDonor || 0
+      const platformFee = d.platformFeeAmount || 0
+
+      // Only add platform fee if processing fees were covered
+      if (feesCovered > 0) {
+        return sum + netAmount + feesCovered + platformFee
+      } else {
+        return sum + netAmount
+      }
+    }, 0)
 
     // ALWAYS use actual fees from PayoutSummary - never estimate!
     // This ensures 100% accuracy from reconciliation data
@@ -199,11 +209,19 @@ export async function POST(request: NextRequest) {
     // Calculate net donations (gross - total fees)
     const currentNet = currentGross - currentTotalFees
     
-    // Calculate previous period summary
-    const prevDonationAmounts = previousDonations.reduce((sum, d) => sum + d.amount - (d.refundedAmount || 0), 0)
-    const prevFeesCovered = previousDonations.reduce((sum, d) => sum + (d.processingFeeCoveredByDonor || 0), 0)
-    const prevPlatformFees = previousDonations.reduce((sum, d) => sum + (d.platformFeeAmount || 0), 0)
-    const prevGross = prevDonationAmounts + prevFeesCovered + prevPlatformFees
+    // Calculate previous period summary with same GROSS logic
+    const prevGross = previousDonations.reduce((sum, d) => {
+      const netAmount = d.amount - (d.refundedAmount || 0)
+      const feesCovered = d.processingFeeCoveredByDonor || 0
+      const platformFee = d.platformFeeAmount || 0
+
+      // Only add platform fee if processing fees were covered
+      if (feesCovered > 0) {
+        return sum + netAmount + feesCovered + platformFee
+      } else {
+        return sum + netAmount
+      }
+    }, 0)
     const prevProcessingFees = previousActualFees // Fees from PayoutSummary
     const prevTotalFees = prevProcessingFees
     const prevNet = prevGross - prevTotalFees

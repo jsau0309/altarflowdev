@@ -846,10 +846,10 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger className="cursor-help">
-                                        {t('donations:fees', 'Fees')}
+                                        {t('donations:coveredFees', 'Covered Fees')}
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        {t('donations:processingFees', 'Processing fees')}
+                                        {t('donations:coveredFeesTooltip', 'Fees paid by the donor')}
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
@@ -930,33 +930,12 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                                       const platformFee = parseFloat(donation.platformFeeAmount || '0')
                                       const totalFees = processingFee + platformFee
 
-                                      // Manual payment methods (no Stripe fees)
-                                      const manualMethods = ['cash', 'check', 'zelle', 'venmo', 'bank_transfer', 'wire', 'other']
-                                      const isManual = manualMethods.includes(donation.paymentMethodType.toLowerCase())
-
-                                      // Check if it's a manual entry (has paymentMethodId) - these don't have Stripe fees
-                                      const isManualEntry = donation.paymentMethodId !== null && donation.paymentMethodId !== undefined
-
-                                      if (isManual || (isManualEntry && processingFee === 0)) {
-                                        // Manual donations or manual entries with no fees → $0.00
-                                        return <span className="text-muted-foreground">$0.00</span>
-                                      } else if (processingFee > 0) {
+                                      if (processingFee > 0) {
                                         // Donor covered fees - show actual amount (processing + platform)
                                         return <span className="text-green-600">${totalFees.toFixed(2)}</span>
                                       } else {
-                                        // Online donation but fees not covered - TBD
-                                        return (
-                                          <TooltipProvider>
-                                            <Tooltip>
-                                              <TooltipTrigger className="cursor-help text-amber-600">
-                                                TBD
-                                              </TooltipTrigger>
-                                              <TooltipContent>
-                                                {t('donations:feesToBeDetermined', 'To be determined')}
-                                              </TooltipContent>
-                                            </Tooltip>
-                                          </TooltipProvider>
-                                        )
+                                        // No fees covered (manual donations or digital donations without fee coverage)
+                                        return <span className="text-muted-foreground">$0.00</span>
                                       }
                                     })()}
                                   </TableCell>

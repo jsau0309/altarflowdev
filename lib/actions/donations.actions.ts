@@ -365,10 +365,12 @@ export async function getDonationTransactions({
       const netAmount = t.amount / 100
       const feesCovered = (t.processingFeeCoveredByDonor || 0) / 100
       const platformFee = (t.platformFeeAmount || 0) / 100
-      // Only add fees to amount if donor chose to cover them (processingFeeCoveredByDonor > 0)
+      // GROSS LOGIC:
+      // - If fees covered: amount + processingFeeCoveredByDonor + platformFeeAmount
+      // - If fees NOT covered: amount only (no platform fee added)
       const grossAmount = feesCovered > 0
-        ? netAmount + feesCovered + platformFee  // Fees covered: show what donor paid
-        : netAmount  // Fees NOT covered: show just donation amount
+        ? netAmount + feesCovered + platformFee  // Fees covered: add all fees
+        : netAmount  // Fees NOT covered: amount only, no platform fee
 
       return {
       id: t.id,

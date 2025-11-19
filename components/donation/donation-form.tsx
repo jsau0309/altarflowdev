@@ -259,7 +259,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
           currency: 'usd',
           coverFees: formData.coverFees,
           isAnonymous: false, // Verified donors are never anonymous
-          isInternational: false,
+          isInternational: formData.isInternational || false,
           donorId: donorData.id,
           // Use donor data directly from API response (not formData state)
           firstName: donorData.firstName || '',

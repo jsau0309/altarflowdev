@@ -62,17 +62,38 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
         const thisYearStart = startOfYear(now);
 
         // Use raw SQL for better performance - single query to get all donation data
+        // GROSS LOGIC: If fees covered, add all fees. If not covered, amount only (no platform fee).
         const donationStats = await prisma.$queryRaw<Array<{
           weekly_total: bigint;
           monthly_total: bigint;
           last_month_total: bigint;
           yearly_total: bigint;
         }>>`
-          SELECT 
-            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisWeekStart} THEN amount ELSE 0 END), 0) as weekly_total,
-            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisMonthStart} THEN amount ELSE 0 END), 0) as monthly_total,
-            COALESCE(SUM(CASE WHEN "transactionDate" >= ${lastMonthStart} AND "transactionDate" < ${thisMonthStart} THEN amount ELSE 0 END), 0) as last_month_total,
-            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisYearStart} THEN amount ELSE 0 END), 0) as yearly_total
+          SELECT
+            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisWeekStart} THEN
+              CASE WHEN "processingFeeCoveredByDonor" > 0
+                THEN amount + "processingFeeCoveredByDonor" + "platformFeeAmount"
+                ELSE amount
+              END
+            ELSE 0 END), 0) as weekly_total,
+            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisMonthStart} THEN
+              CASE WHEN "processingFeeCoveredByDonor" > 0
+                THEN amount + "processingFeeCoveredByDonor" + "platformFeeAmount"
+                ELSE amount
+              END
+            ELSE 0 END), 0) as monthly_total,
+            COALESCE(SUM(CASE WHEN "transactionDate" >= ${lastMonthStart} AND "transactionDate" < ${thisMonthStart} THEN
+              CASE WHEN "processingFeeCoveredByDonor" > 0
+                THEN amount + "processingFeeCoveredByDonor" + "platformFeeAmount"
+                ELSE amount
+              END
+            ELSE 0 END), 0) as last_month_total,
+            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisYearStart} THEN
+              CASE WHEN "processingFeeCoveredByDonor" > 0
+                THEN amount + "processingFeeCoveredByDonor" + "platformFeeAmount"
+                ELSE amount
+              END
+            ELSE 0 END), 0) as yearly_total
           FROM "DonationTransaction"
           WHERE "churchId" = ${church.id}::uuid
             AND status IN ('succeeded', 'succeeded\n')
