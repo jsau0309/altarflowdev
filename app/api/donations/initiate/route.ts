@@ -231,9 +231,9 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
-    // SECURITY: Don't allow donations to suspended churches
-    if (church.subscriptionStatus === 'suspended' || church.subscriptionStatus === 'cancelled') {
-      logger.warn('Donation attempted to suspended/cancelled church', {
+    // SECURITY: Don't allow donations to suspended or canceled churches
+    if (church.subscriptionStatus === 'suspended' || church.subscriptionStatus === 'canceled') {
+      logger.warn('Donation attempted to suspended/canceled church', {
         churchId: church.id,
         subscriptionStatus: church.subscriptionStatus
       });
