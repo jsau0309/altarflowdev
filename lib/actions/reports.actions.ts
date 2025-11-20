@@ -306,11 +306,20 @@ export async function getDonationSummary(
     })
 
     // Calculate GROSS total (what donors actually paid)
+    // GROSS LOGIC:
+    // - If fees covered: amount + processingFeeCoveredByDonor + platformFeeAmount
+    // - If fees NOT covered: amount only (no platform fee added)
     const total = donations.reduce((sum, d) => {
       const netAmount = parseFloat(d.amount.toString()) / 100
       const feesCovered = d.processingFeeCoveredByDonor ? parseFloat(d.processingFeeCoveredByDonor.toString()) / 100 : 0
       const platformFee = d.platformFeeAmount ? parseFloat(d.platformFeeAmount.toString()) / 100 : 0
-      return sum + netAmount + feesCovered + platformFee
+
+      // Only add platform fee if processing fees were covered
+      if (feesCovered > 0) {
+        return sum + netAmount + feesCovered + platformFee
+      } else {
+        return sum + netAmount
+      }
     }, 0)
     
     const uniqueDonors = new Set(donations.map(d => d.donorId).filter(Boolean)).size

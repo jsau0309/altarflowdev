@@ -58,14 +58,6 @@ export const SimpleFeatures = () => {
       color: "from-orange-500 to-orange-600"
     },
     {
-      id: "communications",
-      icon: <Mail className="h-6 w-6" />,
-      title: "Email Campaigns",
-      description: "Design beautiful newsletters with our visual editor, schedule messages, and track engagement metrics.",
-      screenshot: "/dashboard-screenshots/communications.png",
-      color: "from-pink-500 to-pink-600"
-    },
-    {
       id: "ai",
       icon: <Brain className="h-6 w-6" />,
       title: "AI Insights",

@@ -354,6 +354,7 @@ export default function DonationPayment({
       if (initializationRef.current) {
         initializationRef.current.abort();
         initializationRef.current = null;
+        hasInitiatedRef.current = false; // Reset on cleanup to allow re-initialization
       }
     };
   }, [initiateDonationPayment, propClientSecret, formData.donationTypeId, formData.amount, churchId]);

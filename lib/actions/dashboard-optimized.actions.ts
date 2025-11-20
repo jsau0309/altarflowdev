@@ -1,6 +1,7 @@
 "use server"
 
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { auth } from "@clerk/nextjs/server";
 import { startOfWeek, startOfMonth, startOfYear, subMonths, endOfWeek, endOfMonth, endOfYear } from "date-fns";
 import { unstable_cache, revalidateTag } from "next/cache";
@@ -62,31 +63,54 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
         const thisYearStart = startOfYear(now);
 
         // Use raw SQL for better performance - single query to get all donation data
+        // GROSS LOGIC: If fees covered, add all fees. If not covered, amount only (no platform fee).
+        // SECURITY: Using Prisma.sql for proper parameterization to prevent SQL injection
         const donationStats = await prisma.$queryRaw<Array<{
           weekly_total: bigint;
           monthly_total: bigint;
           last_month_total: bigint;
           yearly_total: bigint;
-        }>>`
-          SELECT 
-            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisWeekStart} THEN amount ELSE 0 END), 0) as weekly_total,
-            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisMonthStart} THEN amount ELSE 0 END), 0) as monthly_total,
-            COALESCE(SUM(CASE WHEN "transactionDate" >= ${lastMonthStart} AND "transactionDate" < ${thisMonthStart} THEN amount ELSE 0 END), 0) as last_month_total,
-            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisYearStart} THEN amount ELSE 0 END), 0) as yearly_total
+        }>>(Prisma.sql`
+          SELECT
+            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisWeekStart} THEN
+              CASE WHEN "processingFeeCoveredByDonor" > 0
+                THEN amount + "processingFeeCoveredByDonor" + "platformFeeAmount"
+                ELSE amount
+              END
+            ELSE 0 END), 0) as weekly_total,
+            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisMonthStart} THEN
+              CASE WHEN "processingFeeCoveredByDonor" > 0
+                THEN amount + "processingFeeCoveredByDonor" + "platformFeeAmount"
+                ELSE amount
+              END
+            ELSE 0 END), 0) as monthly_total,
+            COALESCE(SUM(CASE WHEN "transactionDate" >= ${lastMonthStart} AND "transactionDate" < ${thisMonthStart} THEN
+              CASE WHEN "processingFeeCoveredByDonor" > 0
+                THEN amount + "processingFeeCoveredByDonor" + "platformFeeAmount"
+                ELSE amount
+              END
+            ELSE 0 END), 0) as last_month_total,
+            COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisYearStart} THEN
+              CASE WHEN "processingFeeCoveredByDonor" > 0
+                THEN amount + "processingFeeCoveredByDonor" + "platformFeeAmount"
+                ELSE amount
+              END
+            ELSE 0 END), 0) as yearly_total
           FROM "DonationTransaction"
           WHERE "churchId" = ${church.id}::uuid
             AND status IN ('succeeded', 'succeeded\n')
             AND "transactionDate" >= ${thisYearStart}
-        `;
+        `);
 
         // Single query for expense data
+        // SECURITY: Using Prisma.sql for proper parameterization
         const expenseStats = await prisma.$queryRaw<Array<{
           weekly_total: number;
           monthly_total: number;
           last_month_total: number;
           yearly_total: number;
-        }>>`
-          SELECT 
+        }>>(Prisma.sql`
+          SELECT
             COALESCE(SUM(CASE WHEN "expenseDate" >= ${thisWeekStart} THEN amount ELSE 0 END), 0)::float as weekly_total,
             COALESCE(SUM(CASE WHEN "expenseDate" >= ${thisMonthStart} THEN amount ELSE 0 END), 0)::float as monthly_total,
             COALESCE(SUM(CASE WHEN "expenseDate" >= ${lastMonthStart} AND "expenseDate" < ${thisMonthStart} THEN amount ELSE 0 END), 0)::float as last_month_total,
@@ -95,19 +119,20 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
           WHERE "churchId" = ${church.id}::uuid
             AND status IN ('APPROVED', 'PENDING')
             AND "expenseDate" >= ${thisYearStart}
-        `;
+        `);
 
         // Single query for member stats (exclude visitors from active count)
+        // SECURITY: Using Prisma.sql for proper parameterization
         const memberStats = await prisma.$queryRaw<Array<{
           new_members: bigint;
           active_members: bigint;
-        }>>`
-          SELECT 
+        }>>(Prisma.sql`
+          SELECT
             COUNT(CASE WHEN "joinDate" >= ${thisMonthStart} AND "membershipStatus" = 'Member' THEN 1 END) as new_members,
             COUNT(CASE WHEN "membershipStatus" = 'Member' THEN 1 END) as active_members
           FROM "Member"
           WHERE "churchId" = ${church.id}::uuid
-        `;
+        `);
 
         // Get recent members (exclude visitors)
         const recentMembers = await prisma.member.findMany({
@@ -126,15 +151,29 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
           take: 5
         });
 
-        // Process results
-        const donationData = donationStats[0];
-        const expenseData = expenseStats[0];
-        const memberData = memberStats[0];
+        // Process results with safe defaults if queries return empty arrays
+        const donationData = donationStats[0] || {
+          weekly_total: BigInt(0),
+          monthly_total: BigInt(0),
+          last_month_total: BigInt(0),
+          yearly_total: BigInt(0)
+        };
+        const expenseData = expenseStats[0] || {
+          weekly_total: 0,
+          monthly_total: 0,
+          last_month_total: 0,
+          yearly_total: 0
+        };
+        const memberData = memberStats[0] || {
+          new_members: BigInt(0),
+          active_members: BigInt(0)
+        };
 
-        const weeklyDonations = Number(donationData.weekly_total) / 100;
-        const monthlyDonations = Number(donationData.monthly_total) / 100;
-        const lastMonthDonations = Number(donationData.last_month_total) / 100;
-        const yearlyDonations = Number(donationData.yearly_total) / 100;
+        // Convert BigInt to Number with proper precision (divide before converting to avoid precision loss)
+        const weeklyDonations = Number(donationData.weekly_total / BigInt(100));
+        const monthlyDonations = Number(donationData.monthly_total / BigInt(100));
+        const lastMonthDonations = Number(donationData.last_month_total / BigInt(100));
+        const yearlyDonations = Number(donationData.yearly_total / BigInt(100));
 
         const weeklyExpenses = expenseData.weekly_total;
         const monthlyExpenses = expenseData.monthly_total;

@@ -16,12 +16,9 @@ const serverEnvSchema = z.object({
   // Supabase
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
   
-  // Email Service
+  // Email Service (Transactional only - donation receipts, notifications)
   RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
   RESEND_FROM_EMAIL: z.string().min(1).default('AltarFlow <hello@altarflow.com>'),
-  RESEND_WEBHOOK_SECRET: z.string().optional(),
-  EMAIL_BOUNCE_THRESHOLD: z.string().transform(Number).pipe(z.number().min(1)).default('5'),
-  HARD_BOUNCE_UNSUBSCRIBE: z.string().transform(val => val === 'true').default('true'),
   
   // Payment Processing
   STRIPE_SECRET_KEY: z.string().min(1, "STRIPE_SECRET_KEY is required"),
@@ -80,7 +77,6 @@ const clientEnvSchema = z.object({
   
   // Third-party Services
   NEXT_PUBLIC_CRISP_WEBSITE_ID: z.string().optional(),
-  NEXT_PUBLIC_TOPOL_API_KEY: z.string().optional(),
 });
 
 /**

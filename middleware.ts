@@ -12,9 +12,6 @@ const isPublicRoute = createRouteMatcher([
   '/(.*)/nfc-landing(.*)',
   '/donate/(.*)',
   '/connect/(.*)',
-  '/unsubscribe(.*)',
-  '/api/communication/unsubscribe(.*)',
-  '/api/communication/resubscribe(.*)',
   '/',
   '/waitlist-full',
   '/book-demo',
@@ -43,7 +40,7 @@ function isLikelyChurchSlugRoute(pathname: string): boolean {
     'dashboard', 'settings', 'onboarding', 'signin', 'signup',
     'api', '_next', 'invitation-pending', 'after-signup',
     'waitlist-full', 'book-demo', 'privacy-policy', 'terms-of-service',
-    'unsubscribe', 'connect', 'donate'
+    'connect', 'donate'
   ];
 
   return segments.length === 1 && !reservedPaths.includes(segments[0]);

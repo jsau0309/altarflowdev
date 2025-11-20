@@ -11,6 +11,34 @@ import { DonationType } from "@prisma/client"; // Added import
 import * as Sentry from '@sentry/nextjs';
 import { trackUserInteraction } from '@/lib/sentry-ui';
 
+// Amount validation utility
+function validateDonationAmount(amount: number): { valid: boolean; error?: string; cents?: number } {
+  // Check if it's a finite number
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { valid: false, error: 'Invalid donation amount' };
+  }
+
+  // Minimum $0.50 (Stripe minimum)
+  if (amount < 0.50) {
+    return { valid: false, error: 'Amount must be at least $0.50' };
+  }
+
+  // Maximum $999,999.99 (reasonable limit)
+  if (amount > 999999.99) {
+    return { valid: false, error: 'Amount exceeds maximum limit of $999,999.99' };
+  }
+
+  // Convert to cents with safe rounding
+  const cents = Math.round(amount * 100);
+
+  // Verify conversion didn't create invalid value
+  if (cents < 50 || cents > 99999999) {
+    return { valid: false, error: 'Amount conversion error' };
+  }
+
+  return { valid: true, cents };
+}
+
 // Serialized version for client components (goalAmount as string)
 type SerializedDonationType = Omit<DonationType, 'goalAmount'> & {
   goalAmount: string | null;
@@ -255,11 +283,17 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
           idempotencyKey: uniqueIdempotencyKey,
           churchId: churchId,
           donationTypeId: formData.donationTypeId,
-          baseAmount: Math.round((formData.amount || 0) * 100), // Convert to cents
+          baseAmount: (() => {
+            const validation = validateDonationAmount(formData.amount || 0);
+            if (!validation.valid) {
+              throw new Error(validation.error || 'Invalid amount');
+            }
+            return validation.cents!;
+          })(),
           currency: 'usd',
           coverFees: formData.coverFees,
           isAnonymous: false, // Verified donors are never anonymous
-          isInternational: false,
+          isInternational: formData.isInternational || false,
           donorId: donorData.id,
           // Use donor data directly from API response (not formData state)
           firstName: donorData.firstName || '',

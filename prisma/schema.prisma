@@ -43,9 +43,6 @@ model Church {
   DonationPaymentMethod   DonationPaymentMethod[]
   Donor                   Donor[]
   ExpenseCategory         ExpenseCategory[]
-  EmailCampaign           EmailCampaign[]
-  EmailQuota           EmailQuota[]
-  EmailSettings        EmailSettings?
   Event                Event[]
   Expense              Expense[]
   Flow                 Flow[]
@@ -205,109 +202,6 @@ model ExpenseCategory {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model EmailCampaign {
-  id                String           @id @default(cuid())
-  churchId          String           @db.Uuid
-  subject           String
-  previewText       String?
-  contentJson       Json
-  htmlContent       String?
-  status            EmailStatus      @default(DRAFT)
-  scheduledFor      DateTime?
-  sentAt            DateTime?
-  sentBy            String
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime
-  totalRecipients   Int              @default(0)
-  sentCount         Int              @default(0)
-  deliveredCount    Int              @default(0)
-  bouncedCount      Int              @default(0)
-  unsubscribedCount Int              @default(0)
-  Church            Church           @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  EmailRecipient    EmailRecipient[]
-
-  @@index([churchId, createdAt])
-  @@index([churchId])
-  @@index([scheduledFor])
-  @@index([status])
-  @@index([churchId, status], map: "idx_campaigns_church_status")
-  @@index([churchId, status], map: "idx_email_campaign_church_status")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model EmailPreference {
-  id               String    @id @default(cuid())
-  memberId         String    @unique @db.Uuid
-  email            String
-  isSubscribed     Boolean   @default(true)
-  unsubscribedAt   DateTime?
-  unsubscribeToken String    @unique
-  bounceCount      Int       @default(0)
-  lastBouncedAt    DateTime?
-  isEmailValid     Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime
-  Member           Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
-
-  @@index([unsubscribeToken])
-  @@index([memberId], map: "idx_email_prefs_member")
-  @@index([memberId], map: "idx_email_preference_member")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model EmailQuota {
-  id         String   @id @default(cuid())
-  churchId   String   @db.Uuid
-  monthYear  String
-  emailsSent Int      @default(0)
-  quotaLimit Int      @default(4)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime
-  Church     Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
-
-  @@unique([churchId, monthYear])
-  @@index([churchId], map: "idx_email_quota_church")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model EmailRecipient {
-  id             String          @id @default(cuid())
-  campaignId     String
-  memberId       String          @db.Uuid
-  email          String
-  status         RecipientStatus @default(PENDING)
-  sentAt         DateTime?
-  deliveredAt    DateTime?
-  bouncedAt      DateTime?
-  bounceReason   String?
-  unsubscribedAt DateTime?
-  resendEmailId  String?
-  failureReason  String?
-  EmailCampaign  EmailCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  Member         Member          @relation(fields: [memberId], references: [id])
-
-  @@unique([campaignId, memberId])
-  @@index([memberId])
-  @@index([campaignId, status], map: "idx_email_recipients_campaign_status")
-  @@index([campaignId, email], map: "idx_email_recipient_campaign_email")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model EmailSettings {
-  id            String   @id @default(cuid())
-  churchId      String   @unique @db.Uuid
-  timezone      String   @default("America/New_York")
-  footerAddress String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime
-  replyToEmail  String?
-  senderName    String?
-  Church        Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
-
-  @@index([churchId], map: "idx_email_settings_church")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Expense {
   id                                   String           @id @default(cuid())
   amount                               Decimal          @db.Decimal(10, 2)
@@ -382,8 +276,6 @@ model Member {
   ministry_interests         String[]          @default([])
   preferred_service_times    String[]          @default([])
   Donor                      Donor[]
-  EmailPreference            EmailPreference?
-  EmailRecipient             EmailRecipient[]
   Church                     Church            @relation(fields: [churchId], references: [id])
   Submission                 Submission[]
 
@@ -544,14 +436,6 @@ enum BackgroundType {
   IMAGE
 }
 
-enum EmailStatus {
-  DRAFT
-  SCHEDULED
-  SENDING
-  SENT
-  FAILED
-}
-
 enum ExpenseStatus {
   PENDING
   APPROVED
@@ -568,15 +452,6 @@ enum MembershipStatus {
   Visitor
   Member
   Inactive
-}
-
-enum RecipientStatus {
-  PENDING
-  SENT
-  DELIVERED
-  BOUNCED
-  UNSUBSCRIBED
-  FAILED
 }
 
 enum Role {
