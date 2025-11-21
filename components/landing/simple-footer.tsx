@@ -24,7 +24,7 @@ export const AltarflowFooter = () => {
 
         <div className="flex flex-col md:flex-row items-start justify-between gap-4 md:gap-10 px-2 md:px-8 flex-1">
           <div className="flex flex-col items-start gap-2 w-full md:w-auto">
-            <Link href="/" className="flex flex-row gap-1 items-center justify-start">
+            <Link href="/signin" className="flex flex-row gap-1 items-center justify-start">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/altarflow-logo.svg" alt="Altarflow" className="w-[191px] h-[45px]" />
             </Link>
@@ -46,9 +46,6 @@ export const AltarflowFooter = () => {
                 <div className="flex flex-col gap-3">
                   <Link className="text-gray-600 hover:text-[#3B82F6] transition-colors" href="#features">
                     {t('footer.product.features')}
-                  </Link>
-                  <Link className="text-gray-600 hover:text-[#3B82F6] transition-colors" href="/book-demo">
-                    {t('footer.product.demo')}
                   </Link>
                   <Link className="pointer-events-none text-gray-400 flex items-center" href="#">
                     {t('footer.product.pricing')}{" "}
@@ -131,12 +128,6 @@ export const AltarflowFooter = () => {
                   href="#features"
                 >
                   {t('footer.product.features')}
-                </Link>
-                <Link
-                  className="text-gray-500 whitespace-nowrap font-medium hover:text-[#3B82F6] transition-colors"
-                  href="/book-demo"
-                >
-                  {t('footer.product.demo')}
                 </Link>
                 <Link className="pointer-events-none text-gray-400 whitespace-nowrap font-medium" href="#">
                   {t('footer.product.pricing')}{" "}

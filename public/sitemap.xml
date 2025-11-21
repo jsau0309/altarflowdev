@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-  <!-- Homepage - Your main landing page -->
+  <!-- Legal Pages -->
   <url>
-    <loc>https://altarflow.com/</loc>
-    <lastmod>2025-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <loc>https://altarflow.com/privacy-policy</loc>
+    <lastmod>2025-11-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
 
-  <!-- Note: /signin, /signup, /waitlist-full, and /dashboard should NOT be in sitemap -->
-  <!-- These are functional pages, not SEO pages -->
+  <url>
+    <loc>https://altarflow.com/terms-of-service</loc>
+    <lastmod>2025-11-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Note: Application pages (/signin, /dashboard, etc.) should NOT be in sitemap -->
+  <!-- Church subdomains are dynamically generated and not included here -->
 
 </urlset>

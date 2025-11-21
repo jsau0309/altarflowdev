@@ -18,28 +18,18 @@ import { StructuredData } from '@/components/seo/structured-data'
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com'),
   title: {
-    default: 'AltarFlow - Modern Church Management Software',
+    default: 'AltarFlow - Church Management Platform',
     template: '%s | AltarFlow'
   },
-  description: 'Streamline your church operations with AltarFlow. Complete bilingual church management platform to manage donations, track expenses, organize members, and send communications - all in one powerful platform. Try free for 30 days.',
+  description: 'Bilingual church management platform for managing donations, expenses, members, and communications.',
   keywords: [
     'church management software',
-    'church administration software', 
-    'donation tracking system',
-    'church expense management',
-    'church member database',
-    'church email campaigns',
+    'donation tracking',
+    'church administration',
+    'expense management',
+    'member management',
     'software para iglesias',
-    'gestión de iglesias',
-    'administración de iglesias',
-    'donaciones iglesia',
-    'bilingual church software',
-    'bilingual church management',
-    'church CRM',
-    'church accounting software',
-    'online church donations',
-    'church communication platform',
-    'ministry management software'
+    'gestión de iglesias'
   ],
   authors: [{ name: 'AltarFlow Team' }],
   creator: 'AltarFlow',
@@ -72,55 +62,9 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/site.webmanifest',
-  alternates: {
-    canonical: 'https://altarflow.com',
-    languages: {
-      'en-US': 'https://altarflow.com',
-      'es-US': 'https://altarflow.com/es',
-    },
-  },
-  openGraph: {
-    title: 'AltarFlow - Modern Church Management Software',
-    description: 'Streamline your church operations with AltarFlow. Complete bilingual church management platform with donation tracking, expense management, member database, and email campaigns. Built for churches of all sizes and languages.',
-    url: 'https://altarflow.com',
-    siteName: 'AltarFlow',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'AltarFlow - Church Management Platform',
-      }
-    ],
-    locale: 'en_US',
-    alternateLocale: 'es_US',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'AltarFlow - Church Management Software',
-    description: 'Complete bilingual church management platform. Manage donations, expenses, members & communications all in one place.',
-    site: '@altarflow',
-    creator: '@altarflow',
-    images: ['/og-image.png'],
-  },
   robots: {
-    index: true,
-    follow: true,
-    nocache: false,
-    googleBot: {
-      index: true,
-      follow: true,
-      noimageindex: false,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-  verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
-    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
-    yahoo: process.env.NEXT_PUBLIC_YAHOO_VERIFICATION,
+    index: false,
+    follow: false,
   },
 }
 

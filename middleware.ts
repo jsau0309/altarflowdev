@@ -59,16 +59,52 @@ const isInvitationRoute = createRouteMatcher([
 
 
 export default clerkMiddleware(async (auth, req) => {
+  // Extract subdomain from hostname
+  const hostname = req.headers.get('host') || '';
+  const subdomain = hostname.split('.')[0];
+
+  // Reserved subdomains that should not be treated as church slugs
+  const reservedSubdomains = ['www', 'app', 'api', 'admin', 'mail', 'ftp', 'localhost'];
+
+  // Check if this is a church subdomain (e.g., churchslug.altarflow.com)
+  const isChurchSubdomain = subdomain &&
+    !reservedSubdomains.includes(subdomain) &&
+    hostname.includes('.') && // Has a dot (is a subdomain)
+    !hostname.startsWith('localhost'); // Not localhost
+
+  // Handle subdomain routing - rewrite to internal slug-based routes
+  if (isChurchSubdomain) {
+    const path = req.nextUrl.pathname;
+
+    // Rewrite churchslug.altarflow.com/ to /[churchSlug]
+    if (path === '/') {
+      const url = req.nextUrl.clone();
+      url.pathname = `/${subdomain}`;
+      return NextResponse.rewrite(url);
+    }
+
+    // Rewrite churchslug.altarflow.com/donate to /donate/[churchSlug]
+    if (path === '/donate') {
+      const url = req.nextUrl.clone();
+      url.pathname = `/donate/${subdomain}`;
+      return NextResponse.rewrite(url);
+    }
+
+    // Rewrite other church subdomain paths (e.g., /nfc-landing, /connect)
+    // Keep path as-is but track that this is a church subdomain context
+    // The page components will handle extracting the subdomain when needed
+  }
+
   // Check for signup page access without invitation
   if (req.nextUrl.pathname === '/signup') {
     const hasInvitation = req.nextUrl.searchParams.has('__clerk_ticket');
-    
+
     // If no invitation ticket, redirect to waitlist
     if (!hasInvitation) {
       return NextResponse.redirect(new URL('/waitlist-full', req.url));
     }
   }
-  
+
   // Skip checks for public routes
   if (isPublicRoute(req)) {
     return NextResponse.next()
