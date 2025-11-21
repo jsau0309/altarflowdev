@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 // GET /api/public/landing-config/[slug] - Get public landing page configuration
 export async function GET(
@@ -107,7 +108,7 @@ export async function GET(
     });
   } catch (error) {
     const { slug } = await params;
-    console.error(`[GET /api/public/landing-config/${slug}] Error:`, error);
+    logger.error('[GET /api/public/landing-config/${slug}] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

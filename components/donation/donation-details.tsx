@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import type React from "react"
 
@@ -38,7 +39,7 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
     e.preventDefault();
     // Double-check conditions, though button should be disabled
     if (!canProceed) {
-      console.warn('Attempted to submit with invalid form data. Fund/Campaign selected:', isFundOrCampaignSelected, 'Amount valid:', isAmountValid);
+      logger.warn('Attempted to submit with invalid form data', { operation: 'ui.donation.validation_failed', isFundOrCampaignSelected, isAmountValid });
       return;
     }
     updateFormData({ amount: Number.parseFloat(amount) || 0 });

@@ -6,6 +6,7 @@ import { auth } from '@clerk/nextjs/server';
 import { FormConfiguration, defaultServiceTimes, defaultMinistries, defaultSettings } from "@/components/member-form/types"; // Import types and defaults
 import { Prisma } from '@prisma/client'; // Import Prisma namespace
 import { FlowType } from '@prisma/client'; // Import FlowType from Prisma namespace
+import { logger } from '@/lib/logger';
 
 /**
  * Fetches the church profile associated with the currently authenticated user's active organization.
@@ -16,11 +17,11 @@ export async function getAuthenticatedChurchProfile() {
     const { userId, orgId } = await auth();
 
     if (!userId) {
-        console.error("getAuthenticatedChurchProfile Auth Error: No Clerk userId found.");
+        logger.error('getAuthenticatedChurchProfile Auth Error: No Clerk userId found.', { operation: 'actions.error' });
         throw new Error("Unauthorized"); // Throw error for server component/action handler
     }
     if (!orgId) {
-        console.error(`User ${userId} has no active organization selected.`);
+        logger.error('User ${userId} has no active organization selected.', { operation: 'actions.error' });
         // Depending on usage, might return null or throw specific error
         throw new Error("No active organization selected.");
     }
@@ -44,7 +45,7 @@ export async function getAuthenticatedChurchProfile() {
     });
 
     if (!church) {
-        console.error(`Church not found for clerkOrgId: ${orgId}`);
+        logger.error('Church not found for clerkOrgId: ${orgId}', { operation: 'actions.error' });
         // Indicates potential sync issue or org selected that doesn't exist locally
         throw new Error("Associated church record not found for the active organization.");
     }

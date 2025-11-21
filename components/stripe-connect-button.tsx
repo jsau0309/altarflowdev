@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -191,7 +192,11 @@ export function StripeConnectButton({
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.error('[StripeConnectButton] Error polling account status:', response.status, errorData);
+          logger.error('[StripeConnectButton] Error polling account status', {
+            operation: 'ui.stripe.poll_error',
+            status: response.status,
+            errorData
+          });
           // Don't toast on every poll failure, could be noisy
           return;
         }
@@ -214,7 +219,7 @@ export function StripeConnectButton({
           }
         }
       } catch (error) {
-        console.error('[StripeConnectButton] Exception during polling:', error);
+        logger.error('[StripeConnectButton] Exception during polling:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       }
     };
 
@@ -237,7 +242,7 @@ export function StripeConnectButton({
       const account = currentAccount || accountData;
 
       if (!buttonConfig || !buttonConfig.actionType) {
-        console.error('[StripeConnectButton] CRITICAL: buttonConfig or buttonConfig.actionType is undefined!');
+        logger.error('[StripeConnectButton] CRITICAL: buttonConfig or buttonConfig.actionType is undefined!', { operation: 'ui.error' });
         toast.error('Internal error: Button configuration is missing.');
         setIsLoading(false);
         return;
@@ -291,11 +296,11 @@ export function StripeConnectButton({
       if (url) {
         window.open(url, '_blank');
       } else {
-        console.error('[StripeConnectButton] URL missing or invalid in response!', responseData);
+        logger.error('[StripeConnectButton] URL missing or invalid in response!', { operation: 'ui.error' }, responseData instanceof Error ? responseData : new Error(String(responseData)));
         toast.error('Failed to get a valid link from Stripe. Please try again.');
       }
     } catch (error) {
-      console.error('Stripe action failed:', error);
+      logger.error('Stripe action failed:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);

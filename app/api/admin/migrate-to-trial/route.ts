@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // This is a temporary endpoint for testing purposes
 // In production, this would be a proper migration script
@@ -55,7 +56,7 @@ export async function POST() {
       });
     }
   } catch (error) {
-    console.error("[POST /api/admin/migrate-to-trial] Error:", error);
+    logger.error('[POST /api/admin/migrate-to-trial] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

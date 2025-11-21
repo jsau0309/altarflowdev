@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { Church, DonationType } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 // Serialized version of DonationType for Client Components
 type SerializedDonationType = Omit<DonationType, 'goalAmount'> & {
@@ -61,7 +62,7 @@ export async function getChurchBySlug(slug: string): Promise<ChurchData | null> 
 
     return { church, donationTypes: serializedDonationTypes };
   } catch (error) {
-    console.error(`Error fetching church by slug "${slug}":`, error);
+    logger.error('Error fetching church by slug "${slug}":', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     // Optionally, rethrow or handle more gracefully
     return null; 
   }
@@ -74,7 +75,7 @@ export async function getChurchById(id: string): Promise<Church | null> {
     });
     return church;
   } catch (error) {
-    console.error(`Error fetching church by ID "${id}":`, error);
+    logger.error('Error fetching church by ID "${id}":', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -86,7 +87,7 @@ export async function getChurchByClerkOrgId(clerkOrgId: string): Promise<Church 
     });
     return church;
   } catch (error) {
-    console.error(`Error fetching church by Clerk Org ID "${clerkOrgId}":`, error);
+    logger.error('Error fetching church by Clerk Org ID "${clerkOrgId}":', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import type Stripe from "stripe";
 import type { Prisma } from "@prisma/client";
+import { logger } from '@/lib/logger';
+import { executeCronJob, verifyCronAuth } from '@/lib/sentry-cron';
 
 // Stripe statuses that indicate the payment was abandoned or cannot be completed
 const INCOMPLETE_STATUSES = new Set([
@@ -16,25 +17,24 @@ const INCOMPLETE_STATUSES = new Set([
   "requires_source",    // Legacy: requires source
 ]);
 
+// This cron job runs weekly to cleanup stale pending donations
+// Schedule: Every Sunday at 3:00 AM UTC (0 3 * * 0)
 export async function GET() {
-  try {
-    const headersList = await headers();
-    const authHeader = headersList.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
+  // Verify cron authentication
+  const authError = await verifyCronAuth();
+  if (authError) return authError;
 
-    if (!cronSecret && process.env.NODE_ENV === "production") {
-      console.error("[Cleanup Pending Donations] CRON_SECRET is not configured in production!");
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-    }
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+  // Execute cron job with Sentry monitoring
+  return executeCronJob({
+    monitorSlug: 'cleanup-pending-donations',
+    schedule: '0 3 * * 0',
+    maxRuntimeMinutes: 10,
+  }, async () => {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    console.log(
-      `[Cleanup Pending Donations] Starting cleanup for transactions created before ${sevenDaysAgo.toISOString()}`
-    );
+    logger.info('Starting cleanup for pending donations', {
+      operation: 'cron.cleanup_pending_donations.start',
+      cutoffDate: sevenDaysAgo.toISOString()
+    });
 
     const staleTransactions = await prisma.donationTransaction.findMany({
       where: {
@@ -79,9 +79,12 @@ export async function GET() {
         }
 
         if (!targetStatus) {
-          console.log(
-            `[Cleanup Pending Donations] Skipping transaction ${transaction.id}. PaymentIntent ${paymentIntentId} is in status ${stripeStatus}.`
-          );
+          logger.debug('Skipping transaction - no target status mapping', {
+            operation: 'cron.cleanup_pending_donations.skip',
+            transactionId: transaction.id,
+            paymentIntentId,
+            stripeStatus
+          });
           continue;
         }
 
@@ -116,17 +119,22 @@ export async function GET() {
           canceledCount += 1;
         }
 
-        console.log(
-          `[Cleanup Pending Donations] Updated transaction ${transaction.id} to ${targetStatus} (PaymentIntent ${paymentIntentId}).`
-        );
+        logger.info('Updated transaction status', {
+          operation: 'cron.cleanup_pending_donations.update',
+          transactionId: transaction.id,
+          targetStatus,
+          paymentIntentId
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         const stripeError = error as { code?: string };
 
         if (stripeError?.code === "resource_missing") {
-          console.warn(
-            `[Cleanup Pending Donations] PaymentIntent ${paymentIntentId} not found. Marking transaction ${transaction.id} as canceled.`
-          );
+          logger.warn('PaymentIntent not found - marking transaction as canceled', {
+            operation: 'cron.cleanup_pending_donations.missing_intent',
+            paymentIntentId,
+            transactionId: transaction.id
+          });
 
           try {
             await prisma.donationTransaction.update({
@@ -142,10 +150,11 @@ export async function GET() {
             continue;
           } catch (dbError) {
             const dbMessage = dbError instanceof Error ? dbError.message : "Unknown error";
-            console.error(
-              `[Cleanup Pending Donations] Failed to mark transaction ${transaction.id} as canceled after missing PaymentIntent ${paymentIntentId}:`,
-              dbError
-            );
+            logger.error('Failed to mark transaction as canceled after missing PaymentIntent', {
+              operation: 'cron.cleanup_pending_donations.cancel_error',
+              transactionId: transaction.id,
+              paymentIntentId
+            }, dbError instanceof Error ? dbError : new Error(String(dbError)));
             errors.push({
               id: transaction.id,
               paymentIntentId,
@@ -155,17 +164,22 @@ export async function GET() {
           }
         }
 
-        console.error(
-          `[Cleanup Pending Donations] Error updating transaction ${transaction.id} with PaymentIntent ${paymentIntentId}:`,
-          error
-        );
+        logger.error('Error updating transaction', {
+          operation: 'cron.cleanup_pending_donations.update_error',
+          transactionId: transaction.id,
+          paymentIntentId
+        }, error instanceof Error ? error : new Error(String(error)));
         errors.push({ id: transaction.id, paymentIntentId, error: message });
       }
     }
 
-    console.log(
-      `[Cleanup Pending Donations] Completed cleanup. Checked ${staleTransactions.length} transactions, updated ${updatedCount}, canceled ${canceledCount}. Errors: ${errors.length}`
-    );
+    logger.info('Completed cleanup for pending donations', {
+      operation: 'cron.cleanup_pending_donations.complete',
+      checked: staleTransactions.length,
+      updated: updatedCount,
+      canceled: canceledCount,
+      errors: errors.length
+    });
 
     return NextResponse.json({
       success: true,
@@ -174,11 +188,5 @@ export async function GET() {
       canceled: canceledCount,
       errors,
     });
-  } catch (error) {
-    console.error("[Cleanup Pending Donations] Unexpected error:", error);
-    return NextResponse.json(
-      { error: "Failed to cleanup pending donations" },
-      { status: 500 }
-    );
-  }
+  });
 }

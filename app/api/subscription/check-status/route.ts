@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 /**
  * This endpoint can be called by a cron job to check and update subscription statuses
@@ -29,7 +30,7 @@ export async function POST() {
           subscriptionStatus: 'grace_period'
         }
       });
-      console.log(`[Subscription Check] Church ${church.id} moved from canceled to grace_period`);
+      logger.info('[Subscription Check] Church ${church.id} moved from canceled to grace_period', { operation: 'api.info' });
     }
     
     // Find all grace_period subscriptions that have exceeded 2 days
@@ -52,7 +53,7 @@ export async function POST() {
           subscriptionEndsAt: null
         }
       });
-      console.log(`[Subscription Check] Church ${church.id} moved from grace_period to free`);
+      logger.info('[Subscription Check] Church ${church.id} moved from grace_period to free', { operation: 'api.info' });
     }
     
     return NextResponse.json({
@@ -64,7 +65,7 @@ export async function POST() {
     });
     
   } catch (error) {
-    console.error("[POST /api/subscription/check-status] Error:", error);
+    logger.error('[POST /api/subscription/check-status] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime (required for Prisma)
 // Edge runtime cannot run Prisma due to file system requirements
@@ -14,7 +15,7 @@ function validateLogoUrl(url: string | null | undefined): string | null {
     const parsed = new URL(url);
     // Only allow http/https protocols (prevent javascript:, data:, etc.)
     if (!['http:', 'https:'].includes(parsed.protocol)) {
-      console.warn('[OG Image] Invalid protocol in logo URL:', parsed.protocol);
+      logger.warn('Invalid protocol in logo URL', { operation: 'api.og.invalid_protocol', protocol: parsed.protocol, url });
       return null;
     }
     // Verify it's likely an image by checking common image extensions
@@ -24,13 +25,13 @@ function validateLogoUrl(url: string | null | undefined): string | null {
 
     if (!hasValidExtension && !pathname.includes('/')) {
       // If no extension and not a path, might be invalid
-      console.warn('[OG Image] URL does not appear to be an image:', url);
+      logger.warn('URL does not appear to be an image', { operation: 'api.og.invalid_image_url', url, pathname });
       return null;
     }
 
     return url;
   } catch (error) {
-    console.error('[OG Image] Invalid logo URL:', url, error);
+    logger.error('[OG Image] Invalid logo URL', { operation: 'api.og.invalid_logo_url', url }, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -144,7 +145,7 @@ export async function GET(
       }
     );
   } catch (error) {
-    console.error('[OG Image Generation Error]:', error);
+    logger.error('[OG Image Generation Error]:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return new Response('Failed to generate image', { status: 500 });
   }
 }

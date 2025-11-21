@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from '@google/genai';
+import { logger } from '@/lib/logger';
 import { captureLLMEvent } from '@/lib/posthog/server';
 
 export interface ExtractedReceiptData {
@@ -203,7 +204,8 @@ export async function processReceiptWithGemini({
         confidence: normalizeConfidence(rawResult.confidence),
       };
 
-      console.debug('[Gemini OCR] Extraction success', {
+      logger.debug('Gemini OCR extraction success', {
+        operation: 'ai.gemini.ocr_success',
         attempt,
         vendor: normalized.vendor,
         total: normalized.total,
@@ -251,7 +253,7 @@ export async function processReceiptWithGemini({
     } catch (error) {
       lastError = error;
 
-      console.error('[Gemini OCR] Attempt failed', {
+      logger.warn('Gemini OCR attempt failed', { operation: 'ai.gemini.attempt_failed', 
         attempt,
         error: error instanceof Error ? error.message : error,
       });
@@ -263,9 +265,10 @@ export async function processReceiptWithGemini({
     }
   }
 
-  console.error('[Gemini OCR] All attempts failed. Falling back to manual entry.', {
-    error: lastError instanceof Error ? lastError.message : lastError,
-  });
+  logger.error('Gemini OCR all attempts failed - falling back to manual entry', {
+    operation: 'ai.gemini.ocr_all_failed',
+    maxRetries: MAX_RETRIES
+  }, lastError instanceof Error ? lastError : new Error(String(lastError)));
 
   throw new Error(
     lastError instanceof Error

@@ -9,6 +9,7 @@ import {
 import { prisma } from '@/lib/db'; // Use named import
 import { Role } from '@prisma/client'; // Import the Role enum
 import type { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
 
@@ -27,11 +28,7 @@ export async function POST(req: Request) {
 
   // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
-    console.error('Missing webhook headers:', {
-      has_svix_id: !!svix_id,
-      has_svix_timestamp: !!svix_timestamp,
-      has_svix_signature: !!svix_signature
-    });
+    logger.error('Missing webhook headers', { operation: 'webhook.clerk.missing_headers', has_svix_id: !!svix_id, has_svix_timestamp: !!svix_timestamp, has_svix_signature: !!svix_signature });
     return new Response('Error occurred -- no svix headers', {
       status: 400
     })
@@ -54,14 +51,8 @@ export async function POST(req: Request) {
       "svix-signature": svix_signature,
     }) as WebhookEvent
   } catch (err) {
-    console.error('Error verifying webhook:', err);
-    console.error('Webhook verification details:', {
-      webhook_secret_length: WEBHOOK_SECRET.length,
-      webhook_secret_prefix: WEBHOOK_SECRET.substring(0, 10),
-      svix_id: svix_id,
-      svix_timestamp: svix_timestamp,
-      signature_length: svix_signature?.length
-    });
+    logger.error('Error verifying webhook', { operation: 'webhook.clerk.verification_error' }, err instanceof Error ? err : new Error(String(err)));
+    logger.error('Webhook verification details', { operation: 'webhook.clerk.verification_details', webhook_secret_length: WEBHOOK_SECRET.length, webhook_secret_prefix: WEBHOOK_SECRET.substring(0, 10), svix_id, svix_timestamp, signature_length: svix_signature?.length });
     return new Response('Error occurred -- verifying webhook', {
       status: 400
     })
@@ -70,13 +61,13 @@ export async function POST(req: Request) {
   // Get the ID and type
   const eventType = evt.type;
 
-  console.log(`Webhook received: ${eventType}`)
+  logger.info('Webhook received', { operation: 'webhook.clerk.received', eventType });
 
   // --- Handle specific events --- 
 
   if (eventType === 'user.created') {
     const { id, first_name, last_name } = evt.data;
-    console.log(`Processing user.created for user ID: ${id}`);
+    logger.info('Processing user.created event', { operation: 'webhook.clerk.user_created', userId: id });
     try {
       // Use upsert to handle duplicate webhook calls gracefully
       await prisma.profile.upsert({
@@ -98,9 +89,9 @@ export async function POST(req: Request) {
           // Don't update role or onboardingComplete to preserve existing values
         }
       });
-      console.log(`Successfully created/updated profile for user ${id}`);
+      logger.info('Successfully created/updated profile', { operation: 'webhook.clerk.profile_upserted', userId: id });
     } catch (error) {
-      console.error(`Error creating/updating profile for user ${id}:`, error);
+      logger.error('Error creating/updating profile', { operation: 'webhook.clerk.profile_upsert_error', userId: id }, error instanceof Error ? error : new Error(String(error)));
       // Return error response to Clerk so it knows the webhook failed
       return new Response('Error occurred -- creating/updating profile', { status: 500 });
     }
@@ -108,7 +99,7 @@ export async function POST(req: Request) {
 
   if (eventType === 'user.updated') {
     const { id, first_name, last_name } = evt.data;
-    console.log(`Processing user.updated for user ID: ${id}`);
+    logger.info('Processing user.updated event', { operation: 'webhook.clerk.user_updated', userId: id });
     try {
       await prisma.profile.update({
         where: { id: id },
@@ -118,9 +109,9 @@ export async function POST(req: Request) {
           // Update other fields if necessary (e.g., image_url if you add it to Profile)
         }
       });
-      console.log(`Successfully updated profile for user ${id}`);
+      logger.info('Successfully updated profile', { operation: 'webhook.clerk.profile_updated', userId: id });
     } catch (error) {
-      console.error(`Error updating profile for user ${id}:`, error);
+      logger.error('Error updating profile', { operation: 'webhook.clerk.profile_update_error', userId: id }, error instanceof Error ? error : new Error(String(error)));
       // Return error response to Clerk
       return new Response('Error occurred -- updating profile', { status: 500 });
     }
@@ -132,7 +123,7 @@ export async function POST(req: Request) {
     if (evt.type === 'organization.created') {
       const { id: orgId, name, created_by: createdByUserId } = evt.data; // Access data safely now
 
-      console.log(`Processing organization.created for Org ID: ${orgId}`);
+      logger.info('Processing organization.created event', { operation: 'webhook.clerk.org_created', orgId });
       try {
         // Check if the creator already has a church/organization
         if (createdByUserId) {
@@ -144,7 +135,7 @@ export async function POST(req: Request) {
 
           // Check if user already has an admin role (meaning they already have a church)
           if (existingProfile?.role === 'ADMIN') {
-            console.error(`User ${createdByUserId} already has a church (is ADMIN). Preventing duplicate organization creation.`);
+            logger.warn('User already has a church, preventing duplicate', { operation: 'webhook.clerk.org_duplicate', userId: createdByUserId });
             // We can't really prevent Clerk from creating the org, but we won't create a Church record
             // This will effectively make the Clerk org unusable in our system
             return new Response('User already has a church', { status: 200 }); // Return 200 to not retry
@@ -157,7 +148,7 @@ export async function POST(req: Request) {
         });
 
         if (existingChurch) {
-          console.error(`Church already exists for Org ID: ${orgId}. Skipping duplicate creation.`);
+          logger.warn('Church already exists, skipping duplicate creation', { operation: 'webhook.clerk.church_duplicate', orgId });
           return new Response('Church already exists', { status: 200 });
         }
         // Generate slug from organization name
@@ -200,7 +191,7 @@ export async function POST(req: Request) {
             // Add other default Church fields if necessary
           }
         });
-        console.log(`Successfully created church for Org ID: ${orgId} with internal ID: ${newChurch.id} - 30-day trial started`);
+        logger.info('Successfully created church with trial', { operation: 'webhook.clerk.church_created', orgId, churchId: newChurch.id, trial: '30-day' });
 
         // Now, create default donation types for the new church
         const defaultDonationTypesData = [
@@ -228,7 +219,7 @@ export async function POST(req: Request) {
           data: defaultDonationTypesData,
           skipDuplicates: true, // Good practice, though should not happen for new church
         });
-        console.log(`Successfully created default donation types for church ID: ${newChurch.id}`);
+        logger.info('Successfully created default donation types', { operation: 'webhook.clerk.donation_types_created', churchId: newChurch.id });
 
         // Create default donation payment methods for the new church
         const defaultPaymentMethodsData = [
@@ -273,7 +264,7 @@ export async function POST(req: Request) {
           data: defaultPaymentMethodsData,
           skipDuplicates: true,
         });
-        console.log(`Successfully created default donation payment methods for church ID: ${newChurch.id}`);
+        logger.info('Successfully created default payment methods', { operation: 'webhook.clerk.payment_methods_created', churchId: newChurch.id });
 
         // Create default expense categories for the new church
         const defaultExpenseCategoriesData = [
@@ -360,7 +351,7 @@ export async function POST(req: Request) {
           data: defaultExpenseCategoriesData,
           skipDuplicates: true,
         });
-        console.log(`Successfully created default expense categories for church ID: ${newChurch.id}`);
+        logger.info('Successfully created default expense categories', { operation: 'webhook.clerk.expense_categories_created', churchId: newChurch.id });
 
         // Fix race condition: Update the creator's role to ADMIN immediately
         if (createdByUserId) {
@@ -369,14 +360,14 @@ export async function POST(req: Request) {
               where: { id: createdByUserId },
               data: { role: 'ADMIN' }
             });
-            console.log(`Updated organization creator ${createdByUserId} to ADMIN role`);
+            logger.info('Updated organization creator to ADMIN role', { operation: 'webhook.clerk.creator_promoted', userId: createdByUserId });
           } catch (profileError) {
             // Log but don't fail the webhook - the organizationMembership.created event will fix this
-            console.warn(`Could not update creator's role immediately (profile might not exist yet):`, profileError);
+            logger.warn('Could not update creator role immediately', { operation: 'webhook.clerk.creator_role_delay', error: profileError instanceof Error ? profileError.message : String(profileError) });
           }
         }
       } catch (error) {
-        console.error(`Error in organization.created processing for Org ID ${orgId} (church or default donation types):`, error);
+        logger.error('Error in organization.created processing', { operation: 'webhook.clerk.org_created_error', orgId }, error instanceof Error ? error : new Error(String(error)));
         return new Response('Error occurred -- processing organization.created event', { status: 500 });
       }
     }
@@ -391,11 +382,11 @@ export async function POST(req: Request) {
       const userId = public_user_data?.user_id; // Use optional chaining
 
       if (!userId) {
-        console.error('User ID missing in organizationMembership.created event');
+        logger.error('User ID missing in organizationMembership.created event', { operation: 'webhook.clerk.membership_created_no_user' });
         return new Response('Error occurred -- missing user ID', { status: 400 });
       }
 
-      console.log(`Processing organizationMembership.created for Org ID: ${orgId}, User ID: ${userId}`);
+      logger.info('Processing organizationMembership.created event', { operation: 'webhook.clerk.membership_created', orgId, userId });
 
       try {
         // Find the corresponding Church using the Clerk Org ID
@@ -405,7 +396,7 @@ export async function POST(req: Request) {
         });
 
         if (!church) {
-          console.error(`Church not found for Org ID: ${orgId}`);
+          logger.error('Church not found for organization', { operation: 'webhook.clerk.church_not_found', orgId });
 
           // RACE CONDITION FIX: The organization.created webhook may not have processed yet
           // Implement retry logic with exponential backoff
@@ -413,7 +404,7 @@ export async function POST(req: Request) {
           const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
 
           for (let attempt = 0; attempt < maxRetries; attempt++) {
-            console.log(`Retry attempt ${attempt + 1}/${maxRetries} for Org ID: ${orgId}`);
+            logger.debug('Retrying church lookup', { operation: 'webhook.clerk.church_lookup_retry', orgId, attempt: attempt + 1, maxRetries });
 
             // Wait before retry
             await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
@@ -425,14 +416,14 @@ export async function POST(req: Request) {
             });
 
             if (church) {
-              console.log(`Church found on retry attempt ${attempt + 1}`);
+              logger.info('Church found on retry', { operation: 'webhook.clerk.church_found_retry', attempt: attempt + 1 });
               break;
             }
           }
 
           if (!church) {
             // After all retries, still not found - ask Clerk to retry the webhook later
-            console.log(`Church not yet created for Org ID: ${orgId} after ${maxRetries} retries. Returning 202 for Clerk retry.`);
+            logger.warn('Church not yet created after retries', { operation: 'webhook.clerk.church_retry_exhausted', orgId, maxRetries });
             return new Response('Accepted - retry later', { status: 202 });
           }
         }
@@ -462,13 +453,13 @@ export async function POST(req: Request) {
           },
         });
 
-        console.log(`Successfully updated/created profile for User ID: ${userId} in Org ID: ${orgId}`);
+        logger.info('Successfully updated/created profile for membership', { operation: 'webhook.clerk.membership_profile_upserted', userId, orgId });
 
       } catch (error) {
-        console.error(`Error updating profile for User ID ${userId} in Org ID ${orgId}:`, error);
+        logger.error('Error updating profile for membership', { operation: 'webhook.clerk.membership_profile_error', userId, orgId }, error instanceof Error ? error : new Error(String(error)));
         // Check if the error is due to the profile not existing yet (race condition with user.created)
         if ((error as Error & { code?: string }).code === 'P2025') { // Prisma code for RecordNotFound
-          console.warn(`Profile for User ID ${userId} not found. Might be a race condition. Webhook will likely retry.`);
+          logger.warn('Profile not found, possible race condition', { operation: 'webhook.clerk.profile_race_condition', userId });
           // Return 500 to signal Clerk to retry
           return new Response('Error occurred -- profile not found, retry needed', { status: 500 });
         } else {
@@ -483,11 +474,11 @@ export async function POST(req: Request) {
       const { id: orgId, name } = evt.data;
 
       if (!orgId) {
-        console.error('organization.updated event missing organization id');
+        logger.error('organization.updated event missing organization id', { operation: 'webhook.clerk.org_updated_no_id' });
         return new Response('Error occurred -- missing organization id', { status: 400 });
       }
 
-      console.log(`Processing organization.updated for Org ID: ${orgId}`);
+      logger.info('Processing organization.updated event', { operation: 'webhook.clerk.org_updated', orgId });
 
       try {
         const church = await prisma.church.findUnique({
@@ -495,7 +486,7 @@ export async function POST(req: Request) {
         });
 
         if (!church) {
-          console.warn(`Church not found for Org ID: ${orgId} during organization.updated. Returning 202 for retry.`);
+          logger.warn('Church not found for organization update', { operation: 'webhook.clerk.org_update_church_not_found', orgId });
           return new Response('Accepted - retry later', { status: 202 });
         }
 
@@ -508,7 +499,7 @@ export async function POST(req: Request) {
         }
 
         if (Object.keys(updateData).length === 1) {
-          console.log(`No changes needed for church ${church.id} on organization.updated`);
+          logger.debug('No changes needed for church on org update', { operation: 'webhook.clerk.org_update_no_changes', churchId: church.id });
           return new Response('', { status: 200 });
         }
 
@@ -517,9 +508,9 @@ export async function POST(req: Request) {
           data: updateData,
         });
 
-        console.log(`Successfully updated church ${church.id} from organization.updated event`);
+        logger.info('Successfully updated church from org update', { operation: 'webhook.clerk.church_updated', churchId: church.id });
       } catch (error) {
-        console.error(`Error processing organization.updated for Org ID ${orgId}:`, error);
+        logger.error('Error processing organization.updated', { operation: 'webhook.clerk.org_update_error', orgId }, error instanceof Error ? error : new Error(String(error)));
         return new Response('Error occurred -- processing organization.updated', { status: 500 });
       }
     }
@@ -534,11 +525,11 @@ export async function POST(req: Request) {
       const userId = public_user_data?.user_id;
 
       if (!userId) {
-        console.error('User ID missing in organizationMembership.updated event');
+        logger.error('User ID missing in organizationMembership.updated event', { operation: 'webhook.clerk.membership_updated_no_user' });
         return new Response('Error occurred -- missing user ID', { status: 400 });
       }
 
-      console.log(`Processing organizationMembership.updated for Org ID: ${orgId}, User ID: ${userId}, New Role: ${role}`);
+      logger.info('Processing organizationMembership.updated event', { operation: 'webhook.clerk.membership_updated', orgId, userId, newRole: role });
 
       try {
         // First fetch the church to get the churchId
@@ -548,7 +539,7 @@ export async function POST(req: Request) {
         });
 
         if (!church) {
-          console.error(`Church not found for Org ID: ${orgId} in organizationMembership.updated`);
+          logger.error('Church not found for membership update', { operation: 'webhook.clerk.membership_update_church_not_found', orgId });
           return new Response('Church not found', { status: 404 });
         }
 
@@ -568,11 +559,11 @@ export async function POST(req: Request) {
           }
         });
 
-        console.log(`Successfully updated role for User ID: ${userId} to ${prismaRole}`);
+        logger.info('Successfully updated user role', { operation: 'webhook.clerk.role_updated', userId, newRole: prismaRole });
       } catch (error) {
-        console.error(`Error updating role for User ID ${userId}:`, error);
+        logger.error('Error updating user role', { operation: 'webhook.clerk.role_update_error', userId }, error instanceof Error ? error : new Error(String(error)));
         if ((error as Error & { code?: string }).code === 'P2025') {
-          console.warn(`Profile for User ID ${userId} not found. Might be a race condition.`);
+          logger.warn('Profile not found for role update, possible race condition', { operation: 'webhook.clerk.role_update_race_condition', userId });
           return new Response('Error occurred -- profile not found', { status: 500 });
         }
         return new Response('Error occurred -- updating role', { status: 500 });
@@ -589,30 +580,30 @@ export async function POST(req: Request) {
     const orgId = membershipEvent.data.organization?.id; // Get orgId for logging
 
     if (!userId) {
-      console.error('User ID missing in organizationMembership.deleted event');
+      logger.error('User ID missing in organizationMembership.deleted event', { operation: 'webhook.clerk.membership_deleted_no_user' });
       // Return 400, as we cannot identify which profile to delete
       return new Response('Error occurred -- missing user ID', { status: 400 });
     }
 
-    console.log(`Processing organizationMembership.deleted for Org ID: ${orgId || 'N/A'}, User ID: ${userId}`);
+    logger.info('Processing organizationMembership.deleted event', { operation: 'webhook.clerk.membership_deleted', orgId: orgId || 'N/A', userId });
 
     try {
       // Attempt to delete the corresponding profile
       await prisma.profile.delete({
         where: { id: userId },
       });
-      console.log(`Successfully deleted profile for User ID: ${userId} due to org membership deletion.`);
+      logger.info('Successfully deleted profile for membership deletion', { operation: 'webhook.clerk.profile_deleted', userId });
     
     } catch (error) {
        // Handle cases where the profile might not exist (e.g., already deleted)
        // Prisma throws P2025 for record not found on delete
       if ((error as Error & { code?: string }).code === 'P2025') { 
-        console.warn(`Profile deletion skipped: Profile for User ID ${userId} not found (might be already deleted).`);
+        logger.warn('Profile deletion skipped, already deleted', { operation: 'webhook.clerk.profile_delete_skip', userId });
         // Return 200 OK because the desired state (no profile link) is achieved
         return new Response('', { status: 200 });
       } else {
         // Handle other potential database errors
-        console.error(`Error deleting profile for User ID ${userId} after org membership deletion:`, error);
+        logger.error('Error deleting profile for membership deletion', { operation: 'webhook.clerk.profile_delete_error', userId }, error instanceof Error ? error : new Error(String(error)));
         return new Response('Error occurred -- deleting profile', { status: 500 });
       }
     }

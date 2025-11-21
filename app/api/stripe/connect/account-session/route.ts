@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/db';
 import { getStripeInstance } from '@/lib/stripe-server';
+import { logger } from '@/lib/logger';
 
 const stripe = getStripeInstance();
 
@@ -126,7 +127,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ client_secret: accountSession.client_secret });
 
   } catch (error) {
-    console.error('Error creating Stripe Account Session:', error);
+    logger.error('Error creating Stripe Account Session:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     // Differentiate Stripe errors for more specific feedback if possible
     if (error instanceof Stripe.errors.StripeError) {

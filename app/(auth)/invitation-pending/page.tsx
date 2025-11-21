@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useOrganizationList, useUser } from '@clerk/nextjs';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 export default function InvitationPendingPage() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function InvitationPendingPage() {
     // Check if user has any organization memberships
     if (userMemberships && userMemberships.data && userMemberships.data.length > 0) {
       // User is part of an organization - they accepted the invitation!
-      console.log('User has organization membership, redirecting to dashboard');
+      logger.debug('User has organization membership, redirecting to dashboard');
       setIsRedirecting(true);
       // The dashboard layout will check if onboarding is complete for the church
       // If not complete, it will redirect to the appropriate onboarding step
@@ -45,7 +46,7 @@ export default function InvitationPendingPage() {
 
     // Check if there are pending invitations
     if (userInvitations && userInvitations.data && userInvitations.data.length > 0) {
-      console.log('User has pending invitations:', userInvitations.data.length);
+      logger.debug('User has pending invitations', { operation: 'ui.auth.pending_invitations', count: userInvitations.data.length });
       // They have pending invitations to join an existing church
       // Stay on this page to show them the pending status
       return;
@@ -53,7 +54,7 @@ export default function InvitationPendingPage() {
     
     // No invitations and no memberships - they should create a church
     if (!userInvitations || userInvitations.data.length === 0) {
-      console.log('No pending invitations, redirecting to onboarding');
+      logger.debug('No pending invitations, redirecting to onboarding');
       setIsRedirecting(true);
       router.replace('/onboarding/step-1');
       return;
@@ -62,7 +63,7 @@ export default function InvitationPendingPage() {
     // No memberships and no invitations
     if (checkCount > 2) {
       // After a few checks, assume no invitation exists
-      console.log('No invitations found after multiple checks, redirecting to onboarding');
+      logger.debug('No invitations found after multiple checks, redirecting to onboarding');
       setIsRedirecting(true);
       router.replace('/onboarding/welcome');
       return;

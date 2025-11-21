@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { getAuth } from '@clerk/nextjs/server'; // <-- Use getAuth
 import { revalidateTag } from 'next/cache';
+import { logger } from '@/lib/logger';
 
 // Removed Supabase getUser helper function
 
@@ -84,7 +85,7 @@ async function uploadReceipt({
     .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
 
   if (signedUrlError) {
-    console.error('Error generating signed URL after upload:', signedUrlError);
+    logger.error('Error generating signed URL after upload:', { operation: 'api.error' }, signedUrlError instanceof Error ? signedUrlError : new Error(String(signedUrlError)));
   }
 
   return {
@@ -106,7 +107,7 @@ export async function GET(request: NextRequest) {
       );
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted GET expenses without active org.`);
+      logger.error('User ${userId} attempted GET expenses without active org.', { operation: 'api.error' });
       // Return empty array if no org selected, prevents errors downstream
       return NextResponse.json([], { status: 200 }); 
     }
@@ -134,7 +135,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(expenses);
 
   } catch (error) {
-    console.error("Error fetching expenses:", error);
+    logger.error('Error fetching expenses:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: 'Failed to fetch expenses' }, 
       { status: 500 }
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
       );
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted POST expense without active org.`);
+      logger.error('User ${userId} attempted POST expense without active org.', { operation: 'api.error' });
       return NextResponse.json(
         { error: 'No active organization selected.' }, 
         { status: 400 }
@@ -222,7 +223,10 @@ export async function POST(request: NextRequest) {
             preferredFilename = parsed.originalFilename;
           }
         } catch (parseError) {
-          console.warn('Failed to parse receipt metadata JSON:', parseError);
+          logger.warn('Failed to parse receipt metadata JSON', {
+            operation: 'api.expense.metadata_parse_error',
+            metadataEntry
+          });
         }
       }
     } else {
@@ -287,7 +291,7 @@ export async function POST(request: NextRequest) {
         receiptPath = uploadResult.receiptPath;
         receiptUrl = uploadResult.receiptUrl;
       } catch (uploadError) {
-        console.error('Receipt upload failed:', uploadError);
+        logger.error('Receipt upload failed:', { operation: 'api.error' }, uploadError instanceof Error ? uploadError : new Error(String(uploadError)));
         return NextResponse.json(
           { error: uploadError instanceof Error ? uploadError.message : 'Failed to upload receipt.' },
           { status: 500 }
@@ -355,7 +359,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newExpense, { status: 201 });
 
   } catch (error) {
-    console.error("Error creating expense:", error);
+    logger.error('Error creating expense:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     
     // Handle specific Prisma errors
     if (error instanceof Error && 'code' in error) {
@@ -372,7 +376,7 @@ export async function POST(request: NextRequest) {
               { status: 400 }
             );
         case 'P2025': // Referenced record not found (e.g., Church with clerkOrgId)
-           console.error(`Attempted to connect expense to non-existent church with clerkOrgId: ${orgId}`);
+           logger.error('Attempted to connect expense to non-existent church with clerkOrgId: ${orgId}', { operation: 'api.error' });
            return NextResponse.json({ error: 'Organization not found for creating expense.' }, { status: 404 });
           default:
             break;

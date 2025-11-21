@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -76,7 +77,7 @@ export async function GET() {
           });
         }
       } catch (error) {
-        console.error("Error fetching Stripe subscription:", error);
+        logger.error('Error fetching Stripe subscription:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
       }
     }
 
@@ -99,7 +100,7 @@ export async function GET() {
       needsUpdate: stripeSubscription ? church.subscriptionStatus !== stripeSubscription.status : false,
     });
   } catch (error) {
-    console.error("[GET /api/debug-subscription] Error:", error);
+    logger.error('[GET /api/debug-subscription] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }

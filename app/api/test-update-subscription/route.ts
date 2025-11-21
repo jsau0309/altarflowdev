@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -29,10 +30,10 @@ export async function GET() {
       }
     });
 
-    console.log(`[Test Update] Updated church ${updatedChurch.id} (${updatedChurch.name})`);
-    console.log(`- subscriptionStatus: ${updatedChurch.subscriptionStatus}`);
-    console.log(`- subscriptionEndsAt: ${updatedChurch.subscriptionEndsAt}`);
-    console.log(`- trialEndsAt: ${updatedChurch.trialEndsAt}`);
+    logger.info('[Test Update] Updated church ${updatedChurch.id} (${updatedChurch.name})', { operation: 'api.info' });
+    logger.info('- subscriptionStatus: ${updatedChurch.subscriptionStatus}', { operation: 'api.info' });
+    logger.info('- subscriptionEndsAt: ${updatedChurch.subscriptionEndsAt}', { operation: 'api.info' });
+    logger.info('- trialEndsAt: ${updatedChurch.trialEndsAt}', { operation: 'api.info' });
 
     return NextResponse.json({
       success: true,
@@ -49,7 +50,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("[GET /api/test-update-subscription] Error:", error);
+    logger.error('[GET /api/test-update-subscription] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }

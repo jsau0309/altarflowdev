@@ -97,7 +97,7 @@ export default function SentryExamplePage() {
     // Test formatted logging
     const userId = 'test-user-123';
     const amount = 100;
-    logger.info(logger.fmt`User ${userId} made a donation of $${amount}`);
+    logger.info(`User ${userId} made a donation of $${amount}`);
     
     setMessage('Logger messages sent!');
   };

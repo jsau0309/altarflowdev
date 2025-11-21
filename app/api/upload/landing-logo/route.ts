@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { rateLimit } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const LOGOS_BUCKET = 'landing-logos';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
       ...uploadResult,
     });
   } catch (error) {
-    console.error('[POST /api/upload/landing-logo] Error:', error);
+    logger.error('[POST /api/upload/landing-logo] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to upload logo' },
       { status: 500 }
@@ -176,7 +177,7 @@ export async function DELETE(request: NextRequest) {
       .remove([logoPath]);
 
     if (error) {
-      console.error('Failed to delete logo:', error);
+      logger.error('Failed to delete logo:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
       return NextResponse.json(
         { error: 'Failed to delete logo' },
         { status: 500 }
@@ -185,7 +186,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[DELETE /api/upload/landing-logo] Error:', error);
+    logger.error('[DELETE /api/upload/landing-logo] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: 'Failed to delete logo' },
       { status: 500 }

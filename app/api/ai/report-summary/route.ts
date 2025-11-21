@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import { getAiSummaryData } from "@/lib/actions/reports.actions";
 import { getChurchByClerkOrgId } from "@/lib/actions/church.actions";
+import { logger } from '@/lib/logger';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -161,13 +162,13 @@ Bring this data to life:
       
       return NextResponse.json(enrichedResponse);
     } else {
-      console.error("[AI_SUMMARY_ERROR] OpenAI response did not include expected function call:", response);
+      logger.error('[AI_SUMMARY_ERROR] OpenAI response did not include expected function call:', { operation: 'api.error' }, response instanceof Error ? response : new Error(String(response)));
       return new NextResponse("Failed to generate structured summary from AI.", { status: 500 });
     }
 
 
   } catch (error) {
-    console.error("[AI_SUMMARY_POST]", error);
+    logger.error('[AI_SUMMARY_POST]', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

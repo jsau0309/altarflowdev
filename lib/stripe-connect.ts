@@ -1,6 +1,7 @@
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/db';
 import { createConnectAccountSchema, stripeAccountIdSchema, validateInput } from '@/lib/validation/stripe';
+import { logger } from '@/lib/logger';
 
 export async function createStripeConnectAccount(churchId: string, email: string, country: string = 'US') {
   try {
@@ -64,7 +65,12 @@ export async function createStripeConnectAccount(churchId: string, email: string
       connectAccount: createdAccount,
     };
   } catch (error) {
-    console.error('Error creating Stripe Connect account:', error);
+    logger.error('Error creating Stripe Connect account', {
+      operation: 'stripe.connect.create_account_error',
+      churchId,
+      email,
+      country
+    }, error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
@@ -82,7 +88,10 @@ export async function getAccountOnboardingLink(accountId: string, refreshUrl: st
 
     return accountLink.url;
   } catch (error) {
-    console.error('Error creating account onboarding link:', error);
+    logger.error('Error creating account onboarding link', {
+      operation: 'stripe.connect.onboarding_link_error',
+      accountId
+    }, error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
@@ -92,7 +101,10 @@ export async function getExpressDashboardLink(accountId: string) {
     const loginLink = await stripe.accounts.createLoginLink(accountId);
     return loginLink.url;
   } catch (error) {
-    console.error('Error creating Express Dashboard link:', error);
+    logger.error('Error creating Express Dashboard link', {
+      operation: 'stripe.connect.dashboard_link_error',
+      accountId
+    }, error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
@@ -104,7 +116,10 @@ export async function getStripeConnectAccount(churchId: string) {
     });
     return account;
   } catch (error) {
-    console.error('Error fetching Stripe Connect account:', error);
+    logger.error('Error fetching Stripe Connect account', {
+      operation: 'stripe.connect.fetch_account_error',
+      churchId
+    }, error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
@@ -129,11 +144,17 @@ export async function disableStripeAutomaticReceipts(stripeAccountId: string) {
     };
     
     const updatedAccount = await stripe.accounts.update(stripeAccountId, updateParams);
-    
-    console.log(`Disabled automatic receipts for Stripe account: ${stripeAccountId}`);
+
+    logger.info('Disabled automatic receipts for Stripe account', {
+      operation: 'stripe.connect.disable_receipts',
+      stripeAccountId
+    });
     return updatedAccount;
   } catch (error) {
-    console.error('Error disabling automatic receipts:', error);
+    logger.error('Error disabling automatic receipts', {
+      operation: 'stripe.connect.disable_receipts_error',
+      stripeAccountId
+    }, error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }

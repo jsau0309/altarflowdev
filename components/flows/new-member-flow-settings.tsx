@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter, usePathname } from 'next/navigation';
@@ -60,7 +61,7 @@ export function NewMemberFlowSettings() { // Renamed component
         setConfig(restConfig); 
         setFlowSlug(slug); // Set the fetched slug
       } catch (err) {
-        console.error("Failed to fetch NEW_MEMBER flow configuration:", err);
+        logger.error('Failed to fetch NEW_MEMBER flow configuration:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
         setError(err instanceof Error ? err.message : "Failed to load configuration.");
         // Set defaults on fetch error so UI doesn't break
         setConfig({
@@ -185,7 +186,7 @@ export function NewMemberFlowSettings() { // Renamed component
           toast.error(result.message || t('flows:config.saveError', 'Failed to save configuration.'));
         }
       } catch (err) {
-        console.error("Save error:", err);
+        logger.error('Save error:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
         const errorMessage = err instanceof Error ? err.message : String(err);
         toast.error(`${t('flows:config.saveErrorUnexpected', 'An unexpected error occurred:')} ${errorMessage}`);
       }

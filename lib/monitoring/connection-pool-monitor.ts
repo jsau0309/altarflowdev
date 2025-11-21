@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Connection Pool Monitoring Utility
  *
@@ -69,7 +70,7 @@ class ConnectionPoolMonitor {
     const status = this.getHealthStatus();
 
     if (status.status !== 'healthy') {
-      console.warn('[Connection Pool]', {
+      logger.warn('Connection pool warning', { operation: 'database.pool_warning', 
         status: status.status,
         activeRequests: status.activeRequests,
         avgDuration: `${status.avgDuration.toFixed(2)}ms`,
@@ -77,10 +78,13 @@ class ConnectionPoolMonitor {
       });
 
       if (status.slowQueries.length > 0) {
-        console.warn('[Slow Queries]', status.slowQueries.map(q => ({
-          endpoint: q.endpoint,
-          duration: `${q.duration}ms`,
-        })));
+        logger.warn('Slow queries detected', {
+          operation: 'database.slow_queries',
+          queries: status.slowQueries.map(q => ({
+            endpoint: q.endpoint,
+            duration: `${q.duration}ms`
+          }))
+        });
       }
     }
   }
@@ -118,7 +122,7 @@ export async function trackQuery<T>(
 
     // Log if query took too long
     if (duration > 1000) {
-      console.warn(`[Slow Query] ${endpoint} took ${duration}ms`);
+      logger.warn('Slow query detected', { operation: 'database.slow_query', endpoint, duration });
     }
 
     return result;
@@ -130,10 +134,12 @@ export async function trackQuery<T>(
     if (error instanceof Error) {
       const errorCode = (error as any).code;
       if (errorCode === 'P2024' || errorCode === 'P1017') {
-        console.error(`[Connection Pool Error] ${endpoint}:`, {
+        logger.error('Connection pool error', {
+          operation: 'database.pool_error',
+          endpoint,
           code: errorCode,
-          duration: `${duration}ms`,
-          poolStatus: poolMonitor.getHealthStatus(),
+          duration,
+          poolStatus: poolMonitor.getHealthStatus()
         });
       }
     }

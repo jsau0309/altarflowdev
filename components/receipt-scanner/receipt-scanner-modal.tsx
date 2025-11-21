@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import type React from "react"
 
@@ -112,7 +113,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
       setCapturedImage(null)
       setScanningStage("review")
     } catch (err) {
-      console.error("Receipt processing error:", err)
+      logger.error("Receipt processing error", { operation: "ui.receipt.processing_error" }, err instanceof Error ? err : new Error(String(err)))
       setCapturedImage(null)
       setPendingFile(null)
       setReceiptMetadata(null)

@@ -79,20 +79,23 @@ const sentryWebpackPluginOptions = {
 
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
-  
+
   // Only upload source maps in production
   silent: process.env.NODE_ENV !== 'production',
-  
+
   // Automatically upload source maps during build
   authToken: process.env.SENTRY_AUTH_TOKEN,
-  
+
   // Hide source maps from public access
   hideSourceMaps: true,
-  
+
   // Disable source map uploading in development
   disableServerWebpackPlugin: process.env.NODE_ENV !== 'production',
   disableClientWebpackPlugin: process.env.NODE_ENV !== 'production',
-  
+
+  // Disable telemetry to reduce build noise
+  telemetry: false,
+
   // Use SWC to transpile and minify the SDK
   transpileClientSDK: true,
 };

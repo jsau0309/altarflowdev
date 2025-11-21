@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
@@ -41,7 +42,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
             setError(t('viewDonorDetails.errorDonorNotFound', 'Donor not found.'))
           }
         } catch (err) {
-          console.error("Failed to fetch donor details:", err)
+          logger.error("Failed to fetch donor details", { operation: "ui.donor.fetch_error" }, err instanceof Error ? err : new Error(String(err)))
           setError(t('viewDonorDetails.errorLoadingFailed', 'Failed to load donor details. Please try again.'))
         }
         setIsLoading(false)

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 // import { cookies } from 'next/headers'; // <-- Remove if not used
 import { getAuth, clerkClient } from '@clerk/nextjs/server'; // Import clerkClient
 import { OrganizationMembership } from '@clerk/backend'; // Import type for mapping
+import { logger } from '@/lib/logger';
 
 // Removed Supabase Admin Client initialization
 
@@ -16,11 +17,11 @@ export async function GET(request: NextRequest) {
     const { userId, orgId } = getAuth(request);
     
     if (!userId) { 
-      console.error("GET Users Auth Error: No Clerk userId found.");
+      logger.error('GET Users Auth Error: No Clerk userId found.', { operation: 'api.error' });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} tried to GET /users without active org.`);
+      logger.error('User ${userId} tried to GET /users without active org.', { operation: 'api.error' });
       return NextResponse.json([], { status: 200 }); 
     }
 
@@ -41,11 +42,11 @@ export async function GET(request: NextRequest) {
           .filter((id: string | undefined | null): id is string => !!id); 
           
       if (memberUserIds.length === 0) {
-           console.log(`No members found in Clerk for organization ${orgId}`);
+           logger.info('No members found in Clerk for organization ${orgId}', { operation: 'api.info' });
            return NextResponse.json([], { status: 200 }); // No members in org
       }
     } catch (clerkError) {
-       console.error(`Failed to fetch members from Clerk for org ${orgId}:`, clerkError);
+       logger.error('Failed to fetch members from Clerk for org ${orgId}:', { operation: 'api.error' }, clerkError instanceof Error ? clerkError : new Error(String(clerkError)));
        return NextResponse.json({ error: 'Failed to retrieve organization members' }, { status: 500 });
     }
 
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(profiles);
 
   } catch (error) {
-    console.error("Error in GET /api/settings/users:", error);
+    logger.error('Error in GET /api/settings/users:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
     // Return the actual Prisma/other error message now for better debugging
     return NextResponse.json({ error: 'Failed to fetch users', details: message }, { status: 500 });

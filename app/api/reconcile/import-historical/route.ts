@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/db';
 import Stripe from 'stripe';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/reconcile/import-historical
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { limit = 10, startDate, endDate } = body;
     
-    console.log('[Import] Starting historical payout import...');
+    logger.info('[Import] Starting historical payout import...', { operation: 'api.info' });
     
     // Find the church and its Stripe account
     const church = await prisma.church.findUnique({
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
     }
 
     const stripeAccountId = church.StripeConnectAccount.stripeAccountId;
-    console.log(`[Import] Fetching payouts for account: ${stripeAccountId}`);
+    logger.info('[Import] Fetching payouts for account: ${stripeAccountId}', { operation: 'api.info' });
     
     // Build query parameters
     const queryParams: Stripe.PayoutListParams = {
@@ -78,9 +79,9 @@ export async function POST(req: Request) {
         }
       );
       payouts = stripePayouts.data;
-      console.log(`[Import] Found ${payouts.length} payouts from Stripe`);
+      logger.info('[Import] Found ${payouts.length} payouts from Stripe', { operation: 'api.info' });
     } catch (stripeError) {
-      console.error('[Import] Error fetching payouts from Stripe:', stripeError);
+      logger.error('[Import] Error fetching payouts from Stripe:', { operation: 'api.error' }, stripeError instanceof Error ? stripeError : new Error(String(stripeError)));
 
       // If no payouts exist yet, that's okay
       if (stripeError instanceof Stripe.errors.StripeError &&
@@ -122,7 +123,7 @@ export async function POST(req: Request) {
         });
         
         if (existing) {
-          console.log(`[Import] Payout ${payout.id} already exists, updating...`);
+          logger.info('[Import] Payout ${payout.id} already exists, updating...', { operation: 'api.info' });
           
           // Update existing payout with latest status
           await prisma.payoutSummary.update({
@@ -136,7 +137,7 @@ export async function POST(req: Request) {
           
           skipped++;
         } else {
-          console.log(`[Import] Creating new payout record for ${payout.id}`);
+          logger.info('[Import] Creating new payout record for ${payout.id}', { operation: 'api.info' });
           
           // Create new payout record
           await prisma.payoutSummary.create({
@@ -172,7 +173,7 @@ export async function POST(req: Request) {
           });
           
           if (payoutRecord && !payoutRecord.reconciledAt) {
-            console.log(`[Import] Triggering reconciliation for paid payout ${payout.id}`);
+            logger.info('[Import] Triggering reconciliation for paid payout ${payout.id}', { operation: 'api.info' });
             
             // Import reconciliation function
             const { reconcilePayout } = await import('@/lib/stripe-reconciliation');
@@ -181,26 +182,26 @@ export async function POST(req: Request) {
             reconcilePayout(payout.id, stripeAccountId)
               .then(result => {
                 if (result.success) {
-                  console.log(`[Import] Successfully reconciled payout ${payout.id}`);
+                  logger.info('[Import] Successfully reconciled payout ${payout.id}', { operation: 'api.reconcile.import_success' });
                 } else {
-                  console.error(`[Import] Failed to reconcile payout ${payout.id}:`, result.error);
+                  logger.error('[Import] Failed to reconcile payout ${payout.id}', { operation: 'api.reconcile.import_failed', error: result.error });
                 }
               })
               .catch(error => {
-                console.error(`[Import] Error reconciling payout ${payout.id}:`, error);
+                logger.error('[Import] Error reconciling payout ${payout.id}:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
               });
           }
         }
         
       } catch (error) {
         const errorMsg = `Failed to import payout ${payout.id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        console.error(`[Import] ${errorMsg}`);
+        logger.error('[Import] ${errorMsg}', { operation: 'api.error' });
         errors.push(errorMsg);
       }
     }
     
     const message = `Import complete: ${imported} new payouts imported, ${skipped} already existed${errors.length > 0 ? `, ${errors.length} errors` : ''}`;
-    console.log(`[Import] ${message}`);
+    logger.info('[Import] ${message}', { operation: 'api.info' });
     
     return NextResponse.json({
       success: true,
@@ -212,7 +213,7 @@ export async function POST(req: Request) {
     });
     
   } catch (error) {
-    console.error('[Import] Unexpected error:', error);
+    logger.error('[Import] Unexpected error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: 'Internal server error during import' },
       { status: 500 }
@@ -274,7 +275,7 @@ export async function GET() {
         newestPayout = new Date(Math.max(...dates.map(d => d.getTime())));
       }
     } catch {
-      console.log('[Import] No payouts available in Stripe account yet');
+      logger.info('[Import] No payouts available in Stripe account yet', { operation: 'api.info' });
     }
     
     return NextResponse.json({
@@ -291,7 +292,7 @@ export async function GET() {
     });
     
   } catch (error) {
-    console.error('[Import] Error checking import status:', error);
+    logger.error('[Import] Error checking import status:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: 'Failed to check import status' },
       { status: 500 }

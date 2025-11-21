@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schema for donor update
 const donorUpdateSchema = z.object({
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
       donorData: updatedDonor,
     });
   } catch (error) {
-    console.error('[API] Error updating donor:', error);
+    logger.error('[API] Error updating donor:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
 
     // Don't expose internal error details to client
     return NextResponse.json(

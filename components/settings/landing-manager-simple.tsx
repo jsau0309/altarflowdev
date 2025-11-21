@@ -1,4 +1,5 @@
 "use client";
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect } from "react";
 import { useUser, useOrganization } from "@clerk/nextjs";
@@ -74,7 +75,7 @@ export function LandingManager() {
               setStripeStatus("");
             }
           } catch (error) {
-            console.error("Error processing Stripe data:", error);
+            logger.error('Error processing Stripe data:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
             setHasStripeAccount(false);
             setStripeStatus("");
           }
@@ -88,7 +89,7 @@ export function LandingManager() {
         
         setIsLoading(false);
       } catch (error) {
-        console.error("Failed to load landing settings:", error);
+        logger.error('Failed to load landing settings:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
         toast.error(t("settings:landing.loadError", "Failed to load settings"));
         setIsLoading(false);
       }
@@ -165,7 +166,7 @@ export function LandingManager() {
       
       toast.success(t("settings:landing.saved", "Landing page settings saved successfully"));
     } catch (error) {
-      console.error("Failed to save settings:", error);
+      logger.error('Failed to save settings:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(
         error instanceof Error 
           ? error.message 

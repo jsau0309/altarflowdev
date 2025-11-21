@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { auth } from "@clerk/nextjs/server";
 import { startOfWeek, startOfMonth, startOfYear, subMonths, endOfWeek, endOfMonth, endOfYear } from "date-fns";
 import { unstable_cache, revalidateTag } from "next/cache";
+import { logger } from '@/lib/logger';
 
 interface DashboardSummary {
   donationSummary: {
@@ -37,7 +38,7 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
   const { orgId } = await auth();
   
   if (!orgId) {
-    console.error("No organization ID found");
+    logger.error('No organization ID found', { operation: 'actions.error' });
     return null;
   }
 
@@ -52,7 +53,7 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
         });
 
         if (!church) {
-          console.error("Church not found for org:", orgId);
+          logger.error('Church not found for org', { operation: 'actions.dashboard.church_not_found', orgId });
           return null;
         }
 
@@ -188,7 +189,7 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
           ? ((monthlyExpenses - lastMonthExpenses) / lastMonthExpenses) * 100 
           : 0;
 
-        console.log(`Dashboard queries completed in ${Date.now() - startTime}ms`);
+        logger.debug('Dashboard queries completed in ${Date.now() - startTime}ms', { operation: 'actions.debug' });
 
         return {
           donationSummary: {
@@ -215,7 +216,7 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
           }
         };
       } catch (error) {
-        console.error("Error fetching dashboard summary:", error);
+        logger.error('Error fetching dashboard summary:', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
         return null;
       }
     },

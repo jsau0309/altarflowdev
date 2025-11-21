@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/setup-fee
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
       }
     });
   } catch (error) {
-    console.error("[POST /api/setup-fee] Error:", error);
+    logger.error('[POST /api/setup-fee] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -107,7 +108,7 @@ export async function GET() {
 
     return NextResponse.json(church);
   } catch (error) {
-    console.error("[GET /api/setup-fee] Error:", error);
+    logger.error('[GET /api/setup-fee] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

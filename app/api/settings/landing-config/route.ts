@@ -5,6 +5,7 @@ import { BackgroundType, Prisma } from "@prisma/client";
 import { validateAndSanitizeUrl, validateUrlObject } from "@/lib/validation/url-validation";
 import { validateDescription, validateCustomTitle } from "@/lib/validation/input-validation";
 import { validateButtons, safeParseButtons } from "@/lib/validation/button-validation";
+import { logger } from '@/lib/logger';
 
 function isValidHexColor(color: string): boolean {
   return /^#[0-9A-Fa-f]{6}$/.test(color);
@@ -257,7 +258,7 @@ export async function GET() {
       hasConfig: true
     });
   } catch (error) {
-    console.error("[GET /api/settings/landing-config] Error:", error);
+    logger.error('[GET /api/settings/landing-config] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -538,7 +539,7 @@ export async function PUT(request: Request) {
       config
     });
   } catch (error) {
-    console.error("[PUT /api/settings/landing-config] Error:", error);
+    logger.error('[PUT /api/settings/landing-config] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

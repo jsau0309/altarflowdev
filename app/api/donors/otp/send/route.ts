@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   // Check Twilio configuration
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
   const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
   if (!accountSid || !authToken || !verifyServiceSid) {
-    console.error('Twilio environment variables are not fully configured.');
+    logger.error('Twilio environment variables are not fully configured.', { operation: 'api.error' });
     return NextResponse.json(
       { error: 'SMS service is not configured. Please contact support.' },
       { status: 503 }
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!verifyServiceSid) {
-      console.error('Twilio Verify Service SID is not configured.');
+      logger.error('Twilio Verify Service SID is not configured.', { operation: 'api.error' });
       return NextResponse.json({ success: false, error: 'Twilio configuration error.' }, { status: 500 });
     }
 
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: 'OTP sent successfully.' });
 
   } catch (error) {
-    console.error('Error sending OTP:', error);
+    logger.error('Error sending OTP:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     // Check for specific Twilio error codes if needed
     // Example: error.code === 20003 (Permission Denied - might be invalid SID/Token)
     // Example: error.code === 60200 (Invalid parameter - often phone number format)

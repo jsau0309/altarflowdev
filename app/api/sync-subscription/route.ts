@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import { Prisma } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export async function POST() {
   try {
@@ -69,7 +70,7 @@ export async function POST() {
       }
     });
   } catch (error) {
-    console.error("[POST /api/sync-subscription] Error:", error);
+    logger.error('[POST /api/sync-subscription] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Failed to sync subscription", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }

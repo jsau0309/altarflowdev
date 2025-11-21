@@ -1,6 +1,7 @@
 'use server';
 
 import Stripe from 'stripe';
+import { logger } from '@/lib/logger';
 import { stripe } from '@/utils/stripe/config';
 // import { createOrRetrieveCustomer, supabaseAdmin } from '@/utils/supabase/admin'; // <-- Commented out import
 import { supabaseAdmin } from '@/utils/supabase/admin'; // <-- Keep supabaseAdmin import if needed elsewhere
@@ -26,7 +27,7 @@ export async function checkoutWithStripe(
         const user = await currentUser()
 
         if (referralId) {
-            console.log("checkout with referral id:", referralId)
+            logger.debug('Checkout with referral ID', { operation: 'stripe.checkout.referral', referralId })
         }
 
         if (!user) {
@@ -44,7 +45,7 @@ export async function checkoutWithStripe(
             // });
             throw new Error('createOrRetrieveCustomer is not defined or implemented yet.'); // Placeholder error
         } catch (err) {
-            console.error(err);
+            logger.error('Stripe operation error', { operation: 'stripe.error' }, err instanceof Error ? err : new Error(String(err)));
             throw new Error('Unable to access customer record.');
         }
         */
@@ -98,7 +99,7 @@ export async function checkoutWithStripe(
         try {
             session = await stripe.checkout.sessions.create(params);
         } catch (err) {
-            console.error(err);
+            logger.error('Stripe operation error', { operation: 'stripe.error' }, err instanceof Error ? err : new Error(String(err)));
             throw new Error('Unable to create checkout session.');
         }
 
@@ -146,7 +147,7 @@ export async function createStripePortal(currentPath: string) {
         const userEmail = profile?.email || '';
 
         if (!profile) {
-            console.error(`Could not find profile for user ${userId}.`);
+            logger.error('Could not find profile for user', { operation: 'stripe.profile_not_found', userId });
             throw new Error('User profile not found.');
         }
 
@@ -160,7 +161,7 @@ export async function createStripePortal(currentPath: string) {
             // });
             throw new Error('createOrRetrieveCustomer is not defined or implemented yet.'); // Placeholder error
         } catch (err) {
-            console.error(err);
+            logger.error('Stripe operation error', { operation: 'stripe.error' }, err instanceof Error ? err : new Error(String(err)));
             throw new Error('Unable to access customer record.');
         }
 
@@ -178,19 +179,19 @@ export async function createStripePortal(currentPath: string) {
             }
             return url;
         } catch (err) {
-            console.error(err);
+            logger.error('Stripe operation error', { operation: 'stripe.error' }, err instanceof Error ? err : new Error(String(err)));
             throw new Error('Could not create billing portal');
         }
         */
         // --- End temporary comment out --- 
         
         // Placeholder return until customer logic is restored
-        console.warn("Stripe customer retrieval/creation logic is commented out in createStripePortal.");
+        logger.warn('Stripe customer logic commented out', { operation: 'stripe.portal.commented_logic' });
         throw new Error("Stripe portal creation temporarily disabled.");
 
     } catch (error) {
         if (error instanceof Error) {
-            console.error(error);
+            logger.error('Stripe portal creation error', { operation: 'stripe.portal.create_error' }, error);
             return getErrorRedirect(
                 currentPath,
                 error.message,
@@ -229,7 +230,7 @@ export async function createBillingPortalSession() {
         // Return the session URL
         return session.url;
     } catch (error) {
-        console.error('Error creating billing portal session:', error);
+        logger.error('Error creating billing portal session', { operation: 'stripe.portal.error' }, error instanceof Error ? error : new Error(String(error)));;
         return {
             error: "Error creating billing portal session"
         }

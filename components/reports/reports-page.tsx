@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -192,7 +193,7 @@ export function ReportsPage() {
         setTransactions(exportData)
       }
     } catch (err) {
-      console.error('Error fetching report data:', err)
+      logger.error('Error fetching report data', { operation: 'ui.report.fetch_error' }, err instanceof Error ? err : new Error(String(err)))
       setError(t('common:errors.fetchFailed'))
     } finally {
       setIsLoading(false)
@@ -288,7 +289,7 @@ export function ReportsPage() {
         
         toast.success(t('reports:exportSuccess'))
       } catch (error) {
-        console.error('Error exporting financial data:', error)
+        logger.error('Error exporting financial data:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
         toast.error(t('reports:exportError'))
       }
       return

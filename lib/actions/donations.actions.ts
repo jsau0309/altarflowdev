@@ -5,6 +5,7 @@ import { auth } from '@clerk/nextjs/server';
 import type { DonationTransactionFE } from '@/lib/types';
 import { Prisma } from '@prisma/client';
 import { revalidateTag } from 'next/cache';
+import { logger } from '@/lib/logger';
 
 export interface DonorFilterItem {
   id: string; // donorId from DonationTransaction
@@ -755,7 +756,7 @@ export async function createManualDonation(
     };
 
     // Invalidate dashboard cache after creating donation
-    console.log(`[ACTION] Manual donation created successfully. Invalidating cache for org: ${clerkOrgId}`);
+    logger.debug('[ACTION] Manual donation created successfully. Invalidating cache for org: ${clerkOrgId}', { operation: 'actions.debug' });
     revalidateTag(`dashboard-${clerkOrgId}`);
 
     return { success: true, donation: formattedDonation };

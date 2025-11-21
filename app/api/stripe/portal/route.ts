@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
+import { logger } from '@/lib/logger';
 
 export async function POST() {
   try {
@@ -35,7 +36,7 @@ export async function POST() {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error("[POST /api/stripe/portal] Error:", error);
+    logger.error('[POST /api/stripe/portal] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Failed to create portal session" },
       { status: 500 }

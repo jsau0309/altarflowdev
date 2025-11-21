@@ -1,3 +1,17 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "overrides": [
+    {
+      "files": [
+        "app/api/**/*.ts",
+        "app/api/**/*.tsx",
+        "lib/actions/**/*.ts",
+        "lib/**/*.ts"
+      ],
+      "excludedFiles": ["**/*.test.ts", "**/*.spec.ts", "scripts/**/*.ts"],
+      "rules": {
+        "no-console": "error"
+      }
+    }
+  ]
 }

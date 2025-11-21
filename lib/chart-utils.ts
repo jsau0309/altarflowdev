@@ -34,7 +34,7 @@ export function processDataForChart(
   groupByKey: keyof DataPoint,
   aggregateKey: keyof DataPoint,
 ): { [key: string]: string | number | Date }[] { // More specific return type
-  console.log(`TODO: Implement processDataForChart for grouping by ${String(groupByKey)} and aggregating ${String(aggregateKey)}`, data);
+  // TODO: Implement processDataForChart
   // Placeholder implementation - return empty array or basic structure
   // Example: Group by month and sum amount
   return [];
@@ -51,7 +51,7 @@ export function processTimeSeriesData(
   donations: DataPoint[],
   expenses: DataPoint[],
 ): TimeSeriesDataPoint[] {
-  console.log("TODO: Implement processTimeSeriesData", donations, expenses);
+  // TODO: Implement processTimeSeriesData
   // Placeholder implementation - needs logic to group by time period (day, week, month)
   // and sum donations/expenses for each period.
   return [
@@ -71,7 +71,7 @@ export function processCategoryData(
   data: DataPoint[],
   categoryKey: keyof DataPoint,
 ): CategoryDataPoint[] {
-  console.log(`TODO: Implement processCategoryData for category key ${String(categoryKey)}`, data);
+  // TODO: Implement processCategoryData
   // Placeholder implementation - needs logic to group by the categoryKey and sum amounts.
   return [
     // { label: 'Cash', value: 500 },

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Safe storage utility that handles errors gracefully
  * Provides fallback behavior when localStorage/sessionStorage is unavailable
@@ -43,16 +44,16 @@ class SafeStorage {
       if (error instanceof DOMException) {
         switch (error.name) {
           case 'QuotaExceededError':
-            console.warn(`[SafeStorage] ${type} quota exceeded for key: ${key}`)
+            logger.warn(`[SafeStorage] ${type} quota exceeded for key: ${key}`)
             break
           case 'SecurityError':
-            console.warn(`[SafeStorage] ${type} access denied (private mode?) for key: ${key}`)
+            logger.warn(`[SafeStorage] ${type} access denied (private mode?) for key: ${key}`)
             break
           default:
-            console.warn(`[SafeStorage] ${type} error for key ${key}:`, error.message)
+            logger.warn(`${type} error for key ${key}`, { operation: 'browser.storage_error', type, key, errorName: error.name, errorMessage: error.message })
         }
       } else {
-        console.warn(`[SafeStorage] Unknown error setting ${key}:`, error)
+        logger.warn(`Unknown error setting storage key ${key}`, { operation: 'browser.storage_unknown_error', type, key, error: error instanceof Error ? error.message : String(error) })
       }
       
       return { 
@@ -73,7 +74,7 @@ class SafeStorage {
       const storage = window[type]
       return storage.getItem(key)
     } catch (error) {
-      console.warn(`[SafeStorage] Error reading ${key} from ${type}:`, error)
+      logger.warn(`Error reading storage key ${key} from ${type}`, { operation: 'browser.storage_read_error', type, key, error: error instanceof Error ? error.message : String(error) })
       return null
     }
   }
@@ -90,7 +91,7 @@ class SafeStorage {
       storage.removeItem(key)
       return { success: true }
     } catch (error) {
-      console.warn(`[SafeStorage] Error removing ${key} from ${type}:`, error)
+      logger.warn(`Error removing storage key ${key} from ${type}`, { operation: 'browser.storage_remove_error', type, key, error: error instanceof Error ? error.message : String(error) })
       return { 
         success: false, 
         error: error instanceof Error ? error : new Error('Unknown storage error')
@@ -107,7 +108,7 @@ class SafeStorage {
       storage.clear()
       return { success: true }
     } catch (error) {
-      console.warn(`[SafeStorage] Error clearing ${type}:`, error)
+      logger.warn(`Error clearing ${type}`, { operation: 'browser.storage_clear_error', type, error: error instanceof Error ? error.message : String(error) })
       return { 
         success: false, 
         error: error instanceof Error ? error : new Error('Unknown storage error')
@@ -127,7 +128,7 @@ class SafeStorage {
       const jsonString = JSON.stringify(value)
       return this.setItem(key, jsonString, type)
     } catch (error) {
-      console.warn(`[SafeStorage] Error stringifying JSON for ${key}:`, error)
+      logger.warn(`Error stringifying JSON for storage key ${key}`, { operation: 'browser.storage_json_stringify_error', type, key, error: error instanceof Error ? error.message : String(error) })
       return { 
         success: false, 
         error: error instanceof Error ? error : new Error('JSON stringify error')
@@ -146,10 +147,10 @@ class SafeStorage {
     try {
       const item = this.getItem(key, type)
       if (!item) return defaultValue
-      
+
       return JSON.parse(item) as T
     } catch (error) {
-      console.warn(`[SafeStorage] Error parsing JSON for ${key}:`, error)
+      logger.warn(`Error parsing JSON for storage key ${key}`, { operation: 'browser.storage_json_parse_error', type, key, error: error instanceof Error ? error.message : String(error) })
       return defaultValue
     }
   }

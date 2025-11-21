@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect, useCallback } from "react"
 import { useAuth, useOrganization } from "@clerk/nextjs"
@@ -107,7 +108,7 @@ export function ExpensesContent() {
       const data = await response.json();
       setExpenses(data as Expense[]);
     } catch (err) {
-      console.error("API fetch error:", err);
+      logger.error('API fetch error:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
@@ -128,7 +129,7 @@ export function ExpensesContent() {
         setUserRole(data.role);
       }
     } catch (error) {
-      console.error("Error fetching user role:", error);
+      logger.error('Error fetching user role:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   }, [getToken]);
 
@@ -143,7 +144,7 @@ export function ExpensesContent() {
         setExpenseCategories(data);
       }
     } catch (error) {
-      console.error("Error fetching expense categories:", error);
+      logger.error('Error fetching expense categories:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   }, [organization?.id]);
 
@@ -233,7 +234,7 @@ export function ExpensesContent() {
         return;
       }
     } catch (err) {
-      console.error("Delete expense error:", err);
+      logger.error('Delete expense error:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
       sonnerToast.dismiss(loadingToast);
       sonnerToast.error(t('expenses:detailsDrawer.deleteError'), {
         description: t('expenses:detailsDrawer.deleteErrorDescription'),
@@ -321,13 +322,17 @@ export function ExpensesContent() {
       numericAmount = (amount as Decimal).toNumber();
     } else {
       // Log error for unexpected types and fallback
-      console.error("Unexpected type for amount in formatCurrency:", typeof amount, amount);
+      logger.error('Unexpected type for amount in formatCurrency', {
+        operation: 'ui.expense.format_error',
+        amountType: typeof amount,
+        amountValue: String(amount)
+      });
       return '-'; 
     }
 
     // Check if parsing failed
     if (isNaN(numericAmount)) {
-        console.error("Failed to parse amount in formatCurrency:", amount);
+        logger.error('Failed to parse amount in formatCurrency:', { operation: 'ui.error' }, amount instanceof Error ? amount : new Error(String(amount)));
         return '-';
     }
 

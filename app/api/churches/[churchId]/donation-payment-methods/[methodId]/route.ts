@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from '@/lib/logger';
 
 interface Params {
   churchId: string;
@@ -78,7 +79,7 @@ export async function PUT(
     return NextResponse.json(updatedMethod, { status: 200 });
 
   } catch (error) {
-    console.error(`Error updating donation payment method:`, error);
+    logger.error('Error updating donation payment method:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to update donation payment method', details: errorMessage }, { status: 500 });
   }
@@ -150,7 +151,7 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Payment method deleted successfully' }, { status: 200 });
 
   } catch (error) {
-    console.error(`Error deleting donation payment method:`, error);
+    logger.error('Error deleting donation payment method:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to delete donation payment method', details: errorMessage }, { status: 500 });
   }

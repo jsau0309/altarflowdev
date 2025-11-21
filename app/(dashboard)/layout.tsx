@@ -4,13 +4,14 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import ClientDashboardLayout from './_client-layout';
 import AuthWrapper from './auth-wrapper'; 
+import { logger } from '@/lib/logger';
 
 export default async function ServerDashboardLayout({ children }: { children: React.ReactNode }) {
   const { userId, orgId } = await auth();
   
   // Don't redirect immediately - let client-side handle it
   if (!userId) {
-    console.log('[ServerDashboardLayout] No userId found, will let client handle redirect');
+    logger.debug('[ServerDashboardLayout] No userId found, will let client handle redirect');
     return (
       <AuthWrapper>
         <ClientDashboardLayout>{children}</ClientDashboardLayout>
@@ -33,7 +34,7 @@ export default async function ServerDashboardLayout({ children }: { children: Re
     // Check onboarding status first
     if (!church || !church.onboardingCompleted) {
       const step = church?.onboardingStep || 1;
-      console.log(`[ServerDashboardLayout] Onboarding not completed, redirecting to step ${step}`);
+      logger.debug(`[ServerDashboardLayout] Onboarding not completed, redirecting to step ${step}`);
       redirect(`/onboarding/step-${step}`);
     }
 
@@ -53,7 +54,7 @@ export default async function ServerDashboardLayout({ children }: { children: Re
     }
   } else {
     // No organization, redirect to onboarding
-    console.log('[ServerDashboardLayout] No orgId found, redirecting to onboarding welcome');
+    logger.debug('[ServerDashboardLayout] No orgId found, redirecting to onboarding welcome');
     redirect('/onboarding/welcome');
   }
 

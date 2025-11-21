@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 interface UpdateDonorParams {
   params: Promise<{
@@ -63,7 +64,7 @@ export async function PUT(request: NextRequest, { params }: UpdateDonorParams) {
     return NextResponse.json({ success: true, donor: updatedDonor });
 
   } catch (error: unknown) {
-    console.error('Error updating donor:', error);
+    logger.error('Error updating donor:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') { // Prisma error code for 'Record to update not found.'
       return NextResponse.json({ success: false, error: 'Donor not found.' }, { status: 404 });
     }

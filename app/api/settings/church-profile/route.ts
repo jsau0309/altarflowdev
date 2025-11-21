@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
 import { getAuth } from '@clerk/nextjs/server';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   // Get user and organization context
   const { userId, orgId } = getAuth(request);
 
   if (!userId) { 
-    console.error("GET Church Profile Auth Error: No Clerk userId found.");
+    logger.error('GET Church Profile Auth Error: No Clerk userId found.', { operation: 'api.error' });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!orgId) {
-    console.error(`User ${userId} GET /church-profile without active org.`);
+    logger.error('User ${userId} GET /church-profile without active org.', { operation: 'api.error' });
     return NextResponse.json({ error: "No active organization selected" }, { status: 400 });
     }
 
@@ -32,14 +33,14 @@ export async function GET(request: NextRequest) {
     });
 
     if (!church) {
-      console.error(`Church not found for clerkOrgId: ${orgId}`);
+      logger.error('Church not found for clerkOrgId: ${orgId}', { operation: 'api.error' });
       return NextResponse.json({ error: "Church profile not found for the active organization" }, { status: 404 });
     }
 
     return NextResponse.json(church);
 
   } catch (error) {
-    console.error("GET Church Profile Error:", error);
+    logger.error('GET Church Profile Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -54,17 +55,17 @@ export async function PUT(request: NextRequest) {
     const orgRole = authResult.orgRole;
 
     if (!userId) { 
-    console.error("PUT Church Profile Auth Error: No Clerk userId found.");
+    logger.error('PUT Church Profile Auth Error: No Clerk userId found.', { operation: 'api.error' });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
     if (!orgId) {
-      console.error(`User ${userId} PUT /church-profile without active org.`);
+      logger.error('User ${userId} PUT /church-profile without active org.', { operation: 'api.error' });
       return NextResponse.json({ error: "No active organization selected" }, { status: 400 });
     }
 
     // 2. Authorization Check (e.g., only admins can update)
     if (orgRole !== 'org:admin') { 
-       console.warn(`User ${userId} with role ${orgRole} attempted to update church profile.`);
+       logger.warn('User ${userId} with role ${orgRole} attempted to update church profile.', { operation: 'api.warn' });
        return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
@@ -73,7 +74,7 @@ export async function PUT(request: NextRequest) {
   try {
     churchData = await request.json();
   } catch (error) {
-    console.error("PUT Church Profile - Invalid JSON:", error);
+    logger.error('PUT Church Profile - Invalid JSON:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
   if (!churchData || typeof churchData.name !== 'string' || churchData.name.trim() === '') {
@@ -115,9 +116,9 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(updatedChurch);
 
   } catch (error) {
-    console.error("PUT Church Profile Error:", error);
+    logger.error('PUT Church Profile Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        console.error(`Church update failed: Record not found for clerkOrgId ${orgId}`);
+        logger.error('Church update failed: Record not found for clerkOrgId ${orgId}', { operation: 'api.error' });
         return NextResponse.json({ error: 'Church profile not found for the active organization to update.' }, { status: 404 });
     }
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

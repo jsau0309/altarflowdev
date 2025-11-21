@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Globe, Moon, Sun } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from 'next-themes';
+import { logger } from '@/lib/logger';
 
 export default function OnboardingStep4() {
   const { t, i18n } = useTranslation(['onboarding', 'common']);
@@ -64,7 +65,7 @@ export default function OnboardingStep4() {
       // Move to next step
       router.push('/onboarding/step-5');
     } catch (error) {
-      console.error('Error saving preferences:', error);
+      logger.error('Error saving preferences', { operation: 'ui.onboarding.save_preferences_error', language, theme: selectedTheme }, error instanceof Error ? error : new Error(String(error)));
       showToast(
         t('onboarding:step4.error', 'Failed to save preferences. Please try again.'),
         'error'

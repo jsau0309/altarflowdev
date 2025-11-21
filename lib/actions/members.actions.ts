@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@clerk/nextjs/server';
 import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
+import { logger } from '@/lib/logger';
 
 export interface MemberForLinkingSummary {
   id: string;
@@ -26,7 +27,7 @@ export interface MemberSummary {
  */
 export async function getMembersForChurch(churchId: string): Promise<MemberSummary[]> {
   if (!churchId) {
-    console.error('[getMembersForChurch] Church ID is required.');
+    logger.error('[getMembersForChurch] Church ID is required.', { operation: 'actions.error' });
     return [];
   }
 
@@ -34,7 +35,7 @@ export async function getMembersForChurch(churchId: string): Promise<MemberSumma
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getMembersForChurch] Authorization failed:', authResult.error);
+      logger.error('[getMembersForChurch] Authorization failed', { operation: 'actions.members.auth_failed', error: authResult.error });
       return [];
     }
 
@@ -67,7 +68,7 @@ export async function getMembersForChurch(churchId: string): Promise<MemberSumma
     }));
 
   } catch (error) {
-    console.error(`[getMembersForChurch] Failed to fetch members for church ${churchId}:`, error);
+    logger.error('[getMembersForChurch] Failed to fetch members for church ${churchId}:', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return []; // Return empty array on error
   }
 }
@@ -79,7 +80,7 @@ export async function getMembersForChurch(churchId: string): Promise<MemberSumma
 export async function getAllMembersForLinking(): Promise<MemberForLinkingSummary[]> {
   const { orgId } = await auth();
   if (!orgId) {
-    console.error('[getAllMembersForLinking] User is not associated with a church.');
+    logger.error('[getAllMembersForLinking] User is not associated with a church.', { operation: 'actions.error' });
     return [];
   }
 
@@ -90,7 +91,7 @@ export async function getAllMembersForLinking(): Promise<MemberForLinkingSummary
     });
 
     if (!church) {
-      console.error(`[getAllMembersForLinking] Church not found for orgId: ${orgId}`);
+      logger.error('[getAllMembersForLinking] Church not found for orgId: ${orgId}', { operation: 'actions.error' });
       return [];
     }
 
@@ -124,7 +125,7 @@ export async function getAllMembersForLinking(): Promise<MemberForLinkingSummary
     }));
 
   } catch (error) {
-    console.error(`[getAllMembersForLinking] Failed to fetch members for orgId ${orgId}:`, error);
+    logger.error('[getAllMembersForLinking] Failed to fetch members for orgId ${orgId}:', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return []; // Return empty array on error
   }
 }

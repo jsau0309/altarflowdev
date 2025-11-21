@@ -1,44 +1,44 @@
 import * as Sentry from "@sentry/nextjs";
-
-// Get the logger from Sentry
-const { logger } = Sentry;
+import { logger } from './logger';
+import { webhookLogger } from './logger/domains/webhook';
+import { hashChurchId } from './logger/middleware';
 
 // Helper function to capture webhook events with context
+// Note: This is now a compatibility wrapper. Prefer using webhookLogger directly.
 export function captureWebhookEvent(
   eventType: string,
   context: Record<string, any>,
   level: 'info' | 'warning' | 'error' = 'info'
 ) {
-  // Use structured logging with Sentry
+  // Use new structured logging with automatic sanitization
+  const sanitizedContext = {
+    ...context,
+    churchId: context.churchId ? hashChurchId(context.churchId) : undefined,
+  };
+
   if (level === 'error') {
     logger.error('Stripe Webhook Error', {
+      operation: 'webhook.stripe.error',
       eventType,
-      ...context
-    });
-    
-    // Also capture as exception for error tracking
-    Sentry.captureException(new Error(`Stripe Webhook: ${eventType}`), {
-      contexts: {
-        webhook: context
-      },
-      tags: {
-        'webhook.type': eventType
-      }
+      ...sanitizedContext
     });
   } else if (level === 'warning') {
     logger.warn('Stripe Webhook Warning', {
+      operation: 'webhook.stripe.warning',
       eventType,
-      ...context
+      ...sanitizedContext
     });
   } else {
     logger.info('Stripe Webhook Event', {
+      operation: 'webhook.stripe.info',
       eventType,
-      ...context
+      ...sanitizedContext
     });
   }
 }
 
 // Helper for capturing payment errors with span instrumentation
+// Note: This is now a compatibility wrapper. Prefer using paymentLogger.failed() directly.
 export function capturePaymentError(
   error: Error,
   context: {
@@ -48,23 +48,14 @@ export function capturePaymentError(
     churchId?: string;
   }
 ) {
-  // Log structured error
+  // Use new structured logging with automatic sanitization
   logger.error('Payment processing failed', {
-    error: error.message,
-    stack: error.stack,
-    ...context
-  });
-  
-  // Capture exception with context
-  Sentry.captureException(error, {
-    contexts: {
-      payment: context
-    },
-    tags: {
-      'error.type': 'payment',
-      'payment.church_id': context.churchId || 'unknown'
-    }
-  });
+    operation: 'payment.error',
+    paymentIntentId: context.paymentIntentId,
+    customerId: context.customerId,
+    amount: context.amount,
+    churchId: context.churchId ? hashChurchId(context.churchId) : undefined,
+  }, error);
 }
 
 // Helper to create spans for API operations
@@ -129,15 +120,18 @@ export function logEmailOperation(
     error?: string;
   }
 ) {
-  const logData = {
-    operation,
-    ...context
+  const sanitizedContext = {
+    operation: `email.${operation}`,
+    campaignId: context.campaignId,
+    donationTypeId: context.donationTypeId,
+    recipientCount: context.recipientCount,
+    churchId: context.churchId ? hashChurchId(context.churchId) : undefined,
   };
-  
+
   if (context.error) {
-    logger.error(logger.fmt`Email operation failed: ${operation}`, logData);
+    logger.error(`Email operation failed: ${operation}`, sanitizedContext);
   } else {
-    logger.info(logger.fmt`Email operation: ${operation}`, logData);
+    logger.info(`Email operation: ${operation}`, sanitizedContext);
   }
 }
 
@@ -151,18 +145,16 @@ export function trackSubscriptionChange(
     reason?: string;
   }
 ) {
-  logger.info(logger.fmt`Subscription ${action} for church ${context.churchId}`, {
+  logger.info(`Subscription ${action}`, {
+    operation: 'subscription.change',
     action,
-    ...context
+    churchId: hashChurchId(context.churchId),
+    oldPlan: context.oldPlan,
+    newPlan: context.newPlan,
+    reason: context.reason,
   });
-  
-  // Also send as a breadcrumb for better debugging
-  Sentry.addBreadcrumb({
-    category: 'subscription',
-    message: `Subscription ${action}`,
-    level: 'info',
-    data: context
-  });
+
+  // Breadcrumb is automatically added by logger integration
 }
 
 // Helper for tracking critical business metrics
@@ -172,21 +164,20 @@ export function trackMetric(
   unit: string,
   tags: Record<string, string> = {}
 ) {
-  logger.debug(logger.fmt`Metric: ${name} = ${value} ${unit}`, {
+  logger.debug(`Metric: ${name} = ${value} ${unit}`, {
+    operation: 'metric.track',
     metric: name,
     value,
     unit,
     ...tags
   });
-  
-  // Add metric as breadcrumb for debugging
-  Sentry.addBreadcrumb({
-    category: 'metric',
-    message: `${name}: ${value} ${unit}`,
-    level: 'debug',
-    data: { value, unit, ...tags }
-  });
+
+  // Breadcrumb is automatically added by logger integration
 }
 
-// Export logger for direct use
+// Export logger and domain loggers for convenience
 export { logger };
+export { webhookLogger } from './logger/domains/webhook';
+export { paymentLogger } from './logger/domains/payment';
+export { databaseLogger } from './logger/domains/database';
+export { authLogger } from './logger/domains/auth';

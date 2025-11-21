@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { prisma } from '@/lib/db';
 import { sanitizeEmailHtml, sanitizeEmailSubject } from './sanitize-html';
 import { serverEnv } from '@/lib/env';
+import { logger } from '@/lib/logger';
 
 // Initialize Resend client
 const resend = new Resend(serverEnv.RESEND_API_KEY);
@@ -74,7 +75,7 @@ export class ResendEmailService {
 
       return { success: true, id: response.data?.id || '' };
     } catch (error) {
-      console.error('Error sending email:', error);
+      logger.error('Error sending email', { operation: 'email.send_error', churchId: params.churchId, subject: params.subject, recipient: Array.isArray(params.to) ? params.to[0] : params.to }, error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -113,7 +114,7 @@ export class ResendEmailService {
 
       return { success: true, id: response.data?.id || '' };
     } catch (error) {
-      console.error('Error sending test email:', error);
+      logger.error('Error sending test email', { operation: 'email.send_test_error', to: params.to, subject: params.subject }, error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }

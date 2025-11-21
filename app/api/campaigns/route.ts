@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // Schema for validating new campaign data (POST)
 const campaignCreateSchema = z.object({
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted to GET campaigns without an active organization.`);
+      logger.error('User ${userId} attempted to GET campaigns without an active organization.', { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(campaigns);
 
   } catch (error) {
-    console.error("Error fetching campaigns:", error);
+    logger.error('Error fetching campaigns:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
   }
 }
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
     // TODO: Add role check (e.g., ADMIN only?) using authResult.orgRole
     if (!orgId) {
-      console.error(`User ${userId} attempted to POST campaign without an active organization.`);
+      logger.error('User ${userId} attempted to POST campaign without an active organization.', { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     // 2. Validate input data
     const validation = campaignCreateSchema.safeParse(body);
     if (!validation.success) {
-        console.error("Campaign validation error:", validation.error.errors);
+        logger.error('Campaign validation error:', { operation: 'api.error' }, validation.error.errors instanceof Error ? validation.error.errors : new Error(String(validation.error.errors)));
         return NextResponse.json({ error: 'Invalid input data', details: validation.error.errors }, { status: 400 });
     }
     const campaignData = validation.data;
@@ -106,10 +107,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newCampaign, { status: 201 }); // 201 Created
 
   } catch (error) {
-    console.error("Error creating campaign:", error);
+    logger.error('Error creating campaign:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     // Add specific check for P2025 (Foreign key constraint failed - church not found)
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        console.error(`Attempted to connect campaign to non-existent church with clerkOrgId: ${orgId}`);
+        logger.error('Attempted to connect campaign to non-existent church with clerkOrgId: ${orgId}', { operation: 'api.error' });
         return NextResponse.json({ error: 'Organization not found for creating campaign.'}, { status: 404 });
     }
     return NextResponse.json({ 

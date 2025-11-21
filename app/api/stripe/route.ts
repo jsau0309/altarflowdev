@@ -5,6 +5,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db'; // Use centralized Prisma instance
 import { clerkClient } from '@clerk/nextjs/server';
 import type { OrganizationMembership } from '@clerk/backend';
+import { logger } from '@/lib/logger';
+import { hashChurchId } from '@/lib/logger/middleware';
 
 // Helper types for our API requests
 type CreateAccountRequest = {
@@ -46,8 +48,6 @@ async function withIdempotency(
   const idempotencyKey = req.headers.get('Idempotency-Key');
   
   if (!idempotencyKey) {
-    console.error('[withIdempotency] Idempotency-Key header is MISSING from the request.');
-
     // SECURITY: Use Map to prevent prototype pollution via malicious header names
     // Attackers could send headers like __proto__, constructor, etc.
     const headersMap = new Map<string, string>();
@@ -57,7 +57,10 @@ async function withIdempotency(
 
     // Convert Map to plain object safely using Object.fromEntries
     const headersObject = Object.fromEntries(headersMap);
-    console.error('[withIdempotency] Received headers on req object:', JSON.stringify(headersObject));
+    logger.error('Idempotency-Key header is MISSING from the request', {
+      operation: 'stripe.api.idempotency.missing_key',
+      headers: headersObject
+    });
     throw new Error('Idempotency-Key header is required');
   }
   
@@ -69,7 +72,7 @@ async function withIdempotency(
   });
   
   if (cachedResponse) {
-    console.log('[DEBUG] Idempotency: Returning cached response', { cacheKey });
+    logger.debug('[DEBUG] Idempotency: Returning cached response', { operation: 'stripe.api.debug', context: { cacheKey } });
     const parsedData = JSON.parse(cachedResponse.responseData);
 
     // If body is empty or undefined, ensure we return an empty string not null/undefined
@@ -81,7 +84,7 @@ async function withIdempotency(
       headers: parsedData.headers,
     });
 
-    console.log('[DEBUG] Idempotency: Reconstructed response', { bodyLength: bodyContent.length });
+    logger.debug('[DEBUG] Idempotency: Reconstructed response', { operation: 'stripe.api.debug', context: { bodyLength: bodyContent.length } });
     return reconstructedResponse;
   }
 
@@ -90,7 +93,10 @@ async function withIdempotency(
   try {
     response = await operation();
   } catch (operationError) {
-    console.error('[Idempotency] Operation failed', { cacheKey, error: operationError });
+    logger.error('Idempotency operation failed', {
+      operation: 'stripe.api.idempotency.operation_failed',
+      cacheKey
+    }, operationError instanceof Error ? operationError : new Error(String(operationError)));
     throw operationError;
   }
 
@@ -99,7 +105,8 @@ async function withIdempotency(
 
   // Don't cache error responses (4xx, 5xx) - only cache successful operations
   if (response.status >= 400) {
-    console.warn('[DEBUG] Idempotency: Skipping cache for error response', {
+    logger.debug('Idempotency: Skipping cache for error response', {
+      operation: 'stripe.api.idempotency.skip_error',
       status: response.status,
       cacheKey
     });
@@ -108,7 +115,10 @@ async function withIdempotency(
 
   // Don't cache empty responses for successful operations
   if (response.status === 200 && (!bodyText || bodyText.trim() === '')) {
-    console.warn('[DEBUG] Idempotency: Skipping cache for empty 200 response', { cacheKey });
+    logger.debug('Idempotency: Skipping cache for empty 200 response', {
+      operation: 'stripe.api.idempotency.skip_empty',
+      cacheKey
+    });
     return response;
   }
 
@@ -118,10 +128,10 @@ async function withIdempotency(
     headers: Object.fromEntries(response.headers.entries()),
   };
 
-  console.log('[DEBUG] Idempotency: Caching response', {
+  logger.debug('[DEBUG] Idempotency: Caching response', { operation: 'stripe.api.debug', context: {
     bodyLength: bodyText.length,
     status: response.status
-  });
+  } });
 
   try {
     await prisma.idempotency_cache.create({
@@ -131,7 +141,7 @@ async function withIdempotency(
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Cache for 24 hours
       },
     });
-    console.log('[DEBUG] Idempotency: Cached response', { cacheKey });
+    logger.debug('[DEBUG] Idempotency: Cached response', { operation: 'stripe.api.debug', context: { cacheKey } });
   } catch (cacheError) {
     if (
       cacheError instanceof Prisma.PrismaClientKnownRequestError &&
@@ -139,19 +149,23 @@ async function withIdempotency(
     ) {
       const target = cacheError.meta?.target as string[] | undefined;
       if (target && target.includes('key')) {
-        console.warn('[Idempotency] Cache write failed due to race condition', {
+        logger.warn('Idempotency cache write failed due to race condition', {
+          operation: 'stripe.api.idempotency.race_condition',
           cacheKey,
           message: 'The result was likely cached by a concurrent request. Returning current operation\'s result.'
         });
       } else {
-        console.error('[Idempotency] Cache write failed with P2002 on unexpected fields', {
-          cacheKey,
-          error: cacheError
-        });
+        logger.error('Idempotency cache write failed with P2002 on unexpected fields', {
+          operation: 'stripe.api.idempotency.p2002_unexpected',
+          cacheKey
+        }, cacheError instanceof Error ? cacheError : new Error(String(cacheError)));
         throw cacheError;
       }
     } else {
-      console.error('[Idempotency] Cache write failed', { cacheKey, error: cacheError });
+      logger.error('Idempotency cache write failed', {
+        operation: 'stripe.api.idempotency.cache_write_failed',
+        cacheKey
+      }, cacheError instanceof Error ? cacheError : new Error(String(cacheError)));
       throw cacheError;
     }
   }
@@ -171,7 +185,7 @@ async function getAdminEmailForOrganization(clerkOrgId: string): Promise<string 
     const memberships = membershipsResponse.data; 
 
     if (!memberships || memberships.length === 0) {
-      console.warn(`[WARN] No memberships found for organization: ${clerkOrgId}`);
+      logger.warn(`No memberships found for organization: ${clerkOrgId}`, { operation: 'stripe.api.warn' });
       return null;
     }
 
@@ -180,7 +194,7 @@ async function getAdminEmailForOrganization(clerkOrgId: string): Promise<string 
     const adminMembership = memberships.find((mem: OrganizationMembership) => mem.role === adminRole);
 
     if (!adminMembership || !adminMembership.publicUserData?.userId) {
-      console.warn(`[WARN] No admin member found with role '${adminRole}' for organization: ${clerkOrgId}`);
+      logger.warn(`No admin member found with role '${adminRole}' for organization: ${clerkOrgId}`, { operation: 'stripe.api.warn' });
       return null;
     }
 
@@ -190,7 +204,7 @@ async function getAdminEmailForOrganization(clerkOrgId: string): Promise<string 
     const adminUser = await client.users.getUser(adminUserId);
 
     if (!adminUser || !adminUser.primaryEmailAddress?.emailAddress) {
-      console.warn(`[WARN] Admin user ${adminUserId} found, but no primary email address.`);
+      logger.warn(`Admin user ${adminUserId} found, but no primary email address.`, { operation: 'stripe.api.warn' });
       return null;
     }
 
@@ -199,7 +213,7 @@ async function getAdminEmailForOrganization(clerkOrgId: string): Promise<string 
     return adminEmail;
 
   } catch (error) {
-    console.error(`[ERROR] Failed to get admin email for organization ${clerkOrgId}:`, error);
+    logger.error(`Failed to get admin email for organization ${clerkOrgId}:`, { operation: 'stripe.api.ERROR' }, error instanceof Error ? error : new Error(String(error)));
     throw new Error(`Failed to retrieve admin email for organization ${clerkOrgId}.`);
   }
 }
@@ -289,7 +303,7 @@ export async function POST(req: Request) {
               url: loginLink.url,
             });
           } catch (error) {
-            console.error('Error creating login link:', error);
+            logger.error('Error creating login link', { operation: 'stripe.api.error' }, error instanceof Error ? error : new Error(String(error)));
             return NextResponse.json(
               { error: 'Failed to create login link' },
               { status: 500 }
@@ -298,25 +312,31 @@ export async function POST(req: Request) {
         });
       }
       else {
-        console.warn(`[WARN] Unknown action received: ${(body as StripeApiRequest & { action: string }).action}`);
+        logger.warn(`Unknown action received: ${(body as StripeApiRequest & { action: string }).action}`, { operation: 'stripe.api.warn' });
         return NextResponse.json(
             { error: `Unknown action: ${(body as StripeApiRequest & { action: string }).action}` },
             { status: 400 }
         );
       }
     } catch (error) {
-      console.error('[CRITICAL] Error caught in POST handler main try...catch:', error);
-      console.error('[CRITICAL] Error name:', error instanceof Error ? error.name : 'Unknown');
-      console.error('[CRITICAL] Error message:', error instanceof Error ? error.message : String(error));
-      console.error('[CRITICAL] Error stack:', error instanceof Error ? error.stack : 'N/A');
+      logger.error('CRITICAL: Error caught in POST handler main try...catch', {
+        operation: 'stripe.api.post.critical_error',
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        isStripeError: error instanceof Stripe.errors.StripeError
+      }, error instanceof Error ? error : new Error(String(error)));
+
       if (error instanceof Stripe.errors.StripeError) {
-        console.error('[CRITICAL] Error type (if any):', error.type);
-        console.error('[CRITICAL] Error code (if any):', error.code);
+        logger.error('CRITICAL: Stripe-specific error details', {
+          operation: 'stripe.api.post.stripe_error',
+          errorType: error.type,
+          errorCode: error.code
+        });
       }
 
       try {
         if (error instanceof Stripe.errors.StripeError) {
-          console.log('[CRITICAL] Detected StripeError, returning specific response.');
+          logger.debug('[CRITICAL] Detected StripeError, returning specific response.', { operation: 'stripe.api.debug' });
           return NextResponse.json(
             {
               error: 'Stripe API Error: ' + error.message,
@@ -326,14 +346,14 @@ export async function POST(req: Request) {
             { status: error.statusCode || 400 }
           );
         } else {
-          console.log('[CRITICAL] Non-Stripe error, returning generic 500 response.');
+          logger.debug('[CRITICAL] Non-Stripe error, returning generic 500 response.', { operation: 'stripe.api.debug' });
           return NextResponse.json(
             { error: 'Internal Server Error - See server logs for details.' },
             { status: 500 }
           );
         }
       } catch (responseError) {
-        console.error('[ULTRA_CRITICAL] Failed to create NextResponse in error handler:', responseError);
+        logger.error('[ULTRA_CRITICAL] Failed to create NextResponse in error handler', { operation: 'stripe.api.error' }, responseError instanceof Error ? responseError : new Error(String(responseError)));
         throw new Error('PANIC: Failed to construct error response in POST handler.');
       }
     }
@@ -363,7 +383,7 @@ async function handleCreateAccount(
     });
 
     if (!church) {
-      console.error(`[ERROR] Church not found in database for clerkOrgId: ${clerkOrgId}`);
+      logger.error(`Church not found in database for clerkOrgId: ${clerkOrgId}`, { operation: 'stripe.api.ERROR' });
       return NextResponse.json(
         { error: 'Church organization not found in our records. Cannot create Stripe account.' },
         { status: 404 }
@@ -381,13 +401,13 @@ async function handleCreateAccount(
       // Debug logging removed: existing Stripe account found
       const finalRefreshUrlExisting = customRefreshUrl || passedDefaultRefreshUrl;
       const finalReturnUrlExisting = customReturnUrl || passedDefaultReturnUrl;
-      console.log('[handleCreateAccount - Existing Account] Values for account link creation:');
-      console.log('[handleCreateAccount - Existing Account] customRefreshUrl:', customRefreshUrl);
-      console.log('[handleCreateAccount - Existing Account] defaultRefreshUrl:', passedDefaultRefreshUrl);
-      console.log('[handleCreateAccount - Existing Account] FINAL refresh_url for Stripe:', finalRefreshUrlExisting);
-      console.log('[handleCreateAccount - Existing Account] customReturnUrl:', customReturnUrl);
-      console.log('[handleCreateAccount - Existing Account] defaultReturnUrl:', passedDefaultReturnUrl);
-      console.log('[handleCreateAccount - Existing Account] FINAL return_url for Stripe:', finalReturnUrlExisting);
+      logger.debug('[handleCreateAccount - Existing Account] Values for account link creation:', { operation: 'stripe.api.debug' });
+      logger.debug('[handleCreateAccount - Existing Account] customRefreshUrl:', { operation: 'stripe.api.debug', context: customRefreshUrl });
+      logger.debug('[handleCreateAccount - Existing Account] defaultRefreshUrl:', { operation: 'stripe.api.debug', context: passedDefaultRefreshUrl });
+      logger.debug('[handleCreateAccount - Existing Account] FINAL refresh_url for Stripe:', { operation: 'stripe.api.debug', context: finalRefreshUrlExisting });
+      logger.debug('[handleCreateAccount - Existing Account] customReturnUrl:', { operation: 'stripe.api.debug', context: customReturnUrl });
+      logger.debug('[handleCreateAccount - Existing Account] defaultReturnUrl:', { operation: 'stripe.api.debug', context: passedDefaultReturnUrl });
+      logger.debug('[handleCreateAccount - Existing Account] FINAL return_url for Stripe:', { operation: 'stripe.api.debug', context: finalReturnUrlExisting });
       // Debug logging removed: Stripe Account ID for link
 
       const accountLink = await stripe.accountLinks.create({
@@ -396,7 +416,7 @@ async function handleCreateAccount(
         return_url: finalReturnUrlExisting,
         type: 'account_onboarding',
       });
-      console.log(`[DEBUG] Created new account link for existing Stripe account: ${existingStripeConnectAccount.stripeAccountId}`);
+      logger.debug(`Created new account link for existing Stripe account: ${existingStripeConnectAccount.stripeAccountId}`, { operation: 'stripe.api.debug' });
       return NextResponse.json({
         accountId: existingStripeConnectAccount.stripeAccountId,
         url: accountLink.url, // Changed key from onboardingUrl to url
@@ -404,12 +424,12 @@ async function handleCreateAccount(
       });
     }
 
-    console.log(`[INFO] No existing StripeConnectAccount found for clerkOrgId ${clerkOrgId}. Proceeding with new account creation.`);
+    logger.info(`No existing StripeConnectAccount found for clerkOrgId ${clerkOrgId}. Proceeding with new account creation.`, { operation: 'stripe.api.info' });
     let adminEmail: string | null = null;
     try {
       adminEmail = await getAdminEmailForOrganization(clerkOrgId);
     } catch (error) {
-      console.error(`[ERROR] Stripe account creation failed due to error fetching admin email for org ${clerkOrgId}:`, error);
+      logger.error(`Stripe account creation failed due to error fetching admin email for org ${clerkOrgId}:`, { operation: 'stripe.api.ERROR' }, error instanceof Error ? error : new Error(String(error)));
       return NextResponse.json(
         { error: "Stripe account creation failed: Could not retrieve organization admin details." },
         { status: 500 }
@@ -417,7 +437,7 @@ async function handleCreateAccount(
     }
 
     if (!adminEmail) {
-      console.error(`[ERROR] No admin email found for Stripe account creation (org: ${clerkOrgId}).`);
+      logger.error(`No admin email found for Stripe account creation (org: ${clerkOrgId}).`, { operation: 'stripe.api.ERROR' });
       return NextResponse.json(
         { error: "Stripe account creation failed: Administrator email not found for the organization." },
         { status: 404 } 
@@ -455,19 +475,19 @@ async function handleCreateAccount(
         updatedAt: new Date(),
       }
     });
-    console.log(`[DEBUG] StripeConnectAccount record inserted into DB for new Stripe Account ID: ${newStripeAccount.id} and Church (clerkOrgId): ${clerkOrgId}`);
+    logger.debug(`StripeConnectAccount record inserted into DB for new Stripe Account ID: ${newStripeAccount.id} and Church (clerkOrgId): ${clerkOrgId}`, { operation: 'stripe.api.debug' });
 
     // Generate account link for the newly created account
     const finalRefreshUrlNew = customRefreshUrl || passedDefaultRefreshUrl;
     const finalReturnUrlNew = customReturnUrl || passedDefaultReturnUrl;
 
-    console.log('[handleCreateAccount - New Account] Values for account link creation:');
-    console.log('[handleCreateAccount - New Account] customRefreshUrl:', customRefreshUrl);
-    console.log('[handleCreateAccount - New Account] defaultRefreshUrl:', passedDefaultRefreshUrl);
-    console.log('[handleCreateAccount - New Account] FINAL refresh_url for Stripe:', finalRefreshUrlNew);
-    console.log('[handleCreateAccount - New Account] customReturnUrl:', customReturnUrl);
-    console.log('[handleCreateAccount - New Account] defaultReturnUrl:', passedDefaultReturnUrl);
-    console.log('[handleCreateAccount - New Account] FINAL return_url for Stripe:', finalReturnUrlNew);
+    logger.debug('[handleCreateAccount - New Account] Values for account link creation:', { operation: 'stripe.api.debug' });
+    logger.debug('[handleCreateAccount - New Account] customRefreshUrl:', { operation: 'stripe.api.debug', context: customRefreshUrl });
+    logger.debug('[handleCreateAccount - New Account] defaultRefreshUrl:', { operation: 'stripe.api.debug', context: passedDefaultRefreshUrl });
+    logger.debug('[handleCreateAccount - New Account] FINAL refresh_url for Stripe:', { operation: 'stripe.api.debug', context: finalRefreshUrlNew });
+    logger.debug('[handleCreateAccount - New Account] customReturnUrl:', { operation: 'stripe.api.debug', context: customReturnUrl });
+    logger.debug('[handleCreateAccount - New Account] defaultReturnUrl:', { operation: 'stripe.api.debug', context: passedDefaultReturnUrl });
+    logger.debug('[handleCreateAccount - New Account] FINAL return_url for Stripe:', { operation: 'stripe.api.debug', context: finalReturnUrlNew });
     // Debug logging removed: Stripe Account ID for link
 
     const newAccountLink = await stripe.accountLinks.create({
@@ -476,7 +496,7 @@ async function handleCreateAccount(
       return_url: finalReturnUrlNew,
       type: 'account_onboarding',
     });
-    console.log(`[DEBUG] Created account link for new Stripe account: ${newStripeAccount.id}`);
+    logger.debug(`Created account link for new Stripe account: ${newStripeAccount.id}`, { operation: 'stripe.api.debug' });
 
     return NextResponse.json({
       accountId: newStripeAccount.id,
@@ -485,30 +505,46 @@ async function handleCreateAccount(
     });
 
   } catch (error) {
-    console.error('Error in handleCreateAccount:', error);
+    logger.error('Error in handleCreateAccount', {
+      operation: 'stripe.api.create_account.error',
+      churchId: hashChurchId(clerkOrgId)
+    }, error instanceof Error ? error : new Error(String(error)));
+
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2003') {
-        console.error('[ERROR] Prisma Foreign Key Constraint Violation (P2003):', error.message);
+        logger.error('Prisma Foreign Key Constraint Violation (P2003)', {
+          operation: 'stripe.api.create_account.p2003',
+          code: error.code
+        });
         return NextResponse.json(
-          { error: 'Database error: Could not link Stripe account to church due to a reference issue.' }, 
+          { error: 'Database error: Could not link Stripe account to church due to a reference issue.' },
           { status: 500 }
         );
       }
-      console.error('[ERROR] Prisma Database Error:', error.message);
+      logger.error('Prisma Database Error', {
+        operation: 'stripe.api.create_account.prisma_error',
+        code: error.code
+      });
       return NextResponse.json(
-        { error: 'A database error occurred while creating the Stripe account.' }, 
+        { error: 'A database error occurred while creating the Stripe account.' },
         { status: 500 }
       );
     } else if (error instanceof Stripe.errors.StripeError) {
-      console.error('[ERROR] Stripe API Error:', error.message);
+      logger.error('Stripe API Error', {
+        operation: 'stripe.api.create_account.stripe_error',
+        errorType: error.type,
+        errorCode: error.code
+      });
       return NextResponse.json(
-        { error: `Stripe API error: ${error.message}` }, 
+        { error: `Stripe API error: ${error.message}` },
         { status: error.statusCode || 500 }
       );
     } else {
-      console.error('[ERROR] Unknown error in handleCreateAccount:', error);
+      logger.error('Unknown error in handleCreateAccount', {
+        operation: 'stripe.api.create_account.unknown_error'
+      }, error instanceof Error ? error : new Error(String(error)));
       return NextResponse.json(
-        { error: 'An unexpected error occurred while creating the Stripe account.' }, 
+        { error: 'An unexpected error occurred while creating the Stripe account.' },
         { status: 500 }
       );
     }
@@ -611,7 +647,7 @@ async function handleGetAccount({
       },
     });
   } catch (error) {
-    console.error('Error fetching Stripe account:', error);
+    logger.error('Error fetching Stripe account', { operation: 'stripe.api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: 'Failed to fetch Stripe account' },
       { status: 500 }
@@ -637,10 +673,13 @@ function getVerificationStatus(account: Stripe.Account): string {
 
 // Delete a Stripe Connect account
 async function handleDeleteAccount(stripeAccountId: string): Promise<NextResponse> {
-  console.log(`[INFO] Attempting to delete Stripe account: ${stripeAccountId}`);
+  logger.info(`Attempting to delete Stripe account: ${stripeAccountId}`, { operation: 'stripe.api.info' });
 
   if (!stripeAccountId || !stripeAccountId.startsWith('acct_')) {
-    console.error('[ERROR] Invalid Stripe Account ID provided for deletion:', stripeAccountId);
+    logger.error('Invalid Stripe Account ID provided for deletion', {
+      operation: 'stripe.api.delete_account.invalid_id',
+      providedId: stripeAccountId || 'undefined'
+    });
     return NextResponse.json(
       { error: 'Invalid Stripe Account ID format.' },
       { status: 400 }
@@ -650,10 +689,10 @@ async function handleDeleteAccount(stripeAccountId: string): Promise<NextRespons
   try {
     // 1. Delete the account from Stripe
     const deletedStripeAccount = await stripe.accounts.del(stripeAccountId);
-    console.log(`[DEBUG] Successfully deleted Stripe account ${stripeAccountId}. Deleted status: ${deletedStripeAccount.deleted}`);
+    logger.debug(`Successfully deleted Stripe account ${stripeAccountId}. Deleted status: ${deletedStripeAccount.deleted}`, { operation: 'stripe.api.debug' });
 
     if (!deletedStripeAccount.deleted) {
-      console.warn(`[WARN] Stripe API indicated account ${stripeAccountId} was not deleted, though no error was thrown.`);
+      logger.warn(`Stripe API indicated account ${stripeAccountId} was not deleted, though no error was thrown.`, { operation: 'stripe.api.warn' });
     }
 
     // 2. Delete the account from local Prisma database
@@ -663,12 +702,12 @@ async function handleDeleteAccount(stripeAccountId: string): Promise<NextRespons
       const deletedDbRecord = await prisma.stripeConnectAccount.delete({
         where: { stripeAccountId: stripeAccountId },
       });
-      console.log(`[DEBUG] Successfully deleted StripeConnectAccount record from DB for Stripe Account ID: ${stripeAccountId}. DB Record ID: ${deletedDbRecord.id}`);
+      logger.debug(`Successfully deleted StripeConnectAccount record from DB for Stripe Account ID: ${stripeAccountId}. DB Record ID: ${deletedDbRecord.id}`, { operation: 'stripe.api.debug' });
     } catch (dbError) {
       if (dbError instanceof Prisma.PrismaClientKnownRequestError && dbError.code === 'P2025') {
-        console.warn(`[WARN] StripeConnectAccount record for ${stripeAccountId} not found in DB for deletion, or already deleted. Stripe deletion was successful.`);
+        logger.warn(`StripeConnectAccount record for ${stripeAccountId} not found in DB for deletion, or already deleted. Stripe deletion was successful.`, { operation: 'stripe.api.warn' });
       } else {
-        console.error(`[ERROR] Failed to delete StripeConnectAccount record from DB for ${stripeAccountId} after successful Stripe deletion:`, dbError);
+        logger.error(`Failed to delete StripeConnectAccount record from DB for ${stripeAccountId} after successful Stripe deletion:`, { operation: 'stripe.api.ERROR' }, dbError instanceof Error ? dbError : new Error(String(dbError)));
         return NextResponse.json(
           {
             message: `Stripe account ${stripeAccountId} deleted successfully, but failed to clean up local record. Please check server logs.`,
@@ -687,7 +726,7 @@ async function handleDeleteAccount(stripeAccountId: string): Promise<NextRespons
     });
 
   } catch (error) {
-    console.error(`[ERROR] Failed to delete Stripe account ${stripeAccountId}:`, error);
+    logger.error(`Failed to delete Stripe account ${stripeAccountId}:`, { operation: 'stripe.api.ERROR' }, error instanceof Error ? error : new Error(String(error)));
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(
         { 

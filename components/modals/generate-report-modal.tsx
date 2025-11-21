@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import { DialogFooter } from "@/components/ui/dialog"
 import type React from "react"
@@ -155,7 +156,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
       }
 
     } catch (err) {
-      console.error("Error generating report:", err)
+      logger.error("Error generating report", { operation: "ui.report.generation_error" }, err instanceof Error ? err : new Error(String(err)))
       setError(err instanceof Error ? err.message : t('reports:generateReportModal.errors.failedGenerate', 'Failed to generate report'))
     } finally {
       setIsLoading(false)

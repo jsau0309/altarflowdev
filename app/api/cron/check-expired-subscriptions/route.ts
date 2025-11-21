@@ -1,28 +1,27 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
+import { executeCronJob, verifyCronAuth } from '@/lib/sentry-cron';
 
 // This cron job runs daily to check for expired subscriptions and update quotas
 // It handles grace period expiration and subscription end dates
+// Schedule: Daily at 2:00 AM UTC (0 2 * * *)
 export async function GET() {
-  try {
-    // Verify the request is from Vercel Cron
-    const headersList = await headers();
-    const authHeader = headersList.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
-    
-    // Always require authentication in production, allow bypass in dev only if CRON_SECRET is not set
-    if (!cronSecret && process.env.NODE_ENV === "production") {
-      console.error("CRON_SECRET is not configured in production!");
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-    }
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  // Verify cron authentication
+  const authError = await verifyCronAuth();
+  if (authError) return authError;
 
+  // Execute cron job with Sentry monitoring
+  return executeCronJob({
+    monitorSlug: 'check-expired-subscriptions',
+    schedule: '0 2 * * *',
+    maxRuntimeMinutes: 5,
+  }, async () => {
     const now = new Date();
-    console.log(`Checking for expired subscriptions at: ${now.toISOString()}`);
+    logger.info('Checking for expired subscriptions', {
+      operation: 'cron.check_expired_subscriptions.start',
+      timestamp: now.toISOString()
+    });
 
     // Find churches with canceled or grace_period status
     const churches = await prisma.church.findMany({
@@ -54,7 +53,13 @@ export async function GET() {
 
       // Check if the subscription/grace period has truly ended
       if (now > gracePeriodEnd) {
-        console.log(`Church ${church.name} (${church.id}) subscription/grace period has ended`);
+        logger.info('Church subscription expired - updating to free plan', {
+          operation: 'cron.check_expired_subscriptions.expire',
+          churchId: church.id,
+          churchName: church.name,
+          subscriptionStatus: church.subscriptionStatus,
+          subscriptionEndsAt: church.subscriptionEndsAt
+        });
 
         // Update church status to free
         await prisma.church.update({
@@ -70,18 +75,16 @@ export async function GET() {
       }
     }
 
-    console.log(`Subscription check complete. Status updates: ${statusUpdated}`);
+    logger.info('Subscription check complete', {
+      operation: 'cron.check_expired_subscriptions.complete',
+      churchesChecked: churches.length,
+      statusUpdated
+    });
 
     return NextResponse.json({
       success: true,
       message: `Checked ${churches.length} churches with canceled/grace_period status`,
       statusUpdated,
     });
-  } catch (error) {
-    console.error("Error checking expired subscriptions:", error);
-    return NextResponse.json(
-      { error: "Failed to check expired subscriptions" },
-      { status: 500 }
-    );
-  }
+  });
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // GET /api/settings/stripe-account - Get Stripe account status from database
 export async function GET() {
@@ -35,7 +36,7 @@ export async function GET() {
       account: stripeAccount 
     });
   } catch (error) {
-    console.error("[GET /api/settings/stripe-account] Error:", error);
+    logger.error('[GET /api/settings/stripe-account] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

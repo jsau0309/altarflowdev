@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 interface RouteParams {
   params: Promise<{
@@ -60,7 +61,7 @@ export async function GET(request: Request, props: RouteParams) {
       pastEvents
     });
   } catch (error) {
-    console.error("Failed to fetch public events:", error);
+    logger.error('Failed to fetch public events:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Failed to fetch events" },
       { status: 500 }

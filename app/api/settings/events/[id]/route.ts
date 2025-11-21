@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import DOMPurify from 'isomorphic-dompurify';
+import { logger } from '@/lib/logger';
 
 /**
  * Check if a string is a valid UUID format
@@ -186,7 +187,7 @@ export async function PATCH(request: Request, props: RouteParams) {
       event
     });
   } catch (error) {
-    console.error("Failed to update event:", error);
+    logger.error('Failed to update event:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
 
     // Check for specific Prisma errors
     if (error instanceof Error) {
@@ -267,7 +268,7 @@ export async function DELETE(request: Request, props: RouteParams) {
       message: "Event deleted successfully"
     });
   } catch (error) {
-    console.error("Failed to delete event:", error);
+    logger.error('Failed to delete event:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
 
     // Check for specific Prisma errors
     if (error instanceof Error) {

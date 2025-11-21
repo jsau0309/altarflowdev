@@ -1,4 +1,5 @@
 "use client";
+import { logger } from '@/lib/logger';
 
 import * as React from "react";
 import { useRouter } from 'next/navigation'; // Added
@@ -36,7 +37,7 @@ export function LanguageToggle() {
       await i18n.changeLanguage(lng);
       router.refresh(); // Added: Refresh router to reflect server-side changes
     } catch (error) {
-      console.error('Failed to change language:', error);
+      logger.error('Failed to change language:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     } finally {
       setIsChanging(false);
     }

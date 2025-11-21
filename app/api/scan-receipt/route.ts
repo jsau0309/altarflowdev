@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import { processReceiptWithGemini } from '@/lib/gemini-receipt-ocr';
 import { rateLimits } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 type ApiExtractedData = {
   vendor: string | null;
@@ -32,15 +33,15 @@ export async function POST(request: NextRequest) {
     orgId = authResult.orgId;
 
     if (!userId) {
-      console.error('Auth Error: No Clerk userId found');
+      logger.error('Auth Error: No Clerk userId found', { operation: 'api.error' });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-        console.error(`Auth Error: User ${userId} has no active organization.`);
+        logger.error('Auth Error: User ${userId} has no active organization.', { operation: 'api.error' });
         return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
       }
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Authenticated User - Org: [REDACTED]`);
+      logger.info('Authenticated User - Org: [REDACTED]', { operation: 'api.info' });
     }
 
     // --- Process Form Data ---
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
     try {
       fileBuffer = Buffer.from(await file.arrayBuffer());
     } catch (bufferError) {
-      console.error('File buffer conversion error:', bufferError);
+      logger.error('File buffer conversion error:', { operation: 'api.error' }, bufferError instanceof Error ? bufferError : new Error(String(bufferError)));
       return NextResponse.json({
         error: 'Failed to process file. Please try again.'
       }, { status: 500 });
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
     const originalFilename = file.name;
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`File: ${originalFilename}, Type: ${contentType}, Size: ${fileBuffer.length} bytes`);
+      logger.info('File: ${originalFilename}, Type: ${contentType}, Size: ${fileBuffer.length} bytes', { operation: 'api.info' });
     }
 
     // --- Gemini OCR Parsing ---
@@ -116,10 +117,10 @@ export async function POST(request: NextRequest) {
       };
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('Gemini OCR completed successfully');
+        logger.info('Gemini OCR completed successfully', { operation: 'api.info' });
       }
     } catch (parseError) {
-      console.error('Gemini OCR Parsing Error:', parseError);
+      logger.error('Gemini OCR Parsing Error:', { operation: 'api.error' }, parseError instanceof Error ? parseError : new Error(String(parseError)));
 
       if (parseError instanceof Error && parseError.message.includes('GEMINI_API_KEY')) {
         return NextResponse.json(
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('Scan Receipt Error:', error);
+    logger.error('Scan Receipt Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     const errorStatus = error instanceof Error && error.message.includes('Unauthorized') ? 401 : 500;
     return NextResponse.json({ error: errorMessage }, { status: errorStatus });

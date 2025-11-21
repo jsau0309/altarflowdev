@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from '@/lib/logger';
 
 interface Params {
   churchId: string;
@@ -78,7 +79,7 @@ export async function PUT(
     return NextResponse.json(updatedCategory, { status: 200 });
 
   } catch (error) {
-    console.error(`Error updating expense category:`, error);
+    logger.error('Error updating expense category:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to update expense category', details: errorMessage }, { status: 500 });
   }
@@ -150,7 +151,7 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Category deleted successfully' }, { status: 200 });
 
   } catch (error) {
-    console.error(`Error deleting expense category:`, error);
+    logger.error('Error deleting expense category:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to delete expense category', details: errorMessage }, { status: 500 });
   }

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { getBackgroundStyle } from '@/lib/landing-page/background-presets';
 import type { ServiceTime, Ministry } from '@/components/member-form/types';
 import { ConnectPageWrapper } from '@/components/public/connect-page-wrapper';
+import { logger } from '@/lib/logger';
 
 // Ensure page is dynamically rendered
 export const dynamic = "force-dynamic";
@@ -147,7 +148,7 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
   const { flowSlug } = await params;
 
   if (!flowSlug) {
-    console.log("ConnectFlowPage: No flowSlug in params.");
+    logger.debug("ConnectFlowPage: No flowSlug in params.");
     notFound(); // Slug is required
   }
 
@@ -155,7 +156,7 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
 
   // Handle flow not found or disabled
   if (!flowData) {
-    console.log(`ConnectFlowPage: Flow not found or disabled for slug: ${flowSlug}`);
+    logger.debug(`ConnectFlowPage: Flow not found or disabled for slug: ${flowSlug}`);
     notFound();
   }
 
@@ -187,7 +188,7 @@ export default async function ConnectFlowPage({ params }: ConnectPageProps) {
     // Validate the config structure and types
     parsedConfig = validateConnectFormConfig(flowData.configJson);
   } catch (error) {
-    console.error(`ConnectFlowPage: Invalid configJson for slug ${flowSlug}:`, error);
+    logger.error(`Invalid configJson for slug ${flowSlug}`, { operation: 'ui.connect.invalid_config', flowSlug }, error instanceof Error ? error : new Error(String(error)));
     // Show specific error message based on validation failure
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return (

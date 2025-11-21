@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { logger } from '@/lib/logger';
 
 export default function OnboardingStep2() {
   const { t } = useTranslation(['onboarding', 'common']);
@@ -36,7 +37,7 @@ export default function OnboardingStep2() {
       }
       router.push('/onboarding/step-3');
     } catch (error) {
-      console.error('Error selecting organization:', error);
+      logger.error('Error selecting organization', { operation: 'ui.onboarding.select_org_error', orgId }, error instanceof Error ? error : new Error(String(error)));
       setIsLoading(false);
     }
   };

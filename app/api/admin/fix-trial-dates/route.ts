@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Temporary endpoint to fix trial dates for testing
 export async function POST() {
@@ -54,7 +55,7 @@ export async function POST() {
       });
     }
   } catch (error) {
-    console.error("[POST /api/admin/fix-trial-dates] Error:", error);
+    logger.error('[POST /api/admin/fix-trial-dates] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

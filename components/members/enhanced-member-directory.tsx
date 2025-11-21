@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect, useMemo } from "react"
 import { Search, Phone, Mail, MailX } from "lucide-react"
@@ -299,7 +300,11 @@ export function EnhancedMemberDirectory({
                   </TableCell>
                   <TableCell>
                     {(() => {
-                      // console.log('[Table] member.joinDate:', member.joinDate, typeof member.joinDate);
+                      logger.debug('[Table] member.joinDate', {
+                        operation: 'ui.member.join_date_debug',
+                        joinDate: member.joinDate,
+                        joinDateType: typeof member.joinDate
+                      });
                       const joinDate = member.joinDate as Date | string | null | undefined;
                       // Check if it looks like a Date object and is valid
                       if (joinDate && typeof (joinDate as Date).getTime === 'function' && !isNaN((joinDate as Date).getTime())) {
@@ -317,7 +322,7 @@ export function EnhancedMemberDirectory({
                       } else if (!member.joinDate) {
                         return t('common:notApplicable', 'N/A'); // Handle null/undefined
                       } else {
-                        console.error("[Table] Invalid joinDate value:", member.joinDate);
+                          logger.error('Member lastName is not a string', { operation: 'ui.member.lastname_error', lastName: member.lastName, type: typeof member.lastName });
                         return t('common:invalidDate', 'Invalid Date'); 
                       }
                     })()}

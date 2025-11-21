@@ -1,4 +1,5 @@
 "use client";
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -34,7 +35,7 @@ export function UserManagementContent() {
       const data: ManagedUser[] = await response.json();
       setUsers(data);
     } catch (err) {
-      console.error("Failed to fetch users:", err);
+      logger.error('Failed to fetch users:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
       const message = err instanceof Error ? err.message : 'An unknown error occurred';
       setError(t('settings:userManagement.fetchError', `Failed to load users: ${message}`));
     } finally {

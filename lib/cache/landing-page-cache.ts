@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Landing Page Cache - Reduce Database Load
  *
@@ -28,12 +29,12 @@ class LandingPageCache {
 
     // Return cached data if still valid
     if (cached && now - cached.timestamp < cached.ttl) {
-      console.log(`[Cache HIT] Church slug: ${slug}`);
+      logger.debug(`[Cache HIT] Church slug: ${slug}`);
       return cached.data;
     }
 
     // Cache miss or expired - fetch from database
-    console.log(`[Cache MISS] Church slug: ${slug}`);
+    logger.debug(`[Cache MISS] Church slug: ${slug}`);
     const data = await fetcher();
 
     // Store in cache
@@ -56,7 +57,7 @@ class LandingPageCache {
    */
   invalidate(slug: string): void {
     this.cache.delete(slug);
-    console.log(`[Cache INVALIDATE] Church slug: ${slug}`);
+    logger.debug(`[Cache INVALIDATE] Church slug: ${slug}`);
   }
 
   /**
@@ -64,7 +65,7 @@ class LandingPageCache {
    */
   invalidateAll(): void {
     this.cache.clear();
-    console.log('[Cache INVALIDATE] All churches');
+    logger.debug('[Cache INVALIDATE] All churches');
   }
 
   /**
@@ -82,7 +83,7 @@ class LandingPageCache {
     }
 
     if (cleanedCount > 0) {
-      console.log(`[Cache CLEANUP] Removed ${cleanedCount} expired entries`);
+      logger.debug(`[Cache CLEANUP] Removed ${cleanedCount} expired entries`);
     }
 
     // If cache is too large (>100 entries), remove oldest
@@ -94,7 +95,7 @@ class LandingPageCache {
       for (let i = 0; i < 20; i++) {
         this.cache.delete(entries[i][0]);
       }
-      console.log('[Cache CLEANUP] Removed 20 oldest entries (size limit)');
+      logger.debug('[Cache CLEANUP] Removed 20 oldest entries (size limit)');
     }
   }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import DOMPurify from 'isomorphic-dompurify';
+import { logger } from '@/lib/logger';
 
 /**
  * Convert a date string (YYYY-MM-DD) to a Date object at noon local time.
@@ -133,7 +134,7 @@ export async function GET() {
       events
     });
   } catch (error) {
-    console.error("Failed to fetch events:", error);
+    logger.error('Failed to fetch events:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
 
     // Check for specific Prisma errors
     if (error instanceof Error) {
@@ -231,7 +232,7 @@ export async function POST(request: Request) {
       event
     });
   } catch (error) {
-    console.error("Failed to create event:", error);
+    logger.error('Failed to create event:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
 
     // Check for specific Prisma errors
     if (error instanceof Error) {

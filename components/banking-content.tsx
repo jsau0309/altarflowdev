@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -149,21 +150,24 @@ export function BankingContent() {
         // Check if response has content before parsing
         const contentType = stripeResponse.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-          console.error('Expected JSON response but got:', contentType);
+      logger.error('Expected JSON response but got', { operation: 'ui.banking.content_type_error', contentType });
           throw new Error('Invalid response format from server');
         }
 
         const responseText = await stripeResponse.text();
         if (!responseText) {
-          console.error('Empty response from Stripe API');
+          logger.error('Empty response from Stripe API', { operation: 'ui.error' });
           throw new Error('Empty response from server');
         }
         
         let account;
         try {
           account = JSON.parse(responseText);
-        } catch {
-          console.error('Failed to parse response:', responseText);
+        } catch (parseError) {
+          logger.error('Failed to parse JSON response', {
+            operation: 'ui.banking.json_parse_error',
+            responseText: responseText.substring(0, 100)
+          }, parseError instanceof Error ? parseError : new Error(String(parseError)));
           throw new Error('Invalid JSON response from server');
         }
         
@@ -173,7 +177,7 @@ export function BankingContent() {
           setStripeAccount(account);
         }
       } catch (err) {
-        console.error('Error fetching Stripe account:', err);
+        logger.error('Error fetching Stripe account:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
         if (isMounted) {
           setError(err instanceof Error ? err.message : t('common:errors.unknownError'))
         }

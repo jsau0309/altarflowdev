@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   try {
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
       }
     });
 
-    console.log(`[Admin Update] Updated church ${church.id} to ${status} with ${plan} plan`);
+    logger.info('[Admin Update] Updated church ${church.id} to ${status} with ${plan} plan', { operation: 'api.info' });
 
     return NextResponse.json({
       success: true,
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error("[POST /api/admin/update-subscription] Error:", error);
+    logger.error('[POST /api/admin/update-subscription] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

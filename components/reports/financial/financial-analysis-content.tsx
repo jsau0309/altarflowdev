@@ -1,4 +1,5 @@
 "use client"
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
@@ -118,11 +119,12 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
 
       // Structured error logging with context
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('[Financial Analysis Error]', {
+      logger.error('Financial Analysis Error', {
+        operation: 'ui.report.analysis_error',
         message: errorMessage,
         timestamp: new Date().toISOString(),
         component: 'FinancialAnalysisContent'
-      })
+      }, error instanceof Error ? error : new Error(String(error)))
       toast.error(t('reports:financial.fetchingFinancialData'))
     } finally {
       setIsLoading(false)

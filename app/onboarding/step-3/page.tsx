@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 
 // Form validation schema
 const churchDetailsSchema = z.object({
@@ -66,10 +67,10 @@ export default function OnboardingStep3() {
           retryCount++;
           setTimeout(checkChurchExists, 1000); // Retry after 1 second
         } else {
-          console.log('Stopped checking for church after maximum retries');
+          logger.debug('Stopped checking for church after maximum retries');
         }
       } catch (error) {
-        console.error('Error checking church status:', error);
+        logger.error('Error checking church status', { operation: 'ui.onboarding.check_church_error' }, error instanceof Error ? error : new Error(String(error)));
       }
     };
 
@@ -107,7 +108,7 @@ export default function OnboardingStep3() {
       // Move to next step
       router.push('/onboarding/step-4');
     } catch (error) {
-      console.error('Error saving church details:', error);
+      logger.error('Error saving church details', { operation: 'ui.onboarding.save_church_error' }, error instanceof Error ? error : new Error(String(error)));
       showToast(
         t('onboarding:step3.error', 'Failed to save church details. Please try again.'),
         'error'

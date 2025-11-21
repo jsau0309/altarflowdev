@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -29,7 +30,7 @@ export async function GET() {
 
     return NextResponse.json(church);
   } catch (error) {
-    console.error("Error fetching church profile:", error);
+    logger.error('Error fetching church profile:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Failed to fetch church profile" },
       { status: 500 }

@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db';
 import { auth } from "@clerk/nextjs/server";
 import type { DonationTransactionFE } from "@/lib/types";
+import { logger } from '@/lib/logger';
 
 export interface DonationWithEditHistory extends DonationTransactionFE {
   editReason?: string | null;
@@ -111,7 +112,7 @@ export async function getDonationById(donationId: string): Promise<DonationWithE
 
     return formattedDonation;
   } catch (error) {
-    console.error("Error fetching donation by ID:", error);
+    logger.error('Error fetching donation by ID:', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }

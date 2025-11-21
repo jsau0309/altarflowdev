@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export interface StreamUploadResult {
   file: File | null;
@@ -136,7 +137,7 @@ export async function streamFileUpload(
       bytesRead: totalBytes,
     };
   } catch (error) {
-    console.error('Stream upload error:', error);
+    logger.error('Stream upload error', { operation: 'file.upload_stream_error' }, error instanceof Error ? error : new Error(String(error)));
     return {
       file: null,
       error: error instanceof Error ? error.message : 'Failed to process upload',

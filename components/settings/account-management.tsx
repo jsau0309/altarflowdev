@@ -1,3 +1,6 @@
+"use client";
+
+import { logger } from '@/lib/logger';
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +49,7 @@ export function AccountManagement() {
         setChurchData(data);
       }
     } catch (error) {
-      console.error("Error fetching church data:", error);
+      logger.error('Error fetching church data:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -72,7 +75,7 @@ export function AccountManagement() {
         alert(t("settings:billing.portalError", "Failed to open billing portal"));
       }
     } catch (error) {
-      console.error("Error opening customer portal:", error);
+      logger.error('Error opening customer portal:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       alert(t("settings:billing.portalError", "Failed to open billing portal"));
     } finally {
       setPortalLoading(false);

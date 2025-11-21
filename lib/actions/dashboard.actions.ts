@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { auth } from "@clerk/nextjs/server";
 import { startOfWeek, startOfMonth, startOfYear, subMonths, subWeeks, endOfWeek, endOfMonth, endOfYear } from "date-fns";
 import { revalidateTag } from "next/cache";
+import { logger } from '@/lib/logger';
 
 interface DashboardSummary {
   donationSummary: {
@@ -34,7 +35,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
   const { orgId } = await auth();
   
   if (!orgId) {
-    console.error("No organization ID found");
+    logger.error('No organization ID found', { operation: 'actions.error' });
     return null;
   }
 
@@ -46,7 +47,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
     });
 
     if (!church) {
-      console.error("Church not found for org:", orgId);
+      logger.error('Church not found for org', { operation: 'actions.dashboard.church_not_found', orgId });
       return null;
     }
 
@@ -228,7 +229,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
       }
     };
   } catch (error) {
-    console.error("Error fetching dashboard summary:", error);
+    logger.error('Error fetching dashboard summary:', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
