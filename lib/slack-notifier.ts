@@ -257,4 +257,51 @@ export const SlackNotifications = {
       ? { text: 'View in Sentry', url: details.sentryUrl }
       : undefined,
   }),
+
+  /**
+   * Third-party service health check failure
+   */
+  serviceHealthCheckFailed: (details: {
+    service: 'supabase' | 'stripe' | 'clerk' | 'resend';
+    error: string;
+    responseTime?: string;
+  }): SlackNotification => {
+    const serviceLabels = {
+      supabase: { name: 'Supabase Database', emoji: '🗄️' },
+      stripe: { name: 'Stripe Payments', emoji: '💳' },
+      clerk: { name: 'Clerk Authentication', emoji: '🔐' },
+      resend: { name: 'Resend Email', emoji: '📧' },
+    };
+
+    const serviceInfo = serviceLabels[details.service];
+
+    return {
+      title: `${serviceInfo.emoji} ${serviceInfo.name} Health Check Failed`,
+      message: `The ${serviceInfo.name} integration health check has failed. This may impact user functionality.`,
+      severity: 'critical',
+      fields: [
+        { title: 'Service', value: serviceInfo.name, short: true },
+        { title: 'Response Time', value: details.responseTime || 'N/A', short: true },
+        { title: 'Error', value: details.error, short: false },
+        {
+          title: 'Impact',
+          value: getServiceImpact(details.service),
+          short: false
+        },
+      ],
+    };
+  },
 };
+
+/**
+ * Helper function to describe the impact of each service failure
+ */
+function getServiceImpact(service: 'supabase' | 'stripe' | 'clerk' | 'resend'): string {
+  const impacts = {
+    supabase: 'Users cannot access data. All database operations will fail.',
+    stripe: 'Payment processing unavailable. Donations cannot be processed.',
+    clerk: 'User authentication broken. Login/signup will fail.',
+    resend: 'Email delivery stopped. Campaigns and notifications cannot be sent.',
+  };
+  return impacts[service];
+}
