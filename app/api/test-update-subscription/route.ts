@@ -30,10 +30,10 @@ export async function GET() {
       }
     });
 
-    logger.info('[Test Update] Updated church ${updatedChurch.id} (${updatedChurch.name})', { operation: 'api.info' });
-    logger.info('- subscriptionStatus: ${updatedChurch.subscriptionStatus}', { operation: 'api.info' });
-    logger.info('- subscriptionEndsAt: ${updatedChurch.subscriptionEndsAt}', { operation: 'api.info' });
-    logger.info('- trialEndsAt: ${updatedChurch.trialEndsAt}', { operation: 'api.info' });
+    logger.info(`[Test Update] Updated church ${updatedChurch.id} (${updatedChurch.name})`, { operation: 'api.info' });
+    logger.info(`- subscriptionStatus: ${updatedChurch.subscriptionStatus}`, { operation: 'api.info' });
+    logger.info(`- subscriptionEndsAt: ${updatedChurch.subscriptionEndsAt}`, { operation: 'api.info' });
+    logger.info(`- trialEndsAt: ${updatedChurch.trialEndsAt}`, { operation: 'api.info' });
 
     return NextResponse.json({
       success: true,

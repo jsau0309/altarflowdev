@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-        logger.error('Auth Error: User ${userId} has no active organization.', { operation: 'api.error' });
+        logger.error(`Auth Error: User ${userId} has no active organization.`, { operation: 'api.error' });
         return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
       }
     if (process.env.NODE_ENV === 'development') {
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     const originalFilename = file.name;
 
     if (process.env.NODE_ENV === 'development') {
-      logger.info('File: ${originalFilename}, Type: ${contentType}, Size: ${fileBuffer.length} bytes', { operation: 'api.info' });
+      logger.info(`File: ${originalFilename}, Type: ${contentType}, Size: ${fileBuffer.length} bytes`, { operation: 'api.info' });
     }
 
     // --- Gemini OCR Parsing ---

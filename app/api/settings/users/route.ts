@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} tried to GET /users without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} tried to GET /users without active org.`, { operation: 'api.error' });
       return NextResponse.json([], { status: 200 }); 
     }
 
@@ -42,11 +42,11 @@ export async function GET(request: NextRequest) {
           .filter((id: string | undefined | null): id is string => !!id); 
           
       if (memberUserIds.length === 0) {
-           logger.info('No members found in Clerk for organization ${orgId}', { operation: 'api.info' });
+           logger.info(`No members found in Clerk for organization ${orgId}`, { operation: 'api.info' });
            return NextResponse.json([], { status: 200 }); // No members in org
       }
     } catch (clerkError) {
-       logger.error('Failed to fetch members from Clerk for org ${orgId}:', { operation: 'api.error' }, clerkError instanceof Error ? clerkError : new Error(String(clerkError)));
+       logger.error(`Failed to fetch members from Clerk for org ${orgId}:`, { operation: 'api.error' }, clerkError instanceof Error ? clerkError : new Error(String(clerkError)));
        return NextResponse.json({ error: 'Failed to retrieve organization members' }, { status: 500 });
     }
 

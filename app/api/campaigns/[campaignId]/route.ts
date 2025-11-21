@@ -28,7 +28,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted GET on campaign ${campaignId} without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted GET on campaign ${campaignId} without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -53,7 +53,7 @@ export async function GET(
 
   } catch (error) {
     const { campaignId } = await params;
-    logger.error('Error fetching campaign ${campaignId}:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error fetching campaign ${campaignId}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Failed to fetch campaign' }, { status: 500 });
   }
 }
@@ -75,7 +75,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted PATCH on campaign ${campaignId} without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted PATCH on campaign ${campaignId} without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Implement role-based access (e.g., only ADMIN using authResult.orgRole)
@@ -145,7 +145,7 @@ export async function PATCH(
 
   } catch (error) {
     const { campaignId } = await params;
-    logger.error('Error updating campaign ${campaignId}:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error updating campaign ${campaignId}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Failed to update campaign' }, { status: 500 });
   }
 }
@@ -167,7 +167,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted DELETE on campaign ${campaignId} without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted DELETE on campaign ${campaignId} without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Implement role-based access (e.g., only ADMIN using authResult.orgRole)
@@ -227,12 +227,12 @@ export async function DELETE(
       }
     });
 
-    logger.info('Campaign ${campaignId} deleted by user ${userId} (org ${orgId})', { operation: 'api.info' });
+    logger.info(`Campaign ${campaignId} deleted by user ${userId} (org ${orgId})`, { operation: 'api.info' });
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
      const { campaignId } = await params;
-     logger.error('Error deleting campaign ${campaignId}:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+     logger.error(`Error deleting campaign ${campaignId}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
      // Handle potential Prisma errors (e.g., foreign key constraint if campaign has related donations)
      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') { 
          return NextResponse.json({ error: 'Cannot delete campaign due to existing related records (e.g., donations).' }, { status: 409 }); // Conflict

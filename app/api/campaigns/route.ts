@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted to GET campaigns without an active organization.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted to GET campaigns without an active organization.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
     // TODO: Add role check (e.g., ADMIN only?) using authResult.orgRole
     if (!orgId) {
-      logger.error('User ${userId} attempted to POST campaign without an active organization.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted to POST campaign without an active organization.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     logger.error('Error creating campaign:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     // Add specific check for P2025 (Foreign key constraint failed - church not found)
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        logger.error('Attempted to connect campaign to non-existent church with clerkOrgId: ${orgId}', { operation: 'api.error' });
+        logger.error(`Attempted to connect campaign to non-existent church with clerkOrgId: ${orgId}`, { operation: 'api.error' });
         return NextResponse.json({ error: 'Organization not found for creating campaign.'}, { status: 404 });
     }
     return NextResponse.json({ 

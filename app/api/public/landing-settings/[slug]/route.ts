@@ -43,7 +43,7 @@ export async function GET(
     });
   } catch (error) {
     const { slug } = await params;
-    logger.error('[GET /api/public/landing-settings/${slug}] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`[GET /api/public/landing-settings/${slug}] Error:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

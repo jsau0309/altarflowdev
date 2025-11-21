@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     }
 
     const stripeAccountId = church.StripeConnectAccount.stripeAccountId;
-    logger.info('[Import] Fetching payouts for account: ${stripeAccountId}', { operation: 'api.info' });
+    logger.info(`[Import] Fetching payouts for account: ${stripeAccountId}`, { operation: 'api.info' });
     
     // Build query parameters
     const queryParams: Stripe.PayoutListParams = {
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
         }
       );
       payouts = stripePayouts.data;
-      logger.info('[Import] Found ${payouts.length} payouts from Stripe', { operation: 'api.info' });
+      logger.info(`[Import] Found ${payouts.length} payouts from Stripe`, { operation: 'api.info' });
     } catch (stripeError) {
       logger.error('[Import] Error fetching payouts from Stripe:', { operation: 'api.error' }, stripeError instanceof Error ? stripeError : new Error(String(stripeError)));
 
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
         });
         
         if (existing) {
-          logger.info('[Import] Payout ${payout.id} already exists, updating...', { operation: 'api.info' });
+          logger.info(`[Import] Payout ${payout.id} already exists, updating...`, { operation: 'api.info' });
           
           // Update existing payout with latest status
           await prisma.payoutSummary.update({
@@ -137,7 +137,7 @@ export async function POST(req: Request) {
           
           skipped++;
         } else {
-          logger.info('[Import] Creating new payout record for ${payout.id}', { operation: 'api.info' });
+          logger.info(`[Import] Creating new payout record for ${payout.id}`, { operation: 'api.info' });
           
           // Create new payout record
           await prisma.payoutSummary.create({
@@ -173,7 +173,7 @@ export async function POST(req: Request) {
           });
           
           if (payoutRecord && !payoutRecord.reconciledAt) {
-            logger.info('[Import] Triggering reconciliation for paid payout ${payout.id}', { operation: 'api.info' });
+            logger.info(`[Import] Triggering reconciliation for paid payout ${payout.id}`, { operation: 'api.info' });
             
             // Import reconciliation function
             const { reconcilePayout } = await import('@/lib/stripe-reconciliation');
@@ -182,26 +182,26 @@ export async function POST(req: Request) {
             reconcilePayout(payout.id, stripeAccountId)
               .then(result => {
                 if (result.success) {
-                  logger.info('[Import] Successfully reconciled payout ${payout.id}', { operation: 'api.reconcile.import_success' });
+                  logger.info(`[Import] Successfully reconciled payout ${payout.id}`, { operation: 'api.reconcile.import_success' });
                 } else {
-                  logger.error('[Import] Failed to reconcile payout ${payout.id}', { operation: 'api.reconcile.import_failed', error: result.error });
+                  logger.error(`[Import] Failed to reconcile payout ${payout.id}`, { operation: 'api.reconcile.import_failed', error: result.error });
                 }
               })
               .catch(error => {
-                logger.error('[Import] Error reconciling payout ${payout.id}:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+                logger.error(`[Import] Error reconciling payout ${payout.id}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
               });
           }
         }
         
       } catch (error) {
         const errorMsg = `Failed to import payout ${payout.id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        logger.error('[Import] ${errorMsg}', { operation: 'api.error' });
+        logger.error(`[Import] ${errorMsg}`, { operation: 'api.error' });
         errors.push(errorMsg);
       }
     }
     
     const message = `Import complete: ${imported} new payouts imported, ${skipped} already existed${errors.length > 0 ? `, ${errors.length} errors` : ''}`;
-    logger.info('[Import] ${message}', { operation: 'api.info' });
+    logger.info(`[Import] ${message}`, { operation: 'api.info' });
     
     return NextResponse.json({
       success: true,

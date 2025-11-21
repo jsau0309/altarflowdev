@@ -57,7 +57,7 @@ export async function GET(
     return NextResponse.json(paymentMethods, { status: 200 });
 
   } catch (error) {
-    logger.error('Error fetching donation payment methods for church (Clerk Org ID: ${churchId}):', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error fetching donation payment methods for church (Clerk Org ID: ${churchId}):`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to fetch donation payment methods', details: errorMessage }, { status: 500 });
   }
@@ -110,7 +110,7 @@ export async function POST(
     return NextResponse.json(paymentMethod, { status: 201 });
 
   } catch (error) {
-    logger.error('Error creating donation payment method for church (Clerk Org ID: ${churchId}):', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error creating donation payment method for church (Clerk Org ID: ${churchId}):`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to create donation payment method', details: errorMessage }, { status: 500 });
   }

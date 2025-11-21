@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     
     // If specific payout ID is provided, reconcile just that one
     if (payoutId) {
-      logger.info('[API] Manual reconciliation requested for payout ${payoutId}', { operation: 'api.info' });
+      logger.info(`[API] Manual reconciliation requested for payout ${payoutId}`, { operation: 'api.info' });
       
       // Verify the payout belongs to the user's church
       const payout = await prisma.payoutSummary.findUnique({
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     
     // If churchId is provided, reconcile all pending payouts for that church
     if (churchId) {
-      logger.info('[API] Manual reconciliation requested for church ${churchId}', { operation: 'api.info' });
+      logger.info(`[API] Manual reconciliation requested for church ${churchId}`, { operation: 'api.info' });
       
       // Verify the church belongs to the user's organization
       const church = await prisma.church.findUnique({

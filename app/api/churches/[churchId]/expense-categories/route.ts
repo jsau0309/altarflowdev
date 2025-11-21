@@ -57,7 +57,7 @@ export async function GET(
     return NextResponse.json(expenseCategories, { status: 200 });
 
   } catch (error) {
-    logger.error('Error fetching expense categories for church (Clerk Org ID: ${churchId}):', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error fetching expense categories for church (Clerk Org ID: ${churchId}):`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to fetch expense categories', details: errorMessage }, { status: 500 });
   }
@@ -110,7 +110,7 @@ export async function POST(
     return NextResponse.json(expenseCategory, { status: 201 });
 
   } catch (error) {
-    logger.error('Error creating expense category for church (Clerk Org ID: ${churchId}):', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error creating expense category for church (Clerk Org ID: ${churchId}):`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to create expense category', details: errorMessage }, { status: 500 });
   }

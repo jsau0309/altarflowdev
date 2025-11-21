@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       }
     });
 
-    logger.info('[Admin Update] Updated church ${church.id} to ${status} with ${plan} plan', { operation: 'api.info' });
+    logger.info(`[Admin Update] Updated church ${church.id} to ${status} with ${plan} plan`, { operation: 'api.info' });
 
     return NextResponse.json({
       success: true,

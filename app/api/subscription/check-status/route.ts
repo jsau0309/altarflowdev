@@ -30,7 +30,7 @@ export async function POST() {
           subscriptionStatus: 'grace_period'
         }
       });
-      logger.info('[Subscription Check] Church ${church.id} moved from canceled to grace_period', { operation: 'api.info' });
+      logger.info(`[Subscription Check] Church ${church.id} moved from canceled to grace_period`, { operation: 'api.info' });
     }
     
     // Find all grace_period subscriptions that have exceeded 2 days
@@ -53,7 +53,7 @@ export async function POST() {
           subscriptionEndsAt: null
         }
       });
-      logger.info('[Subscription Check] Church ${church.id} moved from grace_period to free', { operation: 'api.info' });
+      logger.info(`[Subscription Check] Church ${church.id} moved from grace_period to free`, { operation: 'api.info' });
     }
     
     return NextResponse.json({

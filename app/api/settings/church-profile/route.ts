@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!orgId) {
-    logger.error('User ${userId} GET /church-profile without active org.', { operation: 'api.error' });
+    logger.error(`User ${userId} GET /church-profile without active org.`, { operation: 'api.error' });
     return NextResponse.json({ error: "No active organization selected" }, { status: 400 });
     }
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!church) {
-      logger.error('Church not found for clerkOrgId: ${orgId}', { operation: 'api.error' });
+      logger.error(`Church not found for clerkOrgId: ${orgId}`, { operation: 'api.error' });
       return NextResponse.json({ error: "Church profile not found for the active organization" }, { status: 404 });
     }
 
@@ -59,13 +59,13 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
     if (!orgId) {
-      logger.error('User ${userId} PUT /church-profile without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} PUT /church-profile without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: "No active organization selected" }, { status: 400 });
     }
 
     // 2. Authorization Check (e.g., only admins can update)
     if (orgRole !== 'org:admin') { 
-       logger.warn('User ${userId} with role ${orgRole} attempted to update church profile.', { operation: 'api.warn' });
+       logger.warn(`User ${userId} with role ${orgRole} attempted to update church profile.`, { operation: 'api.warn' });
        return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     logger.error('PUT Church Profile Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        logger.error('Church update failed: Record not found for clerkOrgId ${orgId}', { operation: 'api.error' });
+        logger.error(`Church update failed: Record not found for clerkOrgId ${orgId}`, { operation: 'api.error' });
         return NextResponse.json({ error: 'Church profile not found for the active organization to update.' }, { status: 404 });
     }
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       );
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted GET expenses without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted GET expenses without active org.`, { operation: 'api.error' });
       // Return empty array if no org selected, prevents errors downstream
       return NextResponse.json([], { status: 200 }); 
     }
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
       );
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted POST expense without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted POST expense without active org.`, { operation: 'api.error' });
       return NextResponse.json(
         { error: 'No active organization selected.' }, 
         { status: 400 }
@@ -376,7 +376,7 @@ export async function POST(request: NextRequest) {
               { status: 400 }
             );
         case 'P2025': // Referenced record not found (e.g., Church with clerkOrgId)
-           logger.error('Attempted to connect expense to non-existent church with clerkOrgId: ${orgId}', { operation: 'api.error' });
+           logger.error(`Attempted to connect expense to non-existent church with clerkOrgId: ${orgId}`, { operation: 'api.error' });
            return NextResponse.json({ error: 'Organization not found for creating expense.' }, { status: 404 });
           default:
             break;

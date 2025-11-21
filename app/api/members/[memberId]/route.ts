@@ -38,7 +38,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted GET on member ${memberId} without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted GET on member ${memberId} without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -63,7 +63,7 @@ export async function GET(
 
   } catch (error) {
     const { memberId } = await params;
-    logger.error('Error fetching member ${memberId}:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error fetching member ${memberId}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Failed to fetch member' }, { status: 500 });
   }
 }
@@ -85,7 +85,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted PATCH on member ${memberId} without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted PATCH on member ${memberId} without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Add role-based check? (e.g., authResult.orgRole === 'admin')
@@ -148,7 +148,7 @@ export async function PATCH(
 
   } catch (error) {
     const { memberId } = await params;
-    logger.error('Error updating member ${memberId}:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error updating member ${memberId}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     // Handle potential Prisma errors (e.g., unique constraint on email)
     if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code === 'P2002') { 
         let conflictingField = 'unique field';
@@ -178,7 +178,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted DELETE on member ${memberId} without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted DELETE on member ${memberId} without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Add role-based check?
@@ -208,7 +208,7 @@ export async function DELETE(
 
     // 3. Check if a record was actually deleted
     if (deleteResult.count === 0) {
-      logger.warn('DELETE attempt failed for member ${memberId} by user ${userId} (org ${orgId}). Count: ${deleteResult.count}', { operation: 'api.warn' });
+      logger.warn(`DELETE attempt failed for member ${memberId} by user ${userId} (org ${orgId}). Count: ${deleteResult.count}`, { operation: 'api.warn' });
       return NextResponse.json({ error: 'Member not found or access denied' }, { status: 404 });
     }
 
@@ -220,7 +220,7 @@ export async function DELETE(
 
   } catch (error) {
     const { memberId } = await params;
-    logger.error('Error deleting member ${memberId}:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error deleting member ${memberId}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     // Handle potential Prisma errors
     if (error instanceof Error && 'code' in error && typeof error.code === 'string') {
       if (error.code === 'P2003') {

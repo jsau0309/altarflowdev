@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted refresh URL without active org.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted refresh URL without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // 1. The user who submitted the expense
     // 2. Any member or admin in the same organization
     // Since we already verified the expense belongs to the user's org, no additional check needed
-    logger.info('User ${userId} from org ${orgId} accessing receipt for expense ${expenseId}.', { operation: 'api.info' });
+    logger.info(`User ${userId} from org ${orgId} accessing receipt for expense ${expenseId}.`, { operation: 'api.info' });
 
     // Make sure the receipt path exists
     if (!expense.receiptPath) {
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     let receiptUrl: string | null = null; // Variable to hold the generated URL
     try {
-      logger.info('  >> Creating signed URL for path (admin): ${filePath}', { operation: 'api.info' });
+      logger.info(`  >> Creating signed URL for path (admin): ${filePath}`, { operation: 'api.info' });
       // Generate a fresh signed URL (15 minutes expiry for viewing) USING ADMIN CLIENT
       const { data: urlData, error: signedUrlError } = await supabaseAdmin.storage
         .from('receipts')
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (updateResult.count === 0) {
-       logger.warn('Refresh URL: Update failed for expense ${expenseId}. Count: ${updateResult.count}', { operation: 'api.warn' });
+       logger.warn(`Refresh URL: Update failed for expense ${expenseId}. Count: ${updateResult.count}`, { operation: 'api.warn' });
        // Expense might have been deleted between find and update
        return NextResponse.json({ error: 'Failed to update expense record after URL generation' }, { status: 404 }); // Or 500?
     }

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      logger.error('User ${userId} attempted to GET members without an active organization.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted to GET members without an active organization.`, { operation: 'api.error' });
       // Return empty array or error? Returning empty for now, as user might need to select org.
       return NextResponse.json([], { status: 200 }); 
       // Alternative: return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 }); 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
      // Explicitly check for null or undefined orgId before proceeding
      if (!orgId) { 
-      logger.error('User ${userId} attempted to POST member without an active organization.', { operation: 'api.error' });
+      logger.error(`User ${userId} attempted to POST member without an active organization.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Database constraint violation on ${conflictingField}. Value might already exist.` }, { status: 409 }); // Conflict
       } else if (error.code === 'P2025') { // Referenced record not found (e.g., Church with clerkOrgId)
         // orgId is accessible here from the outer scope
-        logger.error('Attempted to connect member to non-existent church with clerkOrgId: ${orgId}', { operation: 'api.error' }); 
+        logger.error(`Attempted to connect member to non-existent church with clerkOrgId: ${orgId}`, { operation: 'api.error' }); 
         return NextResponse.json({ error: 'Organization not found for creating member.' }, { status: 404 });
       }
     }
