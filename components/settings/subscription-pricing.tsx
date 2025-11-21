@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,8 @@ export function SubscriptionPricing({
         }
 
         // Debug logging
-        console.log('🔍 Subscription Debug:', {
+        console.log('Subscription Debug', {
+          operation: 'ui.subscription.debug',
           currentStatus,
           isTrialUser,
           PROMOTIONAL_COUPON_CODE,
@@ -122,7 +124,7 @@ export function SubscriptionPricing({
           window.location.href = url;
         }
       } catch (error) {
-        console.error("Error opening customer portal:", error);
+        console.error('Error opening customer portal:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       }
     }
   };

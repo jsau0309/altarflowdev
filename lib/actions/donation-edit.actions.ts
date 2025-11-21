@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { auth } from "@clerk/nextjs/server";
 import { DonationTransactionFE } from "@/lib/types";
 import { revalidateTag } from 'next/cache';
+import { logger } from '@/lib/logger';
 
 export interface EditDonationParams {
   donationId: string;
@@ -73,7 +74,7 @@ export async function isDonationEditable(donationId: string): Promise<{ editable
 
     return { editable: true, timeRemaining };
   } catch (error) {
-    console.error("Error checking donation editability:", error);
+    logger.error('Error checking donation editability:', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return { editable: false };
   }
 }
@@ -225,13 +226,13 @@ export async function editManualDonation(params: EditDonationParams): Promise<Ed
     };
 
     // Invalidate dashboard cache after editing donation
-    console.log(`[ACTION] Donation edited successfully. Invalidating cache for org: ${orgId}`);
+    logger.debug('[ACTION] Donation edited successfully. Invalidating cache for org: ${orgId}', { operation: 'actions.debug' });
     revalidateTag(`dashboard-${orgId}`);
 
     return { success: true, donation: formattedDonation };
 
   } catch (error) {
-    console.error("Error editing donation:", error);
+    logger.error('Error editing donation:', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return { success: false, error: "Failed to edit donation. Please try again." };
   }
 }

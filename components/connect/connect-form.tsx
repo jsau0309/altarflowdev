@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useTransition, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -113,7 +114,7 @@ export default function ConnectForm({ flowId, churchName, churchSlug, background
 
                  // Check honeypot field - if filled, it's likely a bot
                  if (submissionData.website && submissionData.website.length > 0) {
-                     console.warn('Potential spam submission detected - honeypot field was filled');
+                     console.warn('Potential spam submission detected - honeypot field was filled', { operation: 'ui.warn' });
                      // Silently reject but show success to confuse bots
                      setSubmitResult({ 
                          success: true, 
@@ -161,7 +162,7 @@ export default function ConnectForm({ flowId, churchName, churchSlug, background
                     // setShowPrayerInput(false);
                 }
             } catch (error) { 
-                console.error("Submission Error:", error);
+                console.error('Submission Error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
                 setSubmitResult({ success: false, message: "An unexpected error occurred during submission." });
             }
         });

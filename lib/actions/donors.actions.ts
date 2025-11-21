@@ -7,6 +7,7 @@ import { DonorDetailsData, DonorFE } from '@/lib/types'; // Removed Member type 
 import { Donor } from '@prisma/client';
 import { DonorFilterItem } from './donations.actions';
 import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
+import { logger } from '@/lib/logger';
 
 // Define the payload for creating a new donor
 export type CreateDonorPayload = {
@@ -152,7 +153,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
       currentPage: page,
     };
   } catch (error) {
-    console.error('Failed to fetch donors:', error);
+    logger.error('Failed to fetch donors', { operation: 'donors.fetch.error' }, error instanceof Error ? error : new Error(String(error)));
     return {
       error: 'Failed to fetch donors.',
       donors: [],
@@ -165,7 +166,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
 
 export async function getDonorDetails(donorId: string, churchId?: string): Promise<DonorDetailsData | null> {
   if (!donorId) {
-    console.error("[getDonorDetails] Error: donorId is required.");
+    logger.error('donorId is required.', { operation: 'donors.get_details.error' });
     return null;
   }
 
@@ -177,7 +178,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
     // If churchId is provided, verify user has access to it
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error("[getDonorDetails] Authorization failed:", authResult.error);
+      logger.error('Authorization failed', { operation: 'donors.get_details.auth_error', error: authResult.error });
       return null;
     }
     effectiveChurchId = authResult.churchId!;
@@ -185,7 +186,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
     // Get churchId from current user's organization
     const { orgId } = await auth();
     if (!orgId) {
-      console.error("[getDonorDetails] No orgId found in auth");
+      logger.error('No orgId found in auth', { operation: 'donors.get_details.no_org' });
       return null;
     }
 
@@ -195,7 +196,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
     });
 
     if (!church) {
-      console.error("[getDonorDetails] Church not found for orgId:", orgId);
+      logger.error('Church not found for orgId', { operation: 'donors.get_details.no_church', orgId });
       return null;
     }
 
@@ -382,7 +383,7 @@ export async function getDonorDetails(donorId: string, churchId?: string): Promi
       }),
     };
   } catch (error) {
-    console.error("Failed to fetch donor details:", error);
+    logger.error('Failed to fetch donor details', { operation: 'donors.fetch_details.error' }, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -453,7 +454,7 @@ export async function createDonor(
     });
     
     if (nameMatch) {
-      console.log(`Warning: A donor with the name ${payload.firstName} ${payload.lastName} already exists in this church.`);
+      logger.warn('Donor with same name already exists in church', { operation: 'donors.create.duplicate_name_warning', firstName: payload.firstName, lastName: payload.lastName });
       // In the future, you might want to return a warning flag with the success response
     }
 
@@ -504,7 +505,7 @@ export async function createDonor(
 
     return { success: true, data: donorFE };
   } catch (error: any) {
-    console.error("Failed to create donor:", error);
+    logger.error('Failed to create donor', { operation: 'donors.create.error' }, error instanceof Error ? error : new Error(String(error)));
     let errorMessage = "An unknown error occurred while creating the donor.";
     if (error.code === 'P2002' && error.meta?.target) {
       const target = error.meta.target as string[];
@@ -545,7 +546,7 @@ export async function getAllDonorsForManualDonation(): Promise<DonorFilterItem[]
   
   const { orgId } = await auth();
   if (!orgId) {
-    console.error("No organization ID found for manual donation donors");
+    logger.error('No organization ID found for manual donation donors', { operation: 'donors.manual_donation.no_org' });
     return [];
   }
 
@@ -556,7 +557,7 @@ export async function getAllDonorsForManualDonation(): Promise<DonorFilterItem[]
     });
 
     if (!church) {
-      console.error("Church not found for manual donation donors");
+      logger.error('Church not found for manual donation donors', { operation: 'donors.manual_donation.no_church' });
       return [];
     }
 
@@ -602,7 +603,7 @@ export async function getAllDonorsForManualDonation(): Promise<DonorFilterItem[]
       name: `${donor.firstName || ''} ${donor.lastName || ''}`.trim() || donor.email || 'Unknown Donor',
     }));
   } catch (error) {
-    console.error("Failed to fetch donors for manual donation:", error);
+    logger.error('Failed to fetch donors for manual donation', { operation: 'donors.manual_donation.error' }, error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 }
@@ -612,7 +613,7 @@ export async function updateDonorDetails(
   payload: UpdateDonorPayload
 ): Promise<DonorDetailsData | null> {
   if (!donorId) {
-    console.error("[updateDonorDetails] Donor ID is required.");
+    logger.error('Donor ID is required', { operation: 'donors.update_details.no_id' });
     return null;
   }
 
@@ -644,7 +645,7 @@ export async function updateDonorDetails(
     if (Object.keys(otherPayloadFields).length === 0 && payload.memberId === undefined) {
       // If only memberId was in payload and it was undefined, or payload was empty.
       // Fetch current donor data to return, as no update was performed.
-      console.log(`[updateDonorDetails] No fields to update for donor ${donorId} other than potentially memberId, or payload was empty. Fetching current details.`);
+      logger.debug('No fields to update for donor, fetching current details', { operation: 'donors.update_details.no_changes', donorId });
       return getDonorDetails(donorId, undefined); // Will use auth to get churchId
     }
 
@@ -659,7 +660,7 @@ export async function updateDonorDetails(
     return getDonorDetails(updatedDonor.id, undefined); // Will use auth to get churchId
 
   } catch (error: any) {
-    console.error("Failed to update donor details:", error);
+    logger.error('Failed to update donor details', { operation: 'donors.update_details.error' }, error instanceof Error ? error : new Error(String(error)));
     let errorMessage = "An unknown error occurred while updating donor.";
     if (error.code === 'P2002' && error.meta?.target) { // Prisma unique constraint violation
         const target = error.meta.target as string[];

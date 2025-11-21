@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { reconcilePendingPayouts } from '@/lib/stripe-reconciliation';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/reconcile
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     
     // If specific payout ID is provided, reconcile just that one
     if (payoutId) {
-      console.log(`[API] Manual reconciliation requested for payout ${payoutId}`);
+      logger.info(`[API] Manual reconciliation requested for payout ${payoutId}`, { operation: 'api.info' });
       
       // Verify the payout belongs to the user's church
       const payout = await prisma.payoutSummary.findUnique({
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
     
     // If churchId is provided, reconcile all pending payouts for that church
     if (churchId) {
-      console.log(`[API] Manual reconciliation requested for church ${churchId}`);
+      logger.info(`[API] Manual reconciliation requested for church ${churchId}`, { operation: 'api.info' });
       
       // Verify the church belongs to the user's organization
       const church = await prisma.church.findUnique({
@@ -113,7 +114,7 @@ export async function POST(req: Request) {
     );
     
   } catch (error) {
-    console.error('[API] Reconciliation error:', error);
+    logger.error('[API] Reconciliation error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: 'Internal server error during reconciliation' },
       { status: 500 }
@@ -210,7 +211,7 @@ export async function GET() {
     });
     
   } catch (error) {
-    console.error('[API] Error fetching reconciliation status:', error);
+    logger.error('[API] Error fetching reconciliation status:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: 'Failed to fetch reconciliation status' },
       { status: 500 }

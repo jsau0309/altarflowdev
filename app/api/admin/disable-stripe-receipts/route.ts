@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { disableStripeAutomaticReceipts } from '@/lib/stripe-connect';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // IMPORTANT: This endpoint should be protected and only accessible by admins
 // Consider adding additional authentication or removing after use
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
     }, { status: 400 });
 
   } catch (error) {
-    console.error('Error disabling Stripe receipts:', error);
+    logger.error('Error disabling Stripe receipts:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ 
       error: 'Failed to disable receipts',
       details: (error as Error).message

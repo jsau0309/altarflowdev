@@ -6,6 +6,7 @@ import { z } from 'zod'; // Using Zod for validation
 import { createAdminClient } from '@/utils/supabase/admin';
 import { createClient } from '@supabase/supabase-js'; // Import standard Supabase client
 import { revalidateTag } from 'next/cache';
+import { logger } from '@/lib/logger';
 
 const RECEIPTS_BUCKET = 'receipts';
 const SIGNED_URL_TTL_SECONDS = 86_400;
@@ -83,7 +84,7 @@ async function uploadReceipt({
     .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
 
   if (signedUrlError) {
-    console.error('Error generating signed URL after upload:', signedUrlError);
+    logger.error('Error generating signed URL after upload', { operation: 'expense.receipt.signed_url_error' }, signedUrlError instanceof Error ? signedUrlError : new Error(String(signedUrlError)));
   }
 
   return {
@@ -100,10 +101,10 @@ async function removeReceipt(path: string) {
       .remove([path]);
 
     if (error) {
-      console.warn(`Failed to delete existing receipt at ${path}:`, error);
+      logger.warn('Failed to delete existing receipt', { operation: 'expense.receipt.delete_failed', path, error: error instanceof Error ? error.message : String(error) });
     }
   } catch (deleteError) {
-    console.error(`Unexpected error deleting receipt at ${path}:`, deleteError);
+    logger.error('Unexpected error deleting receipt', { operation: 'expense.receipt.delete_error', path }, deleteError instanceof Error ? deleteError : new Error(String(deleteError)));
   }
 }
 
@@ -134,7 +135,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted GET on expense ${expenseId} without active org.`);
+      logger.error('User attempted GET on expense without active org', { operation: 'expense.get.no_org', userId, expenseId });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -161,7 +162,7 @@ export async function GET(
 
   } catch (error) {
     const { expenseId } = await params;
-    console.error(`Error fetching expense ${expenseId}:`, error);
+    logger.error('Error fetching expense', { operation: 'expense.get.error', expenseId }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Failed to fetch expense' }, { status: 500 });
   }
 }
@@ -183,7 +184,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted PATCH on expense ${expenseId} without active org.`);
+      logger.error('User attempted PATCH on expense without active org', { operation: 'expense.patch.no_org', userId, expenseId });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -303,7 +304,7 @@ export async function PATCH(
               preferredFilename = parsed.originalFilename;
             }
           } catch (parseError) {
-            console.warn('Failed to parse receipt metadata JSON:', parseError);
+            logger.warn('Failed to parse receipt metadata JSON', { operation: 'expense.receipt.metadata_parse_error', error: parseError instanceof Error ? parseError.message : String(parseError) });
           }
         }
       }
@@ -435,7 +436,7 @@ export async function PATCH(
           await removeReceipt(pathToDelete);
         }
       } catch (uploadError) {
-        console.error('Receipt upload failed during update:', uploadError);
+        logger.error('Receipt upload failed during update', { operation: 'expense.patch.upload_failed' }, uploadError instanceof Error ? uploadError : new Error(String(uploadError)));
         return NextResponse.json(
           { error: uploadError instanceof Error ? uploadError.message : 'Failed to upload new receipt.' },
           { status: 500 }
@@ -486,7 +487,7 @@ export async function PATCH(
     if (updateResult.count === 0) {
       // This could happen if the expense was modified between the fetch and update (race condition)
       // or if the initial check somehow passed incorrectly.
-      console.warn(`PATCH failed for expense ${expenseId} by user ${userId}. Count: ${updateResult.count}`);
+      logger.warn('PATCH failed for expense', { operation: 'expense.patch.failed', expenseId, userId, updateCount: updateResult.count });
       return NextResponse.json({ error: 'Expense update failed or access denied' }, { status: 404 });
     }
 
@@ -502,7 +503,7 @@ export async function PATCH(
 
   } catch (error) {
     const { expenseId } = await params;
-    console.error(`Error updating expense ${expenseId}:`, error);
+    logger.error('Error updating expense', { operation: 'expense.patch.error', expenseId }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Failed to update expense' }, { status: 500 });
   }
 }
@@ -524,7 +525,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted DELETE on expense ${expenseId} without active org.`);
+      logger.error('User attempted DELETE on expense without active org', { operation: 'expense.delete.no_org', userId, expenseId });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -555,7 +556,7 @@ export async function DELETE(
 
     // 4. Attempt to delete file from Supabase Storage if path exists
     if (existingExpense.receiptPath) {
-        console.log(`Attempting to delete storage file: ${existingExpense.receiptPath}`);
+        logger.debug('Attempting to delete storage file', { operation: 'expense.delete.storage_delete_attempt', receiptPath: existingExpense.receiptPath });
         try {
             if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
               throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set in environment variables.');
@@ -568,15 +569,15 @@ export async function DELETE(
             const { data: storageData, error: storageError } = await supabaseAdmin.storage
                 .from('receipts')
                 .remove([existingExpense.receiptPath]);
-            console.log(`Storage deletion response - Data:`, storageData);
-            console.log(`Storage deletion response - Error:`, storageError);
+            logger.debug('Storage deletion response data', { operation: 'expense.delete.storage_response', storageData });
+            logger.debug('Storage deletion response error', { operation: 'expense.delete.storage_response_error', storageError });
             if (storageError) {
-                console.warn(`Failed to delete storage file ${existingExpense.receiptPath}:`, storageError);
+                logger.warn('Failed to delete storage file', { operation: 'expense.delete.storage_delete_failed', receiptPath: existingExpense.receiptPath, error: storageError });
             } else {
-                console.log(`Successfully deleted storage file or file did not exist: ${existingExpense.receiptPath}`);
+                logger.info('Successfully deleted storage file or file did not exist', { operation: 'expense.delete.storage_deleted', receiptPath: existingExpense.receiptPath });
             }
         } catch (storageCatchError) {
-            console.error(`Unexpected error deleting storage file ${existingExpense.receiptPath}:`, storageCatchError);
+            logger.error('Unexpected error deleting storage file', { operation: 'expense.delete.storage_error', receiptPath: existingExpense.receiptPath }, storageCatchError instanceof Error ? storageCatchError : new Error(String(storageCatchError)));
         }
     }
 
@@ -591,25 +592,25 @@ export async function DELETE(
     });
 
     // Invalidate dashboard cache after deleting expense
-    console.log(`[API] Expense deleted successfully. Invalidating cache for org: ${orgId}`);
+    logger.info('Expense deleted successfully, invalidating cache', { operation: 'expense.delete.success', orgId });
     revalidateTag(`dashboard-${orgId}`);
 
     // 6. Check count (should be 1 if initial findFirst succeeded)
     if (deleteResult.count === 0) {
         // Should not happen if findFirst succeeded, but log defensively
-        console.warn(`DELETE inconsistency for expense ${expenseId} by user ${userId}. Count: ${deleteResult.count}`);
+        logger.warn('DELETE inconsistency for expense', { operation: 'expense.delete.inconsistency', expenseId, userId, deleteCount: deleteResult.count });
         // Return error as state might be inconsistent
         return NextResponse.json({ error: 'Failed to delete expense record after check' }, { status: 500 });
     }
     
-    console.log(`Successfully deleted expense record: ${expenseId}`);
+    logger.info('Successfully deleted expense record', { operation: 'expense.delete.record_deleted', expenseId });
 
     // 7. Return success response
     return new NextResponse(null, { status: 204 }); // No Content
 
   } catch (error) {
     const { expenseId } = await params;
-    console.error(`Error deleting expense ${expenseId}:`, error);
+    logger.error('Error deleting expense', { operation: 'expense.delete.error', expenseId }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'Failed to delete expense';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }

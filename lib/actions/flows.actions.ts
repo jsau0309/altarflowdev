@@ -7,6 +7,7 @@ import { FlowType, Prisma } from '@prisma/client'; // Import Prisma namespace fo
 import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
 import type { ServiceTime, Ministry, LifeStage, RelationshipStatus, MemberFormData } from '../../components/member-form/types'; // Ensure MemberFormData is imported if used
 import { Resend } from 'resend'; // Import Resend
+import { logger } from '@/lib/logger';
 import { generateNewMemberWelcomeHtml, NewMemberWelcomeData } from '@/lib/email/templates/new-member-welcome';
 import { generatePrayerRequestNotificationHtml, PrayerRequestNotificationData } from '@/lib/email/templates/prayer-request-notification';
 
@@ -56,11 +57,11 @@ async function sendWelcomeEmail(
     churchAddress?: string
 ): Promise<void> {
     if (!process.env.RESEND_API_KEY) {
-        console.error("[Resend Email] RESEND_API_KEY missing in environment. Cannot send email.");
+        logger.error('RESEND_API_KEY missing in environment. Cannot send email.', { operation: 'flows.email.error' });
         return;
     }
     if (!process.env.YOUR_VERIFIED_RESEND_DOMAIN) {
-        console.error("[Resend Email] YOUR_VERIFIED_RESEND_DOMAIN missing in environment. Cannot send email.");
+        logger.error('YOUR_VERIFIED_RESEND_DOMAIN missing in environment. Cannot send email.', { operation: 'flows.email.error' });
         return;
     }
 
@@ -87,7 +88,7 @@ async function sendWelcomeEmail(
     const subjectText = language === 'es' ? `¡Bienvenido(a) a ${churchName}!` : `Welcome to ${churchName}!`;
 
     try {
-        console.log(`[Resend Email] Attempting to send welcome email to ${recipientEmail} for ${churchName} in ${language}.`);
+        logger.info('Attempting to send welcome email to ${recipientEmail} for ${churchName} in ${language}.', { operation: 'flows.email.info' });
         const { data, error } = await resend.emails.send({
             from: `${churchName} <notifications@${process.env.YOUR_VERIFIED_RESEND_DOMAIN}>`,
             to: recipientEmail,
@@ -96,14 +97,14 @@ async function sendWelcomeEmail(
         });
 
         if (error) {
-            console.error(`[Resend Email] Failed to send welcome email to ${recipientEmail}:`, error);
+            logger.error('Failed to send welcome email to ${recipientEmail}:', { operation: 'flows.email.error' }, error instanceof Error ? error : new Error(String(error)));
             return; 
         }
 
-        console.log(`[Resend Email] Welcome email sent successfully to ${recipientEmail}. Message ID: ${data?.id}`);
+        logger.info('Welcome email sent successfully to ${recipientEmail}. Message ID: ${data?.id}', { operation: 'flows.email.info' });
 
     } catch (exception) {
-        console.error(`[Resend Email] Exception during sending welcome email to ${recipientEmail}:`, exception);
+        logger.error('Exception during sending welcome email to ${recipientEmail}:', { operation: 'flows.email.error' }, exception instanceof Error ? exception : new Error(String(exception)));
         // Optionally, re-throw or handle more gracefully
     }
 }
@@ -121,11 +122,11 @@ export async function getFlowConfiguration(
     const { userId, orgId } = await auth();
 
     if (!userId) {
-        console.error("getFlowConfiguration Auth Error: No Clerk userId found.");
+        logger.error('getFlowConfiguration Auth Error: No Clerk userId found.', { operation: 'flows.auth.error' });
         throw new Error("Unauthorized");
     }
     if (!orgId) {
-        console.error(`User ${userId} has no active organization selected.`);
+        logger.error('User has has no active organization selected.', { operation: 'flows.auth.no_org', userId });
         throw new Error("No active organization selected."); 
     }
 
@@ -145,7 +146,7 @@ export async function getFlowConfiguration(
         });
 
         if (!flow) {
-             console.warn(`No ${flowType} flow found for orgId ${orgId}. Returning default settings with empty lists.`);
+             logger.warn('No ${flowType} flow found for orgId ${orgId}. Returning default settings with empty lists.', { operation: 'flows.config.warn' });
              return {
                 serviceTimes: [], 
                 ministries: [],   
@@ -155,7 +156,7 @@ export async function getFlowConfiguration(
         }
         
         if (!flow.configJson || typeof flow.configJson !== 'object' || flow.configJson === null) {
-            console.warn(`Valid configJson not found for ${flowType} flow (ID: ${flow.id}) for orgId ${orgId}. Returning default settings with empty lists.`);
+            logger.warn('Valid configJson not found for ${flowType} flow (ID: ${flow.id}) for orgId ${orgId}. Returning default settings with empty lists.', { operation: 'flows.config.warn' });
              return {
                 serviceTimes: [],
                 ministries: [],
@@ -179,7 +180,7 @@ export async function getFlowConfiguration(
         };
 
     } catch (error) {
-        console.error(`Error fetching ${flowType} configuration for org ${orgId}:`, error);
+        logger.error('Error fetching ${flowType} configuration for org ${orgId}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
         if (error instanceof Error) {
              throw new Error(`Failed to fetch ${flowType} configuration: ${error.message}`);
         }
@@ -198,11 +199,11 @@ export async function saveFlowConfiguration(
     const { userId, orgId } = await auth();
 
     if (!userId) {
-        console.error("saveFlowConfiguration Auth Error: No Clerk userId found.");
+        logger.error('saveFlowConfiguration Auth Error: No Clerk userId found.', { operation: 'flows.auth.error' });
         return { success: false, message: "Unauthorized" };
     }
     if (!orgId) {
-        console.error(`User ${userId} has no active organization selected for saving config.`);
+        logger.error('User has has no active organization selected for saving config.', { operation: 'flows.auth.no_org', userId });
         return { success: false, message: "No active organization selected." };
     }
 
@@ -216,7 +217,7 @@ export async function saveFlowConfiguration(
         churchId = church.id;
         churchSlug = church.slug;
     } catch (error) {
-         console.error(`saveFlowConfiguration Error: Church not found for orgId ${orgId}.`);
+         logger.error('saveFlowConfiguration Error: Church not found for orgId ${orgId}.', { operation: 'flows.save_config.error' });
          return { success: false, message: "Associated church record not found." };
     }
 
@@ -241,12 +242,12 @@ export async function saveFlowConfiguration(
             },
             select: { id: true }
         });
-        console.log(`${flowType} configuration created successfully for org ${orgId} (Flow ID: ${createdFlow.id})`);
+        logger.info('Flow configuration created successfully', { operation: 'flows.save_config.created', flowType, orgId, flowId: createdFlow.id });
         return { success: true, slug: flowSlug };
 
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-             console.log(`Create failed (P2002), assuming flow exists for org ${orgId}, type ${flowType}. Attempting update.`);
+             logger.info('Create failed (P2002), attempting update', { operation: 'flows.save_config.p2002_retry', orgId, flowType });
              try {
                  const existingFlow = await prisma.flow.findFirstOrThrow({
                      where: { churchId: churchId, type: flowType },
@@ -260,20 +261,20 @@ export async function saveFlowConfiguration(
                         updatedAt: new Date(),
                     },
                 });
-                console.log(`${flowType} configuration updated successfully for org ${orgId} (Flow ID: ${existingFlow.id})`);
+                logger.info('Flow configuration updated successfully', { operation: 'flows.save_config.updated', flowType, orgId, flowId: existingFlow.id });
                 return { success: true, slug: flowSlug };
 
             } catch (updateError) {
-                 console.error(`Error updating existing ${flowType} configuration for org ${orgId} after create failed:`, updateError);
+                 logger.error('Error updating existing ${flowType} configuration for org ${orgId} after create failed:', { operation: 'flows.update.error' }, updateError instanceof Error ? updateError : new Error(String(updateError)));
                  const target = (error.meta?.target as string[]) || [];
                  if (target.includes('slug')) {
-                     console.error(`Original P2002 likely due to Slug conflict for org ${orgId}. Slug: ${flowSlug}`);
+                     logger.error('Original P2002 likely due to Slug conflict for org ${orgId}. Slug: ${flowSlug}', { operation: 'flows.slug_conflict.error' });
                      return { success: false, message: "Failed to generate unique URL for the flow. Please contact support." };
                  }
                  return { success: false, message: "Failed to update existing configuration after initial save attempt." };
             }
         } else {
-             console.error(`Error creating ${flowType} configuration for org ${orgId}:`, error);
+             logger.error('Error creating ${flowType} configuration for org ${orgId}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
              return { 
                  success: false, 
                  message: error instanceof Error ? error.message : "Failed to save configuration."
@@ -293,7 +294,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
     name: string;
 } | null> {
     if (!slug) {
-        console.log("getPublicFlowBySlug: No slug provided.");
+        logger.debug('getPublicFlowBySlug: No slug provided.', { operation: 'flows.public.debug' });
         return null;
     }
     try {
@@ -327,11 +328,11 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
         }
 
         if (!flow) {
-            console.log(`getPublicFlowBySlug: Flow not found or not enabled for slug: ${slug}`);
+            logger.debug('getPublicFlowBySlug: Flow not found or not enabled for', { operation: 'flows.public.debug', slug });
             return null;
         }
         if (!flow.Church) {
-            console.error(`getPublicFlowBySlug: Flow ${flow.id} found, but related church is missing for slug: ${slug}`);
+            logger.error('getPublicFlowBySlug: Flow ${flow.id} found, but related church is missing for', { operation: 'flows.public.error', slug });
             return null;
         }
         return {
@@ -342,7 +343,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
             name: flow.name,
         };
     } catch (error) {
-        console.error(`Error fetching public flow configuration for slug ${slug}:`, error);
+        logger.error('Error fetching public flow configuration for slug ${slug}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 }
@@ -360,7 +361,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
 //     if (digits.length === 10) {
 //         return `+1${digits}`;
 //     }
-//     console.warn(`Could not format phone number to E.164: ${phone}`);
+//     logger.warn('Could not format phone number to E.164: ${phone}', { operation: 'flows.config.warn' });
 //     return phone;
 // }
 
@@ -380,11 +381,11 @@ async function sendPrayerRequestEmail(
   const resendDomain = process.env.YOUR_VERIFIED_RESEND_DOMAIN;
 
   if (!resendApiKey) {
-    console.error("[Resend Prayer Email] RESEND_API_KEY is not configured. Email not sent.");
+    logger.error('RESEND_API_KEY is not configured. Email not sent.', { operation: 'flows.prayer_email.error' });
     return;
   }
   if (!resendDomain) {
-    console.error("[Resend Prayer Email] YOUR_VERIFIED_RESEND_DOMAIN is not configured. Email not sent.");
+    logger.error('YOUR_VERIFIED_RESEND_DOMAIN is not configured. Email not sent.', { operation: 'flows.prayer_email.error' });
     return;
   }
 
@@ -419,13 +420,13 @@ async function sendPrayerRequestEmail(
     });
 
     if (error) {
-      console.error(`[Resend Prayer Email] Error sending prayer request email to ${toEmail}:`, error);
+      logger.error('Error sending prayer request email to ${toEmail}:', { operation: 'flows.prayer_email.error' }, error instanceof Error ? error : new Error(String(error)));
       return; // Don't throw, just log and continue
     }
-    console.log(`[Resend Prayer Email] Prayer request email sent successfully to ${toEmail}. Message ID: ${data?.id}`);
+    logger.info('Prayer request email sent successfully to ${toEmail}. Message ID: ${data?.id}', { operation: 'flows.prayer_email.info' });
   } catch (e) {
     // Catch any other unexpected errors during the Resend API call
-    console.error(`[Resend Prayer Email] Unexpected error sending prayer request email to ${toEmail}:`, e);
+    logger.error('Unexpected error sending prayer request email to ${toEmail}:', { operation: 'flows.prayer_email.error' }, e instanceof Error ? e : new Error(String(e)));
   }
 }
 
@@ -470,7 +471,7 @@ function cleanupSubmissionCache() {
     }
   }
   
-  console.log(`[RateLimit] Cache cleanup completed. Current size: ${submissionCache.size}`);
+  logger.debug('Cache cleanup completed. Current size: ${submissionCache.size}', { operation: 'flows.rate_limit.debug' });
 }
 
 // Schedule periodic cleanup with proper cleanup on module unload
@@ -510,7 +511,7 @@ export async function submitFlow(
     const recentSubmissions = emailSubmissions.filter(time => time > hourAgo);
     
     if (recentSubmissions.length >= 5) {
-        console.warn(`[SubmitFlow] Rate limit exceeded for email: ${formData.email}`);
+        logger.warn('[SubmitFlow] Rate limit exceeded for email: ${formData.email}', { operation: 'flows.config.warn' });
         return { 
             success: false, 
             message: "Too many submissions. Please try again later." 
@@ -610,10 +611,10 @@ export async function submitFlow(
                 flow.Church.address || undefined
             ).catch(emailError => {
                 // Catch any unhandled promise rejection from sendWelcomeEmail itself, though it already logs.
-                console.error("[SubmitFlow] Error from sendWelcomeEmail promise:", emailError);
+                logger.error('Error from sendWelcomeEmail promise:', { operation: 'flows.submit.error' }, emailError instanceof Error ? emailError : new Error(String(emailError)));
             });
         } else {
-            console.error("[SubmitFlow] Critical Error: memberId not set before email attempt. Welcome email not sent.");
+            logger.error('Critical Error: memberId not set before email attempt. Welcome email not sent.', { operation: 'flows.submit.error' });
         }
         
 
@@ -630,7 +631,7 @@ export async function submitFlow(
           const prayerNotificationEmail = formConfigForPrayer.settings?.prayerRequestNotificationEmail;
 
           if (prayerEnabled && prayerNotificationEmail && prayerNotificationEmail.trim() !== "") {
-            console.log(`[SubmitFlow] Conditions met for prayer request email. Sending to: ${prayerNotificationEmail}`);
+            logger.info('Conditions met for prayer request email. Sending to: ${prayerNotificationEmail}', { operation: 'flows.submit.info' });
             sendPrayerRequestEmail(
               prayerNotificationEmail,
               `${validatedFormData.firstName} ${validatedFormData.lastName}`,
@@ -641,24 +642,24 @@ export async function submitFlow(
               validatedFormData.language as 'en' | 'es',
               churchLogoUrl
             ).catch(emailError => {
-              console.error("[SubmitFlow] Error from sendPrayerRequestEmail promise:", emailError);
+              logger.error('Error from sendPrayerRequestEmail promise:', { operation: 'flows.submit.error' }, emailError instanceof Error ? emailError : new Error(String(emailError)));
             });
           } else {
-            if (!prayerEnabled) console.log("[SubmitFlow] Prayer requests not enabled for this flow.");
-            if (!prayerNotificationEmail || prayerNotificationEmail.trim() === "") console.log("[SubmitFlow] Prayer request notification email not configured for this flow.");
+            if (!prayerEnabled) logger.debug('Prayer requests not enabled for this flow.', { operation: 'flows.submit.debug' });
+            if (!prayerNotificationEmail || prayerNotificationEmail.trim() === "") logger.debug('Prayer request notification email not configured for this flow.', { operation: 'flows.submit.debug' });
           }
         } else {
           if (validatedFormData.prayerRequested && validatedFormData.prayerRequest) {
-            console.log("[SubmitFlow] Prayer request was made, but memberId was not available. Prayer email not sent.");
+            logger.debug('Prayer request was made, but memberId was not available. Prayer email not sent.', { operation: 'flows.submit.debug' });
           } else {
-            // console.log("[SubmitFlow] No prayer request submitted or prayer request text empty."); // Optional: for debugging if needed
+            // logger.debug('No prayer request submitted or prayer request text empty.', { operation: 'flows.submit.debug' }); // Optional: for debugging if needed
           }
         }
 
         // --- Create Submission Record --- 
         if (!memberId) {
             // This case should ideally not be reached if member creation/update is successful
-            console.error("[SubmitFlow] memberId is unexpectedly missing before creating submission record.");
+            logger.error('memberId is unexpectedly missing before creating submission record.', { operation: 'flows.submit.error' });
             throw new Error("Failed to obtain member ID for submission record."); 
         }
         
@@ -670,11 +671,11 @@ export async function submitFlow(
             },
         });
 
-        console.log(`[SubmitFlow] Submission successful for Flow ID: ${flowId}, linked to Member ID: ${memberId}`);
+        logger.info('Submission successful for Flow ID: ${flowId}, linked to Member ID: ${memberId}', { operation: 'flows.submit.info' });
         return { success: true, message: "submissionSuccessMessage" };
 
     } catch (error) {
-        console.error(`[SubmitFlow] Error during submitFlow process for flow ${flowId} and email ${validatedFormData.email}:`, error);
+        logger.error('Error during submitFlow process for flow ${flowId} and email ${validatedFormData.email}:', { operation: 'flows.submit.error' }, error instanceof Error ? error : new Error(String(error)));
         let userMessage = "An error occurred while processing your submission. Please try again or contact support.";
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             // More specific error for known DB issues if desired, but often generic is better for users
@@ -697,7 +698,7 @@ export async function getActiveFlowsByChurchId(churchId: string): Promise<{ id: 
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error(`[getActiveFlowsByChurchId] Authorization failed:`, authResult.error);
+      logger.error('Authorization failed', { operation: 'flows.get_active.error', error: authResult.error });
       return [];
     }
 
@@ -718,7 +719,7 @@ export async function getActiveFlowsByChurchId(churchId: string): Promise<{ id: 
     });
     return activeFlows;
   } catch (error) {
-    console.error(`[getActiveFlowsByChurchId] Error fetching active flows for church ${churchId}:`, error);
+    logger.error('Error fetching active flows for church ${churchId}:', { operation: 'flows.get_active.error' }, error instanceof Error ? error : new Error(String(error)));
     return []; // Return empty array on error
   }
 }

@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { User, Mail, Phone, FileText, Home, Loader2, AlertTriangle } from "lucide-react"
@@ -41,7 +42,7 @@ export function DonorDetailsDrawer({ isOpen, onClose, donorId }: DonorDetailsDra
             setError(t('viewDonorDetails.errorDonorNotFound', 'Donor not found.'))
           }
         } catch (err) {
-          console.error("Failed to fetch donor details:", err)
+          console.error("Failed to fetch donor details", { operation: "ui.donor.fetch_error" }, err instanceof Error ? err : new Error(String(err)))
           setError(t('viewDonorDetails.errorLoadingFailed', 'Failed to load donor details. Please try again.'))
         }
         setIsLoading(false)

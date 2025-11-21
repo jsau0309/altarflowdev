@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from '@/lib/logger';
 
 interface Params {
   churchId: string;
@@ -65,7 +66,7 @@ export async function PUT(
     return NextResponse.json(updatedType, { status: 200 });
 
   } catch (error) {
-    console.error(`Error updating donation type:`, error);
+    logger.error('Error updating donation type:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to update donation type', details: errorMessage }, { status: 500 });
   }
@@ -137,7 +138,7 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Donation type deleted successfully' }, { status: 200 });
 
   } catch (error) {
-    console.error(`Error deleting donation type:`, error);
+    logger.error('Error deleting donation type:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json({ error: 'Failed to delete donation type', details: errorMessage }, { status: 500 });
   }

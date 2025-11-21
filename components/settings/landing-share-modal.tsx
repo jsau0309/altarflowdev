@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -98,7 +99,7 @@ export function LandingShareModal({
         toast.success(t("settings:shareModal.qrDownloaded", "QR code downloaded!"));
       }
     } catch (error) {
-      console.error('QR code download error:', error);
+      console.error('QR code download error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error('Failed to download QR code');
     }
   };

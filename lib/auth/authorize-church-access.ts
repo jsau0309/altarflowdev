@@ -25,6 +25,7 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 export interface AuthorizationResult {
   success: boolean
@@ -80,12 +81,14 @@ export async function authorizeChurchAccess(
     if (!church) {
       // Church either doesn't exist OR user doesn't have access
       // Log potential security violation for monitoring
-      console.warn('[SECURITY] Authorization failed - church not found or access denied:', {
+      logger.warn('Authorization failed - potential privilege escalation attempt', {
+        operation: 'security.authorization_failed',
         userId,
         userOrgId: orgId,
         requestedChurch: churchIdentifier,
+        identifierType: isUuid ? 'uuid' : 'clerkOrgId',
         timestamp: new Date().toISOString()
-      })
+      });
 
       return {
         success: false,
@@ -101,7 +104,10 @@ export async function authorizeChurchAccess(
     }
 
   } catch (error) {
-    console.error('[AUTH] Authorization error:', error)
+    logger.error('Authorization error', {
+      operation: 'security.authorization_error',
+      requestedChurch: churchIdentifier
+    }, error instanceof Error ? error : new Error(String(error)));
     return {
       success: false,
       error: 'Internal server error during authorization'

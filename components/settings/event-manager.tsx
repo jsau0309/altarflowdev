@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export function EventManager() {
       // Notify parent component (landing-manager-enhanced) to update preview
       window.dispatchEvent(new CustomEvent('eventsUpdated'));
     } catch (error) {
-      console.error("Failed to load events:", error);
+      console.error('Failed to load events:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t("settings:events.loadError", "Failed to load events"));
     } finally {
       setIsLoading(false);
@@ -121,7 +122,11 @@ export function EventManager() {
 
         // Validate parsed values
         if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) {
-          console.error('Invalid date format:', event.eventDate);
+          console.error('Invalid date format in event', {
+            operation: 'ui.event.date_parse_error',
+            eventDate: event.eventDate,
+            datePart
+          });
           // Fallback to current date
           const eventDateObj = new Date();
           setFormData({
@@ -144,7 +149,7 @@ export function EventManager() {
           });
         }
       } catch (error) {
-        console.error('Error parsing event date:', error);
+        console.error('Error parsing event date:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
         // Fallback to current date on error
         setFormData({
           title: event.title,
@@ -239,7 +244,7 @@ export function EventManager() {
       handleCloseDialog();
       loadEvents();
     } catch (error: any) {
-      console.error("Failed to save event:", error);
+      console.error('Failed to save event:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(error.message || t("settings:events.saveError", "Failed to save event"));
     } finally {
       setIsSaving(false);
@@ -271,7 +276,7 @@ export function EventManager() {
       setEventToDelete(null);
       loadEvents();
     } catch (error) {
-      console.error("Failed to delete event:", error);
+      console.error('Failed to delete event:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.dismiss(loadingToast);
       toast.error(t("settings:events.deleteError", "Failed to delete event"));
     }
@@ -296,7 +301,7 @@ export function EventManager() {
       );
       loadEvents();
     } catch (error) {
-      console.error("Failed to toggle event:", error);
+      console.error('Failed to toggle event:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t("settings:events.toggleError", "Failed to update event"));
     }
   };
@@ -305,7 +310,10 @@ export function EventManager() {
     const date = new Date(dateString);
     // Validate date to prevent "Invalid Date" from showing in UI
     if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString);
+      console.error('Invalid date string in formatDate', {
+        operation: 'ui.event.format_date_error',
+        dateString
+      });
       return 'Invalid Date';
     }
     return date.toLocaleDateString(undefined, {

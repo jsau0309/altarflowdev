@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST() {
   try {
@@ -22,7 +23,7 @@ export async function POST() {
 
     return NextResponse.json({ success: true, church });
   } catch (error) {
-    console.error('Error completing onboarding:', error);
+    logger.error('Error completing onboarding:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

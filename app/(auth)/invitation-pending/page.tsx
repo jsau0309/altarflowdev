@@ -45,12 +45,12 @@ export default function InvitationPendingPage() {
 
     // Check if there are pending invitations
     if (userInvitations && userInvitations.data && userInvitations.data.length > 0) {
-      console.log('User has pending invitations:', userInvitations.data.length);
+      console.log('User has pending invitations', userInvitations.data.length);
       // They have pending invitations to join an existing church
       // Stay on this page to show them the pending status
       return;
     }
-    
+
     // No invitations and no memberships - they should create a church
     if (!userInvitations || userInvitations.data.length === 0) {
       console.log('No pending invitations, redirecting to onboarding');

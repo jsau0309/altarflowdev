@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
@@ -52,7 +53,7 @@ export default function StripeOnboardingStart() {
           }
         }
       } catch (error) {
-        console.error('Error checking existing account:', error);
+        console.error('Error checking existing account:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       } finally {
         setIsLoading(false);
       }
@@ -86,7 +87,7 @@ export default function StripeOnboardingStart() {
         }
       }
     } catch (error) {
-      console.error('Error starting onboarding:', error);
+      console.error('Error starting onboarding:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   };
 

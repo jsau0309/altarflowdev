@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db'
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths, addMonths } from 'date-fns'
 import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access'
+import { logger } from '@/lib/logger'
 
 export interface MonthlyReportData {
   month: string
@@ -45,7 +46,7 @@ export async function getDonationTypesForFilter(
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getDonationTypesForFilter] Authorization failed:', authResult.error);
+      logger.error('Authorization failed', { operation: 'reports.getDonationTypesForFilter.auth_error', error: authResult.error });
       return [];
     }
 
@@ -77,7 +78,7 @@ export async function getDonationTypesForFilter(
 
     return donationTypes
   } catch (error) {
-    console.error('Error fetching donation types for filter:', error)
+    logger.error('Error fetching donation types for filter:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -90,7 +91,7 @@ export async function getExpenseCategoriesForFilter(
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getExpenseCategoriesForFilter] Authorization failed:', authResult.error);
+      logger.error('Authorization failed', { operation: 'reports.getExpenseCategoriesForFilter.auth_error', error: authResult.error });
       return [];
     }
 
@@ -121,7 +122,7 @@ export async function getExpenseCategoriesForFilter(
 
     return expenseCategories
   } catch (error) {
-    console.error('Error fetching expense categories for filter:', error)
+    logger.error('Error fetching expense categories for filter:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -137,7 +138,7 @@ export async function getMonthlyDonationSummary(
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getMonthlyDonationSummary] Authorization failed:', authResult.error);
+      logger.error('Authorization failed', { operation: 'reports.getMonthlyDonationSummary.auth_error', error: authResult.error });
       return [];
     }
 
@@ -196,7 +197,7 @@ export async function getMonthlyDonationSummary(
 
     return allMonths
   } catch (error) {
-    console.error('Error fetching monthly donation summary:', error)
+    logger.error('Error fetching monthly donation summary:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -212,7 +213,7 @@ export async function getDonationCategoryBreakdown(
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getDonationCategoryBreakdown] Authorization failed:', authResult.error);
+      logger.error('Authorization failed', { operation: 'reports.getDonationCategoryBreakdown.auth_error', error: authResult.error });
       return [];
     }
 
@@ -265,7 +266,7 @@ export async function getDonationCategoryBreakdown(
 
     return categoryData
   } catch (error) {
-    console.error('Error fetching donation category breakdown:', error)
+    logger.error('Error fetching donation category breakdown:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -281,7 +282,7 @@ export async function getDonationSummary(
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getDonationSummary] Authorization failed:', authResult.error);
+      logger.error('Authorization failed', { operation: 'reports.getDonationSummary.auth_error', error: authResult.error });
       return { total: 0, average: 0, count: 0 };
     }
 
@@ -331,7 +332,7 @@ export async function getDonationSummary(
       count: uniqueDonors
     }
   } catch (error) {
-    console.error('Error fetching donation summary:', error)
+    logger.error('Error fetching donation summary:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return { total: 0, average: 0, count: 0 }
   }
 }
@@ -347,7 +348,7 @@ export async function getMonthlyExpenseSummary(
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getMonthlyExpenseSummary] Authorization failed:', authResult.error);
+      logger.error('Authorization failed', { operation: 'reports.getMonthlyExpenseSummary.auth_error', error: authResult.error });
       return [];
     }
 
@@ -400,7 +401,7 @@ export async function getMonthlyExpenseSummary(
 
     return allMonths
   } catch (error) {
-    console.error('Error fetching monthly expense summary:', error)
+    logger.error('Error fetching monthly expense summary:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -416,7 +417,7 @@ export async function getExpenseCategoryBreakdown(
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getExpenseCategoryBreakdown] Authorization failed:', authResult.error);
+      logger.error('Authorization failed', { operation: 'reports.getExpenseCategoryBreakdown.auth_error', error: authResult.error });
       return [];
     }
 
@@ -466,7 +467,7 @@ export async function getExpenseCategoryBreakdown(
 
     return categoryData
   } catch (error) {
-    console.error('Error fetching expense category breakdown:', error)
+    logger.error('Error fetching expense category breakdown:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -482,7 +483,7 @@ export async function getExpenseSummary(
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getExpenseSummary] Authorization failed:', authResult.error);
+      logger.error('Authorization failed', { operation: 'reports.getExpenseSummary.auth_error', error: authResult.error });
       return { total: 0, average: 0, count: 0 };
     }
 
@@ -512,7 +513,7 @@ export async function getExpenseSummary(
       count: expenses.length
     }
   } catch (error) {
-    console.error('Error fetching expense summary:', error)
+    logger.error('Error fetching expense summary:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return { total: 0, average: 0, count: 0 }
   }
 }
@@ -530,7 +531,7 @@ export async function getTransactionsForExport(
     // Authorization check - verify user has access to this church
     const authResult = await authorizeChurchAccess(churchId);
     if (!authResult.success) {
-      console.error('[getTransactionsForExport] Authorization failed:', authResult.error);
+      logger.error('Authorization failed', { operation: 'reports.getTransactionsForExport.auth_error', error: authResult.error });
       return [];
     }
 
@@ -603,7 +604,7 @@ export async function getTransactionsForExport(
       }))
     }
   } catch (error) {
-    console.error('Error fetching transactions for export:', error)
+    logger.error('Error fetching transactions for export:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -614,7 +615,7 @@ export async function getTopDonorsThisMonth(churchId: string) {
     // Authorization check - verify user has access to this church
     const auth = await authorizeChurchAccess(churchId)
     if (!auth.success) {
-      console.error('[getTopDonorsThisMonth] Authorization failed:', auth.error)
+      logger.error('Authorization failed', { operation: 'reports.getTopDonorsThisMonth.auth_error', error: auth.error })
       return []
     }
 
@@ -667,7 +668,7 @@ export async function getTopDonorsThisMonth(churchId: string) {
     
     return donorDetails
   } catch (error) {
-    console.error('Error fetching top donors:', error)
+    logger.error('Error fetching top donors:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -678,7 +679,7 @@ export async function getMostUsedPaymentMethodThisMonth(churchId: string) {
     // Authorization check - verify user has access to this church
     const auth = await authorizeChurchAccess(churchId)
     if (!auth.success) {
-      console.error('[getMostUsedPaymentMethodThisMonth] Authorization failed:', auth.error)
+      logger.error('Authorization failed', { operation: 'reports.getMostUsedPaymentMethodThisMonth.auth_error', error: auth.error })
       return null
     }
 
@@ -719,7 +720,7 @@ export async function getMostUsedPaymentMethodThisMonth(churchId: string) {
       }))
     }
   } catch (error) {
-    console.error('Error fetching payment methods:', error)
+    logger.error('Error fetching payment methods:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return null
   }
 }
@@ -730,7 +731,7 @@ export async function getBiggestDonationThisMonth(churchId: string) {
     // Authorization check - verify user has access to this church
     const auth = await authorizeChurchAccess(churchId)
     if (!auth.success) {
-      console.error('[getBiggestDonationThisMonth] Authorization failed:', auth.error)
+      logger.error('Authorization failed', { operation: 'reports.getBiggestDonationThisMonth.auth_error', error: auth.error })
       return null
     }
 
@@ -777,7 +778,7 @@ export async function getBiggestDonationThisMonth(churchId: string) {
       paymentMethod: biggestDonation.paymentMethodType
     }
   } catch (error) {
-    console.error('Error fetching biggest donation:', error)
+    logger.error('Error fetching biggest donation:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return null
   }
 }
@@ -788,7 +789,7 @@ export async function getExpenseTrendData(churchId: string) {
     // Authorization check - verify user has access to this church
     const auth = await authorizeChurchAccess(churchId)
     if (!auth.success) {
-      console.error('[getExpenseTrendData] Authorization failed:', auth.error)
+      logger.error('Authorization failed', { operation: 'reports.getExpenseTrendData.auth_error', error: auth.error })
       return []
     }
 
@@ -853,7 +854,7 @@ export async function getExpenseTrendData(churchId: string) {
     
     return trendData
   } catch (error) {
-    console.error('Error fetching expense trend:', error)
+    logger.error('Error fetching expense trend:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -864,7 +865,7 @@ export async function getDonationTrendData(churchId: string) {
     // Authorization check - verify user has access to this church
     const auth = await authorizeChurchAccess(churchId)
     if (!auth.success) {
-      console.error('[getDonationTrendData] Authorization failed:', auth.error)
+      logger.error('Authorization failed', { operation: 'reports.getDonationTrendData.auth_error', error: auth.error })
       return []
     }
 
@@ -944,7 +945,7 @@ export async function getDonationTrendData(churchId: string) {
     
     return trendData
   } catch (error) {
-    console.error('Error fetching donation trend:', error)
+    logger.error('Error fetching donation trend:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -955,7 +956,7 @@ export async function getActiveMemberList(churchId: string) {
     // Authorization check - verify user has access to this church
     const auth = await authorizeChurchAccess(churchId)
     if (!auth.success) {
-      console.error('[getActiveMemberList] Authorization failed:', auth.error)
+      logger.error('Authorization failed', { operation: 'reports.getActiveMemberList.auth_error', error: auth.error })
       return []
     }
 
@@ -989,7 +990,7 @@ export async function getActiveMemberList(churchId: string) {
       memberSince: member.joinDate ? format(member.joinDate, 'MMM yyyy') : 'Unknown'
     }))
   } catch (error) {
-    console.error('Error fetching active members:', error)
+    logger.error('Error fetching active members:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -1000,7 +1001,7 @@ export async function getVisitorList(churchId: string) {
     // Authorization check - verify user has access to this church
     const auth = await authorizeChurchAccess(churchId)
     if (!auth.success) {
-      console.error('[getVisitorList] Authorization failed:', auth.error)
+      logger.error('Authorization failed', { operation: 'reports.getVisitorList.auth_error', error: auth.error })
       return []
     }
 
@@ -1038,7 +1039,7 @@ export async function getVisitorList(churchId: string) {
       notes: visitor.notes || ''
     }))
   } catch (error) {
-    console.error('Error fetching visitors:', error)
+    logger.error('Error fetching visitors:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     return []
   }
 }
@@ -1049,7 +1050,7 @@ export async function getAiSummaryData(churchId: string) {
     // Authorization check - verify user has access to this church
     const auth = await authorizeChurchAccess(churchId)
     if (!auth.success) {
-      console.error('[getAiSummaryData] Authorization failed:', auth.error)
+      logger.error('Authorization failed', { operation: 'reports.getAiSummaryData.auth_error', error: auth.error })
       throw new Error(auth.error || 'Unauthorized access')
     }
 
@@ -1387,7 +1388,7 @@ export async function getAiSummaryData(churchId: string) {
       }
     }
   } catch (error) {
-    console.error('Error fetching AI summary data:', error)
+    logger.error('Error fetching AI summary data:', { operation: 'reports.fetch_error' }, error instanceof Error ? error : new Error(String(error)))
     throw error
   }
 }

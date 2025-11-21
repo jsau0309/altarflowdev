@@ -1,5 +1,6 @@
 "use client"
 
+
 import type { ReactNode } from "react"
 import React, {
   createContext,
@@ -57,7 +58,7 @@ const Confetti = forwardRef<ConfettiRef, Props>((props, ref) => {
             resize: true,
           })
         } catch (error) {
-          console.error('Failed to initialize confetti:', error)
+          console.error('Failed to initialize confetti:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           // Component continues to work without confetti
           instanceRef.current = null
         }
@@ -67,7 +68,7 @@ const Confetti = forwardRef<ConfettiRef, Props>((props, ref) => {
           try {
             instanceRef.current.reset()
           } catch (error) {
-            console.error('Failed to reset confetti:', error)
+            console.error('Failed to reset confetti:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           }
           instanceRef.current = null
         }

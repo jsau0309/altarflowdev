@@ -1,11 +1,12 @@
 import Stripe from 'stripe';
+import { logger } from '@/lib/logger';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
 }
 
 if (!process.env.STRIPE_WEBHOOK_SECRET) {
-  console.warn('STRIPE_WEBHOOK_SECRET is not set in environment variables. Webhook verification will fail.');
+  logger.warn('STRIPE_WEBHOOK_SECRET is not set - webhook verification will fail', { operation: 'stripe.init.missing_webhook_secret' });
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {

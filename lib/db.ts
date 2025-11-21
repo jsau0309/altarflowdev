@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { connectionErrorMiddleware } from './prisma-middleware';
+import { logger } from '@/lib/logger';
 
 // PrismaClient is attached to the `global` object in development to prevent
 // exhausting your database connection limit.
@@ -66,13 +67,20 @@ export async function withRetry<T>(
 
       if (isRetryableError) {
         retries++;
-        console.warn(`Database connection error (attempt ${retries}/${maxRetries}):`, {
-          code: error.code,
-          message: error.message,
+        logger.warn('Database connection error - retrying', {
+          operation: 'database.connection_error',
+          attempt: retries,
+          maxRetries,
+          errorCode: error.code,
+          errorMessage: error.message
         });
-        
+
         if (retries >= maxRetries) {
-          console.error('Max retries exceeded for database operation:', error);
+          logger.error('Max retries exceeded for database operation', {
+            operation: 'database.max_retries_exceeded',
+            attempts: retries,
+            errorCode: error.code
+          }, error);
           throw error;
         }
         
@@ -112,7 +120,9 @@ export async function checkDatabaseHealth(): Promise<{ healthy: boolean; latency
     const latency = Date.now() - start;
     return { healthy: true, latency };
   } catch (error) {
-    console.error('Database health check failed:', error);
+    logger.error('Database health check failed', {
+      operation: 'database.health_check_failed'
+    }, error instanceof Error ? error : new Error(String(error)));
     return { healthy: false };
   }
 }
@@ -126,24 +136,38 @@ if (process.env.NODE_ENV !== 'production') {
     
     // Graceful shutdown handler
     process.on('SIGTERM', async () => {
-      console.log('Received SIGTERM, closing database connections...');
+      logger.info('Received SIGTERM, closing database connections', {
+        operation: 'database.shutdown',
+        signal: 'SIGTERM'
+      });
       await prisma.$disconnect();
     });
 
     process.on('SIGINT', async () => {
-      console.log('Received SIGINT, closing database connections...');
+      logger.info('Received SIGINT, closing database connections', {
+        operation: 'database.shutdown',
+        signal: 'SIGINT'
+      });
       await prisma.$disconnect();
     });
   }
 } else {
   // In production, always register handlers
   process.on('SIGTERM', async () => {
-    console.log('Received SIGTERM, closing database connections...');
+    logger.info('Received SIGTERM, closing database connections', {
+      operation: 'database.shutdown',
+      signal: 'SIGTERM',
+      env: 'production'
+    });
     await prisma.$disconnect();
   });
 
   process.on('SIGINT', async () => {
-    console.log('Received SIGINT, closing database connections...');
+    logger.info('Received SIGINT, closing database connections', {
+      operation: 'database.shutdown',
+      signal: 'SIGINT',
+      env: 'production'
+    });
     await prisma.$disconnect();
   });
 }

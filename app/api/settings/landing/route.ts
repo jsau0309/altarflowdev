@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 interface LandingPageSettings {
   showDonateButton: boolean;
@@ -49,7 +50,7 @@ export async function GET() {
       churchSlug: church.slug
     });
   } catch (error) {
-    console.error("[GET /api/settings/landing] Error:", error);
+    logger.error('[GET /api/settings/landing] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -119,7 +120,7 @@ export async function PUT(request: Request) {
       }
     });
   } catch (error) {
-    console.error("[PUT /api/settings/landing] Error:", error);
+    logger.error('[PUT /api/settings/landing] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -26,7 +26,7 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
   static getDerivedStateFromError(error: Error): State {
     // Log theme-specific errors
     if (error.message?.includes('useTheme') || error.message?.includes('ThemeProvider')) {
-      console.error('Theme Provider Error:', error)
+      console.error('Theme Provider Error:', error);
     }
     return { hasError: true, error }
   }
@@ -34,8 +34,8 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Theme Error Boundary caught:', {
       error: error.message,
-      componentStack: errorInfo.componentStack,
-    })
+      componentStack: errorInfo.componentStack
+    }, error);
   }
 
   render() {

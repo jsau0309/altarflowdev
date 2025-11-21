@@ -143,7 +143,7 @@ export function MemberForm({ onSubmitSuccess }: { onSubmitSuccess?: (data: Membe
       reset();
       onSubmitSuccess?.(data);
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error('Error submitting form:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       sonnerToast.error(t("members:memberForm.errorTitle", "Error"), {
         description: t("members:memberForm.errorMessage", "Failed to submit form."),
       });

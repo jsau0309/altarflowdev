@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -33,7 +34,9 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Error checking onboarding status:', error)
+    logger.error('Error checking onboarding status', {
+      operation: 'api.settings.onboarding_status_error'
+    }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -64,7 +64,7 @@ export default function OnboardingStep4() {
       // Move to next step
       router.push('/onboarding/step-5');
     } catch (error) {
-      console.error('Error saving preferences:', error);
+      console.error('Error saving preferences:', { language, theme: selectedTheme }, error);
       showToast(
         t('onboarding:step4.error', 'Failed to save preferences. Please try again.'),
         'error'

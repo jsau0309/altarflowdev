@@ -3,6 +3,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 // Define the state shape expected by useFormState
 interface VerifyOtpState {
@@ -48,7 +49,7 @@ export async function verifyOtpAction(
   });
 
   if (verifyError) {
-    console.error('[verifyOtpAction] Supabase OTP Verification Error:', verifyError);
+    logger.error('Supabase OTP verification error', { operation: 'actions.auth.verify_otp_error', email }, verifyError instanceof Error ? verifyError : new Error(String(verifyError)));
     // Provide a more user-friendly error message
     let errorMessage = 'Failed to verify OTP. Please check the code and try again.';
     if (verifyError.message.includes('expired')) {
@@ -62,7 +63,7 @@ export async function verifyOtpAction(
 
   // On successful verification, Supabase automatically handles the session.
   // Redirect the user to the first step of onboarding.
-  console.log(`[verifyOtpAction] OTP verified successfully for ${email}. Redirecting to onboarding...`);
+  logger.info(`[verifyOtpAction] OTP verified successfully for ${email}. Redirecting to onboarding...`);
   redirect('/onboarding/step-1');
 
   // The redirect function throws an error, so this part is unreachable,

@@ -191,7 +191,10 @@ export function StripeConnectButton({
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.error('[StripeConnectButton] Error polling account status:', response.status, errorData);
+          console.error('[StripeConnectButton] Error polling account status:', {
+            status: response.status,
+            errorData
+          });
           // Don't toast on every poll failure, could be noisy
           return;
         }
@@ -291,7 +294,7 @@ export function StripeConnectButton({
       if (url) {
         window.open(url, '_blank');
       } else {
-        console.error('[StripeConnectButton] URL missing or invalid in response!', responseData);
+        console.error('[StripeConnectButton] URL missing or invalid in response:', responseData);
         toast.error('Failed to get a valid link from Stripe. Please try again.');
       }
     } catch (error) {

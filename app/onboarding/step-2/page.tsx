@@ -36,7 +36,7 @@ export default function OnboardingStep2() {
       }
       router.push('/onboarding/step-3');
     } catch (error) {
-      console.error('Error selecting organization:', error);
+      console.error('Error selecting organization:', orgId, error);
       setIsLoading(false);
     }
   };

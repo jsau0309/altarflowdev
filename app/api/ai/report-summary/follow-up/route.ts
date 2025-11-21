@@ -15,6 +15,7 @@ import {
 import { getUserSubscriptionPlan } from "@/lib/stripe/subscription";
 // import type { User } from "@clerk/backend"; // Not used in this endpoint
 import { getChurchByClerkOrgId } from '@/lib/actions/church.actions';
+import { logger } from '@/lib/logger';
 
 // Type definitions for trend data
 interface ExpenseTrendItem {
@@ -273,7 +274,7 @@ Help them see what this data reveals. Tell the story, provide context, and offer
         });
 
     } catch (error) {
-        console.error('[AI_REPORT_FOLLOW_UP_ERROR]', error);
+        logger.error('[AI_REPORT_FOLLOW_UP_ERROR]', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
         if (error instanceof Anthropic.APIError) {
             return new NextResponse(error.message || 'Anthropic API Error', { status: error.status || 500 });
         }

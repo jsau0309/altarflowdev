@@ -1,5 +1,6 @@
 "use client"
 
+
 import React, { useState, useEffect, useRef } from 'react'; // Added React and useRef import
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -88,7 +89,7 @@ export function AiSummaryModal({ isOpen, onClose, churchId }: AiSummaryModalProp
 
   useEffect(() => {
     if (!churchId) {
-      console.warn("AiSummaryModal: churchId prop not provided. Follow-up questions may fail or be disabled.");
+      console.warn('AiSummaryModal: churchId prop not provided. Follow-up questions may fail or be disabled.', { operation: 'ui.warn' });
       // Display an error message in the UI or disable follow-up functionality if churchId is critical
       // For now, we'll allow the modal to open, but follow-ups will be disabled by checks in handleAskFollowUp
     }
@@ -138,7 +139,7 @@ export function AiSummaryModal({ isOpen, onClose, churchId }: AiSummaryModalProp
         setIsTypingInitialSummary(true);
         // Log metadata for debugging (optional)
         if (data.metadata) {
-          console.log('[AI Summary Metadata]', data.metadata);
+          console.log('[AI Summary Metadata]', { operation: 'ui.debug', data: data.metadata });
         }
       } else {
         throw new Error(t('aiSummaryModal.error.noSummaryData', 'No summary data received.'));
@@ -195,7 +196,7 @@ export function AiSummaryModal({ isOpen, onClose, churchId }: AiSummaryModalProp
 
       if (charIndexRef.current < fullTextForSection.length) {
         if (!currentSectionMessageIdRef.current) {
-          console.error("AiSummaryModal: currentSectionMessageIdRef.current is null while trying to type characters.");
+          console.error('AiSummaryModal: currentSectionMessageIdRef.current is null while trying to type characters.', { operation: 'ui.error' });
           setIsTypingInitialSummary(false);
           return;
         }
@@ -289,7 +290,7 @@ export function AiSummaryModal({ isOpen, onClose, churchId }: AiSummaryModalProp
   const handleFollowUpQuestion = async (questionKey: string) => {
 
     if (!churchId) {
-      console.error("AiSummaryModal: Cannot ask follow-up, churchId prop is missing.");
+      console.error('AiSummaryModal: Cannot ask follow-up, churchId prop is missing.', { operation: 'ui.error' });
       setChatHistory(prev => [...prev, { id: Date.now().toString(), type: 'error', sender: 'system', content: t('aiSummaryModal.error.churchIdMissingFollowup'), isStreaming: false }]);
       setIsStreamingFollowUp(false);
       return;
@@ -381,7 +382,10 @@ export function AiSummaryModal({ isOpen, onClose, churchId }: AiSummaryModalProp
                   fullResponseText += parsedText;
                 }
               } catch (e) {
-                console.error('[handleFollowUpQuestion] Error parsing Vercel AI SDK stream line data:', line, e);
+                console.error('[handleFollowUpQuestion] Error parsing Vercel AI SDK stream line data', {
+                  operation: 'ui.ai.stream_parse_error',
+                  line
+                }, e instanceof Error ? e : new Error(String(e)));
               }
             }
           }
@@ -405,7 +409,10 @@ export function AiSummaryModal({ isOpen, onClose, churchId }: AiSummaryModalProp
                           fullResponseText += parsedText;
                       }
                   } catch (e) {
-                      console.error('[handleFollowUpQuestion] Error parsing final buffered Vercel AI SDK stream line data:', line, e);
+                      console.error('[handleFollowUpQuestion] Error parsing final buffered Vercel AI SDK stream line data', {
+                        operation: 'ui.ai.stream_final_parse_error',
+                        line
+                      }, e instanceof Error ? e : new Error(String(e)));
                   }
               }
           }

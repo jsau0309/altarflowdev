@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db'; // Use shared prisma client
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, donor: donor }, { status: donor ? 200 : 201 }); // 200 if updated, 201 if created
 
   } catch (error) {
-    console.error('Error creating/updating donor:', error);
+    logger.error('Error creating/updating donor:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     // P2002 can still occur if email is unique and conflicts during an update where phoneNumber didn't match an existing record.
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
         let conflictField = 'unknown';

@@ -1,5 +1,6 @@
 "use client"
 
+
 import { AnimatePresence, motion } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
 import { Flashlight, FlashlightOff, Focus, X } from "lucide-react"
@@ -59,7 +60,7 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
 
         activeStream = mediaStream
       } catch (error) {
-        console.error("Error accessing camera:", error)
+        console.error('Error accessing camera:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       }
     }
 
@@ -109,7 +110,10 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
       await track.applyConstraints({ advanced: [{ torch: !isFlashOn }] })
       setIsFlashOn(prev => !prev)
     } catch (error) {
-      console.warn("Torch toggle failed", error)
+      console.warn("Torch toggle failed", {
+        operation: "ui.scanner.torch_error",
+        error: error instanceof Error ? error.message : String(error)
+      })
     }
   }
 
@@ -143,7 +147,10 @@ export function MobileScanView({ onCapture, onCancel }: MobileScanViewProps) {
           // See: https://www.w3.org/TR/mediacapture-streams/#dom-constrainablevideo
           await stream.getVideoTracks()[0]?.applyConstraints({ advanced: [{ torch: false }] })
         } catch (error) {
-          console.warn("Unable to disable torch", error)
+          console.warn("Unable to disable torch", {
+            operation: "ui.scanner.torch_disable_error",
+            error: error instanceof Error ? error.message : String(error)
+          })
         }
       }
       stream.getTracks().forEach(track => track.stop())

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Button Configuration Type Guards
  * Provides runtime validation for button configurations stored as JSON
@@ -39,14 +40,14 @@ export function isButtonConfig(obj: unknown): obj is ButtonConfig {
  */
 export function parseButtonArray(json: unknown): ButtonConfig[] {
   if (!Array.isArray(json)) {
-    console.warn('Button configuration is not an array, returning empty array');
+    logger.warn('Button configuration invalid format', { operation: 'validation.button.not_array' });
     return [];
   }
 
   const validButtons = json.filter((item) => {
     const isValid = isButtonConfig(item);
     if (!isValid) {
-      console.warn('Invalid button configuration found:', item);
+      logger.warn('Invalid button configuration found', { operation: 'validation.button.invalid_item', item });
     }
     return isValid;
   });
@@ -73,10 +74,10 @@ export function safeParseButtons(buttonsJson: unknown): ButtonConfig[] {
     }
 
     // Unknown format
-    console.warn('Unexpected button JSON format:', typeof buttonsJson);
+    logger.warn('Unexpected button JSON format', { operation: 'validation.button.unexpected_type', type: typeof buttonsJson });
     return [];
   } catch (error) {
-    console.error('Failed to parse button configuration:', error);
+    logger.error('Failed to parse button configuration', { operation: 'validation.button.parse_error' }, error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 }

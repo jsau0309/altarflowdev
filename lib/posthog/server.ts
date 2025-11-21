@@ -1,4 +1,5 @@
 import { PostHog } from 'posthog-node';
+import { logger } from '@/lib/logger';
 
 /**
  * Server-side PostHog client for tracking backend events and LLM analytics
@@ -16,7 +17,7 @@ let posthogServerClient: PostHog | null = null;
 export function getServerPostHog(): PostHog | null {
   // Only initialize on server-side
   if (typeof window !== 'undefined') {
-    console.warn('Server PostHog client should not be used on client-side');
+    logger.warn('Server PostHog client should not be used on client-side');
     return null;
   }
 
@@ -26,7 +27,7 @@ export function getServerPostHog(): PostHog | null {
 
     if (!apiKey) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('PostHog API key not found. LLM analytics will not be tracked.');
+        logger.warn('PostHog API key not found. LLM analytics will not be tracked.');
       }
       return null;
     }
@@ -39,7 +40,7 @@ export function getServerPostHog(): PostHog | null {
     });
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('PostHog server client initialized for LLM analytics');
+      logger.info('PostHog server client initialized for LLM analytics');
     }
   }
 

@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Cropper, { Area } from 'react-easy-crop';
@@ -72,7 +73,7 @@ export function ImageCropperModal({
     };
 
     img.onerror = (error) => {
-      console.error('Failed to load image for cropping:', error);
+      console.error('Failed to load image for cropping:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     };
 
     img.src = imageSrc;
@@ -117,7 +118,7 @@ export function ImageCropperModal({
       onCropComplete(croppedImage);
       onClose();
     } catch (e) {
-      console.error('Error cropping image:', e);
+      console.error('Error cropping image:', { operation: 'ui.error' }, e instanceof Error ? e : new Error(String(e)));
     } finally {
       setIsCropping(false);
     }

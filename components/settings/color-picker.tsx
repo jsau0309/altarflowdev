@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useEffect, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -118,7 +119,7 @@ export function ColorPicker({
         return;
       }
 
-      console.error('EyeDropper error:', error);
+      console.error('EyeDropper error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   };
 

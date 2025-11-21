@@ -1,5 +1,6 @@
 "use client"
 
+
 import type React from "react"
 import type { DonorDetailsData } from "@/lib/types";
 import { useState, useEffect } from "react"
@@ -113,7 +114,7 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
             setMembers(data);
           })
           .catch(error => {
-            console.error('Failed to fetch all members:', error);
+            console.error('Failed to fetch all members:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
             toast.error(t('fetchMembersFailed'));
             setMembers([]); // Clear members on error
           })
@@ -243,12 +244,12 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
         onSuccess(result); // Call onSuccess prop
         onClose(); // Close modal on success
       } else {
-        console.error("Failed to update donor. The action returned null.");
+        console.error('Failed to update donor. The action returned null.', { operation: 'ui.error' });
         toast.error(t('editDonorModal.errors.updateFailed', { ns: 'donations' }));
         setErrors(prev => ({ ...prev, form: t('donations:editDonorModal.errors.updateFailed') }));
       }  
     } catch (error) {
-      console.error("Failed to update donor:", error);
+      console.error('Failed to update donor:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('editDonorModal.errors.updateFailed', { ns: 'donations' }));
       setErrors({ form: t('editDonorModal.errors.updateFailed', { ns: 'donations' }) });
     } finally {

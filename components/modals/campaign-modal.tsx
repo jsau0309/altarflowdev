@@ -1,5 +1,6 @@
 "use client"
 
+
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -115,7 +116,7 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
             }
           }
         } catch (error) {
-          console.error("Error fetching campaign:", error)
+          console.error('Error fetching campaign:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           // TODO: Show error toast
         }
       }
@@ -193,7 +194,7 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
         router.refresh()
       }, 1000)
     } catch (error) {
-      console.error("Error saving campaign:", error)
+      console.error('Error saving campaign:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       setIsLoading(false)
       // TODO: Show error toast
     }

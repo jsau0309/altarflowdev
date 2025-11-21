@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 export type SubscriptionStatus = 'free' | 'active' | 'past_due' | 'canceled' | 'pending_payment' | 'inactive' | 'grace_period' | 'trial';
 
 export interface SubscriptionInfo {
@@ -41,7 +42,7 @@ export function getSubscriptionInfo(church: {
       trialEnd = new Date(church.trialEndsAt);
       // Validate that trialEndsAt is a valid date
       if (isNaN(trialEnd.getTime())) {
-        console.error('[Subscription] Invalid trialEndsAt date:', church.trialEndsAt);
+        logger.error('Invalid trialEndsAt date', { operation: 'subscription.invalid_trial_date', trialEndsAt: church.trialEndsAt });
         trialEnd = new Date(); // Fallback to current date if invalid
       }
     } else {
@@ -51,7 +52,7 @@ export function getSubscriptionInfo(church: {
 
       // Validate that freeTrialStartedAt is a valid date
       if (isNaN(trialStartTime)) {
-        console.error('[Subscription] Invalid freeTrialStartedAt date:', church.freeTrialStartedAt);
+        logger.error('Invalid freeTrialStartedAt date', { operation: 'subscription.invalid_started_date', freeTrialStartedAt: church.freeTrialStartedAt });
         // Skip trial calculation if date is invalid
         trialEnd = new Date(0); // Set to epoch to ensure trial appears expired
       } else {

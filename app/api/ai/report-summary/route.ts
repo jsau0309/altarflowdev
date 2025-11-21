@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import { getAiSummaryData } from "@/lib/actions/reports.actions";
 import { getChurchByClerkOrgId } from "@/lib/actions/church.actions";
+import { logger } from '@/lib/logger';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -147,7 +148,7 @@ Bring this data to life:
     const message = response.choices[0].message;
     if (message.tool_calls && message.tool_calls[0].function) {
       const functionArguments = JSON.parse(message.tool_calls[0].function.arguments);
-      
+
       // Add metadata to response
       const enrichedResponse = {
         summary: functionArguments,
@@ -158,16 +159,23 @@ Bring this data to life:
           generatedAt: new Date().toISOString()
         }
       };
-      
+
       return NextResponse.json(enrichedResponse);
     } else {
-      console.error("[AI_SUMMARY_ERROR] OpenAI response did not include expected function call:", response);
+      // Log the unexpected response structure as context, not as an error object
+      logger.error('OpenAI response missing expected function call', {
+        operation: 'ai.report_summary.missing_function_call',
+        model: 'gpt-5-mini-2025-08-07',
+        hasToolCalls: !!message.tool_calls,
+        responseId: response.id,
+        finishReason: response.choices[0].finish_reason
+      });
       return new NextResponse("Failed to generate structured summary from AI.", { status: 500 });
     }
 
 
   } catch (error) {
-    console.error("[AI_SUMMARY_POST]", error);
+    logger.error('[AI_SUMMARY_POST]', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

@@ -4,6 +4,7 @@ import { getAuth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { revalidateTag } from 'next/cache';
 import { MembershipStatus, Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // Schema for validating updated member data (PATCH)
 const memberUpdateSchema = z.object({
@@ -37,7 +38,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted GET on member ${memberId} without active org.`);
+      logger.error(`User ${userId} attempted GET on member ${memberId} without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
 
@@ -62,7 +63,7 @@ export async function GET(
 
   } catch (error) {
     const { memberId } = await params;
-    console.error(`Error fetching member ${memberId}:`, error);
+    logger.error(`Error fetching member ${memberId}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Failed to fetch member' }, { status: 500 });
   }
 }
@@ -84,7 +85,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted PATCH on member ${memberId} without active org.`);
+      logger.error(`User ${userId} attempted PATCH on member ${memberId} without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Add role-based check? (e.g., authResult.orgRole === 'admin')
@@ -98,7 +99,7 @@ export async function PATCH(
     // 2. Validate input data
     const validation = memberUpdateSchema.safeParse(body);
     if (!validation.success) {
-        console.error("Member update validation error:", validation.error.errors);
+        logger.error('Member update validation error:', { operation: 'api.error' }, validation.error.errors instanceof Error ? validation.error.errors : new Error(String(validation.error.errors)));
         return NextResponse.json({ error: 'Invalid input data', details: validation.error.errors }, { status: 400 });
     }
     const memberData = validation.data;
@@ -147,7 +148,7 @@ export async function PATCH(
 
   } catch (error) {
     const { memberId } = await params;
-    console.error(`Error updating member ${memberId}:`, error);
+    logger.error(`Error updating member ${memberId}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     // Handle potential Prisma errors (e.g., unique constraint on email)
     if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code === 'P2002') { 
         let conflictingField = 'unique field';
@@ -177,7 +178,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!orgId) {
-      console.error(`User ${userId} attempted DELETE on member ${memberId} without active org.`);
+      logger.error(`User ${userId} attempted DELETE on member ${memberId} without active org.`, { operation: 'api.error' });
       return NextResponse.json({ error: 'No active organization selected.' }, { status: 400 });
     }
     // TODO: Add role-based check?
@@ -207,7 +208,7 @@ export async function DELETE(
 
     // 3. Check if a record was actually deleted
     if (deleteResult.count === 0) {
-      console.warn(`DELETE attempt failed for member ${memberId} by user ${userId} (org ${orgId}). Count: ${deleteResult.count}`);
+      logger.warn(`DELETE attempt failed for member ${memberId} by user ${userId} (org ${orgId}). Count: ${deleteResult.count}`, { operation: 'api.warn' });
       return NextResponse.json({ error: 'Member not found or access denied' }, { status: 404 });
     }
 
@@ -219,7 +220,7 @@ export async function DELETE(
 
   } catch (error) {
     const { memberId } = await params;
-    console.error(`Error deleting member ${memberId}:`, error);
+    logger.error(`Error deleting member ${memberId}:`, { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     // Handle potential Prisma errors
     if (error instanceof Error && 'code' in error && typeof error.code === 'string') {
       if (error.code === 'P2003') {

@@ -3,6 +3,7 @@ import { escapeHtml, escapeHtmlAttribute, escapeUrl, escapeAndValidateUrl } from
 // Import translation files
 import receiptsEn from '@/locales/en/receipts.json';
 import receiptsEs from '@/locales/es/receipts.json';
+import { logger } from '@/lib/logger';
 
 export interface DonationReceiptData {
   transactionId: string;
@@ -34,7 +35,7 @@ function getReceiptTranslations(language: 'en' | 'es') {
 
   // Validate that essential translation keys exist
   if (!translations || !translations.header || !translations.greeting || !translations.thankYouMessage) {
-    console.error(`[Receipt] Missing critical translations for language: ${language}, falling back to English`);
+    logger.error(`[Receipt] Missing critical translations for language: ${language}, falling back to English`);
     return receiptsEn; // Fallback to English
   }
 

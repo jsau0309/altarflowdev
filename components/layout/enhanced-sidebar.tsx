@@ -1,5 +1,6 @@
 "use client"
 
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
@@ -217,7 +218,7 @@ const Sidebar = React.forwardRef<
             });
           }
         } catch (error) {
-          console.error('Failed to fetch subscription:', error);
+          console.error('Failed to fetch subscription:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
         }
       };
       fetchSubscription();

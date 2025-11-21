@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import * as Sentry from '@sentry/nextjs';
-import { logger } from '@/lib/sentry';
+// import { logger } from '@/lib/sentry';
 import { instrumentButtonClick } from '@/lib/sentry-ui';
 
 export default function SentryExamplePage() {
@@ -19,7 +19,7 @@ export default function SentryExamplePage() {
       setMessage('Triggering test error...');
       
       // Log before error
-      logger.warn('About to trigger test error', {
+      console.warn('About to trigger test error', {
         page: 'sentry-example',
         action: 'test-error'
       });
@@ -60,7 +60,7 @@ export default function SentryExamplePage() {
         obj.someMethod(); // This will throw
       } catch (error) {
         // Log the error
-        logger.error('Caught an error in try-catch', {
+        console.error('Caught an error in try-catch', {
           errorMessage: (error as Error).message,
           errorType: 'null-reference'
         });
@@ -89,15 +89,15 @@ export default function SentryExamplePage() {
     setMessage('Testing logger...');
     
     // Test different log levels
-    logger.debug('Debug message from test page', { testId: 1 });
-    logger.info('Info message from test page', { testId: 2 });
-    logger.warn('Warning message from test page', { testId: 3 });
-    logger.error('Error message from test page', { testId: 4 });
+    console.log('Debug message from test page', { testId: 1 });
+    console.log('Info message from test page', { testId: 2 });
+    console.warn('Warning message from test page', { testId: 3 });
+    console.error('Error message from test page', { testId: 4 });
     
     // Test formatted logging
     const userId = 'test-user-123';
     const amount = 100;
-    logger.info(logger.fmt`User ${userId} made a donation of $${amount}`);
+    console.log(`User ${userId} made a donation of $${amount}`);
     
     setMessage('Logger messages sent!');
   };
@@ -130,7 +130,7 @@ export default function SentryExamplePage() {
           },
           async () => {
             await new Promise(resolve => setTimeout(resolve, 50));
-            logger.info('Child span completed');
+            console.log('Child span completed');
           }
         );
         

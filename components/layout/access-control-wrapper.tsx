@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -59,7 +60,7 @@ export function AccessControlWrapper({ children }: AccessControlWrapperProps) {
         setLoading(false)
       })
       .catch(err => {
-        console.error('Error fetching subscription info:', err)
+        console.error('Error fetching subscription info', { operation: 'ui.subscription.fetch_error' }, err instanceof Error ? err : new Error(String(err)))
         setLoading(false)
       })
   }, [pathname])

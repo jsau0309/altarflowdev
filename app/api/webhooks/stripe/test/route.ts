@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 // Simple echo endpoint to test if webhooks are reaching us
 export async function POST(req: Request) {
@@ -8,12 +9,13 @@ export async function POST(req: Request) {
     const headersList = await headers();
     const signature = headersList.get('stripe-signature');
     
-    console.log('[Webhook Test] Received webhook test:', {
+    logger.info('Webhook test received', {
+      operation: 'api.webhook.test',
       bodyLength: body?.length || 0,
       bodyPreview: body?.substring(0, 200),
       hasSignature: !!signature,
       contentType: req.headers.get('content-type'),
-      method: req.method,
+      method: req.method
     });
     
     return NextResponse.json({
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
       }
     });
   } catch (error) {
-    console.error('[Webhook Test] Error:', error);
+    logger.error('[Webhook Test] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

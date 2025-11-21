@@ -10,6 +10,7 @@
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/db';
 import Stripe from 'stripe';
+import { logger } from '@/lib/logger';
 
 interface ReconciliationResult {
   success: boolean;
@@ -34,20 +35,20 @@ export async function reconcilePayout(
   stripeAccountId: string
 ): Promise<ReconciliationResult> {
   try {
-    console.log(`[Reconciliation] Starting reconciliation for payout ${payoutId}`);
+    logger.info('Starting payout reconciliation', { operation: 'stripe.reconciliation.start', payoutId, stripeAccountId });
     
     // Fetch all balance transactions for this payout
     const balanceTransactions = await fetchAllBalanceTransactions(payoutId, stripeAccountId);
     
     if (!balanceTransactions || balanceTransactions.length === 0) {
-      console.warn(`[Reconciliation] No balance transactions found for payout ${payoutId}`);
+      logger.warn('No balance transactions found for payout', { operation: 'stripe.reconciliation.no_transactions', payoutId });
       return {
         success: false,
         error: 'No balance transactions found for this payout'
       };
     }
     
-    console.log(`[Reconciliation] Found ${balanceTransactions.length} transactions for payout ${payoutId}`);
+    logger.info('Found balance transactions for payout', { operation: 'stripe.reconciliation.transactions_found', payoutId, transactionCount: balanceTransactions.length });
     
     // Calculate totals from balance transactions
     const summary = calculatePayoutSummary(balanceTransactions);
@@ -66,8 +67,8 @@ export async function reconcilePayout(
       }
     });
     
-    console.log(`[Reconciliation] Successfully reconciled payout ${payoutId}`);
-    console.log(`[Reconciliation] Summary:`, summary);
+    logger.info('Successfully reconciled payout', { operation: 'stripe.reconciliation.success', payoutId });
+    logger.info('Reconciliation summary', { operation: 'stripe.reconciliation.summary', payoutId, ...summary });
     
     return {
       success: true,
@@ -75,7 +76,7 @@ export async function reconcilePayout(
     };
     
   } catch (error) {
-    console.error(`[Reconciliation] Error reconciling payout ${payoutId}:`, error);
+    logger.error('Error reconciling payout', { operation: 'stripe.reconciliation.error', payoutId }, error instanceof Error ? error : new Error(String(error)));
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error during reconciliation'
@@ -159,7 +160,7 @@ function calculatePayoutSummary(transactions: Stripe.BalanceTransaction[]) {
         
       default:
         // Log unexpected transaction types for debugging
-        console.log(`[Reconciliation] Unexpected transaction type: ${transaction.type}`, {
+        logger.warn('Unexpected transaction type', { operation: 'stripe.reconciliation.unexpected_type', transactionType: transaction.type, 
           id: transaction.id,
           amount: transaction.amount,
           fee: transaction.fee
@@ -192,7 +193,7 @@ export async function reconcilePendingPayouts(churchId: string): Promise<void> {
     });
 
     if (!church?.StripeConnectAccount) {
-      console.error(`[Reconciliation] No Stripe account found for church ${churchId}`);
+      logger.error('No Stripe account found for church', { operation: 'stripe.reconciliation.no_account', churchId });
       return;
     }
     
@@ -205,7 +206,7 @@ export async function reconcilePendingPayouts(churchId: string): Promise<void> {
       }
     });
     
-    console.log(`[Reconciliation] Found ${pendingPayouts.length} pending payouts for church ${church.name}`);
+    logger.info('Found pending payouts for church', { operation: 'stripe.reconciliation.pending_payouts', churchId: church.id, churchName: church.name, payoutCount: pendingPayouts.length });
     
     // Reconcile each payout
     for (const payout of pendingPayouts) {
@@ -218,10 +219,10 @@ export async function reconcilePendingPayouts(churchId: string): Promise<void> {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    console.log(`[Reconciliation] Completed reconciliation for church ${church.name}`);
+    logger.info('Completed reconciliation for church', { operation: 'stripe.reconciliation.church_complete', churchId: church.id, churchName: church.name });
     
   } catch (error) {
-    console.error(`[Reconciliation] Error reconciling payouts for church ${churchId}:`, error);
+    logger.error('Error reconciling payouts for church', { operation: 'stripe.reconciliation.church_error', churchId }, error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
@@ -231,7 +232,7 @@ export async function reconcilePendingPayouts(churchId: string): Promise<void> {
  */
 export async function reconcileAllPendingPayouts(): Promise<void> {
   try {
-    console.log('[Reconciliation] Starting global payout reconciliation...');
+    logger.info('Starting global payout reconciliation', { operation: 'stripe.reconciliation.global_start' });
     
     // Find all churches with pending reconciliations
     const churchesWithPendingPayouts = await prisma.church.findMany({
@@ -246,18 +247,18 @@ export async function reconcileAllPendingPayouts(): Promise<void> {
       select: { id: true, name: true }
     });
     
-    console.log(`[Reconciliation] Found ${churchesWithPendingPayouts.length} churches with pending payouts`);
+    logger.info('Found churches with pending payouts', { operation: 'stripe.reconciliation.global_churches', churchCount: churchesWithPendingPayouts.length });
     
     // Process each church
     for (const church of churchesWithPendingPayouts) {
-      console.log(`[Reconciliation] Processing church: ${church.name}`);
+      logger.info('Processing church reconciliation', { operation: 'stripe.reconciliation.processing_church', churchId: church.id, churchName: church.name });
       await reconcilePendingPayouts(church.id);
     }
     
-    console.log('[Reconciliation] Global reconciliation completed');
+    logger.info('Global reconciliation completed', { operation: 'stripe.reconciliation.global_complete' });
     
   } catch (error) {
-    console.error('[Reconciliation] Error in global reconciliation:', error);
+    logger.error('Error in global reconciliation', { operation: 'stripe.reconciliation.global_error' }, error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }

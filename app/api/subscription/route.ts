@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -84,7 +85,7 @@ export async function GET() {
       daysLeftInTrial: trialDaysRemaining,
     });
   } catch (error) {
-    console.error("[GET /api/subscription] Error:", error);
+    logger.error('[GET /api/subscription] Error:', { operation: 'api.error' }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

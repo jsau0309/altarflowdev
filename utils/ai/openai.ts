@@ -1,4 +1,5 @@
 import { OpenAI } from "openai";
+import { logger } from '@/lib/logger';
 import { ChatCompletionCreateParamsBase, ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 interface GenerateCompletionArgs {
@@ -61,13 +62,13 @@ export async function generateCompletion(args: GenerateCompletionArgs): Promise<
 
         const messageContent = response.choices[0]?.message?.content;
         if (!messageContent) {
-            console.error("Unexpected OpenAI response:", JSON.stringify(response));
+            logger.error("Unexpected OpenAI response", { operation: "ai.openai.unexpected_response", response: JSON.stringify(response) });
             throw new Error("No completion content found in the response");
         }
 
         return messageContent;
     } catch (error) {
-        console.error("Error generating completion:", error);
+        logger.error("Error generating completion", { operation: "ai.openai.generation_error" }, error instanceof Error ? error : new Error(String(error)));
         throw error instanceof Error
             ? error
             : new Error("Failed to generate completion");

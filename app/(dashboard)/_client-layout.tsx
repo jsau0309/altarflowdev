@@ -47,7 +47,7 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
     if (orgId && typeof window !== 'undefined') {
       const result = safeStorage.setItem("churchId", orgId);
       if (!result.success) {
-        console.warn('Could not persist churchId to localStorage:', result.error);
+        console.warn('Could not persist churchId to localStorage:', result.error?.message);
       }
     } else if (typeof window !== 'undefined') {
       // Optional: Clear churchId if orgId is not available (e.g., user logs out of org)

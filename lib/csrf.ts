@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 const CSRF_TOKEN_NAME = 'csrf-token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
@@ -49,19 +50,33 @@ export async function verifyCSRFToken(request: Request): Promise<boolean> {
 
   const headerToken = request.headers.get(CSRF_HEADER_NAME);
   if (!headerToken) {
-    console.error('CSRF token missing from headers');
+    logger.error('CSRF token missing from headers', {
+      operation: 'security.csrf.missing_header',
+      method: request.method,
+      url: request.url
+    });
     return false;
   }
 
   const cookieToken = await getCSRFToken();
   if (!cookieToken) {
-    console.error('CSRF token missing from cookies');
+    logger.error('CSRF token missing from cookies', {
+      operation: 'security.csrf.missing_cookie',
+      method: request.method,
+      url: request.url
+    });
     return false;
   }
 
   const isValid = headerToken === cookieToken;
   if (!isValid) {
-    console.error('CSRF token mismatch');
+    logger.error('CSRF token mismatch - potential CSRF attack', {
+      operation: 'security.csrf.token_mismatch',
+      method: request.method,
+      url: request.url,
+      headerTokenLength: headerToken.length,
+      cookieTokenLength: cookieToken.length
+    });
   }
 
   return isValid;

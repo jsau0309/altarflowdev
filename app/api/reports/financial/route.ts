@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import prisma from '@/lib/db'
 import { startOfDay, endOfDay, eachDayOfInterval, format } from 'date-fns'
 import { rateLimit } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 // Rate limiter for financial reports (expensive query)
 const financialReportsLimiter = rateLimit({ windowMs: 60000, max: 10 }) // 10 requests per minute
@@ -688,17 +689,15 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // Structured error logging with context
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    const errorStack = error instanceof Error ? error.stack : undefined
 
-    console.error('[Financial API Error]', {
-      message: errorMessage,
-      stack: errorStack,
+    logger.error('Financial API Error', {
+      operation: 'api.reports.financial_error',
       timestamp: new Date().toISOString(),
       // Don't log sensitive data in production
       ...(process.env.NODE_ENV === 'development' && {
         requestBody: JSON.stringify({ hasDateRange: !!request.body })
       })
-    })
+    }, error instanceof Error ? error : new Error(String(error)))
 
     return NextResponse.json(
       { error: 'Failed to fetch financial data' },

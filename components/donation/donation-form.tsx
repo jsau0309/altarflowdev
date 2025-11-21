@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState } from "react";
 import { isValidPhoneNumber } from 'react-phone-number-input';
 import { Check } from "lucide-react"
@@ -245,7 +246,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
       }
     } catch (error) {
       const err = error as Error;
-      console.error("OTP Check Catch Block Error:", error);
+      console.error('OTP Check Catch Block Error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       setApiErrorMessage(`Catch Block: ${err.message || 'An unexpected error occurred.'}`);
       setPhoneVerificationStage('otp_failed');
     } finally {
@@ -321,7 +322,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
 
       // API returns data directly with clientSecret, stripeAccount, transactionId
       if (piData.clientSecret) {
-        console.log('[DonationForm] Payment intent created successfully, transaction ID:', piData.transactionId);
+        console.log('[DonationForm] Payment intent created successfully, transaction ID:', { operation: 'ui.debug', data: piData.transactionId });
 
         // Store payment intent data in formData
         updateFormData({
@@ -337,7 +338,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
       }
     } catch (error) {
       const err = error as Error;
-      console.error("Payment Intent Creation Error:", error);
+      console.error('Payment Intent Creation Error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       setApiErrorMessage(`Payment preparation failed: ${err.message || 'An unexpected error occurred.'}`);
       setPhoneVerificationStage('verification_error');
     } finally {
@@ -392,7 +393,7 @@ function DonationForm({ churchId, churchName, donationTypes, churchSlug }: Donat
 
     } catch (error) {
       const err = error as Error;
-      console.error('[DonationForm] Error in createPaymentIntentForNewDonor:', error);
+      console.error('[DonationForm] Error in createPaymentIntentForNewDonor:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       setApiErrorMessage(`Failed to prepare payment: ${err.message || 'An unexpected error occurred.'}`);
       setPhoneVerificationStage('verification_error');
       setIsCreatingPaymentIntent(false);

@@ -7,7 +7,11 @@ import Stripe from 'stripe';
 import { getStripeWebhookSecret } from '@/lib/stripe-server';
 import { headers } from 'next/headers';
 import * as Sentry from '@sentry/nextjs';
-import { captureWebhookEvent, capturePaymentError, withApiSpan, logger } from '@/lib/sentry';
+import { captureWebhookEvent, capturePaymentError, withApiSpan } from '@/lib/sentry';
+import { logger } from '@/lib/logger';
+import { webhookLogger } from '@/lib/logger/domains/webhook';
+import { paymentLogger } from '@/lib/logger/domains/payment';
+import { hashChurchId, getEmailDomain } from '@/lib/logger/middleware';
 import { generateDonationReceiptHtml, DonationReceiptData } from '@/lib/email/templates/donation-receipt';
 import { isWebhookProcessed } from '@/lib/rate-limit';
 
@@ -61,70 +65,74 @@ export async function POST(req: Request) {
 
   let event: Stripe.Event;
 
-  // Only log in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Stripe Webhook] Received request.');
-    console.log(`[Stripe Webhook] Body length: ${body?.length || 0}`);
-  }
+  // Log webhook receipt
+  webhookLogger.received({
+    webhookType: 'stripe',
+    eventType: 'unknown', // Will be set after verification
+    eventId: 'pending',
+    operation: 'webhook.stripe.received',
+    bodyLength: body?.length || 0
+  });
 
   // Try platform webhook secret first
   try {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Stripe Webhook] Trying platform webhook secret`);
-    }
-    
+    logger.debug('Verifying webhook with platform secret', {
+      operation: 'webhook.stripe.verify.platform'
+    });
+
     event = stripe.webhooks.constructEvent(
       body,
       signature,
       getStripeWebhookSecret()
     );
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Stripe Webhook] Event verified with platform secret: ${event.type}, ID: ${event.id}`);
-    }
+
+    webhookLogger.verified({
+      webhookType: 'stripe',
+      eventType: event.type,
+      eventId: event.id,
+      operation: 'webhook.stripe.verified.platform'
+    });
   } catch (err) {
     // If platform secret fails, try Connect webhook secret
     const connectSecret = serverEnv.STRIPE_CONNECT_WEBHOOK_SECRET;
-    
+
     if (connectSecret) {
       try {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[Stripe Webhook] Platform secret failed, trying Connect webhook secret`);
-        }
-        
+        logger.debug('Platform secret failed, trying Connect secret', {
+          operation: 'webhook.stripe.verify.connect'
+        });
+
         event = stripe.webhooks.constructEvent(
           body,
           signature,
           connectSecret
         );
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[Stripe Webhook] Event verified with Connect secret: ${event.type}, ID: ${event.id}`);
-        }
+
+        logger.debug(`Event verified with Connect secret: ${event.type}, ID: ${event.id}`, { operation: 'webhook.stripe.debug' });
       } catch (connectErr) {
         // Both secrets failed
         const errorMessage = connectErr instanceof Error ? connectErr.message : 'Unknown error';
-        console.error(`[Stripe Webhook] Both signature verifications failed`);
-        console.error(`[Stripe Webhook] Debug info:`, {
+        logger.error('Both signature verifications failed', { operation: 'webhook.stripe.error' });
+        logger.error('Debug info:', { operation: 'webhook.stripe.error', context: {
           signaturePresent: !!signature,
           platformSecretSet: !!process.env.STRIPE_WEBHOOK_SECRET,
           connectSecretSet: !!connectSecret,
           error: errorMessage
-        });
+        } });
         
         return NextResponse.json({ error: `Webhook Error: Signature verification failed for both secrets` }, { status: 400 });
       }
     } else {
       // No Connect secret configured, fail with original error
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      console.error(`[Stripe Webhook] Platform signature verification failed, no Connect secret configured`);
+      logger.error('Platform signature verification failed, no Connect secret configured', { operation: 'webhook.stripe.error' });
       return NextResponse.json({ error: `Webhook Error: Signature verification failed - ${errorMessage}` }, { status: 400 });
     }
   }
 
   // Check for duplicate webhook processing
   if (isWebhookProcessed(event.id)) {
-    console.log(`[Stripe Webhook] Event ${event.id} already processed, skipping`);
+    logger.info(`Event ${event.id} already processed, skipping`, { operation: 'webhook.stripe.info' });
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -155,9 +163,7 @@ export async function POST(req: Request) {
 
   // Log unhandled events and return early
   if (!handledEvents.has(event.type)) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Stripe Webhook] Event type ${event.type} not handled`);
-    }
+    logger.debug(`Event type ${event.type} not handled`, { operation: 'webhook.stripe.debug' });
     return NextResponse.json({ received: true });
   }
 
@@ -174,9 +180,7 @@ export async function POST(req: Request) {
         const paymentIntentSucceeded = event.data.object as Stripe.PaymentIntent;
         
         // Only log in development
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[Stripe Webhook] Processing payment_intent.succeeded for PI: ${paymentIntentSucceeded.id}`);
-        }
+        logger.debug(`Processing payment_intent.succeeded for PI: ${paymentIntentSucceeded.id}`, { operation: 'webhook.stripe.debug' });
 
         let transaction;
         let stripeAccount: string | undefined; // Declare at higher scope for reuse
@@ -228,7 +232,7 @@ export async function POST(req: Request) {
                 // Map the payment method type correctly
                 actualPaymentMethodType = paymentMethod.type || 'card';
               } catch (pmError) {
-                console.warn(`[Stripe Webhook] Could not retrieve payment method: ${pmError}`);
+                logger.warn(`Could not retrieve payment method: ${pmError}`, { operation: 'webhook.stripe.warn' });
                 // Fallback to the first available type
                 actualPaymentMethodType = paymentIntentSucceeded.payment_method_types[0] || 'card';
               }
@@ -240,7 +244,7 @@ export async function POST(req: Request) {
             // The total amount charged to the donor (includes covered fee if applicable)
             const totalCharged = paymentIntentSucceeded.amount;
 
-            console.log(`[Stripe Webhook] Processing payment - Total charged: ${totalCharged}, Original donation: ${existingTransaction.amount}, Fee covered by donor: ${existingTransaction.processingFeeCoveredByDonor || 0}, Platform fee: ${existingTransaction.platformFeeAmount || 0}`);
+            logger.info(`Processing payment - Total charged: ${totalCharged}, Original donation: ${existingTransaction.amount}, Fee covered by donor: ${existingTransaction.processingFeeCoveredByDonor || 0}, Platform fee: ${existingTransaction.platformFeeAmount || 0}`, { operation: 'webhook.stripe.info' });
 
             // Simplified: No longer tracking fees in database
             // We'll use Stripe Reports API for fee information
@@ -319,7 +323,7 @@ export async function POST(req: Request) {
                 : typeof paymentIntentSucceeded.latest_charge === 'object' 
                 ? paymentIntentSucceeded.latest_charge as Stripe.Charge 
                 : null;
-            if (charge) console.log(`[Stripe Webhook] Extracted charge object from PI.`);
+            if (charge) logger.info('Extracted charge object from PI.', { operation: 'webhook.stripe.info' });
 
             const paymentMethod = typeof paymentIntentSucceeded.payment_method === 'string'
                 ? await stripe.paymentMethods.retrieve(
@@ -329,7 +333,7 @@ export async function POST(req: Request) {
                 : typeof paymentIntentSucceeded.payment_method === 'object' 
                 ? paymentIntentSucceeded.payment_method as Stripe.PaymentMethod 
                 : null;
-            if (paymentMethod) console.log(`[Stripe Webhook] Extracted payment_method object from PI.`);
+            if (paymentMethod) logger.info('Extracted payment_method object from PI.', { operation: 'webhook.stripe.info' });
 
 
             if (paymentIntentSucceeded.shipping) {
@@ -349,12 +353,20 @@ export async function POST(req: Request) {
               if (!stripeName) stripeName = paymentMethod.billing_details.name ?? null;
               if (!stripeAddress) stripeAddress = paymentMethod.billing_details.address ?? null;
               if (!stripeEmail) stripeEmail = paymentMethod.billing_details.email ?? null;
-              console.log(`[Stripe Webhook] From paymentMethod.billing_details: name='${stripeName}', email='${stripeEmail}', address='${JSON.stringify(stripeAddress)}'`);
+              logger.debug('Payment method billing details extracted', {
+                operation: 'webhook.stripe.payment_method.billing_details',
+                hasName: !!stripeName,
+                hasEmail: !!stripeEmail,
+                hasAddress: !!stripeAddress
+              });
             }
-            
+
             if (!stripeEmail && paymentIntentSucceeded.receipt_email) {
               stripeEmail = paymentIntentSucceeded.receipt_email;
-              console.log(`[Stripe Webhook] From PI.receipt_email: email='${stripeEmail}'`);
+              logger.debug('Email extracted from PI.receipt_email', {
+                operation: 'webhook.stripe.payment_intent.receipt_email',
+                hasEmail: !!stripeEmail
+              });
             }
             
             if ((!donor.firstName || !donor.lastName) && stripeName) {
@@ -379,35 +391,39 @@ export async function POST(req: Request) {
             }
 
             if (Object.keys(donorUpdateData).length > 0) {
-              console.log(`[Stripe Webhook] Donor update data prepared:`, donorUpdateData);
+              logger.debug('Donor update data prepared', {
+                operation: 'webhook.stripe.donor.update',
+                donorId: hashChurchId(donor.id),
+                fieldsToUpdate: Object.keys(donorUpdateData)
+              });
               try {
                 await prisma.donor.update({
                   where: { id: donor.id },
                   data: donorUpdateData,
                 });
-                console.log(`[Stripe Webhook] Successfully updated Donor record ${donor.id}.`);
+                logger.info(`Successfully updated Donor record ${donor.id}.`, { operation: 'webhook.stripe.info' });
               } catch (donorUpdateError) {
-                console.error(`[Stripe Webhook] Error updating Donor record ${donor.id}:`, donorUpdateError);
+                logger.error(`Error updating Donor record ${donor.id}:`, { operation: 'webhook.stripe.error', context: donorUpdateError });
               }
             } else {
-              console.log(`[Stripe Webhook] No new information from Stripe to update Donor ${donor.id}.`);
+              logger.info(`No new information from Stripe to update Donor ${donor.id}.`, { operation: 'webhook.stripe.info' });
             }
           } else {
-            console.log(`[Stripe Webhook] Donor record not found for donorId ${transaction.donorId}. Cannot update donor.`);
+            logger.info(`Donor record not found for donorId ${transaction.donorId}. Cannot update donor.`, { operation: 'webhook.stripe.info' });
           }
         } else {
-            console.log(`[Stripe Webhook] No donorId found on transaction ${transaction?.id}, or transaction object is null. Skipping donor update.`);
+            logger.info(`No donorId found on transaction ${transaction?.id}, or transaction object is null. Skipping donor update.`, { operation: 'webhook.stripe.info' });
         }
 
         try {
-          console.log(`[Stripe Webhook] Attempting to send receipt for PI: ${paymentIntentSucceeded.id}`);
+          logger.info(`Attempting to send receipt for PI: ${paymentIntentSucceeded.id}`, { operation: 'webhook.stripe.info' });
           
           // Wait for email sending to complete before responding to webhook
           // This ensures Stripe will retry if email fails
           await handleSuccessfulPaymentIntent(paymentIntentSucceeded);
-          console.log(`[Stripe Webhook] Successfully completed receipt handling for PI: ${paymentIntentSucceeded.id}`);
+          logger.info(`Successfully completed receipt handling for PI: ${paymentIntentSucceeded.id}`, { operation: 'webhook.stripe.info' });
         } catch (emailError: unknown) {
-          console.error(`[Stripe Webhook] Error in receipt handling for PI: ${paymentIntentSucceeded.id}:`, emailError);
+          logger.error(`Error in receipt handling for PI: ${paymentIntentSucceeded.id}:`, { operation: 'webhook.stripe.error', context: emailError });
           const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown receipt handling error';
           
           // Capture the error for monitoring
@@ -424,37 +440,37 @@ export async function POST(req: Request) {
 
       case 'payment_intent.processing':
         const paymentIntentProcessing = event.data.object as Stripe.PaymentIntent;
-        console.log(`[Stripe Webhook] Processing payment_intent.processing for PI: ${paymentIntentProcessing.id}`);
+        logger.info(`Processing payment_intent.processing for PI: ${paymentIntentProcessing.id}`, { operation: 'webhook.stripe.info' });
         try {
           await prisma.donationTransaction.update({
             where: { stripePaymentIntentId: paymentIntentProcessing.id },
             data: { status: 'processing' },
           });
-          console.log(`[Stripe Webhook] Updated transaction status to processing for PI: ${paymentIntentProcessing.id}`);
+          logger.info(`Updated transaction status to processing for PI: ${paymentIntentProcessing.id}`, { operation: 'webhook.stripe.info' });
         } catch (error) {
-          console.error(`[Stripe Webhook] Error updating DonationTransaction to processing for PI: ${paymentIntentProcessing.id}`, error);
+          logger.error(`Error updating DonationTransaction to processing for PI: ${paymentIntentProcessing.id}`, { operation: 'webhook.stripe.error', context: error });
           return NextResponse.json({ error: 'Failed to update transaction to processing status.' }, { status: 500 });
         }
         break;
 
       case 'payment_intent.payment_failed':
         const paymentIntentFailed = event.data.object as Stripe.PaymentIntent;
-        console.log(`[Stripe Webhook] Processing payment_intent.payment_failed for PI: ${paymentIntentFailed.id}`);
+        logger.info(`Processing payment_intent.payment_failed for PI: ${paymentIntentFailed.id}`, { operation: 'webhook.stripe.info' });
         try {
             await prisma.donationTransaction.update({
             where: { stripePaymentIntentId: paymentIntentFailed.id },
             data: { status: 'failed' },
             });
-            console.log(`[Stripe Webhook] Updated transaction status to failed for PI: ${paymentIntentFailed.id}`);
+            logger.info(`Updated transaction status to failed for PI: ${paymentIntentFailed.id}`, { operation: 'webhook.stripe.info' });
         } catch (error) {
-            console.error(`[Stripe Webhook] Error updating DonationTransaction to failed for PI: ${paymentIntentFailed.id}`, error);
+            logger.error(`Error updating DonationTransaction to failed for PI: ${paymentIntentFailed.id}`, { operation: 'webhook.stripe.error', context: error });
             return NextResponse.json({ error: 'Failed to update transaction to failed status.' }, { status: 500 });
         }
         break;
 
       case 'payment_intent.canceled':
         const paymentIntentCanceled = event.data.object as Stripe.PaymentIntent;
-        console.log(`[Stripe Webhook] Processing payment_intent.canceled for PI: ${paymentIntentCanceled.id}`);
+        logger.info(`Processing payment_intent.canceled for PI: ${paymentIntentCanceled.id}`, { operation: 'webhook.stripe.info' });
         try {
           await prisma.donationTransaction.update({
             where: { stripePaymentIntentId: paymentIntentCanceled.id },
@@ -465,21 +481,21 @@ export async function POST(req: Request) {
                 : new Date(),
             },
           });
-          console.log(
-            `[Stripe Webhook] Updated transaction status to canceled for PI: ${paymentIntentCanceled.id}. Reason: ${paymentIntentCanceled.cancellation_reason ?? 'not provided'}`
-          );
+          logger.info(`Updated transaction status to canceled for PI: ${paymentIntentCanceled.id}. Reason: ${paymentIntentCanceled.cancellation_reason ?? 'not provided'}`, {
+            operation: 'webhook.stripe.info'
+          });
         } catch (error) {
-          console.error(
-            `[Stripe Webhook] Error updating DonationTransaction to canceled for PI: ${paymentIntentCanceled.id}`,
-            error
-          );
+          logger.error(`Error updating DonationTransaction to canceled for PI: ${paymentIntentCanceled.id}`, {
+            operation: 'webhook.stripe.error',
+            paymentIntentId: paymentIntentCanceled.id
+          }, error instanceof Error ? error : new Error(String(error)));
           return NextResponse.json({ error: 'Failed to update transaction to canceled status.' }, { status: 500 });
         }
         break;
 
       case 'account.updated':
         const account = event.data.object as Stripe.Account;
-        console.log(`[Stripe Webhook] Processing account.updated for account: ${account.id}`);
+        logger.info(`Processing account.updated for account: ${account.id}`, { operation: 'webhook.stripe.info' });
         
         try {
           // Find the StripeConnectAccount record
@@ -488,7 +504,7 @@ export async function POST(req: Request) {
           });
           
           if (!stripeConnectAccount) {
-            console.log(`[Stripe Webhook] StripeConnectAccount not found for account ${account.id}`);
+            logger.info(`StripeConnectAccount not found for account ${account.id}`, { operation: 'webhook.stripe.info' });
             // Don't fail the webhook - this might be for an account we don't track
             return NextResponse.json({ received: true });
           }
@@ -527,11 +543,11 @@ export async function POST(req: Request) {
             }
           });
           
-          console.log(`[Stripe Webhook] Successfully updated StripeConnectAccount for ${account.id}. Status: ${verificationStatus}, Charges: ${account.charges_enabled}, Payouts: ${account.payouts_enabled}`);
+          logger.info(`Successfully updated StripeConnectAccount for ${account.id}. Status: ${verificationStatus}, Charges: ${account.charges_enabled}, Payouts: ${account.payouts_enabled}`, { operation: 'webhook.stripe.info' });
           
           // Register payment method domains if charges just became enabled
           if (account.charges_enabled && !wasChargesEnabled && !stripeConnectAccount.paymentDomainsRegistered) {
-            console.log(`[Stripe Webhook] Account ${account.id} just became active, registering payment method domains`);
+            logger.info(`Account ${account.id} just became active, registering payment method domains`, { operation: 'webhook.stripe.info' });
             
             const domainsToRegister = [
               'altarflow.com',
@@ -557,15 +573,15 @@ export async function POST(req: Request) {
                     },
                     { stripeAccount: account.id }
                   );
-                  console.log(`[Stripe Webhook] Successfully registered domain ${domainName} for account ${account.id}`);
+                  logger.info(`Successfully registered domain ${domainName} for account ${account.id}`, { operation: 'webhook.stripe.info' });
                   successfullyRegistered.push(domainName);
                 } else {
-                  console.log(`[Stripe Webhook] Domain ${domainName} already registered for account ${account.id}`);
+                  logger.info(`Domain ${domainName} already registered for account ${account.id}`, { operation: 'webhook.stripe.info' });
                   successfullyRegistered.push(domainName); // Consider it successful if already exists
                 }
               } catch (domainError) {
                 // Log error but don't fail the webhook
-                console.error(`[Stripe Webhook] Error registering domain ${domainName} for account ${account.id}:`, domainError);
+                logger.error(`Error registering domain ${domainName} for account ${account.id}:`, { operation: 'webhook.stripe.error', context: domainError });
                 captureWebhookEvent('domain_registration_error', {
                   accountId: account.id,
                   domain: domainName,
@@ -585,14 +601,14 @@ export async function POST(req: Request) {
                     registeredDomains: successfullyRegistered
                   }
                 });
-                console.log(`[Stripe Webhook] Updated database with registered domains for account ${account.id}`);
+                logger.info(`Updated database with registered domains for account ${account.id}`, { operation: 'webhook.stripe.info' });
               } catch (dbError) {
-                console.error(`[Stripe Webhook] Error updating domain registration status in database:`, dbError);
+                logger.error('Error updating domain registration status in database:', { operation: 'webhook.stripe.error', context: dbError });
               }
             }
           }
         } catch (error) {
-          console.error(`[Stripe Webhook] Error updating StripeConnectAccount for account ${account.id}:`, error);
+          logger.error(`Error updating StripeConnectAccount for account ${account.id}:`, { operation: 'webhook.stripe.error', context: error });
           // Don't fail the webhook - log the error but allow Stripe to consider it successful
           captureWebhookEvent('account_update_error', {
             accountId: account.id,
@@ -603,15 +619,22 @@ export async function POST(req: Request) {
 
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.log(`[Stripe Webhook] Processing checkout.session.completed for session: ${session.id}`);
+        logger.info(`Processing checkout.session.completed for session: ${session.id}`, { operation: 'webhook.stripe.info' });
         
         // Get the organization ID from metadata or client_reference_id
         const orgId = session.metadata?.organizationId || session.client_reference_id;
-        
-        console.log('[Stripe Webhook] Extracted orgId:', orgId);
-        
+
+        logger.debug('Extracted orgId from checkout session', {
+          operation: 'webhook.stripe.checkout.extracted_org',
+          orgId: orgId ? hashChurchId(orgId) : 'missing',
+          sessionId: session.id
+        });
+
         if (!orgId) {
-          console.error('[Stripe Webhook] No organizationId found in metadata or client_reference_id');
+          logger.error('No organizationId found in metadata or client_reference_id', {
+            operation: 'webhook.stripe.checkout.error',
+            sessionId: session.id
+          });
           return NextResponse.json({ error: 'Missing organization ID' }, { status: 400 });
         }
         
@@ -638,11 +661,15 @@ export async function POST(req: Request) {
               // Only set subscriptionEnd if the subscription is canceled or will end
               if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
                 subscriptionEnd = new Date(subscription.current_period_end * 1000);
-                console.log('[Stripe Webhook] Subscription is canceled/ending, setting end date:', subscriptionEnd);
+                logger.debug('Subscription is canceled/ending, setting end date', {
+                  operation: 'webhook.stripe.subscription.canceled',
+                  subscriptionId: subscription.id,
+                  endDate: subscriptionEnd.toISOString()
+                });
               } else {
                 // Active subscriptions don't have an end date
                 subscriptionEnd = null;
-                console.log('[Stripe Webhook] Subscription is active, no end date set');
+                logger.info('Subscription is active, no end date set', { operation: 'webhook.stripe.info' });
               }
               
               // Determine plan based on interval
@@ -650,14 +677,18 @@ export async function POST(req: Request) {
                 plan = 'annual';
               }
             } catch (error) {
-              console.warn('[Stripe Webhook] Could not retrieve subscription details, using defaults:', error);
+              logger.warn('Could not retrieve subscription details, using defaults', {
+                operation: 'webhook.stripe.subscription.retrieval_failed',
+                subscriptionId,
+                error: error instanceof Error ? error.message : 'Unknown error'
+              });
               // For active subscriptions, don't set an end date
               subscriptionEnd = null;
             }
           } else {
             // No subscription ID means one-time payment or error, don't set end date
             subscriptionEnd = null;
-            console.log('[Stripe Webhook] No subscription ID in session, treating as one-time payment');
+            logger.info('No subscription ID in session, treating as one-time payment', { operation: 'webhook.stripe.info' });
           }
           
           // First check if church exists
@@ -666,7 +697,7 @@ export async function POST(req: Request) {
           });
           
           if (!existingChurch) {
-            console.error(`[Stripe Webhook] Church not found with clerkOrgId: ${orgId}`);
+            logger.error(`Church not found with clerkOrgId: ${orgId}`, { operation: 'webhook.stripe.error' });
             // Don't fetch all churches in production - this is expensive!
             throw new Error(`Church not found with clerkOrgId: ${orgId}`);
           }
@@ -691,24 +722,19 @@ export async function POST(req: Request) {
             });
           });
 
-          console.log(`[Stripe Webhook] Updated church ${orgId} to active subscription`);
+          logger.info(`Updated church ${orgId} to active subscription`, { operation: 'webhook.stripe.info' });
         } catch (error) {
-          console.error('[Stripe Webhook] Error updating church subscription:', error);
-          // Log detailed error information for debugging
-          if (error instanceof Error) {
-            console.error('[Stripe Webhook] Error details:', {
-              name: error.name,
-              message: error.message,
-              eventType: event.type,
-              eventId: event.id,
-              orgId: orgId,
-              subscriptionEnd: subscriptionEnd ? (subscriptionEnd instanceof Date ? subscriptionEnd.toISOString() : 'Invalid Date') : 'null',
-              sessionData: {
-                customer: session.customer,
-                subscription: session.subscription
-              }
-            });
-          }
+          logger.error('Error updating church subscription', {
+            operation: 'webhook.stripe.checkout.update_failed',
+            churchId: orgId ? hashChurchId(orgId) : 'unknown',
+            eventType: event.type,
+            eventId: event.id,
+            subscriptionEnd: subscriptionEnd ? (subscriptionEnd instanceof Date ? subscriptionEnd.toISOString() : 'Invalid Date') : 'null',
+            sessionData: {
+              customer: session.customer,
+              subscription: session.subscription
+            }
+          }, error instanceof Error ? error : new Error(String(error)));
           return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 });
         }
         break;
@@ -718,12 +744,12 @@ export async function POST(req: Request) {
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log(`[Stripe Webhook] Processing ${event.type} for subscription: ${subscription.id}`);
-        console.log(`[Stripe Webhook] Subscription status: ${subscription.status}, cancel_at_period_end: ${subscription.cancel_at_period_end}`);
+        logger.info(`Processing ${event.type} for subscription: ${subscription.id}`, { operation: 'webhook.stripe.info' });
+        logger.info(`Subscription status: ${subscription.status}, cancel_at_period_end: ${subscription.cancel_at_period_end}`, { operation: 'webhook.stripe.info' });
         const periodEndDate = subscription.current_period_end
           ? new Date(subscription.current_period_end * 1000).toISOString()
           : 'N/A';
-        console.log(`[Stripe Webhook] Current period end: ${periodEndDate}`);
+        logger.info(`Current period end: ${periodEndDate}`, { operation: 'webhook.stripe.info' });
         
         try {
           // For new subscriptions, try to find church by customer ID first
@@ -733,14 +759,14 @@ export async function POST(req: Request) {
           
           // If not found by subscription ID, try by customer ID (for new subscriptions)
           if (!church && event.type === 'customer.subscription.created') {
-            console.log(`[Stripe Webhook] Subscription created, trying to find church by customer ID: ${subscription.customer}`);
+            logger.info(`Subscription created, trying to find church by customer ID: ${subscription.customer}`, { operation: 'webhook.stripe.info' });
             church = await prisma.church.findFirst({
               where: { stripeCustomerId: subscription.customer as string }
             });
             
             if (church) {
               // Update the church with the new subscription ID
-              console.log(`[Stripe Webhook] Found church by customer ID, updating subscription ID`);
+              logger.info('Found church by customer ID, updating subscription ID', { operation: 'webhook.stripe.info' });
               await prisma.church.update({
                 where: { id: church.id },
                 data: {
@@ -755,18 +781,19 @@ export async function POST(req: Request) {
           }
           
           if (!church) {
-            console.log(`[Stripe Webhook] No church found for subscription ${subscription.id} or customer ${subscription.customer}`);
-            console.log(`[Stripe Webhook] Attempting to find church by any means...`);
+            logger.info(`No church found for subscription ${subscription.id} or customer ${subscription.customer}`, { operation: 'webhook.stripe.info' });
+            logger.info('Attempting to find church by any means...', { operation: 'webhook.stripe.info' });
             
             // Don't fetch all churches in production - log the search criteria instead
-            console.log('[Stripe Webhook] Could not find church with:', {
+            logger.warn('Could not find church for subscription', {
+              operation: 'webhook.stripe.subscription.church_not_found',
               subscriptionId: subscription.id,
-              customerId: subscription.customer
+              customerId: typeof subscription.customer === 'string' ? subscription.customer : 'unknown'
             });
             break;
           }
           
-          console.log(`[Stripe Webhook] Found church: ${church.name} (${church.id}), current status: ${church.subscriptionStatus}`);
+          logger.info(`Found church: ${church.name} (${church.id}), current status: ${church.subscriptionStatus}`, { operation: 'webhook.stripe.info' });
           
           // Update subscription status
           // Note: When a subscription is canceled but still in the current period, 
@@ -789,7 +816,7 @@ export async function POST(req: Request) {
               plan = 'annual';
             }
             
-            console.log(`[Stripe Webhook] Detected plan: ${plan} (interval: ${interval}, priceId: ${priceId})`);
+            logger.info(`Detected plan: ${plan} (interval: ${interval}, priceId: ${priceId})`, { operation: 'webhook.stripe.info' });
           }
           
           // Check for promotional coupon (50% off for 3 months)
@@ -800,7 +827,7 @@ export async function POST(req: Request) {
             const coupon = subscription.discount.coupon;
             promotionalCouponId = coupon.id;
 
-            console.log(`[Stripe Webhook] Subscription has coupon applied: ${coupon.id}`);
+            logger.info(`Subscription has coupon applied: ${coupon.id}`, { operation: 'webhook.stripe.info' });
 
             // If this is our promotional coupon (check by ID or name)
             // The coupon should be created in Stripe with duration='repeating' and duration_in_months=3
@@ -811,7 +838,7 @@ export async function POST(req: Request) {
               promoEnd.setMonth(promoEnd.getMonth() + 3);
               promotionalEndsAt = promoEnd;
 
-              console.log(`[Stripe Webhook] Promotional pricing detected, ends at: ${promotionalEndsAt.toISOString()}`);
+              logger.info(`Promotional pricing detected, ends at: ${promotionalEndsAt.toISOString()}`, { operation: 'webhook.stripe.info' });
             }
           }
 
@@ -838,9 +865,9 @@ export async function POST(req: Request) {
             // Validate that current_period_end is a valid timestamp
             if (subscription.current_period_end && !isNaN(subscription.current_period_end)) {
               updateData.subscriptionEndsAt = new Date(subscription.current_period_end * 1000);
-              console.log(`[Stripe Webhook] Subscription is canceled/ending. Setting subscriptionEndsAt to: ${updateData.subscriptionEndsAt.toISOString()}`);
+              logger.info(`Subscription is canceled/ending. Setting subscriptionEndsAt to: ${updateData.subscriptionEndsAt.toISOString()}`, { operation: 'webhook.stripe.info' });
             } else {
-              console.warn(`[Stripe Webhook] Invalid current_period_end timestamp: ${subscription.current_period_end}`);
+              logger.warn(`Invalid current_period_end timestamp: ${subscription.current_period_end}`, { operation: 'webhook.stripe.warn' });
               updateData.subscriptionEndsAt = null;
             }
           } else if (subscription.status === 'active') {
@@ -853,10 +880,10 @@ export async function POST(req: Request) {
             data: updateData
           });
           
-          console.log(`[Stripe Webhook] Update complete for church ${church.id}:`);
-          console.log(`[Stripe Webhook] - Status: ${church.subscriptionStatus} -> ${updatedChurch.subscriptionStatus}`);
-          console.log(`[Stripe Webhook] - Plan: ${church.subscriptionPlan} -> ${updatedChurch.subscriptionPlan}`);
-          console.log(`[Stripe Webhook] - SubscriptionEndsAt: ${updatedChurch.subscriptionEndsAt ? updatedChurch.subscriptionEndsAt.toISOString() : 'null'}`);
+          logger.info(`Update complete for church ${church.id}:`, { operation: 'webhook.stripe.info' });
+          logger.info(`- Status: ${church.subscriptionStatus} -> ${updatedChurch.subscriptionStatus}`, { operation: 'webhook.stripe.info' });
+          logger.info(`- Plan: ${church.subscriptionPlan} -> ${updatedChurch.subscriptionPlan}`, { operation: 'webhook.stripe.info' });
+          logger.info(`- SubscriptionEndsAt: ${updatedChurch.subscriptionEndsAt ? updatedChurch.subscriptionEndsAt.toISOString() : 'null'}`, { operation: 'webhook.stripe.info' });
 
           // Check if subscription has truly ended (for immediate handling of deleted subscriptions)
           if (event.type === 'customer.subscription.deleted' && subscription.status === 'canceled') {
@@ -866,7 +893,7 @@ export async function POST(req: Request) {
             
             if (now >= subscriptionEnd) {
               // Subscription has ended immediately, update to free
-              console.log(`[Stripe Webhook] Subscription ended immediately, updating church to free status`);
+              logger.info('Subscription ended immediately, updating church to free status', { operation: 'webhook.stripe.info' });
               
               await prisma.church.update({
                 where: { id: church.id },
@@ -879,12 +906,11 @@ export async function POST(req: Request) {
             }
           }
         } catch (error) {
-          console.error('[Stripe Webhook] Error updating subscription:', error);
-          console.error('[Stripe Webhook] Full error details:', {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined,
-            subscriptionId: subscription.id
-          });
+          logger.error('Error updating subscription', {
+            operation: 'webhook.stripe.subscription.update_failed',
+            subscriptionId: subscription.id,
+            customerId: typeof subscription.customer === 'string' ? subscription.customer : 'unknown'
+          }, error instanceof Error ? error : new Error(String(error)));
           // Re-throw to ensure webhook fails and Stripe retries
           throw error;
         }
@@ -893,11 +919,11 @@ export async function POST(req: Request) {
 
       case 'charge.refunded': {
         const charge = event.data.object as Stripe.Charge;
-        console.log(`[Stripe Webhook] Processing charge.refunded for charge: ${charge.id}`);
+        logger.info(`Processing charge.refunded for charge: ${charge.id}`, { operation: 'webhook.stripe.info' });
         
         // Null check for payment_intent
         if (!charge.payment_intent) {
-          console.warn(`[Stripe Webhook] No payment_intent found for charge ${charge.id}`);
+          logger.warn(`No payment_intent found for charge ${charge.id}`, { operation: 'webhook.stripe.warn' });
           break;
         }
         
@@ -916,7 +942,7 @@ export async function POST(req: Request) {
             });
             
             if (!transaction) {
-              console.log(`[Stripe Webhook] No transaction found for payment intent ${charge.payment_intent}`);
+              logger.info(`No transaction found for payment intent ${charge.payment_intent}`, { operation: 'webhook.stripe.info' });
               return; // Exit transaction without error
             }
             
@@ -924,7 +950,7 @@ export async function POST(req: Request) {
             const refundedAmount = charge.amount_refunded;
             const isFullRefund = refundedAmount === charge.amount;
             
-            console.log(`[Stripe Webhook] Refund details: Amount refunded: ${refundedAmount}, Full refund: ${isFullRefund}`);
+            logger.info(`Refund details: Amount refunded: ${refundedAmount}, Full refund: ${isFullRefund}`, { operation: 'webhook.stripe.info' });
             
             // Update transaction with refund information
             await tx.donationTransaction.update({
@@ -936,15 +962,19 @@ export async function POST(req: Request) {
               }
             });
             
-            console.log(`[Stripe Webhook] Updated transaction ${transaction.id} with refund status`);
+            logger.info(`Updated transaction ${transaction.id} with refund status`, { operation: 'webhook.stripe.info' });
             
             // TODO: Send notification email to church admin
             // This will be implemented when we have the email notification system ready
-            console.log(`[Stripe Webhook] TODO: Send refund notification to church ${transaction.Church.name}`);
+            logger.info(`TODO: Send refund notification to church ${transaction.Church.name}`, { operation: 'webhook.stripe.info' });
           });
-          
+
         } catch (error) {
-          console.error('[Stripe Webhook] Error processing refund:', error);
+          logger.error('Error processing refund', {
+            operation: 'webhook.stripe.refund.process_failed',
+            chargeId: charge.id,
+            paymentIntentId: typeof charge.payment_intent === 'string' ? charge.payment_intent : 'unknown'
+          }, error instanceof Error ? error : new Error(String(error)));
           throw error; // Re-throw to ensure webhook fails and Stripe retries
         }
         break;
@@ -954,11 +984,11 @@ export async function POST(req: Request) {
       case 'charge.dispute.updated': 
       case 'charge.dispute.closed': {
         const dispute = event.data.object as Stripe.Dispute;
-        console.log(`[Stripe Webhook] Processing ${event.type} for dispute: ${dispute.id}`);
+        logger.info(`Processing ${event.type} for dispute: ${dispute.id}`, { operation: 'webhook.stripe.info' });
         
         // Null check for payment_intent
         if (!dispute.payment_intent) {
-          console.warn(`[Stripe Webhook] No payment_intent found for dispute ${dispute.id}`);
+          logger.warn(`No payment_intent found for dispute ${dispute.id}`, { operation: 'webhook.stripe.warn' });
           break;
         }
         
@@ -977,7 +1007,7 @@ export async function POST(req: Request) {
             });
             
             if (!transaction) {
-              console.log(`[Stripe Webhook] No transaction found for payment intent ${dispute.payment_intent}`);
+              logger.info(`No transaction found for payment intent ${dispute.payment_intent}`, { operation: 'webhook.stripe.info' });
               return; // Exit transaction without error
             }
             
@@ -987,7 +1017,7 @@ export async function POST(req: Request) {
               mappedDisputeStatus = 'needs_response';
             }
             
-            console.log(`[Stripe Webhook] Dispute status: ${dispute.status}, Reason: ${dispute.reason}`);
+            logger.info(`Dispute status: ${dispute.status}, Reason: ${dispute.reason}`, { operation: 'webhook.stripe.info' });
             
             // Update transaction with dispute information
             const updateData: {
@@ -1024,21 +1054,25 @@ export async function POST(req: Request) {
               data: updateData
             });
             
-            console.log(`[Stripe Webhook] Updated transaction ${transaction.id} with dispute status`);
+            logger.info(`Updated transaction ${transaction.id} with dispute status`, { operation: 'webhook.stripe.info' });
             
             // Send urgent alert for new disputes that need response
-            if (event.type === 'charge.dispute.created' || 
-                dispute.status === 'warning_needs_response' || 
+            if (event.type === 'charge.dispute.created' ||
+                dispute.status === 'warning_needs_response' ||
                 dispute.status === 'needs_response') {
               // TODO: Send urgent notification email to church admin
-              console.log(`[Stripe Webhook] URGENT: Dispute needs response for church ${transaction.Church.name}`);
-              console.log(`[Stripe Webhook] Dispute amount: $${(dispute.amount / 100).toFixed(2)}`);
-              console.log(`[Stripe Webhook] Response deadline: ${dispute.evidence_details?.due_by ? new Date(dispute.evidence_details.due_by * 1000).toISOString() : 'N/A'}`);
+              logger.info(`URGENT: Dispute needs response for church ${transaction.Church.name}`, { operation: 'webhook.stripe.info' });
+              logger.info(`Dispute amount: $${(dispute.amount / 100).toFixed(2)}`, { operation: 'webhook.stripe.info' });
+              logger.info(`Response deadline: ${dispute.evidence_details?.due_by ? new Date(dispute.evidence_details.due_by * 1000).toISOString() : 'N/A'}`, { operation: 'webhook.stripe.info' });
             }
           });
-          
+
         } catch (error) {
-          console.error('[Stripe Webhook] Error processing dispute:', error);
+          logger.error('Error processing dispute', {
+            operation: 'webhook.stripe.dispute.process_failed',
+            disputeId: dispute.id,
+            paymentIntentId: typeof dispute.payment_intent === 'string' ? dispute.payment_intent : 'unknown'
+          }, error instanceof Error ? error : new Error(String(error)));
           throw error; // Re-throw to ensure webhook fails and Stripe retries
         }
         break;
@@ -1051,7 +1085,7 @@ export async function POST(req: Request) {
       case 'payout.failed':
       case 'payout.canceled': {
         const payout = event.data.object as Stripe.Payout;
-        console.log(`[Stripe Webhook] Processing ${event.type} for payout: ${payout.id}`);
+        logger.info(`Processing ${event.type} for payout: ${payout.id}`, { operation: 'webhook.stripe.info' });
         
         try {
           // Use database transaction for atomic operations
@@ -1061,7 +1095,10 @@ export async function POST(req: Request) {
             const accountId = event.account; // This is the connected account ID for Connect webhooks
             
             if (!accountId) {
-              console.error('[Stripe Webhook] No account ID found for payout event');
+              logger.error('No account ID found for payout event', {
+                operation: 'webhook.stripe.payout.no_account',
+                payoutId: payout.id
+              });
               throw new Error('No account ID found');
             }
             
@@ -1072,7 +1109,7 @@ export async function POST(req: Request) {
             });
             
             if (!stripeAccount) {
-              console.error(`[Stripe Webhook] No church found for Stripe account: ${accountId}`);
+              logger.error(`No church found for Stripe account: ${accountId}`, { operation: 'webhook.stripe.error' });
               throw new Error(`No church found for account: ${accountId}`);
             }
             
@@ -1092,7 +1129,7 @@ export async function POST(req: Request) {
                   updatedAt: new Date()
                 }
               });
-              console.log(`[Stripe Webhook] Updated payout ${payout.id} status to ${payout.status}`);
+              logger.info(`Updated payout ${payout.id} status to ${payout.status}`, { operation: 'webhook.stripe.info' });
             } else if (event.type === 'payout.created') {
               // Create new payout record
               await tx.payoutSummary.create({
@@ -1111,7 +1148,7 @@ export async function POST(req: Request) {
                   updatedAt: new Date()
                 }
               });
-              console.log(`[Stripe Webhook] Created payout record for ${payout.id}`);
+              logger.info(`Created payout record for ${payout.id}`, { operation: 'webhook.stripe.info' });
               
               // TODO: Fetch balance transactions to populate transaction details
               // This will be done in a separate reconciliation job to avoid webhook timeout
@@ -1122,7 +1159,7 @@ export async function POST(req: Request) {
           
           // If payout is paid, trigger reconciliation
           if (payout.status === 'paid') {
-            console.log(`[Stripe Webhook] Payout ${payout.id} has been paid to bank`);
+            logger.info(`Payout ${payout.id} has been paid to bank`, { operation: 'webhook.stripe.info' });
             
             // Import and await reconciliation to ensure data consistency
             // Use try-catch to handle errors gracefully
@@ -1131,26 +1168,31 @@ export async function POST(req: Request) {
               const result = await reconcilePayout(payout.id, stripeAccountId);
               
               if (result.success) {
-                console.log(`[Stripe Webhook] Payout ${payout.id} reconciled successfully`);
+                logger.info(`Payout ${payout.id} reconciled successfully`, { operation: 'webhook.stripe.info' });
               } else {
-                console.error(`[Stripe Webhook] Failed to reconcile payout ${payout.id}:`, result.error);
+                logger.error(`Failed to reconcile payout ${payout.id}:`, { operation: 'webhook.stripe.error', context: result.error });
                 // Don't fail the webhook, but log for monitoring
               }
             } catch (error) {
               // Log error but don't fail the webhook - Stripe will retry if we return 500
-              console.error(`[Stripe Webhook] Error reconciling payout ${payout.id}:`, error);
+              logger.error(`Error reconciling payout ${payout.id}:`, { operation: 'webhook.stripe.error', context: error });
               // Consider adding to a retry queue here in the future
             }
           }
           
           // If payout failed, alert the church
           if (payout.status === 'failed') {
-            console.error(`[Stripe Webhook] Payout ${payout.id} failed: ${payout.failure_message}`);
+            logger.error(`Payout ${payout.id} failed: ${payout.failure_message}`, { operation: 'webhook.stripe.error' });
             // TODO: Send urgent notification to church admin
           }
-          
+
+
         } catch (error) {
-          console.error('[Stripe Webhook] Error processing payout:', error);
+          logger.error('Error processing payout', {
+            operation: 'webhook.stripe.payout.process_failed',
+            payoutId: payout.id,
+            status: payout.status
+          }, error instanceof Error ? error : new Error(String(error)));
           throw error; // Re-throw to ensure webhook fails and Stripe retries
         }
         break;
@@ -1158,14 +1200,11 @@ export async function POST(req: Request) {
 
     }
   } catch (error) {
-    console.error('[Stripe Webhook] General error processing webhook event:', error);
-    console.error('[Stripe Webhook] Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
+    logger.error('General error processing webhook event', {
+      operation: 'webhook.stripe.general_error',
       eventType: event?.type,
       eventId: event?.id
-    });
+    }, error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: 'Webhook handler failed. View logs.' }, { status: 500 });
   }
 
@@ -1184,13 +1223,20 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   });
 
   if (!donationTransaction) {
-    console.error(`[Receipt] DonationTransaction not found for PaymentIntent ${paymentIntent.id}`);
+    logger.error('DonationTransaction not found for PaymentIntent', {
+      operation: 'receipt.transaction_not_found',
+      paymentIntentId: paymentIntent.id
+    });
     return;
   }
 
   // Ensure the transaction status is 'succeeded' before sending a receipt.
   if (donationTransaction.status !== 'succeeded') {
-    console.warn(`[Receipt] DonationTransaction ${donationTransaction.id} status is '${donationTransaction.status}', not 'succeeded'. Receipt not sent.`);
+    logger.warn('DonationTransaction status is not succeeded, receipt not sent', {
+      operation: 'receipt.invalid_status',
+      transactionId: donationTransaction.id,
+      status: donationTransaction.status
+    });
     return;
   }
 
@@ -1199,7 +1245,10 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   });
 
   if (!church || !church.clerkOrgId) {
-    console.error(`[Receipt] Church or ClerkOrgId not found for Church ID ${donationTransaction.churchId}`);
+    logger.error('Church or ClerkOrgId not found', {
+      operation: 'receipt.church_not_found',
+      churchId: hashChurchId(donationTransaction.churchId)
+    });
     return;
   }
 
@@ -1212,7 +1261,10 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     });
     churchLogoUrl = landingPageConfig?.logoUrl || undefined;
   } catch (error) {
-    console.warn('[Receipt] Failed to fetch church logo, proceeding without logo:', error);
+    logger.warn('Failed to fetch church logo, proceeding without logo', {
+      operation: 'receipt.logo_fetch_failed',
+      churchId: hashChurchId(church.id)
+    });
     churchLogoUrl = undefined;
   }
 
@@ -1221,7 +1273,11 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   });
 
   if (!stripeConnectAccountDb || !stripeConnectAccountDb.stripeAccountId) {
-    console.error(`[Receipt] StripeConnectAccount (DB) not found for ClerkOrgId ${church.clerkOrgId}`);
+    logger.error('StripeConnectAccount not found', {
+      operation: 'receipt.stripe_account_not_found',
+      churchId: hashChurchId(church.id),
+      clerkOrgId: church.clerkOrgId
+    });
     return;
   }
   const connectedStripeAccountId = stripeConnectAccountDb.stripeAccountId;
@@ -1242,16 +1298,27 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   let stripeAccount: Stripe.Account | null = null;
   try {
     // Express accounts don't support tax_ids expansion, retrieve without expansion
-    console.log(`[Receipt] Retrieving Stripe Express Account ${connectedStripeAccountId}`);
+    logger.debug('Retrieving Stripe Express Account', {
+      operation: 'receipt.retrieve_stripe_account',
+      stripeAccountId: connectedStripeAccountId
+    });
     stripeAccount = await stripe.accounts.retrieve(connectedStripeAccountId);
-    console.log(`[Receipt] Successfully retrieved Stripe Account ${connectedStripeAccountId}.`);
+    logger.debug('Successfully retrieved Stripe Account', {
+      operation: 'receipt.stripe_account_retrieved',
+      stripeAccountId: connectedStripeAccountId
+    });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[Receipt] Error retrieving Stripe Account ${connectedStripeAccountId}: ${errorMessage}`);
+    logger.error('Error retrieving Stripe Account', {
+      operation: 'receipt.stripe_account_retrieval_failed',
+      stripeAccountId: connectedStripeAccountId
+    }, error instanceof Error ? error : new Error(String(error)));
   }
 
   if (stripeAccount) {
-    console.log(`[Receipt] Stripe Account ${connectedStripeAccountId} retrieved. Processing for EIN and details.`);
+    logger.debug('Stripe Account retrieved, processing for EIN and details', {
+      operation: 'receipt.process_stripe_account',
+      stripeAccountId: connectedStripeAccountId
+    });
     churchRegisteredName = stripeAccount.company?.name || stripeAccount.settings?.dashboard?.display_name || church.name;
     if (stripeAccount.company?.address) {
       churchRegisteredAddressObj = {
@@ -1265,80 +1332,115 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     }
     churchRegisteredEmail = stripeAccount.email || churchRegisteredEmail;
     churchRegisteredPhone = stripeAccount.company?.phone || stripeAccount.business_profile?.support_phone || churchRegisteredPhone;
-    console.log(`[Receipt] Updated church details from Stripe Account: Name='${churchRegisteredName}', Email='${churchRegisteredEmail}', Phone='${churchRegisteredPhone}'`);
+    logger.debug('Updated church details from Stripe Account', {
+      operation: 'receipt.church_details_updated',
+      hasName: !!churchRegisteredName,
+      hasEmail: !!churchRegisteredEmail,
+      hasPhone: !!churchRegisteredPhone
+    });
 
     let foundEin: string | undefined = undefined;
 
     const companyTaxIds = (stripeAccount.company as Stripe.Account.Company & { tax_ids?: { data: Array<{ type: string; value: string }> } })?.tax_ids;
     if (companyTaxIds && companyTaxIds.data && Array.isArray(companyTaxIds.data)) {
-      console.log(`[Receipt] Checking company.tax_ids (expanded). Found ${companyTaxIds.data.length} IDs.`);
+      logger.debug('Checking company.tax_ids', {
+        operation: 'receipt.ein.check_company_tax_ids',
+        taxIdCount: companyTaxIds.data.length
+      });
       for (const taxId of companyTaxIds.data) {
         if (taxId.type === 'us_ein' && taxId.value) {
           foundEin = taxId.value;
-          console.log(`[Receipt] EIN found in company.tax_ids: ${foundEin}`);
+          logger.debug('EIN found in company.tax_ids', {
+            operation: 'receipt.ein.found_company'
+          });
           break;
         }
       }
     } else {
-      console.log(`[Receipt] company.tax_ids (expanded) not available, not in expected format, or expansion failed.`);
+      logger.debug('company.tax_ids not available or expansion failed', {
+        operation: 'receipt.ein.company_tax_ids_unavailable'
+      });
     }
 
     const settingsTaxIds = (stripeAccount.settings as Stripe.Account.Settings & { tax_ids?: { data: Array<{ type: string; value: string }> } })?.tax_ids;
     if (!foundEin && settingsTaxIds && settingsTaxIds.data && Array.isArray(settingsTaxIds.data)) {
-      console.log(`[Receipt] Checking settings.tax_ids (expanded). Found ${settingsTaxIds.data.length} IDs.`);
+      logger.debug('Checking settings.tax_ids', {
+        operation: 'receipt.ein.check_settings_tax_ids',
+        taxIdCount: settingsTaxIds.data.length
+      });
       for (const taxId of settingsTaxIds.data) {
         if (taxId.type === 'us_ein' && taxId.value) {
           foundEin = taxId.value;
-          console.log(`[Receipt] EIN found in settings.tax_ids: ${foundEin}`);
+          logger.debug('EIN found in settings.tax_ids', {
+            operation: 'receipt.ein.found_settings'
+          });
           break;
         }
       }
     } else if (!foundEin) {
-      console.log(`[Receipt] settings.tax_ids (expanded) not available, not in expected format, or expansion failed.`);
+      logger.debug('settings.tax_ids not available or expansion failed', {
+        operation: 'receipt.ein.settings_tax_ids_unavailable'
+      });
     }
 
     if (!foundEin && stripeAccount.settings?.invoices?.default_account_tax_ids && Array.isArray(stripeAccount.settings.invoices.default_account_tax_ids)) {
       const defaultTaxIds = stripeAccount.settings.invoices.default_account_tax_ids;
-      console.log(`[Receipt] Checking default_account_tax_ids. Found ${defaultTaxIds.length} ID(s) to retrieve.`);
+      logger.debug('Checking default_account_tax_ids', {
+        operation: 'receipt.ein.check_default_tax_ids',
+        taxIdCount: defaultTaxIds.length
+      });
       for (const taxIdString of defaultTaxIds) {
         if (typeof taxIdString === 'string') {
-          console.log(`[Receipt] Attempting to retrieve Tax ID object for ID: ${taxIdString}`);
+          logger.debug('Attempting to retrieve Tax ID object', {
+            operation: 'receipt.ein.retrieve_tax_id',
+            taxIdString
+          });
           try {
             const taxIdObj = await stripe.taxIds.retrieve(taxIdString);
-            console.log(`[Receipt] Retrieved Tax ID object: type=${taxIdObj.type}, value=${taxIdObj.value}`);
+            logger.debug('Retrieved Tax ID object', {
+              operation: 'receipt.ein.tax_id_retrieved',
+              type: taxIdObj.type
+            });
             if (taxIdObj.type === 'us_ein' && taxIdObj.value) {
               foundEin = taxIdObj.value;
-              console.log(`[Receipt] EIN found via default_account_tax_ids: ${foundEin}`);
+              logger.debug('EIN found via default_account_tax_ids', {
+                operation: 'receipt.ein.found_default'
+              });
               break;
             }
           } catch (taxIdError: unknown) {
-            const errorMsg = taxIdError instanceof Error ? taxIdError.message : 'Unknown error';
-            console.warn(`[Receipt] Error fetching Tax ID ${taxIdString}: ${errorMsg}`);
+            logger.warn('Error fetching Tax ID', {
+              operation: 'receipt.ein.tax_id_fetch_failed',
+              taxIdString
+            });
           }
         }
       }
     } else if (!foundEin) {
-      console.log(`[Receipt] default_account_tax_ids not available, not an array, or no IDs to process.`);
+      logger.debug('default_account_tax_ids not available or no IDs to process', {
+        operation: 'receipt.ein.default_tax_ids_unavailable'
+      });
     }
 
     if (foundEin) {
       ein = foundEin;
-      console.log(`[Receipt] Final EIN for receipt: ${ein} for Stripe Account ${connectedStripeAccountId}`);
+      logger.debug('Final EIN found for receipt', {
+        operation: 'receipt.ein.found_final',
+        stripeAccountId: connectedStripeAccountId
+      });
     } else {
-      console.warn(`[Receipt] EIN not found for Stripe Account ${connectedStripeAccountId} after all checks. Defaulting to 'N/A'.`);
-      const companyInfoForLog = stripeAccount.company ? { 
-        name: stripeAccount.company.name, 
-        tax_ids_exist: !!(stripeAccount.company as Stripe.Account.Company & { tax_ids?: unknown })?.tax_ids 
-      } : 'No company info';
-      const settingsInfoForLog = stripeAccount.settings ? { 
-        dashboard_display_name: stripeAccount.settings.dashboard?.display_name, 
-        tax_ids_exist: !!(stripeAccount.settings as Stripe.Account.Settings & { tax_ids?: unknown })?.tax_ids, 
-        default_tax_ids_exist: !!stripeAccount.settings.invoices?.default_account_tax_ids 
-      } : 'No settings info';
-      console.log(`[Receipt] Stripe Account for EIN review (summary): company: ${JSON.stringify(companyInfoForLog)}, settings: ${JSON.stringify(settingsInfoForLog)}`);
+      logger.warn('EIN not found after all checks, defaulting to N/A', {
+        operation: 'receipt.ein.not_found',
+        stripeAccountId: connectedStripeAccountId,
+        hasCompanyInfo: !!stripeAccount.company,
+        hasSettingsInfo: !!stripeAccount.settings
+      });
     }
   } else {
-    console.warn(`[Receipt] Stripe Account object for ${connectedStripeAccountId} is null (likely due to retrieval failure). EIN retrieval and account detail update skipped. Using defaults/DB values for receipt.`);
+    logger.warn('Stripe Account object is null, using defaults for receipt', {
+      operation: 'receipt.stripe_account_null',
+      stripeAccountId: connectedStripeAccountId
+    });
   }
 
   // Get donor email for receipt
@@ -1348,7 +1450,10 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   // 3. International donors: email stored in donationTransaction.donorEmail
   const donorEmail = donationTransaction.donorEmail || donationTransaction.Donor?.email;
   if (!donorEmail) {
-    console.error(`[Receipt] No donor email found for transaction ${donationTransaction.id}. Cannot send receipt.`);
+    logger.error('No donor email found for transaction, cannot send receipt', {
+      operation: 'receipt.no_donor_email',
+      transactionId: donationTransaction.id
+    });
     return;
   }
 
@@ -1357,11 +1462,19 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
 
   // Log receipt type for debugging
   if (donationTransaction.isAnonymous && donationTransaction.isInternational) {
-    console.log(`[Receipt] Sending receipt to anonymous international donor (${donationTransaction.donorCountry || 'unknown'})`);
+    logger.debug('Sending receipt to anonymous international donor', {
+      operation: 'receipt.send.anonymous_international',
+      country: donationTransaction.donorCountry || 'unknown'
+    });
   } else if (donationTransaction.isAnonymous) {
-    console.log(`[Receipt] Sending receipt to anonymous US donor`);
+    logger.debug('Sending receipt to anonymous US donor', {
+      operation: 'receipt.send.anonymous_us'
+    });
   } else if (donationTransaction.isInternational) {
-    console.log(`[Receipt] Sending receipt to international donor (${donationTransaction.donorCountry || 'unknown'})`);
+    logger.debug('Sending receipt to international donor', {
+      operation: 'receipt.send.international',
+      country: donationTransaction.donorCountry || 'unknown'
+    });
   }
 
   const donorName = donationTransaction.donorName || `${donationTransaction.Donor?.firstName || ''} ${donationTransaction.Donor?.lastName || ''}`.trim() || 'Valued Donor';
@@ -1429,7 +1542,10 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
   try {
     emailHtml = generateDonationReceiptHtml(receiptData, appUrl);
   } catch (error) {
-    console.error('[Receipt] Failed to generate email HTML, using fallback template:', error);
+    logger.error('Failed to generate email HTML, using fallback template', {
+      operation: 'receipt.html_generation_failed',
+      transactionId: donationTransaction.id
+    }, error instanceof Error ? error : new Error(String(error)));
     // Simple fallback template
     emailHtml = `
       <html>
@@ -1458,34 +1574,36 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
       subject: emailSubject,
       html: emailHtml,
     });
-    console.log(`[Receipt] Receipt email sent to ${donorEmail} for transaction ${donationTransaction.id}`);
+    logger.info('Receipt email sent successfully', {
+      operation: 'receipt.email_sent',
+      transactionId: donationTransaction.id,
+      emailDomain: getEmailDomain(donorEmail)
+    });
     // processedAt already set when payment succeeded, no need to update again
   } catch (emailError: unknown) {
-    console.error(`[Receipt] Error sending receipt email for transaction ${donationTransaction.id}:`, emailError);
     const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown email error';
     const errorCode = emailError instanceof Error && 'code' in emailError ? (emailError as Error & { code?: string }).code : undefined;
-    
+
+    logger.error('Error sending receipt email', {
+      operation: 'receipt.email_send_failed',
+      transactionId: donationTransaction.id,
+      emailDomain: getEmailDomain(donorEmail),
+      errorCode
+    }, emailError instanceof Error ? emailError : new Error(String(emailError)));
+
     // Capture error details for monitoring
     capturePaymentError(emailError as Error, {
       paymentIntentId: paymentIntent.id,
       churchId: donationTransaction.churchId,
     });
-    
-    // Log additional context for debugging
-    console.error(`[Receipt] Email error details:`, {
-      transactionId: donationTransaction.id,
-      donorEmail,
-      errorMessage,
-      errorCode,
-    });
-    
+
     // Log the failure for manual follow-up
     // In production, you might want to:
     // 1. Send to a dead letter queue
     // 2. Create a task in a job queue for retry
     // 3. Alert the support team
-    logger.warn(logger.fmt`MANUAL FOLLOW-UP NEEDED: Receipt email failed for transaction ${donationTransaction.id} to ${donorEmail}`);
-    
+    logger.warn(`MANUAL FOLLOW-UP NEEDED: Receipt email failed for transaction ${donationTransaction.id} to ${getEmailDomain(donorEmail) || 'unknown domain'}`);
+
     // Don't throw - let the webhook succeed even if email fails
     // This prevents Stripe from retrying the webhook unnecessarily
   }

@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useOrganization } from "@clerk/nextjs";
@@ -87,7 +88,7 @@ export function CategoriesSettings() {
         setExpenseCategories(data);
       }
     } catch (error) {
-      console.error("Error fetching expense categories:", error);
+      console.error('Error fetching expense categories:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     } finally {
       setLoading(false);
     }
@@ -101,7 +102,7 @@ export function CategoriesSettings() {
         setPaymentMethods(data);
       }
     } catch (error) {
-      console.error("Error fetching payment methods:", error);
+      console.error('Error fetching payment methods:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   };
 

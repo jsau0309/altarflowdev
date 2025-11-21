@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -93,7 +94,7 @@ export function EditDonationDialog({ isOpen, onClose, onSuccess, donation }: Edi
       const donorList = await getDistinctDonorsForFilter()
       setDonors(donorList)
     } catch (error) {
-      console.error("Failed to fetch donors:", error)
+      console.error('Failed to fetch donors:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('common:errors.fetchFailed', 'Failed to load donors'))
     }
   }, [t])
@@ -144,7 +145,7 @@ export function EditDonationDialog({ isOpen, onClose, onSuccess, donation }: Edi
         toast.error(result.error || t('common:errors.updateFailed', 'Failed to update donation'))
       }
     } catch (error) {
-      console.error("Failed to edit donation:", error)
+      console.error('Failed to edit donation:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('common:errors.updateFailed', 'Failed to update donation'))
     } finally {
       setIsLoading(false)

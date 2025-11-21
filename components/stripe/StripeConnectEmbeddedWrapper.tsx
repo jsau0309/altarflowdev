@@ -145,13 +145,13 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
           return data.client_secret;
         } else {
           const errorMessage = 'Client secret not found in response.';
-          console.error(errorMessage);
+          console.error("Stripe Connect initialization error:", errorMessage);
           setError(errorMessage);
           throw new Error(errorMessage);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching account session.';
-        console.error('Exception fetching Stripe Account Session:', errorMessage);
+        console.error('Stripe Connect initialization error:', errorMessage, err);
         setError(errorMessage);
         throw new Error(errorMessage);
       }

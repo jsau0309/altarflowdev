@@ -74,7 +74,7 @@ export function DashboardContent() {
         let churchIdFromStorage = null;
         churchIdFromStorage = safeStorage.getItem("churchId");
         if (!churchIdFromStorage) {
-          console.warn("ChurchId not available in localStorage");
+          console.warn('ChurchId not available in localStorage', { operation: 'ui.warn' });
         }
         const [summaryData, subscriptionData] = await Promise.all([
           getDashboardSummaryOptimized(),
@@ -98,7 +98,7 @@ export function DashboardContent() {
           });
         }
       } catch (error) {
-        console.error("Failed to fetch dashboard data or donors:", error);
+        console.error('Failed to fetch dashboard data or donors:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
         setError("An error occurred while loading the dashboard.");
       } finally {
         setIsLoading(false);
@@ -128,7 +128,7 @@ export function DashboardContent() {
       const data = await getDashboardSummaryOptimized();
       setDashboardData(data);
     } catch (error) {
-      console.error(`Failed to refresh dashboard data${contextMessage}:`, error);
+      console.error('Failed to refresh dashboard data${contextMessage}:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     } finally {
       // setIsLoading(false); // Ensure this matches any setIsLoading(true) above
     }

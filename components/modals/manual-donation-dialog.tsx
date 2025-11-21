@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -80,7 +81,7 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
           const donorsList = await getAllDonorsForManualDonation();
           setDonors(donorsList);
         } catch (error) {
-          console.error("Failed to fetch donors for manual donation:", error);
+          console.error('Failed to fetch donors for manual donation:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           setDonors([]);
           toast.error(t('donations:newManualDonation.failedToLoadDonors', 'Failed to load donors'));
         } finally {
@@ -106,7 +107,7 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
           const data = await response.json();
           setDonationTypes(data);
         } catch (error) {
-          console.error("Failed to fetch donation types:", error);
+          console.error('Failed to fetch donation types:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           setDonationTypes([]);
           toast.error(t('donations:newManualDonation.failedToLoadDonationTypes', 'Failed to load donation types'));
         } finally {
@@ -127,14 +128,18 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
           const response = await fetch(`/api/churches/${churchId}/donation-payment-methods`);
           if (!response.ok) {
             const errorText = await response.text();
-            console.error("Payment methods fetch failed:", response.status, errorText);
+            console.error('Payment methods fetch failed', {
+              operation: 'ui.donation.payment_methods_error',
+              status: response.status,
+              errorText
+            });
             throw new Error(`Failed to fetch payment methods: ${response.status}`);
           }
 
           const data = await response.json();
           setPaymentMethods(data);
         } catch (error) {
-          console.error("Failed to fetch payment methods:", error);
+          console.error('Failed to fetch payment methods:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           setPaymentMethods([]);
           toast.error(t('donations:newManualDonation.failedToLoadPaymentMethods', 'Failed to load payment methods'));
         } finally {
@@ -208,7 +213,7 @@ export function ManualDonationDialog({ isOpen, onClose, onSuccess }: ManualDonat
         return; // Exit early
       }
     } catch (error) {
-      console.error("Failed to save manual donation:", error);
+      console.error('Failed to save manual donation:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('common:errors.unexpected_error', 'An unexpected error occurred'));
     } finally {
       setIsSaving(false);

@@ -1,5 +1,6 @@
 "use client"
 
+
 import { Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,7 +32,7 @@ export function LanguageSwitcher() {
     const result = safeStorage.setItem('i18nextLng', lang)
     if (!result.success) {
       // Language changed for this session, but preference won't persist
-      console.info('Language preference will not persist across sessions')
+      console.log('Language preference will not persist across sessions', { operation: 'ui.language.info' })
     }
   }
 

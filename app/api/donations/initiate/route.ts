@@ -4,7 +4,10 @@ import Stripe from 'stripe';
 import { getStripeInstance } from '@/lib/stripe-server';
 import { z } from 'zod'; // For input validation
 import * as Sentry from '@sentry/nextjs';
-import { withApiSpan, logger, capturePaymentError } from '@/lib/sentry';
+import { withApiSpan, capturePaymentError } from '@/lib/sentry';
+import { logger } from '@/lib/logger';
+import { paymentLogger } from '@/lib/logger/domains/payment';
+import { hashChurchId } from '@/lib/logger/middleware';
 
 // Initialize Stripe with proper error handling
 const stripe = getStripeInstance();
@@ -196,7 +199,11 @@ export async function POST(request: Request) {
             }
           }
         } catch (stripeError) {
-          console.error('Error retrieving existing PaymentIntent from Stripe:', stripeError);
+          logger.error('Error retrieving existing PaymentIntent from Stripe', {
+            operation: 'donation.initiate.retrieve_existing_payment',
+            paymentIntentId: existingTransaction.stripePaymentIntentId,
+            churchId: hashChurchId(churchUUIDFromInput)
+          }, stripeError instanceof Error ? stripeError : new Error(String(stripeError)));
         }
       }
     }
@@ -250,7 +257,11 @@ export async function POST(request: Request) {
     });
 
     if (!donationTypeRecord) {
-      console.error(`DonationType with id '${donationTypeId}' not found for churchId '${church.id}'.`);
+      logger.error('DonationType not found for church', {
+        operation: 'donation.initiate.donation_type_not_found',
+        donationTypeId,
+        churchId: hashChurchId(church.id)
+      });
       return NextResponse.json({ error: `Donation type ID '${donationTypeId}' not found or does not belong to the specified church.` }, { status: 400 });
     }
 
@@ -284,7 +295,10 @@ export async function POST(request: Request) {
     // Debug logging removed: fee calculation details
 
     if (!church.clerkOrgId) {
-      console.error(`Church with UUID ${church.id} does not have a clerkOrgId.`);
+      logger.error('Church missing clerkOrgId', {
+        operation: 'donation.initiate.missing_clerk_org_id',
+        churchId: hashChurchId(church.id)
+      });
       return NextResponse.json({ error: 'Church configuration error: Missing Clerk Organization ID.' }, { status: 500 });
     }
     const stripeConnectAccount = await prisma.stripeConnectAccount.findUnique({
@@ -300,15 +314,23 @@ export async function POST(request: Request) {
     try {
       const stripeAccount = await stripe.accounts.retrieve(churchStripeAccountId);
       if (!stripeAccount.charges_enabled) {
-        console.error(`Church Connect account ${churchStripeAccountId} cannot accept charges yet`);
-        return NextResponse.json({ 
-          error: 'This church is not yet set up to accept donations. Please contact the church administrator.' 
+        logger.error('Church Connect account cannot accept charges yet', {
+          operation: 'donation.initiate.charges_not_enabled',
+          stripeAccountId: churchStripeAccountId,
+          churchId: hashChurchId(church.id)
+        });
+        return NextResponse.json({
+          error: 'This church is not yet set up to accept donations. Please contact the church administrator.'
         }, { status: 400 });
       }
     } catch (verifyError) {
-      console.error(`Error verifying Connect account ${churchStripeAccountId}:`, verifyError);
-      return NextResponse.json({ 
-        error: 'Unable to verify church payment account. Please try again later.' 
+      logger.error('Error verifying Connect account', {
+        operation: 'donation.initiate.verify_account_failed',
+        stripeAccountId: churchStripeAccountId,
+        churchId: hashChurchId(church.id)
+      }, verifyError instanceof Error ? verifyError : new Error(String(verifyError)));
+      return NextResponse.json({
+        error: 'Unable to verify church payment account. Please try again later.'
       }, { status: 500 });
     }
 
@@ -359,13 +381,17 @@ export async function POST(request: Request) {
         if (Object.keys(updatePayload).length > 0) {
           try {
             await stripe.customers.update(
-              stripeCustomerId, 
+              stripeCustomerId,
               updatePayload,
               { stripeAccount: churchStripeAccountId } // Use church's Connect account
             );
             // Debug logging removed: Stripe customer updated
           } catch (stripeError) {
-            console.error(`[API /donations/initiate] Error updating Stripe customer ${stripeCustomerId}:`, stripeError);
+            logger.error('Error updating Stripe customer', {
+              operation: 'donation.initiate.update_customer_failed',
+              stripeCustomerId,
+              churchId: hashChurchId(churchUUIDFromInput)
+            }, stripeError instanceof Error ? stripeError : new Error(String(stripeError)));
           }
         }
 
@@ -429,7 +455,11 @@ export async function POST(request: Request) {
           // Debug logging removed: donor already has Stripe customer ID
         }
       } catch (dbError) {
-        console.error(`[API /donations/initiate] Error updating Donor ${donorId} with stripeCustomerId:`, dbError);
+        logger.error('Error updating Donor with stripeCustomerId', {
+          operation: 'donation.initiate.update_donor_stripe_id_failed',
+          donorId,
+          stripeCustomerId
+        }, dbError instanceof Error ? dbError : new Error(String(dbError)));
         // Non-fatal error, proceed with donation creation
       }
     }
@@ -545,12 +575,21 @@ export async function POST(request: Request) {
             }, { status: 200 });
           }
         }
-        
+
+
         // If we couldn't find the existing transaction, throw the error
-        console.error(`[API /donations/initiate] P2002 but failed to retrieve existing transaction for PI ${paymentIntent.id}.`, dbError);
+        logger.error('P2002 but failed to retrieve existing transaction', {
+          operation: 'donation.initiate.p2002_retrieval_failed',
+          paymentIntentId: paymentIntent.id,
+          churchId: hashChurchId(churchUUIDFromInput)
+        }, dbError instanceof Error ? dbError : new Error(String(dbError)));
         throw dbError;
       } else {
-        console.error(`[API /donations/initiate] Database error during DonationTransaction creation for PI ${paymentIntent.id}:`, dbError);
+        logger.error('Database error during DonationTransaction creation', {
+          operation: 'donation.initiate.db_create_failed',
+          paymentIntentId: paymentIntent.id,
+          churchId: hashChurchId(churchUUIDFromInput)
+        }, dbError instanceof Error ? dbError : new Error(String(dbError)));
         throw dbError;
       }
     }

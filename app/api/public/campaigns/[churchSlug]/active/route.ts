@@ -4,6 +4,7 @@ import type { DonationType } from '@prisma/client';
 import { toDateOnly, getTodayUTC } from '@/lib/date-utils';
 import * as Sentry from '@sentry/nextjs';
 import { rateLimit } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 // Simple in-memory cache for active campaigns
 // Reduces database load by caching results for 5 minutes
@@ -169,7 +170,7 @@ export async function GET(
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error fetching active campaigns by slug:', errorMessage);
+    logger.error('Error fetching active campaigns by slug', { operation: 'api.campaigns.fetch_error' }, error instanceof Error ? error : new Error(String(error)));
 
     // Capture error in Sentry with context
     Sentry.captureException(error, {

@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState, useEffect, useCallback } from "react"
 import { format } from "date-fns"
 import { Edit, FileText, Loader2, Trash2 } from "lucide-react"
@@ -40,8 +41,12 @@ interface ExpenseDetailsDrawerProps {
   isDeleting?: boolean
 }
 
-const formatCurrency = (amount: number | Decimal | string | null | undefined, currencyCode: string = 'USD') => { 
-  // console.log("Drawer Formatting currency for:", typeof amount, amount); // Add log if needed again
+const formatCurrency = (amount: number | Decimal | string | null | undefined, currencyCode: string = 'USD') => {
+  console.log('Drawer Formatting currency for', {
+    operation: 'ui.expense.format_currency',
+    amountType: typeof amount,
+    amountValue: String(amount)
+  });
   if (amount === null || amount === undefined) return '-';
 
   let numericAmount: number;
@@ -53,12 +58,19 @@ const formatCurrency = (amount: number | Decimal | string | null | undefined, cu
     // Handle Decimal object case (less likely after JSON serialization)
     numericAmount = (amount as Decimal).toNumber();
   } else {
-    console.error("Unexpected type for amount in Drawer formatCurrency:", typeof amount, amount);
+    console.error('Unexpected type for amount in Drawer formatCurrency', {
+      operation: 'ui.expense.format_error',
+      amountType: typeof amount,
+      amountValue: String(amount)
+    });
     return '-';
   }
 
   if (isNaN(numericAmount)) {
-      console.error("Failed to parse amount in Drawer formatCurrency:", amount);
+      console.error('Failed to parse amount in Drawer formatCurrency', {
+        operation: 'ui.expense.parse_error',
+        amountValue: String(amount)
+      });
       return '-';
   }
 
@@ -97,7 +109,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
   // New function to refresh the signed URL when needed
   const refreshReceiptUrl = useCallback(async (): Promise<string | null> => {
     if (!expense || !expense.id) {
-      console.error('[ExpenseDetailsDrawer refreshReceiptUrl] Aborted: expense or expense.id is null/undefined.');
+      console.error('[ExpenseDetailsDrawer refreshReceiptUrl] Aborted: expense or expense.id is null/undefined.', { operation: 'ui.error' });
       return null;
     }
     // Debug logging removed: refreshing receipt URL for expense
@@ -120,10 +132,15 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
         try {
           errorData = JSON.parse(responseText); // Try to parse error from the text we already fetched
         } catch (e) {
-          console.error('[ExpenseDetailsDrawer refreshReceiptUrl] Failed to parse error response as JSON:', e);
+          console.error('[ExpenseDetailsDrawer refreshReceiptUrl] Failed to parse error response as JSON:', { operation: 'ui.error' }, e instanceof Error ? e : new Error(String(e)));
           errorData = { error: responseText.substring(0, 100) }; // Fallback to raw text snippet
         }
-        console.error('Failed to refresh receipt URL API Response:', response.status, response.statusText, errorData);
+        console.error('Failed to refresh receipt URL API Response', {
+          operation: 'ui.expense.receipt_refresh_error',
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
         alert(t('expenses:detailsDrawer.receiptRefreshError', `Error refreshing receipt: ${(errorData as any).error || response.statusText}`));
         return null;
       }
@@ -132,7 +149,10 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
       try {
         data = JSON.parse(responseText);
       } catch (e) {
-        console.error('[ExpenseDetailsDrawer refreshReceiptUrl] Failed to parse successful response as JSON:', responseText, e);
+        console.error('[ExpenseDetailsDrawer refreshReceiptUrl] Failed to parse successful response as JSON', {
+          operation: 'ui.expense.receipt_parse_error',
+          responseText
+        }, e instanceof Error ? e : new Error(String(e)));
         alert(t('expenses:detailsDrawer.receiptRefreshError', 'Received an invalid response from the server.'));
         setCurrentReceiptUrl(null);
         setReceiptUrlExpiry(0);
@@ -148,21 +168,28 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
           const testResponse = await fetch(newUrl);
           // Debug logging removed: test fetch status
           if (!testResponse.ok) {
-            console.error("[ExpenseDetailsDrawer] Test fetch FAILED for new URL:", newUrl, "Status Text:", testResponse.statusText);
+            console.error('[ExpenseDetailsDrawer] Test fetch FAILED for new URL', {
+              operation: 'ui.expense.receipt_test_failed',
+              url: newUrl,
+              statusText: testResponse.statusText
+            });
           }
         } catch (fetchError) {
-          console.error("[ExpenseDetailsDrawer] Error during test fetch of new URL:", newUrl, fetchError);
+          console.error('[ExpenseDetailsDrawer] Error during test fetch of new URL', {
+            operation: 'ui.expense.receipt_fetch_error',
+            url: newUrl
+          }, fetchError instanceof Error ? fetchError : new Error(String(fetchError)));
         }
         setCurrentReceiptUrl(newUrl);
         if (newUrl) setReceiptUrlExpiry(Date.now() + 50 * 60 * 1000); // 50 minutes expiry
       } else {
-        console.warn("[ExpenseDetailsDrawer] API did not return a newUrl.");
+        console.warn('[ExpenseDetailsDrawer] API did not return a newUrl.', { operation: 'ui.warn' });
         setCurrentReceiptUrl(null);
         setReceiptUrlExpiry(0);
       }
       return newUrl;
     } catch (error) {
-      console.error('Error refreshing receipt URL:', error);
+      console.error('Error refreshing receipt URL:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       alert(t('expenses:detailsDrawer.receiptRefreshError', 'An error occurred while refreshing the receipt URL.'));
       return null;
     } finally {
@@ -177,20 +204,20 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
     if (open && expense?.id) { // Only act if drawer is open and there's an expense
       if (expense.receiptPath) { // Check for receiptPath
         if (!currentReceiptUrl || Date.now() > receiptUrlExpiry) {
-          // console.log("[ExpenseDetailsDrawer useEffect] Condition: URL refresh needed. Calling refreshReceiptUrl.");
+          // console.log('[ExpenseDetailsDrawer useEffect] Condition: URL refresh needed. Calling refreshReceiptUrl.', { operation: 'ui.debug' });
           refreshReceiptUrl();
         } else {
-          // console.log("[ExpenseDetailsDrawer useEffect] Condition: URL is current. Setting isLoadingReceipt: false");
+          // console.log('[ExpenseDetailsDrawer useEffect] Condition: URL is current. Setting isLoadingReceipt: false', { operation: 'ui.debug' });
           setIsLoadingReceipt(false);
         }
       } else { // No receipt path for this expense
-        // console.log("[ExpenseDetailsDrawer useEffect] Condition: No expense.receiptPath. Clearing URL and setting isLoadingReceipt: false");
+        // console.log('[ExpenseDetailsDrawer useEffect] Condition: No expense.receiptPath. Clearing URL and setting isLoadingReceipt: false', { operation: 'ui.debug' });
         setCurrentReceiptUrl(null);
         setReceiptUrlExpiry(0);
         setIsLoadingReceipt(false);
       }
     } else if (!open) { // Drawer is closed
-      // console.log("[ExpenseDetailsDrawer useEffect] Drawer closed. Resetting receipt URL state.");
+      // console.log('[ExpenseDetailsDrawer useEffect] Drawer closed. Resetting receipt URL state.', { operation: 'ui.debug' });
       setCurrentReceiptUrl(null);
       setReceiptUrlExpiry(0);
       setIsLoadingReceipt(false); // Ensure loading is off when closed
@@ -254,7 +281,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
   //     document.body.removeChild(a);
 
   //   } catch (error) {
-  //     console.error("Download failed:", error);
+  //     console.error('Download failed:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
   //     // Optionally show a toast or error message to the user
   //     alert(t('expenses:detailsDrawer.downloadError', 'Failed to download receipt.')); 
   //   } finally {

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 // lib/stripe/subscription.ts
 
 export interface SubscriptionPlan {
@@ -14,7 +15,7 @@ export async function getUserSubscriptionPlan(
   userId: string,
   orgId: string
 ): Promise<SubscriptionPlan> {
-  console.warn(
+  logger.warn(
     `[getUserSubscriptionPlan] Placeholder active for userId: ${userId}, orgId: ${orgId}. Returning Pro plan by default.`
   );
   // Simulate fetching subscription plan

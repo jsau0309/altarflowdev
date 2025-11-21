@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -82,7 +83,7 @@ export function NewDonorModal({ isOpen, onClose, onSuccess }: NewDonorModalProps
           const data = await getAllMembersForLinking();
           setMembers(data);
         } catch (error) {
-          console.error('Failed to fetch members:', error);
+          console.error('Failed to fetch members:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           toast.error(t('fetchMembersFailed'));
           setMembers([]);
         } finally {
@@ -119,7 +120,7 @@ export function NewDonorModal({ isOpen, onClose, onSuccess }: NewDonorModalProps
         toast.success(t('addDonorModal.success', { firstName: values.firstName, lastName: values.lastName }));
     } else {
         // Handle error
-        console.error(result.error);
+        console.error("Donor creation failed", { operation: "ui.donor.creation_error", error: result.error });
         toast.error(result.error || t('addDonorModal.error'));
     }
   }

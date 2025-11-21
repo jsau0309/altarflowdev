@@ -1,6 +1,7 @@
 // import { DashboardLayout } from "@/components/dashboard-layout"
 import { SettingsContent } from "@/components/settings-content"
 import { getAuthenticatedChurchProfile } from "@/lib/actions/settings.actions";
+import { logger } from '@/lib/logger';
 
 // Make the component async
 export default async function SettingsPage() {
@@ -10,7 +11,7 @@ export default async function SettingsPage() {
   try {
     initialProfileData = await getAuthenticatedChurchProfile();
   } catch (error) {
-    console.error("Error fetching church profile for settings page:", error);
+    logger.error('Error fetching church profile for settings page', { operation: 'ui.settings.fetch_profile_error' }, error instanceof Error ? error : new Error(String(error)));
     fetchError = error instanceof Error ? error.message : "An unknown error occurred while loading settings.";
     // Optionally, you could redirect or show a more specific error UI based on the error type
   }

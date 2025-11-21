@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useEffect } from "react";
 import { useOrganization } from "@clerk/nextjs";
 import { useTranslation } from "react-i18next";
@@ -129,7 +130,7 @@ export function LandingManagerEnhanced() {
 
         setIsLoading(false);
       } catch (error) {
-        console.error("Failed to load landing settings:", error);
+        console.error('Failed to load landing settings:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
         toast.error(t("settings:landing.loadError", "Failed to load settings"));
         setIsLoading(false);
       }
@@ -173,7 +174,7 @@ export function LandingManagerEnhanced() {
       setUpcomingEvents(upcoming);
       setPastEvents(past);
     } catch (error) {
-      console.error("Failed to load events:", error);
+      console.error('Failed to load events:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   };
 
@@ -323,7 +324,7 @@ export function LandingManagerEnhanced() {
 
       toast.success(t("settings:landing.saved", "Landing page settings saved successfully"));
     } catch (error) {
-      console.error("Failed to save settings:", error);
+      console.error('Failed to save settings:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(
         error instanceof Error
           ? error.message

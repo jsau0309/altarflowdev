@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client'
+import { logger } from '@/lib/logger';
 
 // Enhanced middleware to handle connection errors gracefully
 export const connectionErrorMiddleware: Prisma.Middleware = async (params, next) => {
@@ -19,7 +20,7 @@ export const connectionErrorMiddleware: Prisma.Middleware = async (params, next)
       err.message?.includes('Server closed the connection');
       
     if (isConnectionError) {
-      console.warn('[Prisma] Connection error detected, retrying...', {
+      logger.warn('Prisma connection error - retrying', { operation: 'database.prisma_retry', 
         model: params.model,
         action: params.action,
         error: err.code || err.message,
@@ -33,7 +34,7 @@ export const connectionErrorMiddleware: Prisma.Middleware = async (params, next)
       try {
         return await next(params)
       } catch (retryError) {
-        console.error('[Prisma] Retry failed:', {
+        logger.error('Prisma retry failed', { operation: 'database.prisma_retry_failed', 
           model: params.model,
           action: params.action,
           originalError: err.code || err.message,

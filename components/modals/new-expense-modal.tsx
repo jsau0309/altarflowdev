@@ -1,5 +1,6 @@
 "use client"
 
+
 import { DialogFooter } from "@/components/ui/dialog"
 
 import type React from "react"
@@ -71,7 +72,11 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
       fetch(`/api/churches/${organization.id}/expense-categories`)
         .then((res) => res.json())
         .then((data) => setExpenseCategories(data))
-        .catch((error) => console.error("Error fetching expense categories:", error));
+        .catch((error) => {
+          console.error('Error fetching expense categories', {
+            operation: 'ui.expense.categories_fetch_error'
+          }, error instanceof Error ? error : new Error(String(error)));
+        });
     }
   }, [isOpen, organization?.id]);
 
@@ -222,7 +227,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
       }
 
     } catch (err) {
-      console.error("Expense form submission error:", err);
+      console.error('Expense form submission error:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
       apiError = err instanceof Error ? err.message : "An unexpected error occurred.";
       // Show error toast
       if (expenseToEdit) {
