@@ -212,7 +212,7 @@ export async function trackExternalCall<T>(
  * @private
  */
 function logPerformance(metrics: PerformanceMetrics & Record<string, unknown>): void {
-  const { operation, duration, threshold } = metrics;
+  const { operation, duration, threshold, ...otherMetrics } = metrics;
 
   if (duration > threshold * 3) {
     // Critical: 3x threshold
@@ -221,7 +221,7 @@ function logPerformance(metrics: PerformanceMetrics & Record<string, unknown>): 
       durationMs: duration,
       thresholdMs: threshold,
       slowdownFactor: (duration / threshold).toFixed(2),
-      ...metrics,
+      ...otherMetrics,
     });
   } else if (duration > threshold * 2) {
     // Warning: 2x threshold
@@ -230,7 +230,7 @@ function logPerformance(metrics: PerformanceMetrics & Record<string, unknown>): 
       durationMs: duration,
       thresholdMs: threshold,
       slowdownFactor: (duration / threshold).toFixed(2),
-      ...metrics,
+      ...otherMetrics,
     });
   } else if (duration > threshold) {
     // Info: Above threshold but not critical
@@ -239,14 +239,14 @@ function logPerformance(metrics: PerformanceMetrics & Record<string, unknown>): 
       durationMs: duration,
       thresholdMs: threshold,
       slowdownFactor: (duration / threshold).toFixed(2),
-      ...metrics,
+      ...otherMetrics,
     });
   } else {
     // Debug: Normal performance
     logger.debug('Operation completed', {
       operation: `performance.ok.${operation}`,
       durationMs: duration,
-      ...metrics,
+      ...otherMetrics,
     });
   }
 }

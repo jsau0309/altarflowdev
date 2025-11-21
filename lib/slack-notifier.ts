@@ -84,6 +84,15 @@ export async function sendSlackNotification(
     return;
   }
 
+  // Validate webhook URL format
+  if (!webhookUrl.startsWith('https://hooks.slack.com/')) {
+    logger.error('Invalid Slack webhook URL format', {
+      operation: 'slack.notification.invalid_url',
+      title: notification.title,
+    });
+    return;
+  }
+
   // Map severity to Slack color and emoji
   const severityConfig = {
     critical: { color: '#ff0000', emoji: '🔥' },

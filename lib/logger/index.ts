@@ -219,7 +219,13 @@ class Logger {
     // Slack notifications for critical errors (fire-and-forget)
     if ((level === 'error' || level === 'fatal') && this.isProduction) {
       // Don't await to avoid blocking - notifications are best-effort
-      void this.notifySlack(level, message, sanitizedContext, error);
+      // Wrap in try-catch to ensure logger never crashes
+      try {
+        void this.notifySlack(level, message, sanitizedContext, error)
+          .catch(() => { /* Silently ignore Slack notification errors */ });
+      } catch {
+        // Ignore synchronous errors from Slack notifications
+      }
     }
   }
 
@@ -320,8 +326,8 @@ class Logger {
     // Payment failures
     if (operation.includes('payment') || operation.includes('stripe')) {
       await sendSlackNotification(SlackNotifications.paymentFailed({
-        amount: (context.amount as number) || 0,
-        churchName: (context.churchName as string) || 'Unknown Church',
+        amount: typeof context.amount === 'number' ? context.amount : 0,
+        churchName: typeof context.churchName === 'string' ? context.churchName : 'Unknown Church',
         error: error?.message || message,
       }));
       return;

@@ -8,7 +8,7 @@
         "lib/actions/**/*.ts",
         "lib/**/*.ts"
       ],
-      "excludedFiles": ["**/*.test.ts", "**/*.spec.ts", "scripts/**/*.ts"],
+      "excludedFiles": ["**/*.test.ts", "**/*.spec.ts", "**/test*.ts", "scripts/**/*.ts"],
       "rules": {
         "no-console": "error"
       }

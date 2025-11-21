@@ -1,5 +1,27 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
+
+// Simple in-memory rate limiting for metrics endpoint
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS = 30; // 30 requests per minute (lower than health check)
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+
+  if (!record || now > record.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (record.count >= MAX_REQUESTS) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
 
 /**
  * Metrics Endpoint
@@ -7,9 +29,20 @@ import { prisma } from '@/lib/db';
  * Returns business metrics and system statistics
  * Can be used for custom dashboards or monitoring tools
  *
+ * Rate limited to 30 requests per minute per IP
+ *
  * @endpoint GET /api/health/metrics
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429 }
+    );
+  }
   try {
     // Get metrics from last 24 hours
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
