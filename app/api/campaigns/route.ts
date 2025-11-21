@@ -75,7 +75,10 @@ export async function POST(request: NextRequest) {
     // 2. Validate input data
     const validation = campaignCreateSchema.safeParse(body);
     if (!validation.success) {
-        logger.error('Campaign validation error:', { operation: 'api.error' }, validation.error.errors instanceof Error ? validation.error.errors : new Error(String(validation.error.errors)));
+        logger.error('Campaign validation error', {
+          operation: 'api.campaigns.validation_error',
+          errors: validation.error.errors
+        });
         return NextResponse.json({ error: 'Invalid input data', details: validation.error.errors }, { status: 400 });
     }
     const campaignData = validation.data;

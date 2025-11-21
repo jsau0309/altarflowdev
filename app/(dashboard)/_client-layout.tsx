@@ -5,7 +5,6 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@clerk/nextjs"; // <-- Add this import
 import { useAuthLoading } from "@/hooks/use-auth-loading"
 import { safeStorage } from "@/lib/safe-storage"
-import { logger } from '@/lib/logger'
 // Remove imports related to old header/sidebar structure
 // import { useTheme } from "next-themes"
 // import { Menu, Moon, Sun } from "lucide-react"
@@ -48,7 +47,7 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
     if (orgId && typeof window !== 'undefined') {
       const result = safeStorage.setItem("churchId", orgId);
       if (!result.success) {
-        logger.warn('Could not persist churchId to localStorage', { operation: 'ui.layout.persist_church_id_error', orgId, error: result.error?.message });
+        console.warn('Could not persist churchId to localStorage:', result.error?.message);
       }
     } else if (typeof window !== 'undefined') {
       // Optional: Clear churchId if orgId is not available (e.g., user logs out of org)

@@ -1,6 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { logger } from '@/lib/logger';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,7 +41,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    logger.error('Error in send-scheduled-campaigns function:', error)
+    console.error('Error in send-scheduled-campaigns function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
