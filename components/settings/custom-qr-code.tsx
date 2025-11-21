@@ -1,5 +1,5 @@
 "use client";
-import { logger } from '@/lib/logger';
+
 
 import { useEffect, useRef } from 'react';
 import QRCodeLib from 'qrcode';
@@ -113,7 +113,7 @@ export function CustomQRCode({
           };
           logo.onload = drawLogo;
           logo.onerror = (error) => {
-            logger.error('Failed to load logo image', {
+            console.error('Failed to load logo image', {
               operation: 'ui.qr.logo_load_error',
               logoUrl,
               possibleCause: 'CORS policy, invalid URL, or network error',
@@ -134,7 +134,7 @@ export function CustomQRCode({
           }
         }
       } catch (error) {
-        logger.error('Error generating QR code:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+        console.error('Error generating QR code:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       }
     };
 

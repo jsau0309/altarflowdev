@@ -1,3 +1,4 @@
+import 'server-only';
 import { logger } from '@/lib/logger';
 
 /**
@@ -5,6 +6,9 @@ import { logger } from '@/lib/logger';
  *
  * Sends critical error notifications to Slack channels
  * Integrates with Sentry for automatic error escalation
+ *
+ * ⚠️ SERVER-SIDE ONLY: This module uses Node.js fetch and process.env
+ * and cannot be imported in client components.
  *
  * Setup:
  * 1. Create Slack App: https://api.slack.com/apps

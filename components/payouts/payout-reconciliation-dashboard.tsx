@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -50,7 +50,7 @@ export function PayoutReconciliationDashboard() {
       setStatistics(data.statistics)
       setPayouts(data.recentPayouts)
     } catch (error) {
-      logger.error('Error fetching reconciliation data:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error fetching reconciliation data:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error('Failed to load reconciliation data')
     } finally {
       setIsLoading(false)
@@ -86,7 +86,7 @@ export function PayoutReconciliationDashboard() {
       // Refresh the data
       await fetchReconciliationData()
     } catch (error) {
-      logger.error('Error reconciling payout:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error reconciling payout:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(
         t('banking:reconciliation.toast.reconcileError', 'Failed to reconcile payout'),
         { 
@@ -132,7 +132,7 @@ export function PayoutReconciliationDashboard() {
       // Refresh the data
       await fetchReconciliationData()
     } catch (error) {
-      logger.error('Error reconciling all payouts:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error reconciling all payouts:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(
         t('banking:reconciliation.toast.reconcileAllError', 'Failed to reconcile payouts'),
         { 
@@ -210,7 +210,7 @@ export function PayoutReconciliationDashboard() {
       // Refresh the data
       await fetchReconciliationData()
     } catch (error) {
-      logger.error('Error importing historical payouts:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error importing historical payouts:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(
         t('banking:reconciliation.toast.importError', 'Failed to import payouts'),
         { 

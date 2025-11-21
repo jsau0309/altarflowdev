@@ -1,5 +1,5 @@
 "use client";
-import { logger } from '@/lib/logger';
+
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -77,7 +77,7 @@ export function GeneralSettings() {
           toast.error(t('settings:general.profileLoadFailed', 'Failed to load church profile'));
         }
       } catch (error) {
-        logger.error('Failed to fetch church profile:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+        console.error('Failed to fetch church profile:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
         toast.error(t('settings:general.profileLoadFailed', 'Failed to load church profile'));
       } finally {
         setIsLoadingProfile(false);
@@ -97,7 +97,7 @@ export function GeneralSettings() {
       router.refresh();
       toast.success(t('settings:general.languageChanged', 'Language updated successfully'));
     } catch (error) {
-      logger.error('Failed to change language:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Failed to change language:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('settings:general.languageChangeFailed', 'Failed to update language'));
     } finally {
       setIsChangingLanguage(false);
@@ -112,7 +112,7 @@ export function GeneralSettings() {
       setTheme(selectedTheme);
       toast.success(t('settings:general.themeChanged', 'Theme updated successfully'));
     } catch (error) {
-      logger.error('Failed to change theme:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Failed to change theme:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('settings:general.themeChangeFailed', 'Failed to update theme'));
     } finally {
       setIsSavingTheme(false);
@@ -150,7 +150,7 @@ export function GeneralSettings() {
         }
       }
     } catch (error) {
-      logger.error('Failed to save church profile:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Failed to save church profile:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       if (error instanceof Error && error.message.includes('permissions')) {
         toast.error(error.message);
       } else {

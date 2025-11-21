@@ -5,6 +5,9 @@
  * and Slack notifications for critical errors.
  * Designed to be Turborepo-ready with zero Next.js dependencies in core.
  *
+ * ⚠️ SERVER-SIDE ONLY: This module uses Node.js APIs and cannot be imported
+ * in client components. Use console.log/console.error in client components instead.
+ *
  * @example
  * ```typescript
  * import { logger } from '@/lib/logger';
@@ -22,6 +25,7 @@
  * ```
  */
 
+import 'server-only';
 import * as Sentry from '@sentry/nextjs';
 import { sendSlackNotification, SlackNotifications } from '@/lib/slack-notifier';
 

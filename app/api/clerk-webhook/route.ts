@@ -51,8 +51,16 @@ export async function POST(req: Request) {
       "svix-signature": svix_signature,
     }) as WebhookEvent
   } catch (err) {
-    logger.error('Error verifying webhook', { operation: 'webhook.clerk.verification_error' }, err instanceof Error ? err : new Error(String(err)));
-    logger.error('Webhook verification details', { operation: 'webhook.clerk.verification_details', webhook_secret_length: WEBHOOK_SECRET.length, webhook_secret_prefix: WEBHOOK_SECRET.substring(0, 10), svix_id, svix_timestamp, signature_length: svix_signature?.length });
+    // Log the error with full context in a single call
+    logger.error('Webhook verification failed', {
+      operation: 'webhook.clerk.verification_error',
+      webhook_secret_length: WEBHOOK_SECRET.length,
+      webhook_secret_prefix: WEBHOOK_SECRET.substring(0, 10),
+      svix_id,
+      svix_timestamp,
+      signature_length: svix_signature?.length
+    }, err instanceof Error ? err : new Error(String(err)));
+
     return new Response('Error occurred -- verifying webhook', {
       status: 400
     })

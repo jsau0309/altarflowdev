@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import type { ReactNode } from "react"
 import React, {
@@ -58,7 +58,7 @@ const Confetti = forwardRef<ConfettiRef, Props>((props, ref) => {
             resize: true,
           })
         } catch (error) {
-          logger.error('Failed to initialize confetti:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+          console.error('Failed to initialize confetti:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           // Component continues to work without confetti
           instanceRef.current = null
         }
@@ -68,7 +68,7 @@ const Confetti = forwardRef<ConfettiRef, Props>((props, ref) => {
           try {
             instanceRef.current.reset()
           } catch (error) {
-            logger.error('Failed to reset confetti:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+            console.error('Failed to reset confetti:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           }
           instanceRef.current = null
         }

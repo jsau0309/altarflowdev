@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
@@ -119,7 +119,7 @@ export function FinancialAnalysisContent({ dateRange, onLoadingChange }: Financi
 
       // Structured error logging with context
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      logger.error('Financial Analysis Error', {
+      console.error('Financial Analysis Error', {
         operation: 'ui.report.analysis_error',
         message: errorMessage,
         timestamp: new Date().toISOString(),

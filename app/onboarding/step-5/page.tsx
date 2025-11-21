@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { logger } from '@/lib/logger';
 
 export default function OnboardingStep5() {
   const { t } = useTranslation(['onboarding', 'common', 'settings']);
@@ -43,7 +42,7 @@ export default function OnboardingStep5() {
       // Move to completion step
       router.push('/onboarding/step-6');
     } catch (error) {
-      logger.error('Error completing onboarding', { operation: 'ui.onboarding.complete_error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error completing onboarding:', error);
       showToast(
         t('onboarding:step5.continueError', 'Failed to complete setup. Please try again.'),
         'error'

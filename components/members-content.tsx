@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 import { Users, Filter } from "lucide-react"
 import { EnhancedMemberDirectory } from "@/components/members/enhanced-member-directory"
 import { AddMemberButton } from "@/components/members/add-member-button"
@@ -39,7 +39,7 @@ export function MembersContent() {
       }));
       setMembers(processedData);
     } catch (e) {
-      logger.error('Failed to fetch members:', { operation: 'ui.error' }, e instanceof Error ? e : new Error(String(e)));
+      console.error('Failed to fetch members:', { operation: 'ui.error' }, e instanceof Error ? e : new Error(String(e)));
       setError(t('common:errors.fetchFailed', 'Failed to load members. Please try again.'));
     } finally {
       setIsLoading(false)

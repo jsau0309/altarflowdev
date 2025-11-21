@@ -1,5 +1,4 @@
 "use client"
-import { logger } from '@/lib/logger';
 
 import type React from "react"
 import { useForm, FormProvider } from "react-hook-form"
@@ -144,7 +143,7 @@ export function MemberForm({ onSubmitSuccess }: { onSubmitSuccess?: (data: Membe
       reset();
       onSubmitSuccess?.(data);
     } catch (error) {
-      logger.error('Error submitting form:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error submitting form:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       sonnerToast.error(t("members:memberForm.errorTitle", "Error"), {
         description: t("members:memberForm.errorMessage", "Failed to submit form."),
       });

@@ -1,5 +1,5 @@
 "use client";
-import { logger } from '@/lib/logger';
+
 
 import { useEffect, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
@@ -119,7 +119,7 @@ export function ColorPicker({
         return;
       }
 
-      logger.error('EyeDropper error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('EyeDropper error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   };
 

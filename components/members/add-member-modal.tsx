@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import React, { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react" // CalendarIcon might be used by sections
@@ -97,7 +97,7 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
           setConfigError(t("common:errors.failedToLoadConfig", "Failed to load configuration."));
         }
       } catch (error) {
-        logger.error('Error fetching flow configuration:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+        console.error('Error fetching flow configuration:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
         setConfigError(t("common:errors.failedToLoadConfig", "Failed to load configuration."));
       } finally {
         setIsLoadingConfig(false);
@@ -161,7 +161,7 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
         });
       }
     } catch (error) {
-      logger.error('Error submitting form:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error submitting form:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('members:modal.addErrorTitle', 'Error Adding Member'), {
         description: t('common:networkError', 'A network error occurred. Please try again.'),
       });

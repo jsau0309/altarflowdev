@@ -148,7 +148,7 @@ Bring this data to life:
     const message = response.choices[0].message;
     if (message.tool_calls && message.tool_calls[0].function) {
       const functionArguments = JSON.parse(message.tool_calls[0].function.arguments);
-      
+
       // Add metadata to response
       const enrichedResponse = {
         summary: functionArguments,
@@ -159,10 +159,17 @@ Bring this data to life:
           generatedAt: new Date().toISOString()
         }
       };
-      
+
       return NextResponse.json(enrichedResponse);
     } else {
-      logger.error('[AI_SUMMARY_ERROR] OpenAI response did not include expected function call:', { operation: 'api.error' }, response instanceof Error ? response : new Error(String(response)));
+      // Log the unexpected response structure as context, not as an error object
+      logger.error('OpenAI response missing expected function call', {
+        operation: 'ai.report_summary.missing_function_call',
+        model: 'gpt-5-mini-2025-08-07',
+        hasToolCalls: !!message.tool_calls,
+        responseId: response.id,
+        finishReason: response.choices[0].finish_reason
+      });
       return new NextResponse("Failed to generate structured summary from AI.", { status: 500 });
     }
 

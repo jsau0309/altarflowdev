@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import { useState, useEffect, useCallback } from "react"
 import { Filter, Plus, Users, X, DollarSign, Edit3, Lock, ArrowLeft, Calendar as CalendarIcon, Globe, ArrowUpDown, Search } from "lucide-react"
@@ -114,7 +114,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
         setDonorsTotalItems(0);
       }
     } catch (error) {
-      logger.error('Failed to fetch donors:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Failed to fetch donors:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       setDonors([]);
       setDonorsTotalItems(0);
     } finally {
@@ -140,7 +140,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
       const data = await response.json();
       setPaymentMethods(data);
     } catch (error) {
-      logger.error('Failed to fetch payment methods:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Failed to fetch payment methods:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       setPaymentMethods([]);
     }
   };
@@ -155,7 +155,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     const churchIdFromStorage = typeof window !== 'undefined' ? safeStorage.getItem("churchId") : null;
 
     if (!churchIdFromStorage) {
-      logger.error('fetchDonations: churchId is not available from localStorage. Cannot fetch donations.', { operation: 'ui.error' });
+      console.error('fetchDonations: churchId is not available from localStorage. Cannot fetch donations.', { operation: 'ui.error' });
       toast.error(t('common:error'), {
         description: t('common:errors.churchId_not_found_detail', 'Church identifier is missing. Please ensure you are properly logged in or contact support.'),
       });
@@ -186,7 +186,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
         setTotalItems(0)
       }
     } catch (error) {
-      logger.error('Failed to fetch donations:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Failed to fetch donations:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       setDonations([])
       setTotalItems(0)
     } finally {

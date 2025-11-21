@@ -1,5 +1,5 @@
 "use client";
-import { logger } from '@/lib/logger';
+
 
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -88,7 +88,7 @@ export function CategoriesSettings() {
         setExpenseCategories(data);
       }
     } catch (error) {
-      logger.error('Error fetching expense categories:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error fetching expense categories:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ export function CategoriesSettings() {
         setPaymentMethods(data);
       }
     } catch (error) {
-      logger.error('Error fetching payment methods:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error fetching payment methods:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   };
 

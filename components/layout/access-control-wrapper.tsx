@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
@@ -60,7 +60,7 @@ export function AccessControlWrapper({ children }: AccessControlWrapperProps) {
         setLoading(false)
       })
       .catch(err => {
-        logger.error('Error fetching subscription info', { operation: 'ui.subscription.fetch_error' }, err instanceof Error ? err : new Error(String(err)))
+        console.error('Error fetching subscription info', { operation: 'ui.subscription.fetch_error' }, err instanceof Error ? err : new Error(String(err)))
         setLoading(false)
       })
   }, [pathname])

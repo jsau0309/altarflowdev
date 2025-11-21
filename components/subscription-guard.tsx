@@ -1,5 +1,5 @@
 "use client";
-import { logger } from '@/lib/logger';
+
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -39,7 +39,7 @@ export function SubscriptionGuard({ children, feature, fallback }: SubscriptionG
       const isActive = ['trial', 'active', 'past_due'].includes(data.status);
       setHasAccess(isActive);
     } catch (error) {
-      logger.error('Error checking subscription:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error checking subscription:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       setHasAccess(false);
     } finally {
       setIsLoading(false);

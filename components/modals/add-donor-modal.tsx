@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import type React from "react"
 
@@ -120,7 +120,7 @@ export function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
       // Optionally navigate or refresh data
       // router.refresh(); // If using Next.js App Router data fetching
     } catch (error) {
-      logger.error('Failed to add member:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Failed to add member:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       // Using key from members.json
       showToast(t('memberForm.errorMessage') || "Failed to add member", "error") // Fallback
     } finally {

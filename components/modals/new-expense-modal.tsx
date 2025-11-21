@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import { DialogFooter } from "@/components/ui/dialog"
 
@@ -73,7 +73,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
         .then((res) => res.json())
         .then((data) => setExpenseCategories(data))
         .catch((error) => {
-          logger.error('Error fetching expense categories', {
+          console.error('Error fetching expense categories', {
             operation: 'ui.expense.categories_fetch_error'
           }, error instanceof Error ? error : new Error(String(error)));
         });
@@ -227,7 +227,7 @@ export function NewExpenseModal({ isOpen, onClose, expenseToEdit, onSuccess }: N
       }
 
     } catch (err) {
-      logger.error('Expense form submission error:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
+      console.error('Expense form submission error:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
       apiError = err instanceof Error ? err.message : "An unexpected error occurred.";
       // Show error toast
       if (expenseToEdit) {

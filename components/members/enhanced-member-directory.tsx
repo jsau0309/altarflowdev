@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import { useState, useEffect, useMemo } from "react"
 import { Search, Phone, Mail, MailX } from "lucide-react"
@@ -300,7 +300,7 @@ export function EnhancedMemberDirectory({
                   </TableCell>
                   <TableCell>
                     {(() => {
-                      logger.debug('[Table] member.joinDate', {
+                      console.log('[Table] member.joinDate', {
                         operation: 'ui.member.join_date_debug',
                         joinDate: member.joinDate,
                         joinDateType: typeof member.joinDate
@@ -322,7 +322,7 @@ export function EnhancedMemberDirectory({
                       } else if (!member.joinDate) {
                         return t('common:notApplicable', 'N/A'); // Handle null/undefined
                       } else {
-                          logger.error('Member lastName is not a string', { operation: 'ui.member.lastname_error', lastName: member.lastName, type: typeof member.lastName });
+                          console.error('Member lastName is not a string', { operation: 'ui.member.lastname_error', lastName: member.lastName, type: typeof member.lastName });
                         return t('common:invalidDate', 'Invalid Date'); 
                       }
                     })()}

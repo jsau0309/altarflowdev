@@ -1,5 +1,4 @@
 'use client'
-import { logger } from '@/lib/logger';
 
 import React from 'react'
 import { AlertCircle } from 'lucide-react'
@@ -27,14 +26,13 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
   static getDerivedStateFromError(error: Error): State {
     // Log theme-specific errors
     if (error.message?.includes('useTheme') || error.message?.includes('ThemeProvider')) {
-      logger.error('Theme Provider Error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Theme Provider Error:', error);
     }
     return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.error('Theme Error Boundary caught', {
-      operation: 'ui.theme.error_boundary',
+    console.error('Theme Error Boundary caught:', {
       error: error.message,
       componentStack: errorInfo.componentStack
     }, error);

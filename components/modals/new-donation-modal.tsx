@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import { DialogFooter } from "@/components/ui/dialog"
 
@@ -90,7 +90,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
           setMembers(fetchedMembers)
           setDonationTypes(fetchedDonationTypes)
         } catch (error) {
-          logger.error('Error fetching data:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+          console.error('Error fetching data:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
           toast({
             description: t('donations:newDonationModal.errors.failedToLoadData'),
             variant: "destructive"
@@ -148,7 +148,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
         // currentMemberId = createdDonor.id;
         // Debug logging removed: creating new donor
       } catch (error) {
-        logger.error('Error creating donor:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+        console.error('Error creating donor:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
         toast({
           description: t('donations:newDonationModal.errors.failedToCreateDonor'),
           variant: "destructive"
@@ -195,7 +195,7 @@ export function NewDonationModal({ isOpen, onClose, fromDashboard = false, initi
       setIsLoading(false)
       onClose()
     } catch (error) {
-      logger.error('Error saving donation:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error saving donation:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast({
         description: t('donations:newDonationModal.errors.failedToSaveDonation'),
         variant: "destructive"

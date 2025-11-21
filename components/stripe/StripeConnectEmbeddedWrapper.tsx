@@ -1,5 +1,4 @@
 'use client';
-import { logger } from '@/lib/logger';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -127,7 +126,7 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
         if (!response.ok) {
           const errorData = await response.json();
           const errorMessage = errorData.error || `Failed to fetch account session: ${response.statusText}`;
-          logger.error('Error fetching Stripe Account Session:', { operation: 'ui.error' }, errorMessage instanceof Error ? errorMessage : new Error(String(errorMessage)));
+          console.error('Error fetching Stripe Account Session:', errorMessage);
           setError(errorMessage);
           throw new Error(errorMessage);
         }
@@ -146,16 +145,13 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
           return data.client_secret;
         } else {
           const errorMessage = 'Client secret not found in response.';
-          logger.error("Stripe Connect initialization error", { operation: "ui.stripe.init_error", error: errorMessage });
+          console.error("Stripe Connect initialization error:", errorMessage);
           setError(errorMessage);
           throw new Error(errorMessage);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching account session.';
-        logger.error('Stripe Connect initialization error', {
-          operation: 'ui.stripe.init_error',
-          error: errorMessage
-        }, err instanceof Error ? err : new Error(String(err)));
+        console.error('Stripe Connect initialization error:', errorMessage, err);
         setError(errorMessage);
         throw new Error(errorMessage);
       }
@@ -187,7 +183,7 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
         setConnectInstance(instance);
       } catch (e) {
         // This catch is for errors thrown directly by loadConnectAndInitialize (e.g., invalid pk)
-        logger.error('Error during loadConnectAndInitialize:', { operation: 'ui.error' }, e instanceof Error ? e : new Error(String(e)));
+        console.error('Error during loadConnectAndInitialize:', e);
         if (!error) { // Avoid overwriting a more specific error
           setError(e instanceof Error ? e.message : 'Failed to initialize Stripe Connect.');
         }

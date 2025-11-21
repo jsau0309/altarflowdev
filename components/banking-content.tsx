@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -150,13 +150,13 @@ export function BankingContent() {
         // Check if response has content before parsing
         const contentType = stripeResponse.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-      logger.error('Expected JSON response but got', { operation: 'ui.banking.content_type_error', contentType });
+      console.error('Expected JSON response but got', { operation: 'ui.banking.content_type_error', contentType });
           throw new Error('Invalid response format from server');
         }
 
         const responseText = await stripeResponse.text();
         if (!responseText) {
-          logger.error('Empty response from Stripe API', { operation: 'ui.error' });
+          console.error('Empty response from Stripe API', { operation: 'ui.error' });
           throw new Error('Empty response from server');
         }
         
@@ -164,7 +164,7 @@ export function BankingContent() {
         try {
           account = JSON.parse(responseText);
         } catch (parseError) {
-          logger.error('Failed to parse JSON response', {
+          console.error('Failed to parse JSON response', {
             operation: 'ui.banking.json_parse_error',
             responseText: responseText.substring(0, 100)
           }, parseError instanceof Error ? parseError : new Error(String(parseError)));
@@ -177,7 +177,7 @@ export function BankingContent() {
           setStripeAccount(account);
         }
       } catch (err) {
-        logger.error('Error fetching Stripe account:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
+        console.error('Error fetching Stripe account:', { operation: 'ui.error' }, err instanceof Error ? err : new Error(String(err)));
         if (isMounted) {
           setError(err instanceof Error ? err.message : t('common:errors.unknownError'))
         }

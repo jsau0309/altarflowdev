@@ -1,3 +1,4 @@
+import 'server-only';
 import { logger } from '@/lib/logger';
 import { sendSlackNotification, SlackNotifications } from '@/lib/slack-notifier';
 
@@ -6,6 +7,9 @@ import { sendSlackNotification, SlackNotifications } from '@/lib/slack-notifier'
  *
  * Tracks slow operations, database queries, and API response times.
  * Automatically alerts on performance degradation.
+ *
+ * ⚠️ SERVER-SIDE ONLY: This module uses performance.now() and Node.js APIs
+ * and should only be used in server components and API routes.
  *
  * @example
  * ```typescript

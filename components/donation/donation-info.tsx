@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -375,7 +375,7 @@ export default function DonationInfo({
         // This should ideally not be reached if all stages are handled.
         // The 'never' type helps ensure exhaustiveness at compile time.
         const exhaustiveCheck: never = phoneVerificationStage;
-        logger.warn('Unexpected phoneVerificationStage: ${exhaustiveCheck}', { operation: 'ui.warn' });
+        console.warn('Unexpected phoneVerificationStage: ${exhaustiveCheck}', { operation: 'ui.warn' });
         return <div>{t('common:unexpectedError', 'An unexpected error occurred.')}</div>;
     }
   };

@@ -1,5 +1,5 @@
 "use client"
-import { logger } from '@/lib/logger';
+
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
@@ -38,7 +38,7 @@ const formatDateForInput = (dateInput: Date | string | undefined | null): string
     if (isNaN(dateObj.getTime())) throw new Error("Invalid date");
     return dateObj.toISOString().split('T')[0]; // Format as YYYY-MM-DD
   } catch (error) {
-    logger.error('Error formatting date for input:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+    console.error('Error formatting date for input:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     return ''; // Fallback to empty string
   }
 };
@@ -80,7 +80,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
         mappedStatus = "Member";
       } else if (mappedStatus !== null && !["Visitor", "Member", "Inactive"].includes(mappedStatus)) {
         // If it's some other unexpected non-null value, default to null (shows placeholder)
-        logger.warn('[MemberDetailsDrawer] Unknown membershipStatus "${member.membershipStatus}" received for member ${member.id}. Defaulting to null.', { operation: 'ui.warn' });
+        console.warn('[MemberDetailsDrawer] Unknown membershipStatus "${member.membershipStatus}" received for member ${member.id}. Defaulting to null.', { operation: 'ui.warn' });
         mappedStatus = null;
       }
 
@@ -149,7 +149,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
             // Parse YYYY-MM-DD and format as full ISO string (assumes UTC start of day)
             finalJoinDate = new Date(`${formData.joinDate}T00:00:00Z`).toISOString();
         } catch {
-                  logger.error('Member joinDate is not a Date object', { operation: 'ui.member.joindate_error', joinDate: member.joinDate, type: typeof member.joinDate });
+                  console.error('Member joinDate is not a Date object', { operation: 'ui.member.joindate_error', joinDate: member.joinDate, type: typeof member.joinDate });
             // Handle error - maybe show a toast? For now, set to null.
             finalJoinDate = null;
         }
@@ -194,7 +194,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
       handleSaveSuccess(); // Call the original success handler
 
     } catch (error: any) {
-      logger.error('Error updating member:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error updating member:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       const isUniqueConstraintError = error.message?.includes('constraint violation') || error.message?.includes('already exist');
       let toastTitle = t('members:edit.errorTitle', 'Error Updating Member');
       let toastDescription = error.message || t('members:edit.errorMessage', 'Failed to update member details. Please try again.');
@@ -245,7 +245,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
       onActionComplete();
 
     } catch (error: any) {
-      logger.error('Error deleting member:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Error deleting member:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('members:delete.errorTitle', 'Error Deleting Member'), {
         description: error.message || t('members:delete.errorMessage', 'Failed to delete member. Please try again.')
       });
@@ -307,7 +307,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
               <p className="text-sm text-muted-foreground">
                 {t('members:memberSince', 'Member since {{date}}', { 
                   date: (() => { 
-                    logger.debug('[Drawer] member.joinDate', {
+                    console.log('[Drawer] member.joinDate', {
                       operation: 'ui.member.join_date_debug',
                       joinDate: member.joinDate,
                       joinDateType: typeof member.joinDate
