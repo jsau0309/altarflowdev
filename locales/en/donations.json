@@ -208,6 +208,9 @@
     "verifyPhone": "Verify Phone",
     "sendingOtp": "Sending OTP...",
     "phonePlaceholderE164": "e.g., +11234567890",
+    "phoneInvalidCountry": "Please enter a valid US phone number",
+    "phoneInvalid10Digits": "Phone number must be exactly 10 digits",
+    "phoneInvalidFormat": "Please enter a valid phone number",
     "otpSentTo": "An OTP has been sent to:",
     "otpCode": "Verification Code",
     "otpPlaceholder": "Enter 6-digit code",
@@ -220,7 +223,7 @@
     "pleaseWait": "Please wait a moment"
   },
   "donationDetails": {
-    "amountPrompt": "Enter an amount or make a quick selection below",
+    "amountPrompt": "Adjust the amount or make a quick selection",
     "selectFundLabel": "Select a Fund",
     "selectFundPlaceholder": "-- Choose Fund --",
     "funds": "Funds",

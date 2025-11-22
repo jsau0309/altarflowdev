@@ -1,12 +1,12 @@
 "use client"
 
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import PhoneInput, { formatPhoneNumber } from 'react-phone-number-input';
+import PhoneInput, { formatPhoneNumber, isPossiblePhoneNumber, parsePhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Check, Loader2 } from 'lucide-react'; // Import Check and Loader2 icons
@@ -49,6 +49,92 @@ export default function DonationInfo({
   createPaymentIntentForNewDonor,
 }: DonationInfoProps) {
   const { t } = useTranslation(['donations', 'members', 'common']);
+
+  // Phone validation state
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+
+  // Handle phone number changes with validation
+  const handlePhoneChange = (value: string | undefined) => {
+    setIsTyping(true);
+    setPhoneError(null); // Clear error while typing
+
+    if (!value) {
+      updateFormData({ phone: '' });
+      return;
+    }
+
+    // Auto-detect US numbers: if the number doesn't start with +, assume US
+    let processedValue = value;
+    if (!value.startsWith('+')) {
+      processedValue = `+1${value.replace(/\D/g, '')}`;
+    }
+
+    // If a country code other than +1 is detected, try to extract just the digits
+    // and reformat as US number if it's 10 digits
+    try {
+      const parsed = parsePhoneNumber(processedValue);
+      if (parsed && parsed.country !== 'US') {
+        // Extract just the national number (without country code)
+        const nationalNumber = parsed.nationalNumber;
+        if (nationalNumber.length === 10) {
+          // If it's 10 digits, it's likely a US number that was auto-detected wrong
+          processedValue = `+1${nationalNumber}`;
+        }
+      }
+    } catch (error) {
+      // If parsing fails, try to extract digits and format as US
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length <= 10) {
+        processedValue = `+1${digitsOnly}`;
+      }
+    }
+
+    // Enforce 10-digit maximum (excluding +1)
+    const digitsOnly = processedValue.replace(/\D/g, '');
+    if (digitsOnly.length > 11) { // +1 + 10 digits = 11 total
+      // Limit to 11 digits total (1 for country code + 10 for number)
+      const limitedDigits = digitsOnly.substring(0, 11);
+      processedValue = `+${limitedDigits}`;
+    }
+
+    updateFormData({ phone: processedValue });
+  };
+
+  // Handle phone input blur to validate
+  const handlePhoneBlur = () => {
+    setIsTyping(false);
+
+    if (!formData.phone) {
+      setPhoneError(null);
+      return;
+    }
+
+    try {
+      const parsed = parsePhoneNumber(formData.phone);
+      if (!parsed || parsed.country !== 'US') {
+        setPhoneError(t('donations:donationInfo.phoneInvalidCountry', 'Please enter a valid US phone number'));
+        return;
+      }
+
+      // Check if it's exactly 10 digits (excluding country code)
+      const nationalNumber = parsed.nationalNumber;
+      if (nationalNumber.length !== 10) {
+        setPhoneError(t('donations:donationInfo.phoneInvalid10Digits', 'Phone number must be exactly 10 digits'));
+        return;
+      }
+
+      // Validate using isPossiblePhoneNumber
+      if (!isPossiblePhoneNumber(formData.phone)) {
+        setPhoneError(t('donations:donationInfo.phoneInvalidFormat', 'Please enter a valid phone number'));
+        return;
+      }
+
+      setPhoneError(null);
+    } catch (error) {
+      setPhoneError(t('donations:donationInfo.phoneInvalidFormat', 'Please enter a valid phone number'));
+    }
+  };
 
   // Get country options from the library
   const countryOptions = useMemo(() => countryList().getData(), []);
@@ -126,12 +212,18 @@ export default function DonationInfo({
                 international
                 defaultCountry="US"
                 value={formData.phone || ""}
-                onChange={(value) => updateFormData({ phone: value || '' })}
+                onChange={handlePhoneChange}
+                onBlur={handlePhoneBlur}
                 placeholder={t('donations:donationInfo.phonePlaceholderE164', 'e.g., +11234567890')}
                 disabled={isLoadingOtpAction}
                 className="input flex h-10 w-full rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
               />
-              <p className="text-xs text-gray-600 mt-1">{t('donations:donationInfo.phoneVerificationPrompt', 'We will send a one-time code to this number.')}</p>
+              {phoneError && !isTyping && (
+                <p className="text-xs text-red-600 mt-1">{phoneError}</p>
+              )}
+              {!phoneError && (
+                <p className="text-xs text-gray-600 mt-1">{t('donations:donationInfo.phoneVerificationPrompt', 'We will send a one-time code to this number.')}</p>
+              )}
             </div>
             <Button onClick={handleSendOtp} disabled={isLoadingOtpAction || !formData.phone} className="w-full">
               {isLoadingOtpAction ? t('donations:donationInfo.sendingOtp', 'Sending OTP...') : t('donations:donationInfo.verifyPhone', 'Verify Phone')}

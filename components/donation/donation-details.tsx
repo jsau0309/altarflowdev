@@ -7,6 +7,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
 import type { DonationFormData } from "./donation-form"
 import { useTranslation } from 'react-i18next'
 import { DonationType } from "@prisma/client"; // Added import
@@ -25,7 +26,20 @@ interface DonationDetailsProps {
 }
 
 export default function DonationDetails({ formData, updateFormData, onNext, donationTypes }: DonationDetailsProps) { // Destructure donationTypes
-  const [amount, setAmount] = useState<string>(formData.amount === 0 ? "" : (formData.amount?.toString() || ""));
+  // Helper to convert amount to slider position (defined before state)
+  const amountToSliderInit = (amount: number): number => {
+    if (amount <= 100) {
+      return (amount - 5) / 95 * 20; // $5-$100 maps to 0-20
+    } else if (amount <= 300) {
+      return 20 + (amount - 100) / 200 * 40; // $100-$300 maps to 20-60
+    } else {
+      return 60 + (amount - 300) / 700 * 40; // $300-$1000 maps to 60-100
+    }
+  };
+
+  const [amount, setAmount] = useState<string>(formData.amount === 0 ? "10" : (formData.amount?.toString() || "10"));
+  const initialAmount = formData.amount === 0 ? 10 : formData.amount || 10;
+  const [sliderValue, setSliderValue] = useState<number[]>([amountToSliderInit(initialAmount)]);
   const { t } = useTranslation(['donations', 'common']);
   const [calculatedFee, setCalculatedFee] = useState<number>(0);
   const [totalWithFees, setTotalWithFees] = useState<number>(0);
@@ -50,11 +64,66 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
     const sanitizedValue = value.replace(/[^\d.]/g, "");
     const parts = sanitizedValue.split(".");
     const formattedValue = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitizedValue;
-    setAmount(formattedValue);
+    
+    // Update slider to match manual input (clamped between 5-1000)
+    const numericValue = Number.parseFloat(formattedValue) || 10;
+    const clampedValue = Math.min(Math.max(numericValue, 5), 1000);
+    
+    // Set amount state to clamped value to enforce $5-$1000 range
+    setAmount(clampedValue.toString());
+    
+    const sliderPos = amountToSlider(clampedValue);
+    setSliderValue([sliderPos]);
   };
 
   const handleQuickAmount = (quickAmount: number) => {
     setAmount(quickAmount.toString());
+    const sliderPos = amountToSlider(quickAmount);
+    setSliderValue([sliderPos]);
+  };
+
+  // Convert linear slider value (0-100) to actual dollar amount with variable steps
+  const sliderToAmount = (sliderPosition: number): number => {
+    // Define ranges with different step sizes
+    if (sliderPosition <= 20) {
+      // $5 to $100: Fine control ($5 steps)
+      return 5 + (sliderPosition / 20) * 95; // 0-20 maps to $5-$100
+    } else if (sliderPosition <= 60) {
+      // $100 to $300: Medium steps
+      return 100 + ((sliderPosition - 20) / 40) * 200; // 20-60 maps to $100-$300
+    } else {
+      // $300 to $1000: Large steps ($50)
+      return 300 + ((sliderPosition - 60) / 40) * 700; // 60-100 maps to $300-$1000
+    }
+  };
+
+  // Convert dollar amount to slider position (0-100)
+  const amountToSlider = (amount: number): number => {
+    if (amount <= 100) {
+      return (amount - 5) / 95 * 20; // $5-$100 maps to 0-20
+    } else if (amount <= 300) {
+      return 20 + (amount - 100) / 200 * 40; // $100-$300 maps to 20-60
+    } else {
+      return 60 + (amount - 300) / 700 * 40; // $300-$1000 maps to 60-100
+    }
+  };
+
+  const handleSliderChange = (value: number[]) => {
+    const sliderPos = value[0];
+    const actualAmount = sliderToAmount(sliderPos);
+
+    // Round to appropriate step based on range
+    let roundedAmount: number;
+    if (actualAmount <= 100) {
+      roundedAmount = Math.round(actualAmount / 5) * 5; // $5 steps
+    } else if (actualAmount <= 300) {
+      roundedAmount = Math.round(actualAmount / 10) * 10; // $10 steps
+    } else {
+      roundedAmount = Math.round(actualAmount / 50) * 50; // $50 steps
+    }
+
+    setSliderValue(value);
+    setAmount(roundedAmount.toString());
   };
 
   useEffect(() => {
@@ -87,21 +156,37 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center justify-between text-gray-900">
-        <div className="text-2xl font-medium">$</div>
+      <div className="flex items-center justify-center gap-4 text-gray-900">
+        <div className="text-2xl font-medium w-8 text-right">$</div>
         <input
           type="text"
           inputMode="decimal"
           value={amount}
           onChange={(e) => handleAmountChange(e.target.value)}
-          className="w-full text-center text-4xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0"
-          placeholder="0"
+          className="text-center text-4xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0 w-32"
+          placeholder="10"
         />
-        <div className="text-2xl font-medium">{t('common:currency.usd', 'USD')}</div>
+        <div className="text-2xl font-medium w-16 text-left">{t('common:currency.usd', 'USD')}</div>
+      </div>
+
+      {/* Slider for amount adjustment */}
+      <div className="space-y-2 px-2">
+        <Slider
+          value={sliderValue}
+          onValueChange={handleSliderChange}
+          min={0}
+          max={100}
+          step={0.1}
+          className="w-full"
+        />
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>$5</span>
+          <span>$1,000</span>
+        </div>
       </div>
 
       <div className="text-sm text-center text-gray-500">
-        {t('donations:donationDetails.amountPrompt', 'Enter an amount or make a quick selection below')}
+        {t('donations:donationDetails.amountPrompt', 'Adjust the slider, enter an amount, or make a quick selection below')}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
