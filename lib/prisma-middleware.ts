@@ -1,9 +1,16 @@
 import { logger } from '@/lib/logger';
 
-// NOTE: This file is deprecated and kept for backwards compatibility only.
+// ⚠️ DEPRECATED FILE - DO NOT USE ⚠️
+//
+// This file is kept for backwards compatibility only and is NO LONGER ACTIVE.
+//
 // Prisma 5.x+ removed the $use middleware API in favor of Prisma Client Extensions.
-// The connection error handling is now built into Prisma and handled by the withRetry
-// utility function in lib/db.ts
+// Connection error handling is now implemented via a Prisma Client Extension in:
+// - lib/prisma-extension-retry.ts (extension definition)
+// - lib/db.ts (extension is automatically applied to all operations)
+//
+// All database operations now have AUTOMATIC retry handling for connection failures.
+// No manual wrapping with withRetry() is needed - it happens automatically!
 
 // Legacy middleware type (no longer available in Prisma 5+)
 type LegacyMiddlewareParams = {
