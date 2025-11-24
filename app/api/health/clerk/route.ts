@@ -24,6 +24,7 @@ interface HealthCheckCache {
   responseTime: number;
   error?: string;
   rateLimited?: boolean; // Flag to indicate if this cache was extended due to rate limiting
+  originalTTL: number; // The TTL that was in effect when this data was fetched (NOT affected by subsequent rate limits)
 }
 
 let healthCheckCache: HealthCheckCache | null = null;
@@ -38,10 +39,19 @@ export async function GET() {
   // Use extended TTL if the cache was marked as rate-limited
   const effectiveTTL = healthCheckCache?.rateLimited ? RATE_LIMIT_CACHE_TTL_MS : CACHE_TTL_MS;
   if (healthCheckCache && Date.now() - healthCheckCache.timestamp < effectiveTTL) {
+    // BUG FIX #1: Reset rateLimited flag on cache hit
+    // The flag should only extend TTL temporarily, not permanently
+    // Once we're past the rate limit window, return to normal 4-minute TTL
+    const wasRateLimited = healthCheckCache.rateLimited;
+    if (wasRateLimited) {
+      healthCheckCache.rateLimited = false; // Reset for next fetch cycle
+    }
+    
     logger.debug('Returning cached Clerk health check result', {
       operation: 'health.clerk.cache_hit',
       cacheAge: Date.now() - healthCheckCache.timestamp,
       status: healthCheckCache.status,
+      wasRateLimited, // Log if this was from rate limit extension
     });
 
     return NextResponse.json(
@@ -93,27 +103,66 @@ export async function GET() {
       });
 
       // If we have a cached result, mark it as rate-limited to extend its TTL to 15 minutes
+      // IMPORTANT: We do NOT update the timestamp here to avoid masking real status changes
+      // The extended TTL only applies if the cached result is still within its original validity window
       if (healthCheckCache) {
-        // Mark the cache as rate-limited and update timestamp to ensure 15 minutes from NOW
-        healthCheckCache.rateLimited = true;
-        healthCheckCache.timestamp = Date.now(); // Update timestamp so TTL is 15 minutes from rate limit
+        // Calculate remaining cache validity from the original timestamp
+        const cacheAge = Date.now() - healthCheckCache.timestamp;
+        
+        // CRITICAL FIX: Always use the TTL that was in effect when data was FETCHED
+        // NOT the current rateLimited flag state (which may have been set by a previous rate limit)
+        // This ensures we validate against the actual freshness window of the cached data
+        const originalTTL = healthCheckCache.originalTTL;
+        
+        // Only use cached result if it's still within the original TTL
+        if (cacheAge < originalTTL) {
+          // Mark the cache as rate-limited to use extended TTL for future checks
+          // But keep the original timestamp and originalTTL to preserve data freshness
+          healthCheckCache.rateLimited = true;
 
-        return NextResponse.json(
-          {
-            status: healthCheckCache.status,
-            service: 'clerk',
-            message: 'Rate limit hit - returning cached status',
-            responseTime: `${responseTime}ms`,
-            cached: true,
-            rateLimited: true,
-            timestamp: new Date().toISOString(),
-          },
-          { status: healthCheckCache.status === 'healthy' ? 200 : 503 }
-        );
+          return NextResponse.json(
+            {
+              status: healthCheckCache.status,
+              service: 'clerk',
+              message: 'Rate limit hit - returning cached status',
+              responseTime: `${responseTime}ms`,
+              cached: true,
+              rateLimited: true,
+              cacheAge: `${Math.round(cacheAge / 1000)}s`,
+              timestamp: new Date().toISOString(),
+            },
+            { status: healthCheckCache.status === 'healthy' ? 200 : 503 }
+          );
+        }
+        
+        // Cache has expired - fall through to rate limit error
+        logger.warn('Cached result expired - cannot extend stale data', {
+          operation: 'health.clerk.rate_limit_cache_expired',
+          cacheAge: `${Math.round(cacheAge / 1000)}s`,
+          originalTTL: `${Math.round(originalTTL / 1000)}s`,
+        });
       }
 
-      // No cache available - return rate limit error
-      throw new Error(`Clerk API rate limit (429) - no cached result available`);
+      // BUG FIX #2: Don't throw error for rate limits - handle specially
+      // Rate limit is not a service failure, it's a temporary API constraint
+      // Return a specific rate limit response without marking service as unhealthy
+      logger.warn('Clerk API rate limited with no valid cache', {
+        operation: 'health.clerk.rate_limit_no_cache',
+        responseTime,
+      });
+      
+      return NextResponse.json(
+        {
+          status: 'rate_limited',
+          service: 'clerk',
+          message: 'Clerk API rate limit reached - no cached result available',
+          responseTime: `${responseTime}ms`,
+          cached: false,
+          rateLimited: true,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 429 } // Return 429 to indicate rate limiting, not service failure
+      );
     }
 
     if (!response.ok) {
@@ -128,6 +177,7 @@ export async function GET() {
       timestamp: Date.now(),
       responseTime,
       rateLimited: false, // Reset rate limit flag on successful check
+      originalTTL: CACHE_TTL_MS, // Store the TTL in effect when this data was fetched
     };
 
     // Send recovery notification only if transitioning from unhealthy to healthy
@@ -166,6 +216,32 @@ export async function GET() {
     const responseTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
+    // BUG FIX #2: Don't cache rate limit errors as unhealthy
+    // Check if this is a rate limit error (should not reach here after fix, but defensive)
+    const isRateLimitError = errorMessage.includes('rate limit') || errorMessage.includes('429');
+    
+    if (isRateLimitError) {
+      // Rate limit without cache should not be treated as service failure
+      logger.warn('Rate limit error caught in error handler (defensive check)', {
+        operation: 'health.clerk.rate_limit_error_handler',
+        responseTime,
+        errorMessage,
+      });
+      
+      return NextResponse.json(
+        {
+          status: 'rate_limited',
+          service: 'clerk',
+          message: 'Clerk API rate limit reached',
+          error: errorMessage,
+          responseTime: `${responseTime}ms`,
+          cached: false,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 429 }
+      );
+    }
+
     // Cache the unhealthy result to avoid repeated failures hitting Slack/Sentry
     const wasHealthy = healthCheckCache?.status === 'healthy' || healthCheckCache === null;
     
@@ -175,6 +251,7 @@ export async function GET() {
       responseTime,
       error: errorMessage,
       rateLimited: false, // Reset rate limit flag on failed check
+      originalTTL: CACHE_TTL_MS, // Store the TTL in effect when this data was fetched
     };
 
     logger.error(

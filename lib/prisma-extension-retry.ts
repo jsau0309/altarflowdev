@@ -79,6 +79,13 @@ function isRetryableError(error: any): boolean {
 
 /**
  * Execute a database operation with retry logic
+ * 
+ * @param operation - The database operation to execute
+ * @param operationName - Name of the operation for logging
+ * @param options - Retry configuration
+ * 
+ * Note: With maxRetries=3, this performs 3 TOTAL attempts (1 initial + 2 retries)
+ * not 4 attempts. This matches the behavior of the legacy withRetry() function.
  */
 async function executeWithRetry<T>(
   operation: () => Promise<T>,
@@ -87,7 +94,9 @@ async function executeWithRetry<T>(
 ): Promise<T> {
   let lastError: any;
   
-  for (let attempt = 0; attempt <= options.maxRetries; attempt++) {
+  // Loop from 0 to maxRetries-1 for correct total attempt count
+  // With maxRetries=3: attempts 0, 1, 2 = 3 total attempts
+  for (let attempt = 0; attempt < options.maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error: any) {
@@ -99,11 +108,12 @@ async function executeWithRetry<T>(
       }
       
       // Don't retry if we've exhausted our attempts
-      if (attempt >= options.maxRetries) {
+      if (attempt >= options.maxRetries - 1) {
         logger.error('Max retries exceeded for database operation', {
           operation: 'database.max_retries_exceeded',
           operationName,
           attempts: attempt + 1,
+          maxRetries: options.maxRetries,
           errorCode: error.code,
           errorMessage: error.message,
         }, error);
