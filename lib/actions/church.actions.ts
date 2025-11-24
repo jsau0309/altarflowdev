@@ -96,7 +96,7 @@ export async function getChurchBySlug(slug: string): Promise<ChurchData | null> 
 
     return churchData;
   } catch (error) {
-    logger.error('Error fetching church by slug "${slug}":', {
+    logger.error(`Error fetching church by slug "${slug}":`, {
       operation: 'actions.church.error',
       slug,
       timestamp: new Date().toISOString(),
@@ -113,7 +113,7 @@ export async function getChurchById(id: string): Promise<Church | null> {
     });
     return church;
   } catch (error) {
-    logger.error('Error fetching church by ID "${id}":', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error fetching church by ID "${id}":`, { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -125,7 +125,7 @@ export async function getChurchByClerkOrgId(clerkOrgId: string): Promise<Church 
     });
     return church;
   } catch (error) {
-    logger.error('Error fetching church by Clerk Org ID "${clerkOrgId}":', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error fetching church by Clerk Org ID "${clerkOrgId}":`, { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }

@@ -27,6 +27,7 @@ interface HealthCheckCache {
 }
 
 let healthCheckCache: HealthCheckCache | null = null;
+let lastNotificationStatus: 'healthy' | 'unhealthy' | null = null; // Track last notified state to prevent spam
 const CACHE_TTL_MS = 4 * 60 * 1000; // 4 minutes (just under the 5-minute monitor interval)
 const RATE_LIMIT_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes on rate limit
 
@@ -119,6 +120,8 @@ export async function GET() {
     }
 
     // Success - cache the healthy result
+    const wasUnhealthy = healthCheckCache?.status === 'unhealthy';
+    
     healthCheckCache = {
       status: 'healthy',
       timestamp: Date.now(),
@@ -126,10 +129,26 @@ export async function GET() {
       rateLimited: false, // Reset rate limit flag on successful check
     };
 
-    logger.debug('Clerk health check passed - result cached', {
-      operation: 'health.clerk.success',
-      responseTime,
-    });
+    // Send recovery notification only if transitioning from unhealthy to healthy
+    if (wasUnhealthy && lastNotificationStatus === 'unhealthy') {
+      await sendSlackNotification(
+        SlackNotifications.serviceHealthCheckRecovered({
+          service: 'clerk',
+          responseTime: `${responseTime}ms`,
+        })
+      );
+      lastNotificationStatus = 'healthy';
+      
+      logger.info('Clerk health check recovered - notification sent', {
+        operation: 'health.clerk.recovery',
+        responseTime,
+      });
+    } else {
+      logger.debug('Clerk health check passed - result cached', {
+        operation: 'health.clerk.success',
+        responseTime,
+      });
+    }
 
     return NextResponse.json(
       {
@@ -147,6 +166,8 @@ export async function GET() {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     // Cache the unhealthy result to avoid repeated failures hitting Slack/Sentry
+    const wasHealthy = healthCheckCache?.status === 'healthy' || healthCheckCache === null;
+    
     healthCheckCache = {
       status: 'unhealthy',
       timestamp: Date.now(),
@@ -165,15 +186,29 @@ export async function GET() {
       error instanceof Error ? error : new Error(String(error))
     );
 
-    // Send Slack notification for authentication system failure
-    // Only send if this is the first failure (not a cached failure)
-    await sendSlackNotification(
-      SlackNotifications.serviceHealthCheckFailed({
-        service: 'clerk',
-        error: errorMessage,
-        responseTime: `${responseTime}ms`,
-      })
-    );
+    // Send Slack notification ONLY on transition from healthy to unhealthy
+    // This prevents spam during extended outages (when cache expires every 4 minutes)
+    if (wasHealthy && lastNotificationStatus !== 'unhealthy') {
+      await sendSlackNotification(
+        SlackNotifications.serviceHealthCheckFailed({
+          service: 'clerk',
+          error: errorMessage,
+          responseTime: `${responseTime}ms`,
+        })
+      );
+      lastNotificationStatus = 'unhealthy';
+      
+      logger.warn('Clerk health check transitioned to unhealthy - notification sent', {
+        operation: 'health.clerk.failure_notification',
+        responseTime,
+      });
+    } else {
+      logger.debug('Clerk health check still unhealthy - notification suppressed', {
+        operation: 'health.clerk.failure_suppressed',
+        responseTime,
+        lastNotificationStatus,
+      });
+    }
 
     return NextResponse.json(
       {

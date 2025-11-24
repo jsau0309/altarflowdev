@@ -291,6 +291,34 @@ export const SlackNotifications = {
       ],
     };
   },
+
+  /**
+   * Third-party service health check recovered
+   */
+  serviceHealthCheckRecovered: (details: {
+    service: 'supabase' | 'stripe' | 'clerk' | 'resend';
+    responseTime?: string;
+  }): SlackNotification => {
+    const serviceLabels = {
+      supabase: { name: 'Supabase Database', emoji: '🗄️' },
+      stripe: { name: 'Stripe Payments', emoji: '💳' },
+      clerk: { name: 'Clerk Authentication', emoji: '🔐' },
+      resend: { name: 'Resend Email', emoji: '📧' },
+    };
+
+    const serviceInfo = serviceLabels[details.service];
+
+    return {
+      title: `✅ ${serviceInfo.name} Health Check Recovered`,
+      message: `The ${serviceInfo.name} integration has recovered and is now operational.`,
+      severity: 'info',
+      fields: [
+        { title: 'Service', value: serviceInfo.name, short: true },
+        { title: 'Response Time', value: details.responseTime || 'N/A', short: true },
+        { title: 'Status', value: 'Service is now healthy', short: false },
+      ],
+    };
+  },
 };
 
 /**

@@ -36,10 +36,23 @@ function createPrismaClient() {
   const connectionLimit = process.env.PRISMA_CONNECTION_LIMIT || '30'; // Default Supabase Pro limit
 
   // Append pool configuration if not already present in URL
+  // Check each parameter independently to avoid duplication
   let connectionUrl = databaseUrl;
-  if (databaseUrl && !databaseUrl.includes('pool_timeout=')) {
-    const separator = databaseUrl.includes('?') ? '&' : '?';
-    connectionUrl = `${databaseUrl}${separator}pool_timeout=${poolTimeout}&connection_limit=${connectionLimit}`;
+  if (databaseUrl) {
+    const params: string[] = [];
+    
+    if (!databaseUrl.includes('pool_timeout=')) {
+      params.push(`pool_timeout=${poolTimeout}`);
+    }
+    
+    if (!databaseUrl.includes('connection_limit=')) {
+      params.push(`connection_limit=${connectionLimit}`);
+    }
+    
+    if (params.length > 0) {
+      const separator = databaseUrl.includes('?') ? '&' : '?';
+      connectionUrl = `${databaseUrl}${separator}${params.join('&')}`;
+    }
   }
 
   const baseClient = new PrismaClient({
