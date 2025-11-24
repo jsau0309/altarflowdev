@@ -1,7 +1,7 @@
 "use client"
 
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Check, Loader2 } from 'lucide-react'; // Import Check and Loader2 icons
 import { DonationFormData, PhoneVerificationStage } from './donation-form'; // Import types
 import countryList from 'react-select-country-list';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { REGEXP_ONLY_DIGITS } from 'input-otp';
 
 interface DonationInfoProps {
   formData: DonationFormData;
@@ -53,6 +55,91 @@ export default function DonationInfo({
   // Phone validation state
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  // Store the processed phone value locally to avoid async state update issues
+  const [currentPhoneValue, setCurrentPhoneValue] = useState<string>(formData.phone || '');
+
+  // WebOTP API abort controller - use ref to avoid dependency cycle
+  const otpAbortControllerRef = useRef<AbortController | null>(null);
+
+  // Sync local state with prop when it changes externally
+  useEffect(() => {
+    setCurrentPhoneValue(formData.phone || '');
+  }, [formData.phone]);
+
+  // WebOTP API - Automatically retrieve OTP from SMS
+  useEffect(() => {
+    // Only activate WebOTP when we're waiting for OTP
+    if (phoneVerificationStage !== 'otp_sent' && phoneVerificationStage !== 'otp_failed') {
+      // Clean up any existing listener
+      if (otpAbortControllerRef.current) {
+        otpAbortControllerRef.current.abort();
+        otpAbortControllerRef.current = null;
+      }
+      return;
+    }
+
+    // Check if WebOTP API is supported
+    if ('OTPCredential' in window) {
+      const ac = new AbortController();
+      otpAbortControllerRef.current = ac;
+
+      // Request OTP from SMS
+      navigator.credentials
+        .get({
+          // @ts-expect-error - OTPCredential is not yet in TypeScript types
+          otp: { transport: ['sms'] },
+          signal: ac.signal,
+        })
+        .then((otp) => {
+          // @ts-expect-error - OTPCredential type
+          if (otp?.code) {
+            // @ts-expect-error - OTPCredential type
+            setEnteredOtp(otp.code);
+          }
+        })
+        .catch((err) => {
+          // Ignore abort errors (expected when user cancels or changes stage)
+          if (err.name !== 'AbortError') {
+            console.warn('WebOTP API error:', err);
+          }
+        });
+
+      // Cleanup function
+      return () => {
+        ac.abort();
+        otpAbortControllerRef.current = null;
+      };
+    }
+  }, [phoneVerificationStage, setEnteredOtp]);
+
+  // Validate phone number synchronously
+  const validatePhoneNumber = (phoneValue: string): string | null => {
+    if (!phoneValue) {
+      return null;
+    }
+
+    try {
+      const parsed = parsePhoneNumber(phoneValue);
+      if (!parsed || parsed.country !== 'US') {
+        return t('donations:donationInfo.phoneInvalidCountry', 'Please enter a valid US phone number');
+      }
+
+      // Check if it's exactly 10 digits (excluding country code)
+      const nationalNumber = parsed.nationalNumber;
+      if (nationalNumber.length !== 10) {
+        return t('donations:donationInfo.phoneInvalid10Digits', 'Phone number must be exactly 10 digits');
+      }
+
+      // Validate using isPossiblePhoneNumber
+      if (!isPossiblePhoneNumber(phoneValue)) {
+        return t('donations:donationInfo.phoneInvalidFormat', 'Please enter a valid phone number');
+      }
+
+      return null;
+    } catch (error) {
+      return t('donations:donationInfo.phoneInvalidFormat', 'Please enter a valid phone number');
+    }
+  };
 
   // Handle phone number changes with validation
   const handlePhoneChange = (value: string | undefined) => {
@@ -60,80 +147,22 @@ export default function DonationInfo({
     setPhoneError(null); // Clear error while typing
 
     if (!value) {
+      setCurrentPhoneValue('');
       updateFormData({ phone: '' });
       return;
     }
 
-    // Auto-detect US numbers: if the number doesn't start with +, assume US
-    let processedValue = value;
-    if (!value.startsWith('+')) {
-      processedValue = `+1${value.replace(/\D/g, '')}`;
-    }
-
-    // If a country code other than +1 is detected, try to extract just the digits
-    // and reformat as US number if it's 10 digits
-    try {
-      const parsed = parsePhoneNumber(processedValue);
-      if (parsed && parsed.country !== 'US') {
-        // Extract just the national number (without country code)
-        const nationalNumber = parsed.nationalNumber;
-        if (nationalNumber.length === 10) {
-          // If it's 10 digits, it's likely a US number that was auto-detected wrong
-          processedValue = `+1${nationalNumber}`;
-        }
-      }
-    } catch (error) {
-      // If parsing fails, try to extract digits and format as US
-      const digitsOnly = value.replace(/\D/g, '');
-      if (digitsOnly.length <= 10) {
-        processedValue = `+1${digitsOnly}`;
-      }
-    }
-
-    // Enforce 10-digit maximum (excluding +1)
-    const digitsOnly = processedValue.replace(/\D/g, '');
-    if (digitsOnly.length > 11) { // +1 + 10 digits = 11 total
-      // Limit to 11 digits total (1 for country code + 10 for number)
-      const limitedDigits = digitsOnly.substring(0, 11);
-      processedValue = `+${limitedDigits}`;
-    }
-
-    updateFormData({ phone: processedValue });
+    // PhoneInput component handles all formatting, just use the value directly
+    setCurrentPhoneValue(value);
+    updateFormData({ phone: value });
   };
 
   // Handle phone input blur to validate
   const handlePhoneBlur = () => {
     setIsTyping(false);
-
-    if (!formData.phone) {
-      setPhoneError(null);
-      return;
-    }
-
-    try {
-      const parsed = parsePhoneNumber(formData.phone);
-      if (!parsed || parsed.country !== 'US') {
-        setPhoneError(t('donations:donationInfo.phoneInvalidCountry', 'Please enter a valid US phone number'));
-        return;
-      }
-
-      // Check if it's exactly 10 digits (excluding country code)
-      const nationalNumber = parsed.nationalNumber;
-      if (nationalNumber.length !== 10) {
-        setPhoneError(t('donations:donationInfo.phoneInvalid10Digits', 'Phone number must be exactly 10 digits'));
-        return;
-      }
-
-      // Validate using isPossiblePhoneNumber
-      if (!isPossiblePhoneNumber(formData.phone)) {
-        setPhoneError(t('donations:donationInfo.phoneInvalidFormat', 'Please enter a valid phone number'));
-        return;
-      }
-
-      setPhoneError(null);
-    } catch (error) {
-      setPhoneError(t('donations:donationInfo.phoneInvalidFormat', 'Please enter a valid phone number'));
-    }
+    // Validate using the current local value, not formData.phone
+    const error = validatePhoneNumber(currentPhoneValue);
+    setPhoneError(error);
   };
 
   // Get country options from the library
@@ -211,7 +240,7 @@ export default function DonationInfo({
                 id="phone-initial-input"
                 international
                 defaultCountry="US"
-                value={formData.phone || ""}
+                value={currentPhoneValue}
                 onChange={handlePhoneChange}
                 onBlur={handlePhoneBlur}
                 placeholder={t('donations:donationInfo.phonePlaceholderE164', 'e.g., +11234567890')}
@@ -225,7 +254,7 @@ export default function DonationInfo({
                 <p className="text-xs text-gray-600 mt-1">{t('donations:donationInfo.phoneVerificationPrompt', 'We will send a one-time code to this number.')}</p>
               )}
             </div>
-            <Button onClick={handleSendOtp} disabled={isLoadingOtpAction || !formData.phone} className="w-full">
+            <Button onClick={handleSendOtp} disabled={isLoadingOtpAction || !currentPhoneValue} className="w-full">
               {isLoadingOtpAction ? t('donations:donationInfo.sendingOtp', 'Sending OTP...') : t('donations:donationInfo.verifyPhone', 'Verify Phone')}
             </Button>
             <div className="space-y-2 pt-2">
@@ -276,26 +305,35 @@ export default function DonationInfo({
             {/* Show OTP form when not creating payment intent */}
             {!isCreatingPaymentIntent && (
               <>
-                <p className="text-gray-900">{t('donations:donationInfo.otpSentTo', 'An OTP has been sent to:')} {formData.phone}</p>
-                <div>
+                <p className="text-gray-900">{t('donations:donationInfo.otpSentTo', 'An OTP has been sent to:')} {formData.phone ? formatPhoneNumber(formData.phone) : ''}</p>
+                <div className="space-y-2">
                   <Label htmlFor="otpCode" className="text-gray-900">{t('donations:donationInfo.otpCode', 'Verification Code')}</Label>
-                  <Input
-                    id="otpCode"
-                    type="text"
-                    value={enteredOtp}
-                    onChange={(e) => setEnteredOtp(e.target.value)}
-                    placeholder={t('donations:donationInfo.otpPlaceholder', 'Enter 6-digit code')}
-                    maxLength={6}
-                    disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}
-                    className="bg-white text-gray-900 border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-blue-500"
-                  />
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={enteredOtp}
+                      onChange={(value) => setEnteredOtp(value)}
+                      disabled={isLoadingOtpAction || phoneVerificationStage === 'verifying_otp'}
+                      inputMode="numeric"
+                      pattern={REGEXP_ONLY_DIGITS}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
                 </div>
                 <Button
                       onClick={() => {
                         // Debug logging removed: OTP submission
                         handleCheckOtp(); // This calls the prop passed from DonationForm
                       }}
-                      disabled={isLoadingOtpAction || enteredOtp.length < 4 || phoneVerificationStage === 'verifying_otp'}
+                      disabled={isLoadingOtpAction || enteredOtp.length < 6 || phoneVerificationStage === 'verifying_otp'}
                       className="w-full"
                     >
                   {isLoadingOtpAction || phoneVerificationStage === 'verifying_otp' ? t('donations:donationInfo.verifyingOtp', 'Verifying...') : t('donations:donationInfo.submitOtp', 'Submit OTP')}
@@ -467,7 +505,7 @@ export default function DonationInfo({
         // This should ideally not be reached if all stages are handled.
         // The 'never' type helps ensure exhaustiveness at compile time.
         const exhaustiveCheck: never = phoneVerificationStage;
-        console.warn('Unexpected phoneVerificationStage: ${exhaustiveCheck}', { operation: 'ui.warn' });
+        console.warn(`Unexpected phoneVerificationStage: ${exhaustiveCheck}`, { operation: 'ui.warn' });
         return <div>{t('common:unexpectedError', 'An unexpected error occurred.')}</div>;
     }
   };

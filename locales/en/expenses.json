@@ -36,7 +36,7 @@
     "subtitle": "Track and manage your church expenses",
     "recordsTitle": "Expense Records",
     "recordsSubtitle": "View, add, and manage your church expenses",
-    "searchPlaceholder": "Search expenses...",
+    "searchPlaceholder": "Search expenses",
     "empty": {
       "title": "No expenses found",
       "adjustSearch": "Try adjusting your search terms.",

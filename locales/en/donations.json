@@ -267,12 +267,17 @@
   "donorsContent": {
     "subtitle": "Manage your donors",
     "addDonorButton": "Add Donor",
-    "searchPlaceholder": "Search donors (name, email, phone)...",
+    "searchPlaceholder": "Search donors",
     "empty": {
       "title": "No donors found",
       "adjustFilters": "Try adjusting your search.",
       "addFirst": "Add your first donor to get started."
     }
+  },
+  "donorTypes": {
+    "digital": "Digital",
+    "manual": "Manual",
+    "linkedToMember": "Linked to Member"
   },
   "addDonorModal": {
     "title": "Add New Donor",

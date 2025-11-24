@@ -275,12 +275,17 @@
     "donorsContent": {
       "subtitle": "Administra tus donantes",
       "addDonorButton": "Agregar Donante",
-      "searchPlaceholder": "Buscar donantes (nombre, correo, teléfono)...",
+      "searchPlaceholder": "Buscar donantes",
       "empty": {
         "title": "No se encontraron donantes",
         "adjustFilters": "Intenta ajustar tu búsqueda.",
         "addFirst": "Agrega tu primer donante para comenzar."
       }
+    },
+    "donorTypes": {
+      "digital": "Digital",
+      "manual": "Manual",
+      "linkedToMember": "Relacionado a miembro"
     },
     
     "addDonorModal": {

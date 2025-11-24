@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  // Optional: Template SID for domain-bound OTPs (WebOTP support)
+  const templateSid = process.env.TWILIO_VERIFY_TEMPLATE_SID;
 
   if (!accountSid || !authToken || !verifyServiceSid) {
     logger.error('Twilio environment variables are not fully configured.', { operation: 'api.error' });
@@ -36,9 +38,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid phone number format. Please use E.164 format (e.g., +1234567890).' }, { status: 400 });
     }
 
+    // Create verification with optional domain-bound OTP template
+    const verificationParams: {
+      to: string;
+      channel: 'sms';
+      templateSid?: string;
+    } = {
+      to: phoneNumber,
+      channel: 'sms',
+    };
+
+    // If template SID is configured, use it for domain-bound OTPs (WebOTP support)
+    if (templateSid) {
+      verificationParams.templateSid = templateSid;
+    }
+
     await client.verify.v2
       .services(verifyServiceSid)
-      .verifications.create({ to: phoneNumber, channel: 'sms' });
+      .verifications.create(verificationParams);
 
     // You might want to check verification.status here, though for sending, a successful API call is often enough.
     // Twilio will return a 201 Created status on successful initiation.

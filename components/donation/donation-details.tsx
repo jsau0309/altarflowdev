@@ -3,7 +3,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label"
@@ -43,6 +43,10 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
   const { t } = useTranslation(['donations', 'common']);
   const [calculatedFee, setCalculatedFee] = useState<number>(0);
   const [totalWithFees, setTotalWithFees] = useState<number>(0);
+  // Track if slider is currently being updated to prevent sync loop
+  const isSliderUpdating = useRef(false);
+  // Track current slider value to avoid reading from state in useEffect
+  const sliderValueRef = useRef<number[]>([amountToSliderInit(initialAmount)]);
 
   const isFundOrCampaignSelected = !!formData.donationTypeId;
   const isAmountValid = (Number.parseFloat(amount) || 0) > 0;
@@ -66,7 +70,9 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
     const formattedValue = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitizedValue;
     
     // Update slider to match manual input (clamped between 5-1000)
-    const numericValue = Number.parseFloat(formattedValue) || 10;
+    // Use isNaN check instead of || to properly handle 0 values
+    const parsedValue = Number.parseFloat(formattedValue);
+    const numericValue = isNaN(parsedValue) ? 10 : parsedValue;
     const clampedValue = Math.min(Math.max(numericValue, 5), 1000);
     
     // Set amount state to clamped value to enforce $5-$1000 range
@@ -74,12 +80,14 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
     
     const sliderPos = amountToSlider(clampedValue);
     setSliderValue([sliderPos]);
+    sliderValueRef.current = [sliderPos];
   };
 
   const handleQuickAmount = (quickAmount: number) => {
     setAmount(quickAmount.toString());
     const sliderPos = amountToSlider(quickAmount);
     setSliderValue([sliderPos]);
+    sliderValueRef.current = [sliderPos];
   };
 
   // Convert linear slider value (0-100) to actual dollar amount with variable steps
@@ -109,6 +117,7 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
   };
 
   const handleSliderChange = (value: number[]) => {
+    isSliderUpdating.current = true;
     const sliderPos = value[0];
     const actualAmount = sliderToAmount(sliderPos);
 
@@ -122,9 +131,41 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
       roundedAmount = Math.round(actualAmount / 50) * 50; // $50 steps
     }
 
-    setSliderValue(value);
+    // Clamp rounded amount to valid range
+    roundedAmount = Math.min(Math.max(roundedAmount, 5), 1000);
+
+    // Calculate the correct slider position from the rounded amount BEFORE updating state
+    // This ensures perfect synchronization - the slider position always matches the displayed amount
+    const syncedSliderPos = amountToSlider(roundedAmount);
+    
+    // Update both amount and slider value together to maintain synchronization
+    // The slider position must match the rounded amount exactly
     setAmount(roundedAmount.toString());
+    setSliderValue([syncedSliderPos]);
+    sliderValueRef.current = [syncedSliderPos];
+    
+    // Reset flag after state updates complete
+    setTimeout(() => {
+      isSliderUpdating.current = false;
+    }, 0);
   };
+
+  // Sync slider position with amount when amount changes (e.g., from manual input)
+  // Skip sync when slider is updating to prevent feedback loop
+  useEffect(() => {
+    if (!isSliderUpdating.current) {
+      const numericAmount = Number.parseFloat(amount) || 0;
+      const clampedAmount = Math.min(Math.max(numericAmount, 5), 1000);
+      const expectedSliderPos = amountToSlider(clampedAmount);
+      
+      // Only update slider if it's out of sync (more than 0.1 difference to avoid unnecessary updates)
+      const currentSliderPos = sliderValueRef.current[0];
+      if (Math.abs(currentSliderPos - expectedSliderPos) > 0.1) {
+        setSliderValue([expectedSliderPos]);
+        sliderValueRef.current = [expectedSliderPos];
+      }
+    }
+  }, [amount]); // Only depend on amount, not sliderValue to avoid loop
 
   useEffect(() => {
     const numericAmount = Number.parseFloat(amount) || 0; // This is in dollars
