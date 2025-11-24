@@ -26,6 +26,11 @@ interface DonationDetailsProps {
 }
 
 export default function DonationDetails({ formData, updateFormData, onNext, donationTypes }: DonationDetailsProps) { // Destructure donationTypes
+  // Constants matching backend validation (donation-form.tsx)
+  const MIN_AMOUNT = 5; // Minimum donation amount
+  const MAX_AMOUNT = 999999.99; // Maximum donation amount (matches backend validation)
+  const SLIDER_MAX = 1000; // Slider convenience max (for common amounts, manual input allows up to MAX_AMOUNT)
+
   // Helper to convert amount to slider position (defined before state)
   const amountToSliderInit = (amount: number): number => {
     if (amount <= 100) {
@@ -55,32 +60,83 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clamp and validate amount before submission (matches backend validation)
+    const parsedValue = Number.parseFloat(amount);
+    let finalAmount: number;
+    
+    if (isNaN(parsedValue) || parsedValue <= 0) {
+      finalAmount = 10; // Default to minimum
+    } else {
+      finalAmount = Math.min(Math.max(parsedValue, MIN_AMOUNT), MAX_AMOUNT); // Clamp to valid range
+    }
+    
+    // Update the displayed amount to match the clamped value
+    setAmount(finalAmount.toString());
+    
     // Double-check conditions, though button should be disabled
-    if (!canProceed) {
-      console.warn('Attempted to submit with invalid form data', { operation: 'ui.donation.validation_failed', isFundOrCampaignSelected, isAmountValid });
+    if (!isFundOrCampaignSelected || finalAmount <= 0) {
+      console.warn('Attempted to submit with invalid form data', { operation: 'ui.donation.validation_failed', isFundOrCampaignSelected, finalAmount });
       return;
     }
-    updateFormData({ amount: Number.parseFloat(amount) || 0 });
+    
+    updateFormData({ amount: finalAmount });
     onNext();
   };
 
   const handleAmountChange = (value: string) => {
+    // Only sanitize input during typing - allow free typing without clamping
     const sanitizedValue = value.replace(/[^\d.]/g, "");
     const parts = sanitizedValue.split(".");
     const formattedValue = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitizedValue;
     
-    // Update slider to match manual input (clamped between 5-1000)
-    // Use isNaN check instead of || to properly handle 0 values
+    // Allow empty string and intermediate values during typing
+    setAmount(formattedValue);
+    
+    // Update slider position based on amount
     const parsedValue = Number.parseFloat(formattedValue);
-    const numericValue = isNaN(parsedValue) ? 10 : parsedValue;
-    const clampedValue = Math.min(Math.max(numericValue, 5), 1000);
+    if (!isNaN(parsedValue) && parsedValue > 0) {
+      let sliderPos: number;
+      if (parsedValue > SLIDER_MAX) {
+        // Amount exceeds slider range - move slider all the way to the right
+        sliderPos = 100; // Max slider position
+      } else {
+        // Calculate normal slider position for amounts within range
+        const clampedForSlider = Math.min(Math.max(parsedValue, MIN_AMOUNT), SLIDER_MAX);
+        sliderPos = amountToSlider(clampedForSlider);
+      }
+      setSliderValue([sliderPos]);
+      sliderValueRef.current = [sliderPos];
+    }
+  };
+
+  const handleAmountBlur = () => {
+    // Clamp and validate only when user finishes typing (on blur)
+    const parsedValue = Number.parseFloat(amount);
     
-    // Set amount state to clamped value to enforce $5-$1000 range
-    setAmount(clampedValue.toString());
-    
-    const sliderPos = amountToSlider(clampedValue);
-    setSliderValue([sliderPos]);
-    sliderValueRef.current = [sliderPos];
+    if (isNaN(parsedValue) || parsedValue <= 0) {
+      // If empty or invalid, set to minimum valid amount
+      setAmount("10");
+      const sliderPos = amountToSlider(10);
+      setSliderValue([sliderPos]);
+      sliderValueRef.current = [sliderPos];
+    } else {
+      // Clamp to valid range (matches backend validation)
+      const clampedValue = Math.min(Math.max(parsedValue, MIN_AMOUNT), MAX_AMOUNT);
+      setAmount(clampedValue.toString());
+      
+      // Update slider position - move to max if amount exceeds slider range
+      let sliderPos: number;
+      if (clampedValue > SLIDER_MAX) {
+        // Amount exceeds slider range - move slider all the way to the right
+        sliderPos = 100; // Max slider position
+      } else {
+        // Calculate normal slider position for amounts within range
+        sliderPos = amountToSlider(clampedValue);
+      }
+      setSliderValue([sliderPos]);
+      sliderValueRef.current = [sliderPos];
+    }
   };
 
   const handleQuickAmount = (quickAmount: number) => {
@@ -131,8 +187,8 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
       roundedAmount = Math.round(actualAmount / 50) * 50; // $50 steps
     }
 
-    // Clamp rounded amount to valid range
-    roundedAmount = Math.min(Math.max(roundedAmount, 5), 1000);
+    // Clamp rounded amount to slider range (slider convenience max)
+    roundedAmount = Math.min(Math.max(roundedAmount, MIN_AMOUNT), SLIDER_MAX);
 
     // Calculate the correct slider position from the rounded amount BEFORE updating state
     // This ensures perfect synchronization - the slider position always matches the displayed amount
@@ -154,15 +210,26 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
   // Skip sync when slider is updating to prevent feedback loop
   useEffect(() => {
     if (!isSliderUpdating.current) {
-      const numericAmount = Number.parseFloat(amount) || 0;
-      const clampedAmount = Math.min(Math.max(numericAmount, 5), 1000);
-      const expectedSliderPos = amountToSlider(clampedAmount);
+      const parsedValue = Number.parseFloat(amount);
       
-      // Only update slider if it's out of sync (more than 0.1 difference to avoid unnecessary updates)
-      const currentSliderPos = sliderValueRef.current[0];
-      if (Math.abs(currentSliderPos - expectedSliderPos) > 0.1) {
-        setSliderValue([expectedSliderPos]);
-        sliderValueRef.current = [expectedSliderPos];
+      // Sync slider if we have a valid numeric value
+      if (!isNaN(parsedValue) && parsedValue > 0) {
+        let expectedSliderPos: number;
+        if (parsedValue > SLIDER_MAX) {
+          // Amount exceeds slider range - move slider all the way to the right
+          expectedSliderPos = 100; // Max slider position
+        } else {
+          // Calculate normal slider position for amounts within range
+          const clampedAmount = Math.min(Math.max(parsedValue, MIN_AMOUNT), SLIDER_MAX);
+          expectedSliderPos = amountToSlider(clampedAmount);
+        }
+        
+        // Only update slider if it's out of sync (more than 0.1 difference to avoid unnecessary updates)
+        const currentSliderPos = sliderValueRef.current[0];
+        if (Math.abs(currentSliderPos - expectedSliderPos) > 0.1) {
+          setSliderValue([expectedSliderPos]);
+          sliderValueRef.current = [expectedSliderPos];
+        }
       }
     }
   }, [amount]); // Only depend on amount, not sliderValue to avoid loop
@@ -204,6 +271,7 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
           inputMode="decimal"
           value={amount}
           onChange={(e) => handleAmountChange(e.target.value)}
+          onBlur={handleAmountBlur}
           className="text-center text-4xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0 w-32"
           placeholder="10"
         />
@@ -222,7 +290,7 @@ export default function DonationDetails({ formData, updateFormData, onNext, dona
         />
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>$5</span>
-          <span>$1,000</span>
+          <span>$1,000+</span>
         </div>
       </div>
 
