@@ -9,7 +9,7 @@ export interface DonationWithEditHistory extends DonationTransactionFE {
   editReason?: string | null;
   lastEditedBy?: string | null;
   lastEditedAt?: string | null;
-  editHistory?: any;
+  editHistory?: unknown;
   // Include refund and dispute fields from base type
 }
 

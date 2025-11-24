@@ -2,10 +2,10 @@
 
 import { prisma } from "@/lib/db";
 import { auth } from '@clerk/nextjs/server';
-import { FormConfiguration, defaultServiceTimes, defaultMinistries, defaultSettings } from "@/components/member-form/types"; // Adjust path if necessary
+import { FormConfiguration, defaultSettings } from "@/components/member-form/types"; // Adjust path if necessary
 import { FlowType, Prisma } from '@prisma/client'; // Import Prisma namespace for Prisma.JsonObject and FlowType
 import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
-import type { ServiceTime, Ministry, LifeStage, RelationshipStatus, MemberFormData } from '../../components/member-form/types'; // Ensure MemberFormData is imported if used
+import type { ServiceTime, Ministry, LifeStage, RelationshipStatus } from '../../components/member-form/types'; // Ensure MemberFormData is imported if used
 import { Resend } from 'resend'; // Import Resend
 import { logger } from '@/lib/logger';
 import { generateNewMemberWelcomeHtml, NewMemberWelcomeData } from '@/lib/email/templates/new-member-welcome';
@@ -89,7 +89,7 @@ async function sendWelcomeEmail(
 
     try {
         logger.info('Attempting to send welcome email to ${recipientEmail} for ${churchName} in ${language}.', { operation: 'flows.email.info' });
-        const { data, error } = await resend.emails.send({
+        const { error } = await resend.emails.send({
             from: `${churchName} <notifications@${process.env.YOUR_VERIFIED_RESEND_DOMAIN}>`,
             to: recipientEmail,
             subject: subjectText,
@@ -101,7 +101,7 @@ async function sendWelcomeEmail(
             return; 
         }
 
-        logger.info('Welcome email sent successfully to ${recipientEmail}. Message ID: ${data?.id}', { operation: 'flows.email.info' });
+        logger.info('Welcome email sent successfully to ${recipientEmail}.', { operation: 'flows.email.info' });
 
     } catch (exception) {
         logger.error('Exception during sending welcome email to ${recipientEmail}:', { operation: 'flows.email.error' }, exception instanceof Error ? exception : new Error(String(exception)));
@@ -173,8 +173,8 @@ export async function getFlowConfiguration(
         const settings = { ...defaultSettings, ...currentSettings };
 
         return {
-            serviceTimes: serviceTimes as any[], 
-            ministries: ministries as any[],
+            serviceTimes: serviceTimes as ServiceTime[], 
+            ministries: ministries as Ministry[],
             settings: settings,
             slug: flow.slug
         };
@@ -412,7 +412,7 @@ async function sendPrayerRequestEmail(
     : `New Prayer Request - ${submitterName}`;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: `${churchName} <notifications@${resendDomain}>`,
       to: [toEmail],
       subject: subject,
@@ -423,7 +423,7 @@ async function sendPrayerRequestEmail(
       logger.error('Error sending prayer request email to ${toEmail}:', { operation: 'flows.prayer_email.error' }, error instanceof Error ? error : new Error(String(error)));
       return; // Don't throw, just log and continue
     }
-    logger.info('Prayer request email sent successfully to ${toEmail}. Message ID: ${data?.id}', { operation: 'flows.prayer_email.info' });
+    logger.info('Prayer request email sent successfully to ${toEmail}.', { operation: 'flows.prayer_email.info' });
   } catch (e) {
     // Catch any other unexpected errors during the Resend API call
     logger.error('Unexpected error sending prayer request email to ${toEmail}:', { operation: 'flows.prayer_email.error' }, e instanceof Error ? e : new Error(String(e)));

@@ -48,7 +48,7 @@ interface CheckoutFormProps {
   churchName: string; // Added for return_url
 }
 
-const CheckoutForm = ({ formData, onBack, churchId, churchSlug, churchName }: CheckoutFormProps) => {
+const CheckoutForm = ({ formData, onBack, churchSlug, churchName }: CheckoutFormProps) => {
   useEffect(() => {
     // Listen for CSP violations
     const handleCSPViolation = () => {

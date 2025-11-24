@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
           if (parsed && typeof parsed === 'object' && typeof parsed.originalFilename === 'string') {
             preferredFilename = parsed.originalFilename;
           }
-        } catch (parseError) {
+        } catch {
           logger.warn('Failed to parse receipt metadata JSON', {
             operation: 'api.expense.metadata_parse_error',
             metadataEntry

@@ -32,7 +32,6 @@ export function EnhancedMemberDirectory({
   isLoading,
   error,
   filterStatus,
-  onFilterChange,
   onActionComplete
 }: EnhancedMemberDirectoryProps) {
   const [searchTerm, setSearchTerm] = useState("")

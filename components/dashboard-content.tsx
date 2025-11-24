@@ -120,8 +120,7 @@ export function DashboardContent() {
     setActiveModal(null);
   };
 
-  const handleDataRefresh = async (actionContext?: string) => {
-    const contextMessage = actionContext ? ` after ${actionContext}` : "";
+  const handleDataRefresh = async (_actionContext?: string) => {
     // Debug logging removed: refreshing dashboard data
     // setIsLoading(true); // Consider uncommenting if refresh is slow
     try {

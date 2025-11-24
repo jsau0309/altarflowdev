@@ -41,6 +41,7 @@ export default function SentryExamplePage() {
     });
     
     // This will cause a ReferenceError
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).myUndefinedFunction();
   };
 
@@ -56,6 +57,7 @@ export default function SentryExamplePage() {
       
       try {
         // Simulate an error
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const obj: any = null;
         obj.someMethod(); // This will throw
       } catch (error) {

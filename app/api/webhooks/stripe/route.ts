@@ -10,7 +10,6 @@ import * as Sentry from '@sentry/nextjs';
 import { captureWebhookEvent, capturePaymentError, withApiSpan } from '@/lib/sentry';
 import { logger } from '@/lib/logger';
 import { webhookLogger } from '@/lib/logger/domains/webhook';
-import { paymentLogger } from '@/lib/logger/domains/payment';
 import { hashChurchId, getEmailDomain } from '@/lib/logger/middleware';
 import { generateDonationReceiptHtml, DonationReceiptData } from '@/lib/email/templates/donation-receipt';
 import { isWebhookProcessed } from '@/lib/rate-limit';
@@ -1260,7 +1259,7 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
       select: { logoUrl: true }
     });
     churchLogoUrl = landingPageConfig?.logoUrl || undefined;
-  } catch (error) {
+  } catch {
     logger.warn('Failed to fetch church logo, proceeding without logo', {
       operation: 'receipt.logo_fetch_failed',
       churchId: hashChurchId(church.id)
@@ -1408,7 +1407,7 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
               });
               break;
             }
-          } catch (taxIdError: unknown) {
+          } catch {
             logger.warn('Error fetching Tax ID', {
               operation: 'receipt.ein.tax_id_fetch_failed',
               taxIdString
@@ -1581,7 +1580,6 @@ async function handleSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent
     });
     // processedAt already set when payment succeeded, no need to update again
   } catch (emailError: unknown) {
-    const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown email error';
     const errorCode = emailError instanceof Error && 'code' in emailError ? (emailError as Error & { code?: string }).code : undefined;
 
     logger.error('Error sending receipt email', {

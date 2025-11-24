@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function MemberRegistrationForm() {
-  const [formUrl, setFormUrl] = useState("https://altarflow.com/register/faithcommunity")
+  const [formUrl] = useState("https://altarflow.com/register/faithcommunity")
   const [copied, setCopied] = useState(false)
   const [formFields, setFormFields] = useState({
     firstName: true,

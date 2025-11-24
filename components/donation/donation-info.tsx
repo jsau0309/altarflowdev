@@ -374,8 +374,8 @@ export default function DonationInfo({
       default:
         // This should ideally not be reached if all stages are handled.
         // The 'never' type helps ensure exhaustiveness at compile time.
-        const exhaustiveCheck: never = phoneVerificationStage;
-        console.warn('Unexpected phoneVerificationStage: ${exhaustiveCheck}', { operation: 'ui.warn' });
+        const _exhaustiveCheck: never = phoneVerificationStage;
+        console.warn('Unexpected phoneVerificationStage', { operation: 'ui.warn' });
         return <div>{t('common:unexpectedError', 'An unexpected error occurred.')}</div>;
     }
   };

@@ -160,20 +160,20 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
         : t('campaigns:campaignModal.generalOfferingDescription')
 
     // Prepare campaign data
-    const campaignData = {
-      name,
-      description,
-      goal: 0, // No specific goal for these ongoing campaigns
-      startDate: formData.startDate || new Date().toISOString().split("T")[0],
-      endDate: null, // No end date for these ongoing campaigns
-      isActive: true,
-      allowRecurring,
-      recurringOptions: allowRecurring
-        ? {
-            frequencies: frequencies,
-            maxAmount: hasMaxAmount ? Number.parseFloat(formData.maxAmount) || 0 : null,
-          }
-        : undefined,
+    // const campaignData = {
+//       name,
+//       description,
+//       goal: 0, // No specific goal for these ongoing campaigns
+//       startDate: formData.startDate || new Date().toISOString().split("T")[0],
+//       endDate: null, // No end date for these ongoing campaigns
+//       isActive: true,
+//       allowRecurring,
+//       recurringOptions: allowRecurring
+//         ? {
+//             frequencies: frequencies,
+//             maxAmount: hasMaxAmount ? Number.parseFloat(formData.maxAmount) || 0 : null,
+//           }
+//         : undefined,
     }
 
     try {

@@ -170,7 +170,7 @@ export async function editManualDonation(params: EditDonationParams): Promise<Ed
     };
 
     // Get existing edit history or create new array
-    const existingHistory = existingDonation.editHistory as any[] || [];
+    const existingHistory = (Array.isArray(existingDonation.editHistory) ? existingDonation.editHistory : []) as Array<typeof editHistoryEntry>;
     const updatedHistory = [...existingHistory, editHistoryEntry];
 
     // Update the donation
