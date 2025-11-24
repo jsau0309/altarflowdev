@@ -32,9 +32,9 @@ export type DonorsApiResponse = {
   error?: string;
 };
 
-export async function getDonors(params: { page?: number; limit?: number; query?: string }): Promise<DonorsApiResponse> {
+export async function getDonors(params: { page?: number; limit?: number; query?: string; sortOrder?: 'asc' | 'desc' }): Promise<DonorsApiResponse> {
   noStore();
-  const { page = 1, limit = 10, query } = params;
+  const { page = 1, limit = 10, query, sortOrder = 'asc' } = params;
   const skip = (page - 1) * limit;
 
   const { orgId } = await auth();
@@ -112,9 +112,10 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
       where: whereClause,
       skip: skip,
       take: limit,
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { firstName: sortOrder },
+        { lastName: sortOrder },
+      ],
       include: {
         Member: {
           select: {
@@ -143,7 +144,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
         updatedAt: donor.updatedAt.toISOString(),
         memberId: donor.Member?.id || null,
         linkedMemberName: donor.Member ? `${donor.Member.firstName || ''} ${donor.Member.lastName || ''}`.trim() : null,
-        churchId: donor.Member?.churchId || null,
+        churchId: donor.churchId || null, // Use donor's own churchId, not from linked member
     }));
 
     return {

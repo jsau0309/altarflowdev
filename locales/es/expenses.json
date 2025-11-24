@@ -36,7 +36,7 @@
       "subtitle": "Seguimiento y gestión de tus gastos de la iglesia",
       "recordsTitle": "Registros de gastos",
       "recordsSubtitle": "Ver, agregar y gestionar tus gastos de la iglesia",
-      "searchPlaceholder": "Buscar gastos...",
+      "searchPlaceholder": "Buscar gastos",
       "empty": {
         "title": "No se encontraron gastos",
         "adjustSearch": "Intenta ajustar tus términos de búsqueda.",

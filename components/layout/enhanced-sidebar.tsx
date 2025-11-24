@@ -189,7 +189,7 @@ const Sidebar = React.forwardRef<
     {
       side = "left",
       variant = "sidebar",
-      collapsible = "offcanvas",
+      collapsible = "icon",
       className,
       children,
       ...props
@@ -401,16 +401,25 @@ const Sidebar = React.forwardRef<
                 state === 'collapsed' ? "px-2 justify-center" : "px-4"
               )}>
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                  <Image
-                    src={resolvedTheme === "dark" ? "/images/Altarflow-Dark.svg" : "/images/Altarflow-Light.svg"}
-                    alt={t('common:appName', 'Altarflow') + " Logo"}
-                    width={state === 'collapsed' ? 40 : 176}
-                    height={state === 'collapsed' ? 32 : 35}
-                    priority
-                    className={cn(
-                      "transition-all duration-300 ease-in-out",
-                    )}
-                  />
+                  {state === 'collapsed' ? (
+                    <Image
+                      src="/images/Altarflow-Cloud-Blue.png"
+                      alt={t('common:appName', 'Altarflow') + " Icon"}
+                      width={40}
+                      height={40}
+                      priority
+                      className="transition-all duration-300 ease-in-out"
+                    />
+                  ) : (
+                    <Image
+                      src={resolvedTheme === "dark" ? "/images/Altarflow-Dark.svg" : "/images/Altarflow-Light.svg"}
+                      alt={t('common:appName', 'Altarflow') + " Logo"}
+                      width={176}
+                      height={35}
+                      priority
+                      className="transition-all duration-300 ease-in-out"
+                    />
+                  )}
                 </Link>
               </div>
             </SidebarHeader>
