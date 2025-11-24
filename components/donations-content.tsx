@@ -97,6 +97,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   const [donorsCurrentPage, setDonorsCurrentPage] = useState(1);
   const [donorsItemsPerPage, setDonorsItemsPerPage] = useState(10);
   const [donorsTotalItems, setDonorsTotalItems] = useState(0);
+  const [currentChurchId, setCurrentChurchId] = useState<string | undefined>(undefined); // Track current church ID
   const donorsTotalPages = Math.ceil(donorsTotalItems / donorsItemsPerPage);
   const { t } = useTranslation(['donations', 'common', 'expenses', 'members'])
 
@@ -112,6 +113,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
       if (data.donors) {
         setDonors(data.donors);
         setDonorsTotalItems(data.totalDonors);
+        setCurrentChurchId(data.currentChurchId); // Store the current church ID
       } else {
         setDonors([]);
         setDonorsTotalItems(0);
@@ -1087,6 +1089,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                         }}
                         sortOrder={donorSortOrder}
                         onSortChange={setDonorSortOrder}
+                        currentChurchId={currentChurchId}
                       />
                       <div className="mt-4">
                         <TablePagination

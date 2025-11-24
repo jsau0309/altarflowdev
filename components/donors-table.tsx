@@ -26,9 +26,10 @@ interface DonorsTableProps {
   onViewDetails: (donorId: string) => void;
   sortOrder: 'asc' | 'desc';
   onSortChange: (order: 'asc' | 'desc') => void;
+  currentChurchId?: string; // Add current church ID to determine correct donor type
 }
 
-export function DonorsTable({ donors, onEdit, onViewDetails, sortOrder, onSortChange }: DonorsTableProps) {
+export function DonorsTable({ donors, onEdit, onViewDetails, sortOrder, onSortChange, currentChurchId }: DonorsTableProps) {
   const { t } = useTranslation('donations');
 
   // Format phone number to +1 (XXX) XXX-XXXX
@@ -53,17 +54,18 @@ export function DonorsTable({ donors, onEdit, onViewDetails, sortOrder, onSortCh
 
   // Determine donor type and return badge configuration
   const getDonorType = (donor: DonorFE): { label: string; color: string } => {
-    // Linked to Member: Has memberId
-    if (donor.memberId) {
+    // Linked to Member: Has memberId AND the linked member belongs to the current church
+    // Fix for ALT-123: Only show "Linked to Member" if the member is actually part of this church
+    if (donor.memberId && donor.linkedMemberChurchId && donor.linkedMemberChurchId === currentChurchId) {
       return { label: t('donorTypes.linkedToMember', 'Linked to Member'), color: 'bg-yellow-500' }; // Gold
     }
 
-    // Manual: Has churchId but no memberId
-    if (donor.churchId && !donor.memberId) {
+    // Manual: Has churchId (created as manual donor for this church) but not linked to a member in this church
+    if (donor.churchId && donor.churchId === currentChurchId) {
       return { label: t('donorTypes.manual', 'Manual'), color: 'bg-green-500' }; // Green
     }
 
-    // Digital: No churchId and no memberId
+    // Digital: No churchId or linked to a member in a different church (universal donor who donated digitally)
     return { label: t('donorTypes.digital', 'Digital'), color: 'bg-blue-500' }; // Blue
   };
 

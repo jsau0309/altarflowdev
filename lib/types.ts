@@ -103,6 +103,7 @@ export type DonorFE = {
   memberId?: string | null; // ID of the linked member
   linkedMemberName?: string | null; // Name of the linked member for display
   churchId?: string | null; // From linked member, for context in modals
+  linkedMemberChurchId?: string | null; // Church ID where the linked member belongs
 };
 
 // Donor type (example, update as needed)

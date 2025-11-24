@@ -29,6 +29,7 @@ export type DonorsApiResponse = {
   totalDonors: number;
   totalPages: number;
   currentPage: number;
+  currentChurchId?: string; // Add the current church ID for context
   error?: string;
 };
 
@@ -45,6 +46,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
       totalDonors: 0,
       totalPages: 0,
       currentPage: 1,
+      currentChurchId: undefined,
     };
   }
 
@@ -61,6 +63,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
         totalDonors: 0,
         totalPages: 0,
         currentPage: 1,
+        currentChurchId: undefined,
       };
     }
 
@@ -145,6 +148,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
         memberId: donor.Member?.id || null,
         linkedMemberName: donor.Member ? `${donor.Member.firstName || ''} ${donor.Member.lastName || ''}`.trim() : null,
         churchId: donor.churchId || null, // Use donor's own churchId, not from linked member
+        linkedMemberChurchId: donor.Member?.churchId || null, // Add the church ID of the linked member
     }));
 
     return {
@@ -152,6 +156,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
       totalDonors,
       totalPages: Math.ceil(totalDonors / limit),
       currentPage: page,
+      currentChurchId: church.id, // Include the current church ID
     };
   } catch (error) {
     logger.error('Failed to fetch donors', { operation: 'donors.fetch.error' }, error instanceof Error ? error : new Error(String(error)));
@@ -161,6 +166,7 @@ export async function getDonors(params: { page?: number; limit?: number; query?:
       totalDonors: 0,
       totalPages: 0,
       currentPage: 1,
+      currentChurchId: undefined,
     };
   }
 }
