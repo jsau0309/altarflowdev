@@ -14,7 +14,27 @@ interface ChurchData {
   donationTypes: SerializedDonationType[];
 }
 
+// In-memory cache for church data to reduce database load on public donation forms
+// NOTE: This will be replaced by Upstash Redis in ALT-126 for production-grade caching
+interface ChurchDataCache {
+  data: ChurchData;
+  timestamp: number;
+}
+
+const churchCache = new Map<string, ChurchDataCache>();
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds - short TTL for frequently changing data
+
 export async function getChurchBySlug(slug: string): Promise<ChurchData | null> {
+  // Check cache first
+  const cached = churchCache.get(slug);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    logger.debug('Returning cached church data', {
+      operation: 'actions.church.cache_hit',
+      slug,
+      cacheAge: Date.now() - cached.timestamp,
+    });
+    return cached.data;
+  }
   try {
     const church = await prisma.church.findUnique({
       where: { slug },
@@ -60,11 +80,29 @@ export async function getChurchBySlug(slug: string): Promise<ChurchData | null> 
       goalAmount: dt.goalAmount ? dt.goalAmount.toString() : null,
     }));
 
-    return { church, donationTypes: serializedDonationTypes };
+    const churchData = { church, donationTypes: serializedDonationTypes };
+
+    // Cache the result
+    churchCache.set(slug, {
+      data: churchData,
+      timestamp: Date.now(),
+    });
+
+    logger.debug('Church data fetched and cached', {
+      operation: 'actions.church.cache_miss',
+      slug,
+      donationTypesCount: donationTypes.length,
+    });
+
+    return churchData;
   } catch (error) {
-    logger.error('Error fetching church by slug "${slug}":', { operation: 'actions.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error('Error fetching church by slug "${slug}":', {
+      operation: 'actions.church.error',
+      slug,
+      timestamp: new Date().toISOString(),
+    }, error instanceof Error ? error : new Error(String(error)));
     // Optionally, rethrow or handle more gracefully
-    return null; 
+    return null;
   }
 }
 

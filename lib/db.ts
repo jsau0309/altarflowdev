@@ -29,11 +29,24 @@ const globalForPrisma = global as unknown as {
 
 // Create Prisma client with optimized configuration and automatic retry logic
 function createPrismaClient() {
+  // Build connection URL with connection pool settings
+  // Pool timeout is configured via connection string query parameters
+  const databaseUrl = process.env.DATABASE_URL;
+  const poolTimeout = process.env.PRISMA_POOL_TIMEOUT || '20'; // 20 seconds (increased from default 10s)
+  const connectionLimit = process.env.PRISMA_CONNECTION_LIMIT || '30'; // Default Supabase Pro limit
+
+  // Append pool configuration if not already present in URL
+  let connectionUrl = databaseUrl;
+  if (databaseUrl && !databaseUrl.includes('pool_timeout=')) {
+    const separator = databaseUrl.includes('?') ? '&' : '?';
+    connectionUrl = `${databaseUrl}${separator}pool_timeout=${poolTimeout}&connection_limit=${connectionLimit}`;
+  }
+
   const baseClient = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: connectionUrl,
       },
     },
     // Optimized connection configuration
