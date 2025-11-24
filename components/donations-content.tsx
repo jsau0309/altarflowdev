@@ -231,18 +231,14 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     return () => clearTimeout(timer);
   }, [donorSearchTerm]);
 
-  // Reset to page 1 when debounced search term changes
+  // Reset to page 1 when debounced search term changes (including when cleared)
   useEffect(() => {
-    if (debouncedSearchTerm) {
-      setCurrentPage(1);
-    }
+    setCurrentPage(1);
   }, [debouncedSearchTerm])
 
-  // Reset donors page to 1 when debounced donor search term changes
+  // Reset donors page to 1 when debounced donor search term changes (including when cleared)
   useEffect(() => {
-    if (debouncedDonorSearchTerm) {
-      setDonorsCurrentPage(1);
-    }
+    setDonorsCurrentPage(1);
   }, [debouncedDonorSearchTerm])
 
   // filteredDonors removed - donor filter removed

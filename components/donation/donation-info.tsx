@@ -254,7 +254,7 @@ export default function DonationInfo({
                 <p className="text-xs text-gray-600 mt-1">{t('donations:donationInfo.phoneVerificationPrompt', 'We will send a one-time code to this number.')}</p>
               )}
             </div>
-            <Button onClick={handleSendOtp} disabled={isLoadingOtpAction || !currentPhoneValue} className="w-full">
+            <Button onClick={handleSendOtp} disabled={isLoadingOtpAction || !currentPhoneValue || !!phoneError} className="w-full">
               {isLoadingOtpAction ? t('donations:donationInfo.sendingOtp', 'Sending OTP...') : t('donations:donationInfo.verifyPhone', 'Verify Phone')}
             </Button>
             <div className="space-y-2 pt-2">
