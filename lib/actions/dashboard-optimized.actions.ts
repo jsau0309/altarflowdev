@@ -66,12 +66,7 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
         // Use raw SQL for better performance - single query to get all donation data
         // GROSS LOGIC: If fees covered, add all fees. If not covered, amount only (no platform fee).
         // SECURITY: Using Prisma.sql for proper parameterization to prevent SQL injection
-        const donationStats = await prisma.$queryRaw<Array<{
-          weekly_total: bigint;
-          monthly_total: bigint;
-          last_month_total: bigint;
-          yearly_total: bigint;
-        }>>(Prisma.sql`
+        const donationStats = await prisma.$queryRaw(Prisma.sql`
           SELECT
             COALESCE(SUM(CASE WHEN "transactionDate" >= ${thisWeekStart} THEN
               CASE WHEN "processingFeeCoveredByDonor" > 0
@@ -101,16 +96,16 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
           WHERE "churchId" = ${church.id}::uuid
             AND status IN ('succeeded', 'succeeded\n')
             AND "transactionDate" >= ${thisYearStart}
-        `);
+        `) as Array<{
+          weekly_total: bigint;
+          monthly_total: bigint;
+          last_month_total: bigint;
+          yearly_total: bigint;
+        }>;
 
         // Single query for expense data
         // SECURITY: Using Prisma.sql for proper parameterization
-        const expenseStats = await prisma.$queryRaw<Array<{
-          weekly_total: number;
-          monthly_total: number;
-          last_month_total: number;
-          yearly_total: number;
-        }>>(Prisma.sql`
+        const expenseStats = await prisma.$queryRaw(Prisma.sql`
           SELECT
             COALESCE(SUM(CASE WHEN "expenseDate" >= ${thisWeekStart} THEN amount ELSE 0 END), 0)::float as weekly_total,
             COALESCE(SUM(CASE WHEN "expenseDate" >= ${thisMonthStart} THEN amount ELSE 0 END), 0)::float as monthly_total,
@@ -120,20 +115,25 @@ export async function getDashboardSummaryOptimized(): Promise<DashboardSummary |
           WHERE "churchId" = ${church.id}::uuid
             AND status IN ('APPROVED', 'PENDING')
             AND "expenseDate" >= ${thisYearStart}
-        `);
+        `) as Array<{
+          weekly_total: number;
+          monthly_total: number;
+          last_month_total: number;
+          yearly_total: number;
+        }>;
 
         // Single query for member stats (exclude visitors from active count)
         // SECURITY: Using Prisma.sql for proper parameterization
-        const memberStats = await prisma.$queryRaw<Array<{
-          new_members: bigint;
-          active_members: bigint;
-        }>>(Prisma.sql`
+        const memberStats = await prisma.$queryRaw(Prisma.sql`
           SELECT
             COUNT(CASE WHEN "joinDate" >= ${thisMonthStart} AND "membershipStatus" = 'Member' THEN 1 END) as new_members,
             COUNT(CASE WHEN "membershipStatus" = 'Member' THEN 1 END) as active_members
           FROM "Member"
           WHERE "churchId" = ${church.id}::uuid
-        `);
+        `) as Array<{
+          new_members: bigint;
+          active_members: bigint;
+        }>;
 
         // Get recent members (exclude visitors)
         const recentMembers = await prisma.member.findMany({

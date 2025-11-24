@@ -254,7 +254,7 @@ export async function deleteFundraisingCampaign(clerkOrgId: string, id: string):
   }
 
   // Use transaction for atomicity
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     const hasTransactions = await tx.donationTransaction.count({
       where: {
         churchId,

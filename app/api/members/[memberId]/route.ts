@@ -186,7 +186,7 @@ export async function DELETE(
     // Remove profile fetch
 
     // 2. Delete related records first (in a transaction)
-    const deleteResult = await prisma.$transaction(async (tx) => {
+    const deleteResult = await prisma.$transaction(async (tx: any) => {
       // Delete related Submission records
       await tx.submission.deleteMany({
         where: { memberId }
@@ -204,7 +204,7 @@ export async function DELETE(
           }
         },
       });
-    });
+    }) as { count: number };
 
     // 3. Check if a record was actually deleted
     if (deleteResult.count === 0) {

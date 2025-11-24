@@ -1,8 +1,30 @@
-import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger';
 
-// Enhanced middleware to handle connection errors gracefully
-export const connectionErrorMiddleware: Prisma.Middleware = async (params, next) => {
+// ⚠️ DEPRECATED FILE - DO NOT USE ⚠️
+//
+// This file is kept for backwards compatibility only and is NO LONGER ACTIVE.
+//
+// Prisma 5.x+ removed the $use middleware API in favor of Prisma Client Extensions.
+// Connection error handling is now implemented via a Prisma Client Extension in:
+// - lib/prisma-extension-retry.ts (extension definition)
+// - lib/db.ts (extension is automatically applied to all operations)
+//
+// All database operations now have AUTOMATIC retry handling for connection failures.
+// No manual wrapping with withRetry() is needed - it happens automatically!
+
+// Legacy middleware type (no longer available in Prisma 5+)
+type LegacyMiddlewareParams = {
+  model?: string;
+  action: string;
+  args?: any;
+  dataPath?: string[];
+  runInTransaction?: boolean;
+};
+
+type LegacyNext = (params: LegacyMiddlewareParams) => Promise<any>;
+
+// Enhanced middleware to handle connection errors gracefully (DEPRECATED)
+export const connectionErrorMiddleware = async (params: LegacyMiddlewareParams, next: LegacyNext) => {
   try {
     return await next(params)
   } catch (error: unknown) {

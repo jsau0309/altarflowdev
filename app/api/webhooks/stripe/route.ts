@@ -182,12 +182,12 @@ export async function POST(req: Request) {
         // Only log in development
         logger.debug(`Processing payment_intent.succeeded for PI: ${paymentIntentSucceeded.id}`, { operation: 'webhook.stripe.debug' });
 
-        let transaction;
+        let transaction: any;
         let stripeAccount: string | undefined; // Declare at higher scope for reuse
         
         // Use database transaction for atomic operations
         try {
-          transaction = await prisma.$transaction(async (tx) => {
+          transaction = await prisma.$transaction(async (tx: any) => {
             // First, check if the transaction exists
             const existingTransaction = await tx.donationTransaction.findUnique({
               where: { stripePaymentIntentId: paymentIntentSucceeded.id }
@@ -703,7 +703,7 @@ export async function POST(req: Request) {
           }
           
           // Batch database operations in a transaction for better performance
-          await prisma.$transaction(async (tx) => {
+          await prisma.$transaction(async (tx: any) => {
             // Update church subscription status AND mark onboarding as complete
             const updateData: Prisma.ChurchUpdateInput = {
               subscriptionStatus: 'active',
@@ -929,7 +929,7 @@ export async function POST(req: Request) {
         
         try {
           // Use database transaction for atomic operations
-          await prisma.$transaction(async (tx) => {
+          await prisma.$transaction(async (tx: any) => {
             // Find the transaction by payment intent ID
             const transaction = await tx.donationTransaction.findFirst({
               where: { 
@@ -994,7 +994,7 @@ export async function POST(req: Request) {
         
         try {
           // Use database transaction for atomic operations
-          await prisma.$transaction(async (tx) => {
+          await prisma.$transaction(async (tx: any) => {
             // Find the transaction by payment intent ID
             const transaction = await tx.donationTransaction.findFirst({
               where: { 
@@ -1089,7 +1089,7 @@ export async function POST(req: Request) {
         
         try {
           // Use database transaction for atomic operations
-          const { stripeAccountId } = await prisma.$transaction(async (tx) => {
+          const { stripeAccountId } = await prisma.$transaction(async (tx: any) => {
             // Determine which church this payout belongs to
             // Payouts are tied to connected accounts, so we need to extract the account ID
             const accountId = event.account; // This is the connected account ID for Connect webhooks
@@ -1155,7 +1155,7 @@ export async function POST(req: Request) {
             }
             
             return { stripeAccountId: accountId };
-          });
+          }) as { stripeAccountId: string };
           
           // If payout is paid, trigger reconciliation
           if (payout.status === 'paid') {
