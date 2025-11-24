@@ -62,7 +62,7 @@ export function MonthlyBarChart({ data, title, loading }: MonthlyBarChartProps) 
       tooltip: {
         callbacks: {
           label: function(context) {
-            return formatCurrency(context.parsed.y)
+            return formatCurrency(context.parsed.y ?? 0)
           }
         }
       }

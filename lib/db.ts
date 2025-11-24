@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { connectionErrorMiddleware } from './prisma-middleware';
 import { logger } from '@/lib/logger';
 
 // PrismaClient is attached to the `global` object in development to prevent
@@ -27,11 +26,9 @@ function createPrismaClient() {
     },
   });
 
-  // Add connection error middleware (if needed for older Prisma versions)
   // Note: Prisma 5.x+ has built-in connection pooling improvements
-  if (process.env.NODE_ENV === 'development') {
-    client.$use(connectionErrorMiddleware);
-  }
+  // The $use middleware API has been removed in favor of Prisma Client Extensions
+  // If needed, use client.$extends() instead
 
   return client;
 }
