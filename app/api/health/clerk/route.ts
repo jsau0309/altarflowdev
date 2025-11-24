@@ -39,19 +39,16 @@ export async function GET() {
   // Use extended TTL if the cache was marked as rate-limited
   const effectiveTTL = healthCheckCache?.rateLimited ? RATE_LIMIT_CACHE_TTL_MS : CACHE_TTL_MS;
   if (healthCheckCache && Date.now() - healthCheckCache.timestamp < effectiveTTL) {
-    // BUG FIX #1: Reset rateLimited flag on cache hit
-    // The flag should only extend TTL temporarily, not permanently
-    // Once we're past the rate limit window, return to normal 4-minute TTL
-    const wasRateLimited = healthCheckCache.rateLimited;
-    if (wasRateLimited) {
-      healthCheckCache.rateLimited = false; // Reset for next fetch cycle
-    }
+    // FIX: Do NOT reset rateLimited flag on cache hit
+    // The flag should only be reset when cache is refreshed with new data (lines 179, 253)
+    // Resetting on every cache hit creates a race condition where subsequent requests
+    // milliseconds later would use the wrong TTL calculation (4-min instead of 15-min)
     
     logger.debug('Returning cached Clerk health check result', {
       operation: 'health.clerk.cache_hit',
       cacheAge: Date.now() - healthCheckCache.timestamp,
       status: healthCheckCache.status,
-      wasRateLimited, // Log if this was from rate limit extension
+      rateLimited: healthCheckCache.rateLimited, // Log current rate limit state
     });
 
     return NextResponse.json(

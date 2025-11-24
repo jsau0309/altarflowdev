@@ -150,12 +150,12 @@ export async function withRetryTransaction<T>(
   maxRetries: number = 2
 ): Promise<T> {
   return withRetry(async () => {
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: any) => {
       return operation(tx);
     }, {
       maxWait: 5000, // 5 seconds max wait
       timeout: 15000, // 15 seconds timeout
-    });
+    }) as Promise<T>;
   }, maxRetries);
 }
 
