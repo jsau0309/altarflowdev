@@ -23,9 +23,16 @@ We implemented a **Prisma Client Extension** that automatically applies retry lo
 
 A Prisma Client Extension that:
 - Intercepts all database operations across all models
+- **NEW: Wraps client-level operations** (`$queryRaw`, `$transaction`, etc.)
 - Automatically retries operations that fail due to retryable errors
 - Uses exponential backoff with jitter for retry delays
 - Logs retry attempts and failures for monitoring
+
+**Covered Operations:**
+- ✅ Model operations: `prisma.user.findMany()`, `prisma.church.create()`, etc.
+- ✅ Client-level raw queries: `prisma.$queryRaw`, `prisma.$queryRawUnsafe`
+- ✅ Client-level transactions: `prisma.$transaction`
+- ❌ Execute operations: `prisma.$executeRaw`, `prisma.$executeRawUnsafe` (excluded to prevent unintended side effects)
 
 **Retryable Error Types:**
 - `P2024` - Connection pool timeout
@@ -102,6 +109,8 @@ const result = await withRetry(
 
 ## Testing
 
+### Basic Verification
+
 Run the verification script to confirm the implementation:
 
 ```bash
@@ -113,6 +122,20 @@ This verifies:
 - ✓ Extension can be applied to Prisma client
 - ✓ db.ts is correctly configured
 - ✓ All critical error codes are handled
+
+### Client-Level Operations Test
+
+Run the client-level retry test to verify `$queryRaw` and `$transaction` are covered:
+
+```bash
+npx tsx scripts/test-client-level-retry.ts
+```
+
+This verifies:
+- ✓ `$queryRaw` operations retry on connection failures
+- ✓ `$transaction` operations retry on connection failures
+- ✓ Health check endpoints are protected
+- ✓ Model operations continue to work
 
 ## Monitoring
 
@@ -149,11 +172,13 @@ const client = baseClient.$extends(retryExtension);
 
 ## Related Files
 
-- `lib/prisma-extension-retry.ts` - Extension definition
+- `lib/prisma-extension-retry.ts` - Extension definition (includes client-level wrapping)
 - `lib/db.ts` - Client configuration with extension
 - `lib/prisma-middleware.ts` - Deprecated (kept for reference only)
 - `scripts/verify-retry-implementation.ts` - Verification script
 - `scripts/test-db-retry.ts` - Integration test (requires DATABASE_URL)
+- `scripts/test-client-level-retry.ts` - Client-level operations test
+- `docs/RETRY_EXTENSION_CLIENT_LEVEL_BUG.md` - Bug analysis and fix documentation
 
 ## Troubleshooting
 

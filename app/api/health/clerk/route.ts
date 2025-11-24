@@ -94,8 +94,9 @@ export async function GET() {
 
       // If we have a cached result, mark it as rate-limited to extend its TTL to 15 minutes
       if (healthCheckCache) {
-        // Mark the cache as rate-limited (extends TTL from 4 minutes to 15 minutes)
+        // Mark the cache as rate-limited and update timestamp to ensure 15 minutes from NOW
         healthCheckCache.rateLimited = true;
+        healthCheckCache.timestamp = Date.now(); // Update timestamp so TTL is 15 minutes from rate limit
 
         return NextResponse.json(
           {

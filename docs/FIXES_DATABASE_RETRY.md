@@ -1,8 +1,20 @@
 # Database Retry Logic Fix - Summary
 
-## Issue Fixed
+## Issues Fixed
+
+### 1. Missing Automatic Retry Logic (Original Issue)
 
 **Problem**: The automatic retry middleware that was applied to all Prisma operations via `$use(connectionErrorMiddleware)` in development was removed during the Prisma 5.x upgrade. The replacement `withRetry` utility functions existed but were not used anywhere in the codebase, meaning **249+ database operations** lost automatic retry handling on connection failures.
+
+### 2. Client-Level Operations Missing Retry Coverage (P1 Bug - Fixed Nov 24, 2025)
+
+**Problem**: The initial retry extension implementation only wrapped model-level operations (`$allModels.$allOperations`) but did NOT cover client-level operations like:
+- `prisma.$queryRaw` / `prisma.$queryRawUnsafe`
+- `prisma.$transaction`
+
+This meant critical operations like health checks, analytics queries, and webhook transactions could still fail without retry protection.
+
+**Impact**: All health check endpoints, dashboard analytics, and Stripe webhooks were vulnerable to transient connection failures.
 
 ## Solution Implemented
 
@@ -10,11 +22,12 @@ Implemented a **Prisma Client Extension** that automatically applies retry logic
 
 ### Files Created
 
-1. **`lib/prisma-extension-retry.ts`** - New
+1. **`lib/prisma-extension-retry.ts`** - New (Updated Nov 24, 2025)
    - Prisma Client Extension with automatic retry logic
    - Handles all common connection error codes (P2024, P1017, P1001, P1002, P2034)
    - Implements exponential backoff with jitter
    - Logs retry attempts for monitoring
+   - **NEW**: Now includes client-level operation wrapping for `$queryRaw` and `$transaction`
 
 2. **`scripts/verify-retry-implementation.ts`** - New
    - Verification script that confirms the retry extension is properly configured
@@ -25,10 +38,21 @@ Implemented a **Prisma Client Extension** that automatically applies retry logic
    - Integration test suite for database retry functionality
    - Requires DATABASE_URL to run against actual database
 
-4. **`docs/DATABASE_RETRY_IMPLEMENTATION.md`** - New
+4. **`scripts/test-client-level-retry.ts`** - New (Nov 24, 2025)
+   - Test suite specifically for client-level retry operations
+   - Validates `$queryRaw` and `$transaction` retry behavior
+   - Simulates connection failures to verify retry logic
+
+5. **`docs/DATABASE_RETRY_IMPLEMENTATION.md`** - New (Updated Nov 24, 2025)
    - Comprehensive documentation of the retry implementation
    - Usage examples and troubleshooting guide
    - Migration notes from Prisma 4.x to 5.x
+   - **NEW**: Documents client-level operation coverage
+
+6. **`docs/RETRY_EXTENSION_CLIENT_LEVEL_BUG.md`** - New (Nov 24, 2025)
+   - Analysis of the client-level operations bug
+   - Impact assessment and affected code locations
+   - Solution documentation and testing strategy
 
 ### Files Modified
 
@@ -105,13 +129,15 @@ Expected output:
 - **Total**: 249+ operations now protected with automatic retry
 
 ### Coverage
-- ✅ All `prisma.model.find*()` operations
-- ✅ All `prisma.model.create()` operations
-- ✅ All `prisma.model.update()` operations
-- ✅ All `prisma.model.delete()` operations
-- ✅ All `prisma.$transaction()` operations
-- ✅ All `prisma.$queryRaw()` operations
+- ✅ All `prisma.model.find*()` operations (model-level)
+- ✅ All `prisma.model.create()` operations (model-level)
+- ✅ All `prisma.model.update()` operations (model-level)
+- ✅ All `prisma.model.delete()` operations (model-level)
+- ✅ All `prisma.$transaction()` operations (client-level) **[Fixed Nov 24, 2025]**
+- ✅ All `prisma.$queryRaw()` operations (client-level) **[Fixed Nov 24, 2025]**
+- ✅ All `prisma.$queryRawUnsafe()` operations (client-level) **[Fixed Nov 24, 2025]**
 - ✅ All operations across all models (church, donation, member, expense, etc.)
+- ❌ `prisma.$executeRaw()` / `$executeRawUnsafe()` (intentionally excluded to prevent unintended side effects)
 
 ## Backwards Compatibility
 
@@ -127,14 +153,26 @@ The legacy `withRetry()` and `withRetryTransaction()` functions are kept for:
    npx tsx scripts/verify-retry-implementation.ts
    ```
 
-2. **Deploy to staging** and monitor logs for:
+2. **Run client-level retry test** (new - Nov 24, 2025):
+   ```bash
+   npx tsx scripts/test-client-level-retry.ts
+   ```
+   This validates:
+   - ✅ `$queryRaw` operations retry correctly
+   - ✅ `$transaction` operations retry correctly
+   - ✅ Health check endpoints are protected
+   - ✅ Model operations continue to work
+
+3. **Deploy to staging** and monitor logs for:
    - `operation: 'database.retry_attempt'` - Should see these during connection issues
    - `operation: 'database.max_retries_exceeded'` - Should be rare
+   - `operation: '$queryRaw'` or `operation: '$transaction'` - Verify client-level retries
 
-3. **Monitor production** for improved resilience:
+4. **Monitor production** for improved resilience:
    - Fewer "Connection pool timeout" errors reaching users
    - Transient errors handled automatically
    - Better success rate for database operations
+   - Health check endpoints more resilient
 
 ## Migration Notes
 
