@@ -470,7 +470,7 @@ function Stepper({ currentStep }: StepperProps) {
   ]
 
   return (
-    <div className="flex items-center justify-center mb-8">
+    <div className="flex items-center justify-center mb-8 px-6">
       {steps.map((step, index) => (
         <div key={step.id} className="flex items-center">
           <StepIndicator step={step.id} currentStep={currentStep} label={step.name} />

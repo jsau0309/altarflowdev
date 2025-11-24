@@ -213,6 +213,9 @@
       "verifyPhone": "Verificar Teléfono",
       "sendingOtp": "Enviando código...",
       "phonePlaceholderE164": "ej., +11234567890",
+      "phoneInvalidCountry": "Por favor ingresa un número de teléfono válido de EE.UU.",
+      "phoneInvalid10Digits": "El número de teléfono debe tener exactamente 10 dígitos",
+      "phoneInvalidFormat": "Por favor ingresa un número de teléfono válido",
       "otpSentTo": "Se ha enviado un código de verificación a:",
       "otpCode": "Código de Verificación",
       "otpPlaceholder": "Ingresa el código de 6 dígitos",
@@ -226,7 +229,7 @@
     },
     
     "donationDetails": {
-      "amountPrompt": "Ingresa una cantidad o haz una selección rápida abajo",
+      "amountPrompt": "Desliza la barra o selecciona una cantidad abajo",
       "selectFundLabel": "Selecciona un Fondo",
       "selectFundPlaceholder": "-- Elige un Fondo --",
       "funds": "Fondos",
@@ -272,12 +275,17 @@
     "donorsContent": {
       "subtitle": "Administra tus donantes",
       "addDonorButton": "Agregar Donante",
-      "searchPlaceholder": "Buscar donantes (nombre, correo, teléfono)...",
+      "searchPlaceholder": "Buscar donantes",
       "empty": {
         "title": "No se encontraron donantes",
         "adjustFilters": "Intenta ajustar tu búsqueda.",
         "addFirst": "Agrega tu primer donante para comenzar."
       }
+    },
+    "donorTypes": {
+      "digital": "Digital",
+      "manual": "Manual",
+      "linkedToMember": "Relacionado a miembro"
     },
     
     "addDonorModal": {

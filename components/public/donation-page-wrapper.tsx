@@ -77,10 +77,10 @@ export function DonationPageWrapper({
         <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
           <span>{t('publicPage.poweredBy')}</span>
           <Image
-            src="/images/Altarflow.svg"
+            src="/images/Altarflow-Cloud-Blue.png"
             alt="Altarflow Logo"
-            width={70}
-            height={18}
+            width={24}
+            height={24}
           />
         </div>
 
