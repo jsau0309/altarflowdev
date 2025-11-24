@@ -65,7 +65,6 @@
     "@typeform/embed-react": "^4.6.0",
     "@types/dompurify": "^3.0.5",
     "@vercel/og": "^0.8.5",
-    "ai": "^3.4.33",
     "canvas": "^3.1.0",
     "canvas-confetti": "^1.9.4",
     "chart.js": "^4.5.0",
