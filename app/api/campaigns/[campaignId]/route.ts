@@ -199,7 +199,7 @@ export async function DELETE(
     }
 
     // Use transaction to prevent race condition
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const transactionCount = await tx.donationTransaction.count({
         where: {
           donationTypeId: campaignId,

@@ -44,7 +44,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    // SECURITY: Safely parse JSON body with error handling for aborted requests
+    let body
+    try {
+      body = await request.json()
+    } catch (error) {
+      // Handle aborted requests gracefully (expected when user navigates away)
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Don't log - this is expected behavior
+        return NextResponse.json(
+          { error: 'Request cancelled' },
+          { status: 499 } // 499 = Client Closed Request (non-standard but widely used)
+        )
+      }
+
+      // Invalid JSON or empty body - this IS an error
+      logger.error('Invalid JSON in financial report request', {
+        operation: 'api.reports.financial_invalid_json',
+        timestamp: new Date().toISOString(),
+      }, error instanceof Error ? error : new Error(String(error)))
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      )
+    }
+
     const { churchId, dateRange, previousPeriod } = body
 
     // CRITICAL: Validate required parameters
