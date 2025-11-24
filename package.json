@@ -155,6 +155,7 @@
     "glob": "^10.0.0",
     "inflight": "npm:@zkochan/inflight@^1.0.0",
     "@humanwhocodes/config-array": "npm:@eslint/config-array@^0.18.0",
-    "@humanwhocodes/object-schema": "npm:@eslint/object-schema@^2.1.4"
+    "@humanwhocodes/object-schema": "npm:@eslint/object-schema@^2.1.4",
+    "jsdom": "24.1.3"
   }
 }
