@@ -60,8 +60,8 @@ export function DonorsTable({ donors, onEdit, onViewDetails, sortOrder, onSortCh
       return { label: t('donorTypes.linkedToMember', 'Linked to Member'), color: 'bg-yellow-500' }; // Gold
     }
 
-    // Manual: Has churchId (created as manual donor for this church) but not linked to a member in this church
-    if (donor.churchId && donor.churchId === currentChurchId) {
+    // Manual: Has churchId (created as manual donor for this church) but not linked to any member
+    if (donor.churchId && donor.churchId === currentChurchId && !donor.memberId) {
       return { label: t('donorTypes.manual', 'Manual'), color: 'bg-green-500' }; // Green
     }
 
