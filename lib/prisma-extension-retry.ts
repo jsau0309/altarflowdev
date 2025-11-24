@@ -142,14 +142,18 @@ async function executeWithRetry<T>(
 
 /**
  * Create a Prisma Client Extension with automatic retry logic
- * 
+ *
  * This extension provides comprehensive retry coverage for:
  * 1. All model-level operations (User.findMany, Church.create, etc.)
- * 2. Client-level operations ($queryRaw, $transaction, etc.)
+ *
+ * Note: Client-level operations ($queryRaw, $transaction, etc.) are NOT wrapped
+ * because Prisma extensions don't provide a way to call the original method
+ * without recursion. For these operations, use the withRetry() wrapper from lib/db.ts
+ * or handle retries manually where needed.
  */
 export function createRetryExtension(options: RetryOptions = {}) {
   const config = { ...defaultOptions, ...options };
-  
+
   return Prisma.defineExtension({
     name: 'retry-extension',
     query: {
@@ -157,12 +161,12 @@ export function createRetryExtension(options: RetryOptions = {}) {
         // Apply retry logic to all operations on all models
         async $allOperations({ operation, model, args, query }) {
           const operationId = `${model}.${operation}`;
-          
+
           // Skip retry for excluded operations
           if (config.excludedOperations.has(operation)) {
             return query(args);
           }
-          
+
           return executeWithRetry(
             () => query(args),
             operationId,
@@ -171,47 +175,11 @@ export function createRetryExtension(options: RetryOptions = {}) {
         },
       },
     },
-    // Client-level operation wrapping for $queryRaw, $transaction, etc.
-    // This ensures that raw queries and transactions also benefit from retry logic
-    client: {
-      // Wrap $queryRaw with retry logic
-      async $queryRaw(...args: any[]) {
-        // Access the underlying Prisma client via Prisma.getExtensionContext
-        const prisma = Prisma.getExtensionContext(this) as any;
-        
-        return executeWithRetry(
-          () => prisma.$queryRaw(...args),
-          '$queryRaw',
-          config
-        );
-      },
-      
-      // Wrap $queryRawUnsafe with retry logic
-      async $queryRawUnsafe(...args: any[]) {
-        const prisma = Prisma.getExtensionContext(this) as any;
-        
-        return executeWithRetry(
-          () => prisma.$queryRawUnsafe(...args),
-          '$queryRawUnsafe',
-          config
-        );
-      },
-      
-      // Note: $executeRaw and $executeRawUnsafe are excluded from retry
-      // because they perform data modifications that should not be retried
-      // automatically (already in excludedOperations set)
-      
-      // Wrap $transaction with retry logic
-      async $transaction(...args: any[]) {
-        const prisma = Prisma.getExtensionContext(this) as any;
-        
-        return executeWithRetry(
-          () => prisma.$transaction(...args),
-          '$transaction',
-          config
-        );
-      },
-    },
+    // NOTE: Client-level operations ($queryRaw, $transaction, etc.) are NOT wrapped here
+    // Previous implementation caused infinite recursion because Prisma.getExtensionContext(this)
+    // returns the extended client, so calling $queryRaw on it would trigger the same wrapper.
+    // For $queryRaw and $transaction retry logic, use the withRetry() wrapper from lib/db.ts:
+    //   await withRetry(() => prisma.$queryRaw`SELECT 1`);
   });
 }
 
