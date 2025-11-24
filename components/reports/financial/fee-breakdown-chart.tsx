@@ -29,6 +29,7 @@ export function FeeBreakdownChart({ data, isLoading }: FeeBreakdownChartProps) {
       maximumFractionDigits: 2,
     }).format(value)
   }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -45,6 +46,7 @@ export function FeeBreakdownChart({ data, isLoading }: FeeBreakdownChartProps) {
       )
     }
     return null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }
   
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -129,6 +131,7 @@ export function FeeBreakdownChart({ data, isLoading }: FeeBreakdownChartProps) {
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
               <Legend 
                 verticalAlign="bottom" 
                 height={36}

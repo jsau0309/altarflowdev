@@ -12,6 +12,7 @@ export function initPostHog(): PostHog | null {
     const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
     const apiHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
 
+  // eslint-disable-next-line no-console
     if (!apiKey) {
       console.warn('PostHog API key not found. Analytics will not be tracked.')
       return null

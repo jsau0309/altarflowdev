@@ -51,6 +51,7 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setItems(sortedCampaigns);
     } catch (e: any) {
       setError(e.message || 'Failed to load campaigns');

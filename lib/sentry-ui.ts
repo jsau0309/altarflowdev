@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 
 // Helper for button click instrumentation
 export function instrumentButtonClick(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   buttonName: string,
   metadata: Record<string, any> = {},
   handler: () => void | Promise<void>
@@ -34,6 +35,7 @@ export function instrumentButtonClick(
 }
 
 // Helper for form submission instrumentation
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentFormSubmit<T>(
   formName: string,
   metadata: Record<string, any> = {},
@@ -43,6 +45,7 @@ export function instrumentFormSubmit<T>(
     Sentry.startSpan(
       {
         op: "ui.form.submit",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
         name: `${formName} Form Submit`,
         attributes: {
           'form.name': formName,
@@ -120,6 +123,7 @@ export async function instrumentedFetch<T>(
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 // Helper for tracking user interactions
 export function trackUserInteraction(
   action: string,

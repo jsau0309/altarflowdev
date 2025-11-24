@@ -176,6 +176,7 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
         const instance = loadConnectAndInitialize({
           publishableKey,
           fetchClientSecret: fetchClientSecretCallback,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
           appearance: isDarkMode ? darkModeAppearance : lightModeAppearance,
           locale: getStripeLocale() as any, // Set locale based on current language
         });

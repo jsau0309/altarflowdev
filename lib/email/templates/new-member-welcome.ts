@@ -1,4 +1,3 @@
-import { escapeHtml, escapeHtmlAttribute, escapeUrl, escapeAndValidateUrl } from '@/lib/email/escape-html';
 
 export interface NewMemberWelcomeData {
   firstName: string;
@@ -33,7 +32,7 @@ export function generateNewMemberWelcomeHtml(data: NewMemberWelcomeData, appUrl:
   const getInvolvedTitle = isSpanish ? `Formas de Participar` : `Ways to Get Involved`;
   const serviceTimesTitle = isSpanish ? `Horarios de Servicio` : `Service Times`;
   const ministriesTitle = isSpanish ? `Ministerios y Grupos` : `Ministries & Groups`;
-  const stayConnectedTitle = isSpanish ? `Mantente Conectado` : `Stay Connected`;
+  const _stayConnectedTitle = isSpanish ? `Mantente Conectado` : `Stay Connected`;
   const questionsTitle = isSpanish ? `¿Tienes Preguntas?` : `Have Questions?`;
   const questionsText = isSpanish 
     ? `Estamos aquí para ayudarte. No dudes en contactarnos si tienes alguna pregunta o necesitas más información.`

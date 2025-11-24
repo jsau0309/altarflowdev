@@ -87,7 +87,9 @@ export function validateServerEnv() {
   try {
     return serverEnvSchema.parse(process.env);
   } catch (error) {
+    // eslint-disable-next-line no-console
     if (error instanceof z.ZodError) {
+      // eslint-disable-next-line no-console
       console.error('❌ Invalid environment variables:');
       error.errors.forEach((err) => {
         console.error(`   ${err.path.join('.')}: ${err.message}`);
@@ -103,7 +105,9 @@ export function validateServerEnv() {
  */
 export function validateClientEnv() {
   try {
+    // eslint-disable-next-line no-console
     return clientEnvSchema.parse(process.env);
+      // eslint-disable-next-line no-console
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Invalid client environment variables:');

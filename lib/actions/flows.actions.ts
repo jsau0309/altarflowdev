@@ -179,7 +179,7 @@ export async function getFlowConfiguration(
             slug: flow.slug
         };
 
-    } catch (error) {
+    } catch {
         logger.error('Error fetching ${flowType} configuration for org ${orgId}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
         if (error instanceof Error) {
              throw new Error(`Failed to fetch ${flowType} configuration: ${error.message}`);
@@ -216,7 +216,7 @@ export async function saveFlowConfiguration(
         });
         churchId = church.id;
         churchSlug = church.slug;
-    } catch (error) {
+    } catch {
          logger.error('saveFlowConfiguration Error: Church not found for orgId ${orgId}.', { operation: 'flows.save_config.error' });
          return { success: false, message: "Associated church record not found." };
     }
@@ -245,7 +245,7 @@ export async function saveFlowConfiguration(
         logger.info('Flow configuration created successfully', { operation: 'flows.save_config.created', flowType, orgId, flowId: createdFlow.id });
         return { success: true, slug: flowSlug };
 
-    } catch (error) {
+    } catch {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
              logger.info('Create failed (P2002), attempting update', { operation: 'flows.save_config.p2002_retry', orgId, flowType });
              try {
@@ -342,7 +342,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
             churchName: flow.Church.name,
             name: flow.name,
         };
-    } catch (error) {
+    } catch {
         logger.error('Error fetching public flow configuration for slug ${slug}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
         return null;
     }
@@ -674,7 +674,7 @@ export async function submitFlow(
         logger.info('Submission successful for Flow ID: ${flowId}, linked to Member ID: ${memberId}', { operation: 'flows.submit.info' });
         return { success: true, message: "submissionSuccessMessage" };
 
-    } catch (error) {
+    } catch {
         logger.error('Error during submitFlow process for flow ${flowId} and email ${validatedFormData.email}:', { operation: 'flows.submit.error' }, error instanceof Error ? error : new Error(String(error)));
         let userMessage = "An error occurred while processing your submission. Please try again or contact support.";
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -718,7 +718,7 @@ export async function getActiveFlowsByChurchId(churchId: string): Promise<{ id: 
       },
     });
     return activeFlows;
-  } catch (error) {
+  } catch {
     logger.error('Error fetching active flows for church ${churchId}:', { operation: 'flows.get_active.error' }, error instanceof Error ? error : new Error(String(error)));
     return []; // Return empty array on error
   }

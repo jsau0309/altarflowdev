@@ -1,6 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
 import { logger } from './logger';
-import { webhookLogger } from './logger/domains/webhook';
 import { hashChurchId } from './logger/middleware';
 
 // Helper function to capture webhook events with context

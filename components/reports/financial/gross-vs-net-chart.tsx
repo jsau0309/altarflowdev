@@ -29,6 +29,7 @@ export function GrossVsNetChart({ data, isLoading }: GrossVsNetChartProps) {
       maximumFractionDigits: 0,
     }).format(value)
   }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

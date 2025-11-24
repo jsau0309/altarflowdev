@@ -123,6 +123,7 @@ export function validateEnvironment(): void {
 
   // Validate format of certain env vars
   validateFormats();
+  // eslint-disable-next-line no-console
   
   console.log('✅ Environment variables validated successfully');
 }

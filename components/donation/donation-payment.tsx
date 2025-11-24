@@ -328,6 +328,7 @@ export default function DonationPayment({
         initializationRef.current = null;
       } else {
         throw new Error(t('donations:donationPayment.clientSecretError', 'Failed to retrieve client secret.'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {

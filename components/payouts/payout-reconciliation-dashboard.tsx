@@ -77,7 +77,7 @@ export function PayoutReconciliationDashboard() {
         throw new Error(error.error || 'Reconciliation failed')
       }
       
-      const result = await response.json()
+      await response.json()
       toast.success(
         t('banking:reconciliation.toast.reconcileSuccess', 'Payout reconciled successfully'),
         { id: toastId }

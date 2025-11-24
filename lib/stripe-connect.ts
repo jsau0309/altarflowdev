@@ -9,6 +9,7 @@ export async function createStripeConnectAccount(churchId: string, email: string
     const validated = validateInput(createConnectAccountSchema, { churchId, email, country });
     
     // Create a new Connect account
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     // Build the account params with proper typing
     const accountParams: any = {
       type: 'express',
@@ -126,6 +127,7 @@ export async function getStripeConnectAccount(churchId: string) {
 
 export async function disableStripeAutomaticReceipts(stripeAccountId: string) {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     // Update the Connect account to disable automatic receipts
     // This works for Express and Custom accounts
     const updateParams: any = {

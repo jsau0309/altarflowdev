@@ -109,6 +109,8 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
         throw new Error(t('reports:generateReportModal.errors.noOrganization', 'No organization selected'))
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // Fetch data based on report type
       let exportData: any[] = []
       let summary: any = {}

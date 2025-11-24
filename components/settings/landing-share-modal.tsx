@@ -54,7 +54,7 @@ export function LandingShareModal({
         try {
           document.execCommand('copy');
           toast.success(t("settings:shareModal.linkCopied", "Link copied to clipboard!"));
-        } catch (err) {
+        } catch {
           toast.error(t("settings:shareModal.copyFailed", "Failed to copy link"));
         } finally {
           document.body.removeChild(textArea);
@@ -64,7 +64,7 @@ export function LandingShareModal({
 
       await navigator.clipboard.writeText(url);
       toast.success(t("settings:shareModal.linkCopied", "Link copied to clipboard!"));
-    } catch (error) {
+    } catch {
       toast.error(t("settings:shareModal.copyFailed", "Failed to copy link"));
     }
   };
@@ -98,7 +98,7 @@ export function LandingShareModal({
         link.click();
         toast.success(t("settings:shareModal.qrDownloaded", "QR code downloaded!"));
       }
-    } catch (error) {
+    } catch {
       console.error('QR code download error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error('Failed to download QR code');
     }

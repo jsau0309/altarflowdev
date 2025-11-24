@@ -153,28 +153,28 @@ export function CampaignModal({ isOpen, onClose, campaignId }: CampaignModalProp
     }
 
     // Set name and description based on campaign type
-    const name = campaignType === "tithe" ? t('campaigns:campaignModal.tithe') : t('campaigns:campaignModal.generalOffering')
-    const description =
+    const _name = campaignType === "tithe" ? t('campaigns:campaignModal.tithe') : t('campaigns:campaignModal.generalOffering')
+    const _description =
       campaignType === "tithe"
         ? t('campaigns:campaignModal.titheDescription')
         : t('campaigns:campaignModal.generalOfferingDescription')
 
-    // Prepare campaign data
+    // Prepare campaign data (currently unused but kept for future reference)
     // const campaignData = {
-//       name,
-//       description,
-//       goal: 0, // No specific goal for these ongoing campaigns
-//       startDate: formData.startDate || new Date().toISOString().split("T")[0],
-//       endDate: null, // No end date for these ongoing campaigns
-//       isActive: true,
-//       allowRecurring,
-//       recurringOptions: allowRecurring
-//         ? {
-//             frequencies: frequencies,
-//             maxAmount: hasMaxAmount ? Number.parseFloat(formData.maxAmount) || 0 : null,
-//           }
-//         : undefined,
-    }
+    //   name,
+    //   description,
+    //   goal: 0, // No specific goal for these ongoing campaigns
+    //   startDate: formData.startDate || new Date().toISOString().split("T")[0],
+    //   endDate: null, // No end date for these ongoing campaigns
+    //   isActive: true,
+    //   allowRecurring,
+    //   recurringOptions: allowRecurring
+    //     ? {
+    //         frequencies: frequencies,
+    //         maxAmount: hasMaxAmount ? Number.parseFloat(formData.maxAmount) || 0 : null,
+    //       }
+    //     : undefined,
+    // }
 
     try {
       // TODO: Replace with actual API call

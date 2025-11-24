@@ -41,7 +41,7 @@ export function validateEmail(email: string): EmailValidationResult {
   // Check basic format using Zod
   try {
     emailSchema.parse(trimmedEmail);
-  } catch (error) {
+  } catch {
     return {
       isValid: false,
       email: trimmedEmail,

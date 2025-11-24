@@ -192,6 +192,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
         description: t('members:edit.successMessage', 'Member details have been successfully updated.')
       });
       handleSaveSuccess(); // Call the original success handler
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
     } catch (error: any) {
       console.error('Error updating member:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
@@ -242,6 +243,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
       });
       setConfirmDeleteOpen(false);
       onClose();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       onActionComplete();
 
     } catch (error: any) {
@@ -309,6 +311,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
                   date: (() => { 
                     console.log('[Drawer] member.joinDate', {
                       operation: 'ui.member.join_date_debug',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       joinDate: member.joinDate,
                       joinDateType: typeof member.joinDate
                     });

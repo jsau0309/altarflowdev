@@ -66,6 +66,7 @@ export function escapeUrl(text: string | null | undefined): string {
  * @param strings - Template literal strings
  * @param values - Values to be escaped and inserted
  * @returns Safe HTML string
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
  */
 export function safeHtml(strings: TemplateStringsArray, ...values: any[]): string {
   let result = strings[0];

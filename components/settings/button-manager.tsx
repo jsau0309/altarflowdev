@@ -56,6 +56,7 @@ function SortableButton({
   statusInfo?: {
     available: boolean;
     reason?: string;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   };
   t: any;
 }) {

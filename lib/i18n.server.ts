@@ -1,5 +1,4 @@
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
 import { Resource } from 'i18next';
 
 // Import all locale files (similar to your lib/i18n.ts)

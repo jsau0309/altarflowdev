@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
  * during traffic spikes.
  */
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface CachedChurch {
   data: any;
   timestamp: number;
@@ -19,7 +20,9 @@ class LandingPageCache {
   /**
    * Get church data from cache or fetch from database
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getChurch(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     slug: string,
     fetcher: () => Promise<any>,
     ttl: number = this.DEFAULT_TTL

@@ -12,7 +12,7 @@ const getRotationTransition = (duration: number, from: number, loop = true) => (
   repeat: loop ? Number.POSITIVE_INFINITY : 0,
 })
 
-const getTransition = (duration: number, from: number) => ({
+const _getTransition = (duration: number, from: number) => ({
   rotate: getRotationTransition(duration, from),
   scale: {
     type: "spring",

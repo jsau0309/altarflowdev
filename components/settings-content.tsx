@@ -2,7 +2,6 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { NewMemberFlowSettings } from "./flows/new-member-flow-settings"
-import { useState } from "react"
 import { useTranslation } from 'react-i18next'
 
 // Define the type for the church profile data

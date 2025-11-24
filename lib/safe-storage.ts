@@ -44,12 +44,16 @@ class SafeStorage {
       // Handle specific error types
       if (error instanceof DOMException) {
         switch (error.name) {
+      // eslint-disable-next-line no-console
           case 'QuotaExceededError':
             console.warn(`[SafeStorage] ${type} quota exceeded for key: ${key}`)
+      // eslint-disable-next-line no-console
             break
           case 'SecurityError':
+      // eslint-disable-next-line no-console
             console.warn(`[SafeStorage] ${type} access denied (private mode?) for key: ${key}`)
             break
+    // eslint-disable-next-line no-console
           default:
             console.warn(`${type} error for key ${key}`, { operation: 'browser.storage_error', type, key, errorName: error.name, errorMessage: error.message })
         }
@@ -70,6 +74,7 @@ class SafeStorage {
   getItem(
     key: string, 
     type: StorageType = 'localStorage'
+    // eslint-disable-next-line no-console
   ): string | null {
     try {
       const storage = window[type]
@@ -86,6 +91,7 @@ class SafeStorage {
   removeItem(
     key: string, 
     type: StorageType = 'localStorage'
+    // eslint-disable-next-line no-console
   ): SafeStorageResult {
     try {
       const storage = window[type]
@@ -102,6 +108,7 @@ class SafeStorage {
 
   /**
    * Safely clear all items from storage
+    // eslint-disable-next-line no-console
    */
   clear(type: StorageType = 'localStorage'): SafeStorageResult {
     try {
@@ -121,6 +128,7 @@ class SafeStorage {
    * Set JSON data safely
    */
   setJSON<T>(
+    // eslint-disable-next-line no-console
     key: string, 
     value: T, 
     type: StorageType = 'localStorage'
@@ -142,6 +150,7 @@ class SafeStorage {
    */
   getJSON<T>(
     key: string, 
+    // eslint-disable-next-line no-console
     defaultValue: T | null = null,
     type: StorageType = 'localStorage'
   ): T | null {

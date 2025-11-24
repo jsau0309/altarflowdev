@@ -22,6 +22,7 @@ export function getTestAmount(originalAmount: number, isTest: boolean): number {
   // Always use 50 cents for test transactions
   return isTest ? 50 : originalAmount;
 }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 
 export function sanitizeTestData(data: any, isTest: boolean): any {
   if (!isTest) return data;

@@ -1,4 +1,3 @@
-import { Church } from '@prisma/client';
 
 /**
  * Check if a church has an active paid subscription

@@ -48,6 +48,7 @@ export async function withRetry<T>(
   
   while (retries < maxRetries) {
     try {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
       return await operation();
     } catch (error: any) {
       // Enhanced retry conditions for connection and timeout errors

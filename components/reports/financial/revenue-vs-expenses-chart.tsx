@@ -31,6 +31,7 @@ const chartConfig = {
   },
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 // Custom Tooltip Component following Recharts pattern
 function CustomTooltip({ payload, label, active }: any) {
   if (active && payload && payload.length) {
@@ -55,6 +56,7 @@ function CustomTooltip({ payload, label, active }: any) {
         }}
       >
         <p className="label" style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px' }}>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {label}
         </p>
         {payload.map((entry: any, index: number) => (

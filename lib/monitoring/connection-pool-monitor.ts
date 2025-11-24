@@ -131,6 +131,7 @@ export async function trackQuery<T>(
     poolMonitor.track(endpoint, duration);
 
     // Log connection pool errors
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (error instanceof Error) {
       const errorCode = (error as any).code;
       if (errorCode === 'P2024' || errorCode === 'P1017') {

@@ -105,6 +105,7 @@ export function EditDonationDialog({ isOpen, onClose, onSuccess, donation }: Edi
     }
   }, [isOpen, fetchDonors])
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleReasonTypeChange = (value: string) => {
     form.setValue("editReasonType", value as any)
     

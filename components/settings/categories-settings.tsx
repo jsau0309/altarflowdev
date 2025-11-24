@@ -87,7 +87,7 @@ export function CategoriesSettings() {
         const data = await response.json();
         setExpenseCategories(data);
       }
-    } catch (error) {
+    } catch {
       console.error('Error fetching expense categories:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     } finally {
       setLoading(false);
@@ -101,7 +101,7 @@ export function CategoriesSettings() {
         const data = await response.json();
         setPaymentMethods(data);
       }
-    } catch (error) {
+    } catch {
       console.error('Error fetching payment methods:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   };
@@ -131,7 +131,7 @@ export function CategoriesSettings() {
       } else {
         throw new Error("Failed to add category");
       }
-    } catch (error) {
+    } catch {
       toast.error(t("settings:categories.failedToAddCategory", "Failed to add category"));
     }
   };
@@ -157,7 +157,7 @@ export function CategoriesSettings() {
       } else {
         throw new Error("Failed to update category");
       }
-    } catch (error) {
+    } catch {
       toast.error(t("settings:categories.failedToUpdateCategory", "Failed to update category"));
     }
   };
@@ -180,6 +180,7 @@ export function CategoriesSettings() {
         } else {
           throw new Error(data.error || "Failed to delete category");
         }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }
     } catch (error: any) {
       toast.error(error.message || t("settings:categories.failedToDeleteCategory", "Failed to delete category"));
@@ -263,7 +264,7 @@ export function CategoriesSettings() {
       } else {
         throw new Error("Failed to add payment method");
       }
-    } catch (error) {
+    } catch {
       toast.error(t("settings:categories.failedToAddPaymentMethod", "Failed to add donation method"));
     }
   };
@@ -289,7 +290,7 @@ export function CategoriesSettings() {
       } else {
         throw new Error("Failed to update payment method");
       }
-    } catch (error) {
+    } catch {
       toast.error(t("settings:categories.failedToUpdatePaymentMethod", "Failed to update donation method"));
     }
   };
@@ -311,6 +312,7 @@ export function CategoriesSettings() {
           toast.error(t("settings:categories.paymentMethodInUse", "Cannot delete donation method that is currently in use by donations. Hide it instead to prevent future use."));
         } else {
           throw new Error(data.error || "Failed to delete payment method");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }
       }
     } catch (error: any) {

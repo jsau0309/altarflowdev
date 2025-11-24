@@ -182,7 +182,7 @@ async function parseMultipartData(
       // Check if it's a file
       const fileNameMatch = part.match(/filename="([^"]+)"/);
       if (fileNameMatch) {
-        const fileName = fileNameMatch[1];
+        const _fileName = fileNameMatch[1];
         
         // Extract content type
         const contentTypeMatch = part.match(/Content-Type:\s*([^\r\n]+)/);

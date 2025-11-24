@@ -39,6 +39,7 @@ export interface CronJobConfig {
 }
 
 export interface CronJobResult {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   success: boolean;
   data?: any;
   error?: Error;

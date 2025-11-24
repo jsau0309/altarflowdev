@@ -645,7 +645,7 @@ export async function updateDonorDetails(
     }
     
     // Prevent update if no actual data fields (excluding memberId if it was undefined) were provided
-    const { memberId: _memberId, ...otherPayloadFields } = payload; // memberId is destructured here for the check below
+    const { memberId, ...otherPayloadFields } = payload; // memberId is destructured here for the check below
     if (Object.keys(otherPayloadFields).length === 0 && payload.memberId === undefined) {
       // If only memberId was in payload and it was undefined, or payload was empty.
       // Fetch current donor data to return, as no update was performed.

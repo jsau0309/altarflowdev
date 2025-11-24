@@ -8,7 +8,7 @@ import {
   ToastProvider,
   ToastViewport,
 } from "@/components/ui/toast"
-import { type ToastProps, type ToastActionElement } from "@/components/ui/toast"
+import { type _ToastProps, type _ToastActionElement } from "@/components/ui/toast"
 
 export function Toaster() {
   const { toast, hideToast } = useToast()

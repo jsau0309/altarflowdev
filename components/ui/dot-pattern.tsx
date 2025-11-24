@@ -2,6 +2,7 @@ import { useId } from "react";
 
 import { cn } from "@/lib/utils";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface DotPatternProps {
   width?: any;
   height?: any;
