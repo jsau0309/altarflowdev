@@ -8,7 +8,7 @@ import {
   ToastProvider,
   ToastViewport,
 } from "@/components/ui/toast"
-import { type _ToastProps, type _ToastActionElement } from "@/components/ui/toast"
+// Types ToastProps and ToastActionElement are exported from toast.tsx if needed elsewhere
 
 export function Toaster() {
   const { toast, hideToast } = useToast()

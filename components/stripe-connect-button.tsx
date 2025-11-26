@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Banknote, AlertCircle, Loader2 } from "lucide-react";
+import { Banknote, AlertCircle, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -155,7 +155,7 @@ export function StripeConnectButton({
     return {
       text: t('banking:connectWithStripe'),
       variant: 'default' as const,
-      icon: <BanknoteIcon className="h-4 w-4" />,
+      icon: <Banknote className="h-4 w-4" />,
       tooltip: t('banking:connectWithStripeTooltip'),
       actionType: 'createAccountLink' as const,
     };

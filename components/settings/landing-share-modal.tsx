@@ -98,7 +98,7 @@ export function LandingShareModal({
         link.click();
         toast.success(t("settings:shareModal.qrDownloaded", "QR code downloaded!"));
       }
-    } catch {
+    } catch (error) {
       console.error('QR code download error:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error('Failed to download QR code');
     }

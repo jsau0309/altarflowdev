@@ -87,7 +87,7 @@ export function CategoriesSettings() {
         const data = await response.json();
         setExpenseCategories(data);
       }
-    } catch {
+    } catch (error) {
       console.error('Error fetching expense categories:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     } finally {
       setLoading(false);
@@ -101,7 +101,7 @@ export function CategoriesSettings() {
         const data = await response.json();
         setPaymentMethods(data);
       }
-    } catch {
+    } catch (error) {
       console.error('Error fetching payment methods:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     }
   };

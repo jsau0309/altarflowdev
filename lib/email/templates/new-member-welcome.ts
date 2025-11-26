@@ -1,3 +1,4 @@
+import { escapeHtml, escapeUrl } from '@/lib/email/escape-html';
 
 export interface NewMemberWelcomeData {
   firstName: string;

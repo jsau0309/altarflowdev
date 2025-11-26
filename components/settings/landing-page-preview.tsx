@@ -47,10 +47,10 @@ interface LandingPagePreviewProps {
   backgroundType: string;
   backgroundValue: string | null;
   socialLinks: SocialLinks;
-  _showDonateButton: boolean;
-  _showConnectButton: boolean;
-  _donateButtonText: string;
-  _connectButtonText: string;
+  showDonateButton: boolean;
+  showConnectButton: boolean;
+  donateButtonText: string;
+  connectButtonText: string;
   buttonBackgroundColor?: string;
   buttonTextColor?: string;
   buttons?: ButtonConfig[];
@@ -77,10 +77,10 @@ export function LandingPagePreview({
   backgroundType,
   backgroundValue,
   socialLinks,
-  _showDonateButton,
-  _showConnectButton,
-  _donateButtonText,
-  _connectButtonText,
+  showDonateButton: _showDonateButton,
+  showConnectButton: _showConnectButton,
+  donateButtonText: _donateButtonText,
+  connectButtonText: _connectButtonText,
   buttonBackgroundColor = '#FFFFFF',
   buttonTextColor = '#1F2937',
   buttons = [],

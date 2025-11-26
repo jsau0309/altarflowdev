@@ -173,18 +173,18 @@ export async function getFlowConfiguration(
         const settings = { ...defaultSettings, ...currentSettings };
 
         return {
-            serviceTimes: serviceTimes as ServiceTime[], 
-            ministries: ministries as Ministry[],
+            serviceTimes: serviceTimes as unknown as ServiceTime[],
+            ministries: ministries as unknown as Ministry[],
             settings: settings,
             slug: flow.slug
         };
 
-    } catch {
+    } catch (error) {
         logger.error('Error fetching ${flowType} configuration for org ${orgId}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
         if (error instanceof Error) {
              throw new Error(`Failed to fetch ${flowType} configuration: ${error.message}`);
         }
-        throw new Error(`Failed to fetch ${flowType} configuration.`); 
+        throw new Error(`Failed to fetch ${flowType} configuration.`);
     }
 }
 
@@ -245,7 +245,7 @@ export async function saveFlowConfiguration(
         logger.info('Flow configuration created successfully', { operation: 'flows.save_config.created', flowType, orgId, flowId: createdFlow.id });
         return { success: true, slug: flowSlug };
 
-    } catch {
+    } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
              logger.info('Create failed (P2002), attempting update', { operation: 'flows.save_config.p2002_retry', orgId, flowType });
              try {
@@ -275,8 +275,8 @@ export async function saveFlowConfiguration(
             }
         } else {
              logger.error('Error creating ${flowType} configuration for org ${orgId}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
-             return { 
-                 success: false, 
+             return {
+                 success: false,
                  message: error instanceof Error ? error.message : "Failed to save configuration."
              };
         }
@@ -342,7 +342,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
             churchName: flow.Church.name,
             name: flow.name,
         };
-    } catch {
+    } catch (error) {
         logger.error('Error fetching public flow configuration for slug ${slug}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
         return null;
     }
@@ -674,7 +674,7 @@ export async function submitFlow(
         logger.info('Submission successful for Flow ID: ${flowId}, linked to Member ID: ${memberId}', { operation: 'flows.submit.info' });
         return { success: true, message: "submissionSuccessMessage" };
 
-    } catch {
+    } catch (error) {
         logger.error('Error during submitFlow process for flow ${flowId} and email ${validatedFormData.email}:', { operation: 'flows.submit.error' }, error instanceof Error ? error : new Error(String(error)));
         let userMessage = "An error occurred while processing your submission. Please try again or contact support.";
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -684,8 +684,8 @@ export async function submitFlow(
             // Potentially use error.message if it's safe and user-friendly
             // For now, stick to generic.
         }
-        return { 
-            success: false, 
+        return {
+            success: false,
             message: userMessage
         };
     }
@@ -718,7 +718,7 @@ export async function getActiveFlowsByChurchId(churchId: string): Promise<{ id: 
       },
     });
     return activeFlows;
-  } catch {
+  } catch (error) {
     logger.error('Error fetching active flows for church ${churchId}:', { operation: 'flows.get_active.error' }, error instanceof Error ? error : new Error(String(error)));
     return []; // Return empty array on error
   }
