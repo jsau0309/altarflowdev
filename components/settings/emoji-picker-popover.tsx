@@ -19,9 +19,7 @@ interface EmojiPickerPopoverProps {
 
 export function EmojiPickerPopover({ onEmojiSelect, buttonText = "Add emoji" }: EmojiPickerPopoverProps) {
   const [open, setOpen] = useState(false);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-
-  const handleEmojiClick = (emojiData: any) => {
+  const handleEmojiClick = (emojiData: { emoji: string }) => {
     onEmojiSelect(emojiData.emoji);
     setOpen(false);
   };

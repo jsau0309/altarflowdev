@@ -140,9 +140,8 @@ export function withLogging<T extends NextResponse | Response>(
  *   }
  * );
  * ```
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
  */
-export function withActionLogging<TArgs extends any[], TReturn>(
+export function withActionLogging<TArgs extends unknown[], TReturn>(
   operation: string,
   action: (...args: TArgs) => Promise<TReturn>
 ) {

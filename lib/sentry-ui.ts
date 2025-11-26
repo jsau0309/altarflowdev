@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import type { SentryContext } from '@/types/sentry';
 
 /**
  * UI Span Instrumentation Helpers
@@ -7,9 +8,8 @@ import * as Sentry from "@sentry/nextjs";
 
 // Helper for button click instrumentation
 export function instrumentButtonClick(
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
   buttonName: string,
-  metadata: Record<string, any> = {},
+  metadata: SentryContext = {},
   handler: () => void | Promise<void>
 ) {
   return () => {
@@ -35,21 +35,19 @@ export function instrumentButtonClick(
 }
 
 // Helper for form submission instrumentation
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentFormSubmit<T>(
+export function instrumentFormSubmit<T extends Record<string, unknown>>(
   formName: string,
-  metadata: Record<string, any> = {},
+  metadata: SentryContext = {},
   handler: (data: T) => void | Promise<void>
 ) {
   return (data: T) => {
     Sentry.startSpan(
       {
         op: "ui.form.submit",
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
         name: `${formName} Form Submit`,
         attributes: {
           'form.name': formName,
-          'form.fields': Object.keys(data as any).length,
+          'form.fields': Object.keys(data).length,
           ...metadata
         }
       },
@@ -123,12 +121,11 @@ export async function instrumentedFetch<T>(
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 // Helper for tracking user interactions
 export function trackUserInteraction(
   action: string,
   category: string,
-  metadata: Record<string, any> = {}
+  metadata: SentryContext = {}
 ) {
   Sentry.addBreadcrumb({
     category: 'user',

@@ -13,7 +13,8 @@
     "db:analyze": "npx prisma db execute --sql \"ANALYZE;\"",
     "test:stripe": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/test-stripe-integration.ts",
     "test:fees": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/test-fee-tracking.ts",
-    "debug:email": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/debug-email-receipt.ts"
+    "debug:email": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/debug-email-receipt.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
@@ -140,6 +141,8 @@
     "chalk": "^5.5.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.23",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "postcss": "^8",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.11",
@@ -149,6 +152,14 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.19.4",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --max-warnings=0"
+    ],
+    "*.{js,jsx}": [
+      "eslint --max-warnings=0"
+    ]
   },
   "overrides": {
     "rimraf": "^5.0.0",

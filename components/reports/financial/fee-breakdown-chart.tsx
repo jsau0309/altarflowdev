@@ -2,8 +2,9 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTranslation } from "react-i18next"
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, TooltipProps } from "recharts"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { PieCustomLabelProps } from "@/types/recharts"
 
 export interface FeeBreakdownData {
   name: string
@@ -29,27 +30,26 @@ export function FeeBreakdownChart({ data, isLoading }: FeeBreakdownChartProps) {
       maximumFractionDigits: 2,
     }).format(value)
   }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-  
-  const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload.length) {
+      const entry = payload[0];
+      const entryPayload = entry.payload as { percentage?: number } | undefined;
       return (
         <div className="bg-background border rounded-lg p-3 shadow-lg">
-          <p className="font-semibold">{payload[0].name}</p>
+          <p className="font-semibold">{entry.name}</p>
           <p className="text-sm mt-1">
-            {formatCurrency(payload[0].value)}
+            {formatCurrency(entry.value as number)}
           </p>
           <p className="text-sm text-muted-foreground">
-            {payload[0].payload.percentage.toFixed(1)}% of total fees
+            {entryPayload?.percentage?.toFixed(1) ?? '0.0'}% of total fees
           </p>
         </div>
       )
     }
     return null
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }
-  
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: PieCustomLabelProps) => {
     const RADIAN = Math.PI / 180
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5
     const x = cx + radius * Math.cos(-midAngle * RADIAN)
@@ -130,14 +130,13 @@ export function FeeBreakdownChart({ data, isLoading }: FeeBreakdownChartProps) {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              <Legend 
-                verticalAlign="bottom" 
+              <Tooltip content={CustomTooltip} />
+              <Legend
+                verticalAlign="bottom"
                 height={36}
-                formatter={(value, entry: any) => (
+                formatter={(value, entry) => (
                   <span className="text-sm">
-                    {value} ({formatCurrency(entry.payload.value)})
+                    {value} ({formatCurrency((entry.payload as { value: number })?.value ?? 0)})
                   </span>
                 )}
               />

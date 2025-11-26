@@ -1,17 +1,5 @@
 import { Prisma } from '@prisma/client';
-
-// Conditional logger import for Node.js environments only
-// This allows the extension to work in test scripts without server-only dependencies
-let logger: any;
-try {
-  logger = require('@/lib/logger').logger;
-} catch (e) {
-  // Fallback logger for test environments
-  logger = {
-    warn: console.warn,
-    error: console.error,
-  };
-}
+import { logger } from '@/lib/logger';
 
 /**
  * Prisma Client Extension for automatic retry logic on connection errors.
@@ -41,10 +29,15 @@ const defaultOptions: Required<RetryOptions> = {
   ]),
 };
 
+interface PrismaLikeError {
+  code?: string;
+  message?: string;
+}
+
 /**
  * Check if an error is retryable based on error code or message
  */
-function isRetryableError(error: any): boolean {
+function isRetryableError(error: unknown): boolean {
   // Prisma error codes that are safe to retry
   const retryableCodes = new Set([
     'P2024', // Timed out fetching a new connection from the connection pool
@@ -54,13 +47,15 @@ function isRetryableError(error: any): boolean {
     'P2034', // Transaction failed due to a write conflict or a deadlock
   ]);
 
+  const prismaError = error as PrismaLikeError;
+
   // Check Prisma error codes
-  if (error?.code && retryableCodes.has(error.code)) {
+  if (prismaError?.code && retryableCodes.has(prismaError.code)) {
     return true;
   }
 
   // Check error messages for connection issues
-  const errorMessage = error?.message?.toLowerCase() || '';
+  const errorMessage = prismaError?.message?.toLowerCase() || '';
   const retryablePatterns = [
     'connection terminated unexpectedly',
     'connection reset by peer',
@@ -92,21 +87,22 @@ async function executeWithRetry<T>(
   operationName: string,
   options: Required<RetryOptions>
 ): Promise<T> {
-  let lastError: any;
-  
+  let lastError: unknown;
+
   // Loop from 0 to maxRetries-1 for correct total attempt count
   // With maxRetries=3: attempts 0, 1, 2 = 3 total attempts
   for (let attempt = 0; attempt < options.maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error;
-      
+      const prismaError = error as PrismaLikeError;
+
       // Don't retry if it's not a retryable error
       if (!isRetryableError(error)) {
         throw error;
       }
-      
+
       // Don't retry if we've exhausted our attempts
       if (attempt >= options.maxRetries - 1) {
         logger.error('Max retries exceeded for database operation', {
@@ -114,28 +110,28 @@ async function executeWithRetry<T>(
           operationName,
           attempts: attempt + 1,
           maxRetries: options.maxRetries,
-          errorCode: error.code,
-          errorMessage: error.message,
-        }, error);
+          errorCode: prismaError.code,
+          errorMessage: prismaError.message,
+        }, error instanceof Error ? error : new Error(String(error)));
         throw error;
       }
-      
+
       // Log the retry attempt
       logger.warn('Database operation failed, retrying', {
         operation: 'database.retry_attempt',
         operationName,
         attempt: attempt + 1,
         maxRetries: options.maxRetries,
-        errorCode: error.code,
-        errorMessage: error.message,
+        errorCode: prismaError.code,
+        errorMessage: prismaError.message,
       });
-      
+
       // Exponential backoff with jitter
       const delay = options.baseDelay * Math.pow(2.5, attempt) + Math.random() * 50;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  
+
   // This should never be reached, but TypeScript needs it
   throw lastError;
 }

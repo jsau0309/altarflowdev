@@ -32,9 +32,8 @@ export function MembersContent() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = await response.json();
-      const processedData = data.map((member: any) => ({
+      const processedData = data.map((member: Member & { joinDate?: string | null }) => ({
         ...member,
         joinDate: member.joinDate ? new Date(member.joinDate) : null,
       }));

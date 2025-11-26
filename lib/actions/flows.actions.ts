@@ -7,9 +7,36 @@ import { FlowType, Prisma } from '@prisma/client'; // Import Prisma namespace fo
 import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
 import type { ServiceTime, Ministry, LifeStage, RelationshipStatus } from '../../components/member-form/types'; // Ensure MemberFormData is imported if used
 import { Resend } from 'resend'; // Import Resend
+import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { getEmailDomain } from '@/lib/logger/middleware';
 import { generateNewMemberWelcomeHtml, NewMemberWelcomeData } from '@/lib/email/templates/new-member-welcome';
 import { generatePrayerRequestNotificationHtml, PrayerRequestNotificationData } from '@/lib/email/templates/prayer-request-notification';
+
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Zod schema for submitFlow input validation
+const SubmitFlowInputSchema = z.object({
+    firstName: z.string().min(1, 'First name is required').max(100),
+    lastName: z.string().min(1, 'Last name is required').max(100),
+    email: z.string().email('Invalid email format').max(255).transform(val => val.toLowerCase().trim()),
+    phone: z.string().min(1, 'Phone is required').max(30),
+    relationshipStatus: z.enum(['visitor', 'regular', 'member']),
+    smsConsent: z.boolean().optional(),
+    language: z.string().min(1).max(10),
+    serviceTimes: z.array(z.string()).optional(),
+    interestedMinistries: z.array(z.string()).optional(),
+    lifeStage: z.enum(['child', 'teen', 'young_adult', 'adult', 'senior']).optional(),
+    referralSource: z.string().max(255).optional(),
+    prayerRequested: z.boolean().optional(),
+    prayerRequest: z.string().max(2000).optional(),
+});
+
+// Helper to sanitize church name for email headers (prevent header injection)
+function sanitizeForEmailHeader(value: string): string {
+    return value.replace(/[\r\n\t]/g, ' ').substring(0, 100).trim();
+}
 
 // Define the specific input type expected by the submitFlow action
 // Based on the Zod schema in ConnectForm.tsx
@@ -77,34 +104,35 @@ async function sendWelcomeEmail(
         churchAddress: churchAddress || '',
         serviceTimes,
         ministries,
-        language: language as 'en' | 'es'
+        language: (language === 'es' ? 'es' : 'en')
     };
 
     // Generate email HTML using the template
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
     const emailHtmlBody = generateNewMemberWelcomeHtml(emailData, appUrl);
 
-    // Subject based on language
-    const subjectText = language === 'es' ? `¡Bienvenido(a) a ${churchName}!` : `Welcome to ${churchName}!`;
+    // Subject based on language (sanitize churchName to prevent header injection)
+    const sanitizedChurchName = sanitizeForEmailHeader(churchName);
+    const subjectText = language === 'es' ? `¡Bienvenido(a) a ${sanitizedChurchName}!` : `Welcome to ${sanitizedChurchName}!`;
 
     try {
-        logger.info('Attempting to send welcome email to ${recipientEmail} for ${churchName} in ${language}.', { operation: 'flows.email.info' });
+        logger.info(`Attempting to send welcome email to ${getEmailDomain(recipientEmail)} for ${churchName} in ${language}.`, { operation: 'flows.email.info' });
         const { error } = await resend.emails.send({
-            from: `${churchName} <notifications@${process.env.YOUR_VERIFIED_RESEND_DOMAIN}>`,
+            from: `${sanitizeForEmailHeader(churchName)} <notifications@${process.env.YOUR_VERIFIED_RESEND_DOMAIN}>`,
             to: recipientEmail,
             subject: subjectText,
             html: emailHtmlBody,
         });
 
         if (error) {
-            logger.error('Failed to send welcome email to ${recipientEmail}:', { operation: 'flows.email.error' }, error instanceof Error ? error : new Error(String(error)));
+            logger.error(`Failed to send welcome email to ${getEmailDomain(recipientEmail)}:`, { operation: 'flows.email.error' }, error instanceof Error ? error : new Error(String(error)));
             return; 
         }
 
-        logger.info('Welcome email sent successfully to ${recipientEmail}.', { operation: 'flows.email.info' });
+        logger.info(`Welcome email sent successfully to ${getEmailDomain(recipientEmail)}.`, { operation: 'flows.email.info' });
 
     } catch (exception) {
-        logger.error('Exception during sending welcome email to ${recipientEmail}:', { operation: 'flows.email.error' }, exception instanceof Error ? exception : new Error(String(exception)));
+        logger.error(`Exception during sending welcome email to ${getEmailDomain(recipientEmail)}:`, { operation: 'flows.email.error' }, exception instanceof Error ? exception : new Error(String(exception)));
         // Optionally, re-throw or handle more gracefully
     }
 }
@@ -126,7 +154,7 @@ export async function getFlowConfiguration(
         throw new Error("Unauthorized");
     }
     if (!orgId) {
-        logger.error('User has has no active organization selected.', { operation: 'flows.auth.no_org', userId });
+        logger.error('User has no active organization selected.', { operation: 'flows.auth.no_org', userId });
         throw new Error("No active organization selected."); 
     }
 
@@ -146,7 +174,7 @@ export async function getFlowConfiguration(
         });
 
         if (!flow) {
-             logger.warn('No ${flowType} flow found for orgId ${orgId}. Returning default settings with empty lists.', { operation: 'flows.config.warn' });
+             logger.warn(`No ${flowType} flow found for orgId ${orgId}. Returning default settings with empty lists.`, { operation: 'flows.config.warn' });
              return {
                 serviceTimes: [], 
                 ministries: [],   
@@ -156,7 +184,7 @@ export async function getFlowConfiguration(
         }
         
         if (!flow.configJson || typeof flow.configJson !== 'object' || flow.configJson === null) {
-            logger.warn('Valid configJson not found for ${flowType} flow (ID: ${flow.id}) for orgId ${orgId}. Returning default settings with empty lists.', { operation: 'flows.config.warn' });
+            logger.warn(`Valid configJson not found for ${flowType} flow (ID: ${flow.id}) for orgId ${orgId}. Returning default settings with empty lists.`, { operation: 'flows.config.warn' });
              return {
                 serviceTimes: [],
                 ministries: [],
@@ -180,7 +208,7 @@ export async function getFlowConfiguration(
         };
 
     } catch (error) {
-        logger.error('Error fetching ${flowType} configuration for org ${orgId}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
+        logger.error(`Error fetching ${flowType} configuration for org ${orgId}:`, { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
         if (error instanceof Error) {
              throw new Error(`Failed to fetch ${flowType} configuration: ${error.message}`);
         }
@@ -203,7 +231,7 @@ export async function saveFlowConfiguration(
         return { success: false, message: "Unauthorized" };
     }
     if (!orgId) {
-        logger.error('User has has no active organization selected for saving config.', { operation: 'flows.auth.no_org', userId });
+        logger.error('User has no active organization selected for saving config.', { operation: 'flows.auth.no_org', userId });
         return { success: false, message: "No active organization selected." };
     }
 
@@ -217,7 +245,7 @@ export async function saveFlowConfiguration(
         churchId = church.id;
         churchSlug = church.slug;
     } catch {
-         logger.error('saveFlowConfiguration Error: Church not found for orgId ${orgId}.', { operation: 'flows.save_config.error' });
+         logger.error(`saveFlowConfiguration Error: Church not found for orgId ${orgId}.`, { operation: 'flows.save_config.error' });
          return { success: false, message: "Associated church record not found." };
     }
 
@@ -265,16 +293,16 @@ export async function saveFlowConfiguration(
                 return { success: true, slug: flowSlug };
 
             } catch (updateError) {
-                 logger.error('Error updating existing ${flowType} configuration for org ${orgId} after create failed:', { operation: 'flows.update.error' }, updateError instanceof Error ? updateError : new Error(String(updateError)));
+                 logger.error(`Error updating existing ${flowType} configuration for org ${orgId} after create failed:`, { operation: 'flows.update.error' }, updateError instanceof Error ? updateError : new Error(String(updateError)));
                  const target = (error.meta?.target as string[]) || [];
                  if (target.includes('slug')) {
-                     logger.error('Original P2002 likely due to Slug conflict for org ${orgId}. Slug: ${flowSlug}', { operation: 'flows.slug_conflict.error' });
+                     logger.error(`Original P2002 likely due to Slug conflict for org ${orgId}. Slug: ${flowSlug}`, { operation: 'flows.slug_conflict.error' });
                      return { success: false, message: "Failed to generate unique URL for the flow. Please contact support." };
                  }
                  return { success: false, message: "Failed to update existing configuration after initial save attempt." };
             }
         } else {
-             logger.error('Error creating ${flowType} configuration for org ${orgId}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
+             logger.error(`Error creating ${flowType} configuration for org ${orgId}:`, { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
              return {
                  success: false,
                  message: error instanceof Error ? error.message : "Failed to save configuration."
@@ -332,7 +360,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
             return null;
         }
         if (!flow.Church) {
-            logger.error('getPublicFlowBySlug: Flow ${flow.id} found, but related church is missing for', { operation: 'flows.public.error', slug });
+            logger.error(`getPublicFlowBySlug: Flow ${flow.id} found, but related church is missing for`, { operation: 'flows.public.error', slug });
             return null;
         }
         return {
@@ -343,7 +371,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
             name: flow.name,
         };
     } catch (error) {
-        logger.error('Error fetching public flow configuration for slug ${slug}:', { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
+        logger.error(`Error fetching public flow configuration for slug ${slug}:`, { operation: 'flows.error' }, error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 }
@@ -361,7 +389,7 @@ export async function getPublicFlowBySlug(slug: string): Promise<{
 //     if (digits.length === 10) {
 //         return `+1${digits}`;
 //     }
-//     logger.warn('Could not format phone number to E.164: ${phone}', { operation: 'flows.config.warn' });
+//     logger.warn(`Could not format phone number to E.164: ${phone}`, { operation: 'flows.config.warn' });
 //     return phone;
 // }
 
@@ -407,26 +435,31 @@ async function sendPrayerRequestEmail(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://altarflow.com';
   const htmlContent = generatePrayerRequestNotificationHtml(emailData, appUrl);
 
-  const subject = language === 'es' 
-    ? `Nueva Petición de Oración - ${submitterName}` 
-    : `New Prayer Request - ${submitterName}`;
+  // Sanitize names to prevent email header injection
+  const sanitizedSubmitterName = sanitizeForEmailHeader(submitterName);
+  const sanitizedChurchName = sanitizeForEmailHeader(churchName);
+  const subject = language === 'es'
+    ? `Nueva Petición de Oración - ${sanitizedSubmitterName}`
+    : `New Prayer Request - ${sanitizedSubmitterName}`;
+
+  // Note: sanitizedChurchName is used in the 'from' field below
 
   try {
     const { error } = await resend.emails.send({
-      from: `${churchName} <notifications@${resendDomain}>`,
+      from: `${sanitizedChurchName} <notifications@${resendDomain}>`,
       to: [toEmail],
       subject: subject,
       html: htmlContent,
     });
 
     if (error) {
-      logger.error('Error sending prayer request email to ${toEmail}:', { operation: 'flows.prayer_email.error' }, error instanceof Error ? error : new Error(String(error)));
+      logger.error(`Error sending prayer request email to ${getEmailDomain(toEmail)}:`, { operation: 'flows.prayer_email.error' }, error instanceof Error ? error : new Error(String(error)));
       return; // Don't throw, just log and continue
     }
-    logger.info('Prayer request email sent successfully to ${toEmail}.', { operation: 'flows.prayer_email.info' });
+    logger.info(`Prayer request email sent successfully to ${getEmailDomain(toEmail)}.`, { operation: 'flows.prayer_email.info' });
   } catch (e) {
     // Catch any other unexpected errors during the Resend API call
-    logger.error('Unexpected error sending prayer request email to ${toEmail}:', { operation: 'flows.prayer_email.error' }, e instanceof Error ? e : new Error(String(e)));
+    logger.error(`Unexpected error sending prayer request email to ${getEmailDomain(toEmail)}:`, { operation: 'flows.prayer_email.error' }, e instanceof Error ? e : new Error(String(e)));
   }
 }
 
@@ -471,7 +504,7 @@ function cleanupSubmissionCache() {
     }
   }
   
-  logger.debug('Cache cleanup completed. Current size: ${submissionCache.size}', { operation: 'flows.rate_limit.debug' });
+  logger.debug(`Cache cleanup completed. Current size: ${submissionCache.size}`, { operation: 'flows.rate_limit.debug' });
 }
 
 // Schedule periodic cleanup with proper cleanup on module unload
@@ -497,36 +530,52 @@ if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'development') {
 }
 
 export async function submitFlow(
-    flowId: string, 
+    flowId: string,
     formData: SubmitFlowInput
 ): Promise<{ success: boolean; message?: string }> {
-    const validatedFormData = formData; 
-    let churchId: string; 
+    // Validate UUID format for flowId
+    if (!UUID_REGEX.test(flowId)) {
+        logger.warn('Invalid flowId format received', { operation: 'flows.submit.validation', flowId: flowId.substring(0, 20) });
+        return { success: false, message: 'Invalid form identifier.' };
+    }
+
+    // Validate and sanitize input data with Zod
+    const parseResult = SubmitFlowInputSchema.safeParse(formData);
+    if (!parseResult.success) {
+        logger.warn('Input validation failed for submitFlow', {
+            operation: 'flows.submit.validation',
+            errors: parseResult.error.flatten().fieldErrors
+        });
+        return { success: false, message: 'Invalid form data. Please check your inputs.' };
+    }
+    const validatedFormData = parseResult.data;
+
+    let churchId: string;
     let memberId: string = "";
     const submissionTimestamp = new Date();
-    
+
     // Simple rate limiting by email (5 submissions per hour)
+    // Note: Email is already normalized (lowercase/trimmed) by Zod schema
     const hourAgo = Date.now() - (60 * 60 * 1000);
-    const emailSubmissions = submissionCache.get(formData.email) || [];
+    const emailSubmissions = submissionCache.get(validatedFormData.email) || [];
     const recentSubmissions = emailSubmissions.filter(time => time > hourAgo);
-    
+
     if (recentSubmissions.length >= 5) {
-        logger.warn('[SubmitFlow] Rate limit exceeded for email: ${formData.email}', { operation: 'flows.config.warn' });
-        return { 
-            success: false, 
-            message: "Too many submissions. Please try again later." 
+        logger.warn(`[SubmitFlow] Rate limit exceeded for email domain: ${getEmailDomain(validatedFormData.email)}`, { operation: 'flows.rate_limit.warn' });
+        return {
+            success: false,
+            message: "Too many submissions. Please try again later."
         };
     }
-    
+
     // Update submission cache
     recentSubmissions.push(Date.now());
-    submissionCache.set(formData.email, recentSubmissions);
-    // Ensure language is part of validatedFormData, if not, default or handle error
-    // For now, assuming it's present as per SubmitFlowInput interface
+    submissionCache.set(validatedFormData.email, recentSubmissions);
 
     try {
-        const flow = await prisma.flow.findUniqueOrThrow({
-            where: { id: flowId },
+        // Check that flow exists AND is enabled (public-facing check)
+        const flow = await prisma.flow.findFirst({
+            where: { id: flowId, isEnabled: true },
             select: {
                 churchId: true,
                 configJson: true,
@@ -540,6 +589,11 @@ export async function submitFlow(
                 }
             }
         });
+
+        if (!flow) {
+            logger.warn('Flow not found or not enabled', { operation: 'flows.submit.not_found', flowId });
+            return { success: false, message: 'This form is currently unavailable.' };
+        }
         churchId = flow.churchId;
 
         const existingMember = await prisma.member.findFirst({ 
@@ -631,7 +685,7 @@ export async function submitFlow(
           const prayerNotificationEmail = formConfigForPrayer.settings?.prayerRequestNotificationEmail;
 
           if (prayerEnabled && prayerNotificationEmail && prayerNotificationEmail.trim() !== "") {
-            logger.info('Conditions met for prayer request email. Sending to: ${prayerNotificationEmail}', { operation: 'flows.submit.info' });
+            logger.info(`Conditions met for prayer request email. Sending to: ${getEmailDomain(prayerNotificationEmail)}`, { operation: 'flows.submit.info' });
             sendPrayerRequestEmail(
               prayerNotificationEmail,
               `${validatedFormData.firstName} ${validatedFormData.lastName}`,
@@ -639,7 +693,7 @@ export async function submitFlow(
               validatedFormData.phone,
               validatedFormData.prayerRequest,
               flow.Church.name,
-              validatedFormData.language as 'en' | 'es',
+              (validatedFormData.language === 'es' ? 'es' : 'en'),
               churchLogoUrl
             ).catch(emailError => {
               logger.error('Error from sendPrayerRequestEmail promise:', { operation: 'flows.submit.error' }, emailError instanceof Error ? emailError : new Error(String(emailError)));
@@ -671,11 +725,11 @@ export async function submitFlow(
             },
         });
 
-        logger.info('Submission successful for Flow ID: ${flowId}, linked to Member ID: ${memberId}', { operation: 'flows.submit.info' });
+        logger.info(`Submission successful for Flow ID: ${flowId}, linked to Member ID: ${memberId}`, { operation: 'flows.submit.info' });
         return { success: true, message: "submissionSuccessMessage" };
 
     } catch (error) {
-        logger.error('Error during submitFlow process for flow ${flowId} and email ${validatedFormData.email}:', { operation: 'flows.submit.error' }, error instanceof Error ? error : new Error(String(error)));
+        logger.error(`Error during submitFlow process for flow ${flowId} and email domain ${getEmailDomain(validatedFormData.email)}:`, { operation: 'flows.submit.error' }, error instanceof Error ? error : new Error(String(error)));
         let userMessage = "An error occurred while processing your submission. Please try again or contact support.";
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             // More specific error for known DB issues if desired, but often generic is better for users
@@ -719,7 +773,7 @@ export async function getActiveFlowsByChurchId(churchId: string): Promise<{ id: 
     });
     return activeFlows;
   } catch (error) {
-    logger.error('Error fetching active flows for church ${churchId}:', { operation: 'flows.get_active.error' }, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Error fetching active flows for church ${churchId}:`, { operation: 'flows.get_active.error' }, error instanceof Error ? error : new Error(String(error)));
     return []; // Return empty array on error
   }
 }

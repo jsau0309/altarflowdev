@@ -140,9 +140,8 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
           status: response.status,
           statusText: response.statusText,
           errorData
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
         });
-        alert(t('expenses:detailsDrawer.receiptRefreshError', `Error refreshing receipt: ${(errorData as any).error || response.statusText}`));
+        alert(t('expenses:detailsDrawer.receiptRefreshError', `Error refreshing receipt: ${(errorData as { error?: string }).error || response.statusText}`));
         return null;
       }
 

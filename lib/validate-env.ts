@@ -1,7 +1,11 @@
 /**
  * Environment variable validation for production
  * This ensures all required env vars are present at startup
+ *
+ * Note: This runs during bootstrap before logger is available.
  */
+
+/* eslint-disable no-console */
 
 interface RequiredEnvVars {
   // Database
@@ -123,9 +127,8 @@ export function validateEnvironment(): void {
 
   // Validate format of certain env vars
   validateFormats();
-  // eslint-disable-next-line no-console
-  
-  console.log('✅ Environment variables validated successfully');
+
+  console.log('Environment variables validated successfully');
 }
 
 /**

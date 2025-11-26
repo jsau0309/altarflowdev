@@ -106,9 +106,16 @@ export async function sendSlackNotification(
 
   const config = severityConfig[notification.severity];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // Build Slack message with modern format (no deprecated actions)
-  const attachment: any = {
+  const attachment: {
+    color: string;
+    title: string;
+    text: string;
+    footer: string;
+    footer_icon: string;
+    ts: number;
+    fields?: Array<{ title: string; value: string; short?: boolean }>;
+  } = {
     color: config.color,
     title: `${config.emoji} ${notification.title}`,
     text: notification.message,

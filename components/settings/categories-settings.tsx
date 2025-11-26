@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Edit2, Trash2, Save, XCircle, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit2, Trash2, Save, XCircle, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import LoaderOne from "@/components/ui/loader-one";
 import {
@@ -180,10 +180,9 @@ export function CategoriesSettings() {
         } else {
           throw new Error(data.error || "Failed to delete category");
         }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }
-    } catch (error: any) {
-      toast.error(error.message || t("settings:categories.failedToDeleteCategory", "Failed to delete category"));
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : t("settings:categories.failedToDeleteCategory", "Failed to delete category"));
     }
   };
 
@@ -312,11 +311,10 @@ export function CategoriesSettings() {
           toast.error(t("settings:categories.paymentMethodInUse", "Cannot delete donation method that is currently in use by donations. Hide it instead to prevent future use."));
         } else {
           throw new Error(data.error || "Failed to delete payment method");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }
       }
-    } catch (error: any) {
-      toast.error(error.message || t("settings:categories.failedToDeletePaymentMethod", "Failed to delete donation method"));
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : t("settings:categories.failedToDeletePaymentMethod", "Failed to delete donation method"));
     }
   };
 

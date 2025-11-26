@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { X, Facebook, Instagram, Twitter, Youtube, Globe, User, Edit2 } from "lucide-react";
+import { X, Facebook, Instagram, Twitter, Youtube, Globe, Edit2 } from "lucide-react";
 import LoaderOne from "@/components/ui/loader-one";
 import { BACKGROUND_PRESETS } from "@/lib/landing-page/background-presets";
 import Image from "next/image";
@@ -30,6 +30,16 @@ interface SocialLinks {
   twitter?: string;
   youtube?: string;
   website?: string;
+}
+
+interface LandingEvent {
+  id: string;
+  eventDate: string;
+  isPublished: boolean;
+  title: string;
+  description: string;
+  eventTime: string;
+  address: string;
 }
 
 interface LandingConfig {
@@ -95,11 +105,9 @@ export function LandingManagerEnhanced() {
   const [hasStripeAccount, setHasStripeAccount] = useState(false);
   const [hasActiveFlow, setHasActiveFlow] = useState(false);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // Events state
-  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  const [pastEvents, setPastEvents] = useState<any[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<LandingEvent[]>([]);
+  const [pastEvents, setPastEvents] = useState<LandingEvent[]>([]);
 
   // Image upload state
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -154,26 +162,23 @@ export function LandingManagerEnhanced() {
 
       // Filter upcoming and past events using day-level comparison (only show published events in preview)
       const now = new Date();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       now.setHours(0, 0, 0, 0);  // Set to midnight for day-level comparison
 
       const upcoming = allEvents
-        .filter((event: any) => {
+        .filter((event: LandingEvent) => {
           const eventDay = new Date(event.eventDate);
           eventDay.setHours(0, 0, 0, 0);
           return eventDay >= now && event.isPublished;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
         })
         .slice(0, 3); // Show max 3 upcoming
 
       const past = allEvents
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((event: any) => {
+        .filter((event: LandingEvent) => {
           const eventDay = new Date(event.eventDate);
           eventDay.setHours(0, 0, 0, 0);
           return eventDay < now && event.isPublished;
         })
-        .sort((a: any, b: any) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime()) // Sort descending
+        .sort((a: LandingEvent, b: LandingEvent) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime()) // Sort descending
         .slice(0, 2); // Show max 2 past
 
       setUpcomingEvents(upcoming);

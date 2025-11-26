@@ -9,9 +9,9 @@ if (!process.env.STRIPE_WEBHOOK_SECRET) {
   logger.warn('STRIPE_WEBHOOK_SECRET is not set - webhook verification will fail', { operation: 'stripe.init.missing_webhook_secret' });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-07-30.basil' as any, // Required API version - using 'as any' until Stripe types are updated
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- API version not in Stripe types yet
+  apiVersion: '2025-07-30.basil' as any,
   typescript: true,
   appInfo: {
     name: 'AltarFlow', // Your application name

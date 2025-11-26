@@ -17,9 +17,9 @@ interface SettingsContentProps {
   initialChurchProfile: ChurchProfileData | null;
 }
 
-export function SettingsContent({ initialChurchProfile }: SettingsContentProps) {
+export function SettingsContent({ initialChurchProfile: _initialChurchProfile }: SettingsContentProps) {
   // Load necessary namespaces
-  const { i18n, t } = useTranslation(['flows', 'common']); 
+  const { t } = useTranslation(['flows', 'common']); 
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">

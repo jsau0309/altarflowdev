@@ -251,14 +251,14 @@ class Logger {
       ? JSON.stringify(context, null, 2)
       : '';
 
-    // eslint-disable-next-line no-console
     if (errorInfo) {
-    // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console
       console[consoleMethod](prefix, message, contextStr, '\n', errorInfo);
-    // eslint-disable-next-line no-console
     } else if (contextStr) {
+      // eslint-disable-next-line no-console
       console[consoleMethod](prefix, message, '\n', contextStr);
     } else {
+      // eslint-disable-next-line no-console
       console[consoleMethod](prefix, message);
     }
   }

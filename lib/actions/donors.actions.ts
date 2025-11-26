@@ -622,10 +622,10 @@ export async function getAllDonorsForManualDonation(): Promise<DonorFilterItem[]
 export async function updateDonorDetails(
   donorId: string,
   payload: UpdateDonorPayload
-): Promise<DonorDetailsData | null> {
+): Promise<{ success: boolean; data?: DonorDetailsData; error?: string }> {
   if (!donorId) {
     logger.error('Donor ID is required', { operation: 'donors.update_details.no_id' });
-    return null;
+    return { success: false, error: 'Donor ID is required.' };
   }
 
   try {
@@ -652,12 +652,16 @@ export async function updateDonorDetails(
     }
     
     // Prevent update if no actual data fields (excluding memberId if it was undefined) were provided
-    const { memberId, ...otherPayloadFields } = payload; // memberId is destructured here for the check below
+    const { memberId: _memberId, ...otherPayloadFields } = payload; // memberId is destructured here for the check below
     if (Object.keys(otherPayloadFields).length === 0 && payload.memberId === undefined) {
       // If only memberId was in payload and it was undefined, or payload was empty.
       // Fetch current donor data to return, as no update was performed.
       logger.debug('No fields to update for donor, fetching current details', { operation: 'donors.update_details.no_changes', donorId });
-      return getDonorDetails(donorId, undefined); // Will use auth to get churchId
+      const currentData = await getDonorDetails(donorId, undefined); // Will use auth to get churchId
+      if (!currentData) {
+        return { success: false, error: 'Donor not found.' };
+      }
+      return { success: true, data: currentData };
     }
 
     const updatedDonor = await prisma.donor.update({
@@ -665,28 +669,37 @@ export async function updateDonorDetails(
       data: dataToUpdate,
     });
 
-    revalidatePath('/donors'); 
-    revalidatePath(`/donors/${donorId}`); 
+    revalidatePath('/donors');
+    revalidatePath(`/donors/${donorId}`);
 
-    return getDonorDetails(updatedDonor.id, undefined); // Will use auth to get churchId
+    const updatedData = await getDonorDetails(updatedDonor.id, undefined); // Will use auth to get churchId
+    if (!updatedData) {
+      // This shouldn't happen since we just updated the donor, but handle it gracefully
+      return { success: false, error: 'Failed to retrieve updated donor details.' };
+    }
+    return { success: true, data: updatedData };
 
   } catch (error: unknown) {
     logger.error('Failed to update donor details', { operation: 'donors.update_details.error' }, error instanceof Error ? error : new Error(String(error)));
-    
-    // Check if it's a Prisma error
+
+    // Check if it's a Prisma error and provide specific error messages
     if (error && typeof error === 'object' && 'code' in error) {
       const prismaError = error as { code: string; meta?: { target?: string[] }; message?: string };
       if (prismaError.code === 'P2002' && prismaError.meta?.target) { // Prisma unique constraint violation
         const target = prismaError.meta.target;
         if (target?.includes('email')) {
-          // Error logged above
+          return { success: false, error: 'A donor with this email address already exists.' };
         } else if (target?.includes('phone')) {
-          // Error logged above
+          return { success: false, error: 'A donor with this phone number already exists.' };
         }
+        return { success: false, error: 'A donor with this information already exists.' };
       } else if (prismaError.code === 'P2025') { // Record to update not found
-        // Error logged above
+        return { success: false, error: 'Donor not found. It may have been deleted.' };
       }
     }
-    return null;
+
+    // Generic error for unknown cases
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while updating the donor.';
+    return { success: false, error: errorMessage };
   }
 }

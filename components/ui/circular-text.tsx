@@ -31,7 +31,7 @@ interface CircularTextProps {
 const CircularText = ({ text, spinDuration = 20, className = "", size = 280 }: CircularTextProps) => {
   const letters = Array.from(text)
   const controls = useAnimation()
-  const [currentRotation, setCurrentRotation] = useState(0)
+  const [_currentRotation, _setCurrentRotation] = useState(0)
 
   useEffect(() => {
     // Start continuous rotation immediately

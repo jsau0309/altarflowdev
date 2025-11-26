@@ -5,6 +5,8 @@
  * ⚠️ CLIENT-SIDE ONLY: This utility uses window.localStorage/sessionStorage
  */
 
+import { clientLogger } from '@/lib/client-logger';
+
 type StorageType = 'localStorage' | 'sessionStorage'
 
 interface SafeStorageResult {
@@ -32,8 +34,8 @@ class SafeStorage {
    * Safely set an item in storage
    */
   setItem(
-    key: string, 
-    value: string, 
+    key: string,
+    value: string,
     type: StorageType = 'localStorage'
   ): SafeStorageResult {
     try {
@@ -44,25 +46,21 @@ class SafeStorage {
       // Handle specific error types
       if (error instanceof DOMException) {
         switch (error.name) {
-      // eslint-disable-next-line no-console
           case 'QuotaExceededError':
-            console.warn(`[SafeStorage] ${type} quota exceeded for key: ${key}`)
-      // eslint-disable-next-line no-console
+            clientLogger.warn(`${type} quota exceeded for key: ${key}`, { operation: 'browser.storage_error' });
             break
           case 'SecurityError':
-      // eslint-disable-next-line no-console
-            console.warn(`[SafeStorage] ${type} access denied (private mode?) for key: ${key}`)
+            clientLogger.warn(`${type} access denied (private mode?) for key: ${key}`, { operation: 'browser.storage_error' });
             break
-    // eslint-disable-next-line no-console
           default:
-            console.warn(`${type} error for key ${key}`, { operation: 'browser.storage_error', type, key, errorName: error.name, errorMessage: error.message })
+            clientLogger.warn(`${type} error for key ${key}`, { operation: 'browser.storage_error', type, key, errorName: error.name, errorMessage: error.message });
         }
       } else {
-        console.warn(`Unknown error setting storage key ${key}`, { operation: 'browser.storage_unknown_error', type, key, error: error instanceof Error ? error.message : String(error) })
+        clientLogger.warn(`Unknown error setting storage key ${key}`, { operation: 'browser.storage_unknown_error', type, key, error: error instanceof Error ? error.message : String(error) });
       }
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         error: error instanceof Error ? error : new Error('Unknown storage error')
       }
     }
@@ -72,15 +70,14 @@ class SafeStorage {
    * Safely get an item from storage
    */
   getItem(
-    key: string, 
+    key: string,
     type: StorageType = 'localStorage'
-    // eslint-disable-next-line no-console
   ): string | null {
     try {
       const storage = window[type]
       return storage.getItem(key)
     } catch (error) {
-      console.warn(`Error reading storage key ${key} from ${type}`, { operation: 'browser.storage_read_error', type, key, error: error instanceof Error ? error.message : String(error) })
+      clientLogger.warn(`Error reading storage key ${key} from ${type}`, { operation: 'browser.storage_read_error', type, key, error: error instanceof Error ? error.message : String(error) });
       return null
     }
   }
@@ -89,18 +86,17 @@ class SafeStorage {
    * Safely remove an item from storage
    */
   removeItem(
-    key: string, 
+    key: string,
     type: StorageType = 'localStorage'
-    // eslint-disable-next-line no-console
   ): SafeStorageResult {
     try {
       const storage = window[type]
       storage.removeItem(key)
       return { success: true }
     } catch (error) {
-      console.warn(`Error removing storage key ${key} from ${type}`, { operation: 'browser.storage_remove_error', type, key, error: error instanceof Error ? error.message : String(error) })
-      return { 
-        success: false, 
+      clientLogger.warn(`Error removing storage key ${key} from ${type}`, { operation: 'browser.storage_remove_error', type, key, error: error instanceof Error ? error.message : String(error) });
+      return {
+        success: false,
         error: error instanceof Error ? error : new Error('Unknown storage error')
       }
     }
@@ -108,7 +104,6 @@ class SafeStorage {
 
   /**
    * Safely clear all items from storage
-    // eslint-disable-next-line no-console
    */
   clear(type: StorageType = 'localStorage'): SafeStorageResult {
     try {
@@ -116,9 +111,9 @@ class SafeStorage {
       storage.clear()
       return { success: true }
     } catch (error) {
-      console.warn(`Error clearing ${type}`, { operation: 'browser.storage_clear_error', type, error: error instanceof Error ? error.message : String(error) })
-      return { 
-        success: false, 
+      clientLogger.warn(`Error clearing ${type}`, { operation: 'browser.storage_clear_error', type, error: error instanceof Error ? error.message : String(error) });
+      return {
+        success: false,
         error: error instanceof Error ? error : new Error('Unknown storage error')
       }
     }
@@ -128,18 +123,17 @@ class SafeStorage {
    * Set JSON data safely
    */
   setJSON<T>(
-    // eslint-disable-next-line no-console
-    key: string, 
-    value: T, 
+    key: string,
+    value: T,
     type: StorageType = 'localStorage'
   ): SafeStorageResult {
     try {
       const jsonString = JSON.stringify(value)
       return this.setItem(key, jsonString, type)
     } catch (error) {
-      console.warn(`Error stringifying JSON for storage key ${key}`, { operation: 'browser.storage_json_stringify_error', type, key, error: error instanceof Error ? error.message : String(error) })
-      return { 
-        success: false, 
+      clientLogger.warn(`Error stringifying JSON for storage key ${key}`, { operation: 'browser.storage_json_stringify_error', type, key, error: error instanceof Error ? error.message : String(error) });
+      return {
+        success: false,
         error: error instanceof Error ? error : new Error('JSON stringify error')
       }
     }
@@ -149,8 +143,7 @@ class SafeStorage {
    * Get JSON data safely
    */
   getJSON<T>(
-    key: string, 
-    // eslint-disable-next-line no-console
+    key: string,
     defaultValue: T | null = null,
     type: StorageType = 'localStorage'
   ): T | null {
@@ -160,7 +153,7 @@ class SafeStorage {
 
       return JSON.parse(item) as T
     } catch (error) {
-      console.warn(`Error parsing JSON for storage key ${key}`, { operation: 'browser.storage_json_parse_error', type, key, error: error instanceof Error ? error.message : String(error) })
+      clientLogger.warn(`Error parsing JSON for storage key ${key}`, { operation: 'browser.storage_json_parse_error', type, key, error: error instanceof Error ? error.message : String(error) });
       return defaultValue
     }
   }

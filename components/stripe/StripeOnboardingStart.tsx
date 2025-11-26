@@ -11,9 +11,8 @@ import StripeConnectEmbeddedWrapper from './StripeConnectEmbeddedWrapper';
 
 export default function StripeOnboardingStart() {
   const [hasStarted, setHasStarted] = useState(false);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [isLoading, setIsLoading] = useState(true);
-  const [existingAccount, setExistingAccount] = useState<any>(null);
+  const [existingAccount, setExistingAccount] = useState<{ stripeAccountId?: string; charges_enabled?: boolean; payouts_enabled?: boolean } | null>(null);
   const { t } = useTranslation('banking');
   const { orgId } = useAuth();
 

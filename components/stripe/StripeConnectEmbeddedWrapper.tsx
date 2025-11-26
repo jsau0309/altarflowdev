@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
 import {
@@ -176,8 +176,8 @@ const StripeConnectEmbeddedWrapper: React.FC<StripeConnectEmbeddedWrapperProps> 
         const instance = loadConnectAndInitialize({
           publishableKey,
           fetchClientSecret: fetchClientSecretCallback,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
           appearance: isDarkMode ? darkModeAppearance : lightModeAppearance,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Stripe locale type is restrictive
           locale: getStripeLocale() as any, // Set locale based on current language
         });
         // Set the instance if initialization was successful

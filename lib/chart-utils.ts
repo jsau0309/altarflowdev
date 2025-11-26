@@ -30,9 +30,9 @@ interface CategoryDataPoint {
  * @returns An array of objects suitable for charts (e.g., { date: '2024-01', amount: 500 }).
  */
 export function processDataForChart(
-  data: DataPoint[],
-  groupByKey: keyof DataPoint,
-  aggregateKey: keyof DataPoint,
+  _data: DataPoint[],
+  _groupByKey: keyof DataPoint,
+  _aggregateKey: keyof DataPoint,
 ): { [key: string]: string | number | Date }[] { // More specific return type
   // TODO: Implement processDataForChart
   // Placeholder implementation - return empty array or basic structure
@@ -48,8 +48,8 @@ export function processDataForChart(
  * @returns An array of TimeSeriesDataPoint suitable for line/bar charts showing trends.
  */
 export function processTimeSeriesData(
-  donations: DataPoint[],
-  expenses: DataPoint[],
+  _donations: DataPoint[],
+  _expenses: DataPoint[],
 ): TimeSeriesDataPoint[] {
   // TODO: Implement processTimeSeriesData
   // Placeholder implementation - needs logic to group by time period (day, week, month)
@@ -68,8 +68,8 @@ export function processTimeSeriesData(
  * @returns An array of CategoryDataPoint suitable for pie/doughnut charts.
  */
 export function processCategoryData(
-  data: DataPoint[],
-  categoryKey: keyof DataPoint,
+  _data: DataPoint[],
+  _categoryKey: keyof DataPoint,
 ): CategoryDataPoint[] {
   // TODO: Implement processCategoryData
   // Placeholder implementation - needs logic to group by the categoryKey and sum amounts.

@@ -1,4 +1,4 @@
-import { escapeHtml, escapeUrl } from '@/lib/email/escape-html';
+import { escapeHtml, escapeHtmlAttribute, escapeUrl, escapeAndValidateUrl } from '@/lib/email/escape-html';
 
 export interface NewMemberWelcomeData {
   firstName: string;
@@ -24,22 +24,26 @@ export function generateNewMemberWelcomeHtml(data: NewMemberWelcomeData, appUrl:
     return phone; // Return original if not 10 digits
   };
 
-  // Translations
-  const subjectText = isSpanish ? `¡Bienvenido(a) a ${data.churchName}!` : `Welcome to ${data.churchName}!`;
-  const greetingText = isSpanish ? `Hola ${data.firstName},` : `Hello ${data.firstName},`;
-  const thankYouText = isSpanish 
-    ? `Gracias por conectarte con ${data.churchName}. ¡Estamos emocionados de que te unas a nuestra comunidad!` 
-    : `Thank you for connecting with ${data.churchName}. We're thrilled to have you join our community!`;
+  // Escape user-provided data for HTML context to prevent XSS
+  const safeChurchName = escapeHtml(data.churchName);
+  const safeFirstName = escapeHtml(data.firstName);
+
+  // Translations (using escaped values for HTML safety)
+  const subjectText = isSpanish ? `¡Bienvenido(a) a ${safeChurchName}!` : `Welcome to ${safeChurchName}!`;
+  const greetingText = isSpanish ? `Hola ${safeFirstName},` : `Hello ${safeFirstName},`;
+  const thankYouText = isSpanish
+    ? `Gracias por conectarte con ${safeChurchName}. ¡Estamos emocionados de que te unas a nuestra comunidad!`
+    : `Thank you for connecting with ${safeChurchName}. We're thrilled to have you join our community!`;
   const getInvolvedTitle = isSpanish ? `Formas de Participar` : `Ways to Get Involved`;
   const serviceTimesTitle = isSpanish ? `Horarios de Servicio` : `Service Times`;
   const ministriesTitle = isSpanish ? `Ministerios y Grupos` : `Ministries & Groups`;
   const _stayConnectedTitle = isSpanish ? `Mantente Conectado` : `Stay Connected`;
   const questionsTitle = isSpanish ? `¿Tienes Preguntas?` : `Have Questions?`;
-  const questionsText = isSpanish 
+  const questionsText = isSpanish
     ? `Estamos aquí para ayudarte. No dudes en contactarnos si tienes alguna pregunta o necesitas más información.`
     : `We're here to help! Feel free to reach out if you have any questions or need more information.`;
   const blessingsText = isSpanish ? `Bendiciones,` : `Blessings,`;
-  const teamText = isSpanish ? `El Equipo de ${data.churchName}` : `The ${data.churchName} Team`;
+  const teamText = isSpanish ? `El Equipo de ${safeChurchName}` : `The ${safeChurchName} Team`;
 
   return `
 <!DOCTYPE html>
@@ -235,7 +239,7 @@ export function generateNewMemberWelcomeHtml(data: NewMemberWelcomeData, appUrl:
   <div class="container">
     <!-- Header -->
     <div class="header">
-      ${data.churchLogoUrl ? `<img src="${data.churchLogoUrl}" alt="${data.churchName}" class="logo">` : ''}
+      ${data.churchLogoUrl ? `<img src="${escapeAndValidateUrl(data.churchLogoUrl)}" alt="${escapeHtmlAttribute(data.churchName)}" class="logo">` : ''}
       <h1 class="welcome-title">${subjectText}</h1>
     </div>
     

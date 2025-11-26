@@ -242,11 +242,10 @@ export function EventManager() {
       );
 
       handleCloseDialog();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       loadEvents();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save event:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
-      toast.error(error.message || t("settings:events.saveError", "Failed to save event"));
+      toast.error(error instanceof Error ? error.message : t("settings:events.saveError", "Failed to save event"));
     } finally {
       setIsSaving(false);
     }

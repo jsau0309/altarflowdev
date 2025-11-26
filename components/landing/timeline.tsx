@@ -78,9 +78,7 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
     </div>
   )
 }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
-const TimelineItem = ({ item, index }: { item: any; index: number }) => {
+const TimelineItem = ({ item, index }: { item: TimelineEntry; index: number }) => {
   const itemRef = useRef<HTMLDivElement>(null)
   const isInView = useInView(itemRef, { once: true, margin: "-100px" })
 

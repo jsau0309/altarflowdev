@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { retryExtension } from './prisma-extension-retry';
+import type { TransactionClient, RetryableError } from '@/types/prisma-helpers';
 
 /**
  * Database Client Configuration with Automatic Retry Logic
@@ -92,23 +93,23 @@ export async function withRetry<T>(
   
   while (retries < maxRetries) {
     try {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return await operation();
-    } catch (error: any) {
+return await operation();
+    } catch (error: unknown) {
       // Enhanced retry conditions for connection and timeout errors
-      const isRetryableError = 
-        error?.code === 'P2024' || // Timed out fetching a new connection from the connection pool
-        error?.code === 'P1017' || // Server has closed the connection
-        error?.code === 'P1001' || // Can't reach database server
-        error?.code === 'P1002' || // Database server timeout
-        error?.code === 'P2034' || // Transaction failed due to a write conflict or a deadlock
-        error?.message?.includes('Connection terminated unexpectedly') ||
-        error?.message?.includes('Connection reset by peer') ||
-        error?.message?.includes('Server closed the connection') ||
-        error?.message?.includes('Connection pool timeout') ||
-        error?.message?.includes('timeout') ||
-        error?.message?.includes('ECONNRESET') ||
-        error?.message?.includes('ETIMEDOUT');
+      const retryableError = error as RetryableError;
+      const isRetryableError =
+        retryableError?.code === 'P2024' || // Timed out fetching a new connection from the connection pool
+        retryableError?.code === 'P1017' || // Server has closed the connection
+        retryableError?.code === 'P1001' || // Can't reach database server
+        retryableError?.code === 'P1002' || // Database server timeout
+        retryableError?.code === 'P2034' || // Transaction failed due to a write conflict or a deadlock
+        retryableError?.message?.includes('Connection terminated unexpectedly') ||
+        retryableError?.message?.includes('Connection reset by peer') ||
+        retryableError?.message?.includes('Server closed the connection') ||
+        retryableError?.message?.includes('Connection pool timeout') ||
+        retryableError?.message?.includes('timeout') ||
+        retryableError?.message?.includes('ECONNRESET') ||
+        retryableError?.message?.includes('ETIMEDOUT');
 
       if (isRetryableError) {
         retries++;
@@ -116,16 +117,16 @@ export async function withRetry<T>(
           operation: 'database.connection_error',
           attempt: retries,
           maxRetries,
-          errorCode: error.code,
-          errorMessage: error.message
+          errorCode: retryableError.code,
+          errorMessage: retryableError.message
         });
 
         if (retries >= maxRetries) {
           logger.error('Max retries exceeded for database operation', {
             operation: 'database.max_retries_exceeded',
             attempts: retries,
-            errorCode: error.code
-          }, error);
+            errorCode: retryableError.code
+          }, error instanceof Error ? error : new Error(String(error)));
           throw error;
         }
         
@@ -147,12 +148,12 @@ export async function withRetry<T>(
 // Kept for backwards compatibility with existing code that explicitly uses it.
 // New code should use prisma.$transaction directly - retries are automatic.
 export async function withRetryTransaction<T>(
-  operation: (tx: any) => Promise<T>,
+  operation: (tx: TransactionClient) => Promise<T>,
   maxRetries: number = 2
 ): Promise<T> {
   return withRetry(async () => {
-    return prisma.$transaction(async (tx: any) => {
-      return operation(tx);
+    return prisma.$transaction(async (tx) => {
+      return operation(tx as unknown as TransactionClient);
     }, {
       maxWait: 5000, // 5 seconds max wait
       timeout: 15000, // 15 seconds timeout

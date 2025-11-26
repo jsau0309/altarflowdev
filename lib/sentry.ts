@@ -1,18 +1,20 @@
 import * as Sentry from "@sentry/nextjs";
 import { logger } from './logger';
 import { hashChurchId } from './logger/middleware';
+import type { SentryContext, ApiSpanAttributes, DatabaseSpanAttributes, StripeSpanAttributes } from '@/types/sentry';
 
 // Helper function to capture webhook events with context
 // Note: This is now a compatibility wrapper. Prefer using webhookLogger directly.
 export function captureWebhookEvent(
   eventType: string,
-  context: Record<string, any>,
+  context: SentryContext,
   level: 'info' | 'warning' | 'error' = 'info'
 ) {
   // Use new structured logging with automatic sanitization
+  const churchId = typeof context.churchId === 'string' ? context.churchId : undefined;
   const sanitizedContext = {
     ...context,
-    churchId: context.churchId ? hashChurchId(context.churchId) : undefined,
+    churchId: churchId ? hashChurchId(churchId) : undefined,
   };
 
   if (level === 'error') {
@@ -60,7 +62,7 @@ export function capturePaymentError(
 // Helper to create spans for API operations
 export function withApiSpan<T>(
   operation: string,
-  attributes: Record<string, any>,
+  attributes: ApiSpanAttributes,
   callback: () => T | Promise<T>
 ): T | Promise<T> {
   return Sentry.startSpan(
@@ -76,7 +78,7 @@ export function withApiSpan<T>(
 // Helper to create spans for database operations
 export function withDatabaseSpan<T>(
   operation: string,
-  attributes: Record<string, any>,
+  attributes: DatabaseSpanAttributes,
   callback: () => T | Promise<T>
 ): T | Promise<T> {
   return Sentry.startSpan(
@@ -92,7 +94,7 @@ export function withDatabaseSpan<T>(
 // Helper for Stripe API calls with automatic span creation
 export function withStripeSpan<T>(
   operation: string,
-  attributes: Record<string, any>,
+  attributes: StripeSpanAttributes,
   callback: () => T | Promise<T>
 ): T | Promise<T> {
   return Sentry.startSpan(

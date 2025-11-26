@@ -38,10 +38,9 @@ export interface CronJobConfig {
   timezone?: string;
 }
 
-export interface CronJobResult {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface CronJobResult<T = unknown> {
   success: boolean;
-  data?: any;
+  data?: T;
   error?: Error;
   duration: number;
 }

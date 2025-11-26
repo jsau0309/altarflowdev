@@ -1,5 +1,6 @@
 import posthog from 'posthog-js'
 import { PostHog } from 'posthog-js'
+import { clientLogger } from '@/lib/client-logger'
 
 let posthogClient: PostHog | null = null
 
@@ -12,9 +13,8 @@ export function initPostHog(): PostHog | null {
     const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
     const apiHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
 
-  // eslint-disable-next-line no-console
     if (!apiKey) {
-      console.warn('PostHog API key not found. Analytics will not be tracked.')
+      clientLogger.warn('PostHog API key not found. Analytics will not be tracked.', { operation: 'posthog.init' })
       return null
     }
 

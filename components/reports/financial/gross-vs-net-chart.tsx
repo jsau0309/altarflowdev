@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTranslation } from "react-i18next"
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from "recharts"
 import { format } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -29,22 +29,22 @@ export function GrossVsNetChart({ data, isLoading }: GrossVsNetChartProps) {
       maximumFractionDigits: 0,
     }).format(value)
   }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-  
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+    if (active && payload && payload.length >= 2 && label) {
+      const grossValue = payload[0].value as number;
+      const netValue = payload[1].value as number;
       return (
         <div className="bg-background border rounded-lg p-3 shadow-lg">
           <p className="font-semibold">{format(new Date(label), 'MMM d, yyyy')}</p>
           <div className="space-y-1 mt-2">
             <p className="text-sm">
-              <span className="text-blue-500">Gross:</span> {formatCurrency(payload[0].value)}
+              <span className="text-blue-500">Gross:</span> {formatCurrency(grossValue)}
             </p>
             <p className="text-sm">
-              <span className="text-green-500">Net:</span> {formatCurrency(payload[1].value)}
+              <span className="text-green-500">Net:</span> {formatCurrency(netValue)}
             </p>
             <p className="text-sm text-muted-foreground">
-              Fees: {formatCurrency(payload[0].value - payload[1].value)}
+              Fees: {formatCurrency(grossValue - netValue)}
             </p>
           </div>
         </div>
@@ -91,7 +91,7 @@ export function GrossVsNetChart({ data, isLoading }: GrossVsNetChartProps) {
                 tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                 className="text-xs"
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={CustomTooltip} />
               <Legend />
               <Line 
                 type="monotone" 

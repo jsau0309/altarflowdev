@@ -2,16 +2,16 @@ import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/db';
 import { createConnectAccountSchema, stripeAccountIdSchema, validateInput } from '@/lib/validation/stripe';
 import { logger } from '@/lib/logger';
+import type { StripeConnectAccountCreateParams, StripeConnectAccountUpdateParams } from '@/types/stripe-extended';
 
 export async function createStripeConnectAccount(churchId: string, email: string, country: string = 'US') {
   try {
     // Validate input
     const validated = validateInput(createConnectAccountSchema, { churchId, email, country });
-    
+
     // Create a new Connect account
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
     // Build the account params with proper typing
-    const accountParams: any = {
+    const accountParams: StripeConnectAccountCreateParams = {
       type: 'express',
       country: validated.country,
       email: validated.email,
@@ -127,10 +127,9 @@ export async function getStripeConnectAccount(churchId: string) {
 
 export async function disableStripeAutomaticReceipts(stripeAccountId: string) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     // Update the Connect account to disable automatic receipts
     // This works for Express and Custom accounts
-    const updateParams: any = {
+    const updateParams: StripeConnectAccountUpdateParams = {
       settings: {
         payments: {
           statement_descriptor: 'ALTARFLOW DONATION',

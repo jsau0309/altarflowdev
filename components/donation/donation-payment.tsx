@@ -48,7 +48,7 @@ interface CheckoutFormProps {
   churchName: string; // Added for return_url
 }
 
-const CheckoutForm = ({ formData, onBack, churchSlug, churchName }: CheckoutFormProps) => {
+const CheckoutForm = ({ formData, onBack, churchId: _churchId, churchSlug, churchName }: CheckoutFormProps) => {
   useEffect(() => {
     // Listen for CSP violations
     const handleCSPViolation = () => {
@@ -328,16 +328,15 @@ export default function DonationPayment({
         initializationRef.current = null;
       } else {
         throw new Error(t('donations:donationPayment.clientSecretError', 'Failed to retrieve client secret.'));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
         // Don't change loading state if aborted - let the new request handle it
         initializationRef.current = null;
         hasInitiatedRef.current = false;
         return;
       }
-      setInitError(error.message || t('donations:donationPayment.initError', 'Error initializing payment form.'));
+      setInitError(error instanceof Error ? error.message : t('donations:donationPayment.initError', 'Error initializing payment form.'));
       setClientSecret(null);
       setIsLoadingClientSecret(false);
       initializationRef.current = null;

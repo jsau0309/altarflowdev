@@ -12,8 +12,8 @@ export function getStripeInstance(): Stripe {
     throw new Error('Stripe API key is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new Stripe(apiKey, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- API version not in Stripe types yet
     apiVersion: '2025-07-30.basil' as any,
     typescript: true,
     maxNetworkRetries: 2,

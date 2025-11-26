@@ -235,19 +235,21 @@ export function EditDonorModal({ isOpen, onClose, donor, onDonorUpdate, onSucces
       // Debug logging removed: submitting donor update payload
       const result = await updateDonorDetails(donor.id, payloadForUpdate);
 
-      if (result) { // result is DonorDetailsData if successful, null otherwise
+      if (result.success && result.data) {
         // Debug logging removed: donor updated successfully
         toast.success(t('editDonorModal.updateSuccess', { ns: 'donations' }));
         if (onDonorUpdate) {
-          onDonorUpdate(result); // result is the full DonorDetailsData
+          onDonorUpdate(result.data);
         }
-        onSuccess(result); // Call onSuccess prop
+        onSuccess(result.data);
         onClose(); // Close modal on success
       } else {
-        console.error('Failed to update donor. The action returned null.', { operation: 'ui.error' });
-        toast.error(t('editDonorModal.errors.updateFailed', { ns: 'donations' }));
-        setErrors(prev => ({ ...prev, form: t('donations:editDonorModal.errors.updateFailed') }));
-      }  
+        // Use specific error message from the action if available
+        const errorMessage = result.error || t('editDonorModal.errors.updateFailed', { ns: 'donations' });
+        console.error('Failed to update donor:', { operation: 'ui.error', error: result.error });
+        toast.error(errorMessage);
+        setErrors(prev => ({ ...prev, form: errorMessage }));
+      }
     } catch (error) {
       console.error('Failed to update donor:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('editDonorModal.errors.updateFailed', { ns: 'donations' }));

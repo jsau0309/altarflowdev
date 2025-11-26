@@ -14,11 +14,11 @@ interface SubscriptionGuardProps {
   fallback?: React.ReactNode;
 }
 
-export function SubscriptionGuard({ children, feature, fallback }: SubscriptionGuardProps) {
+export function SubscriptionGuard({ children, feature: _feature, fallback }: SubscriptionGuardProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
-  const [subscription, setSubscription] = useState<any>(null);
+  const [subscription, setSubscription] = useState<{ status?: string; plan?: string; daysLeftInTrial?: number } | null>(null);
 
   useEffect(() => {
     checkSubscription();

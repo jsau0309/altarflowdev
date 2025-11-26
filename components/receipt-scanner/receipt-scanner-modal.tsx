@@ -143,9 +143,7 @@ export function ReceiptScannerModal({ isOpen, onClose, onDataCaptured }: Receipt
     setCapturedImage(imageData)
     setScanningStage("preview")
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
-  const handleAcceptData = (updatedData: any) => {
+  const handleAcceptData = (updatedData: ReviewData) => {
     onDataCaptured({
       ...updatedData,
       receiptFile: pendingFile ?? null,
