@@ -1,23 +1,65 @@
 import { PrismaClient } from '@prisma/client';
-import { connectionErrorMiddleware } from './prisma-middleware';
 import { logger } from '@/lib/logger';
+import { retryExtension } from './prisma-extension-retry';
+
+/**
+ * Database Client Configuration with Automatic Retry Logic
+ * 
+ * This module exports a Prisma client that automatically retries database operations
+ * on connection failures. All database operations (queries, mutations, transactions)
+ * will automatically retry up to 3 times on transient errors like:
+ * - Connection pool timeouts
+ * - Server connection drops
+ * - Network errors (ECONNRESET, ETIMEDOUT)
+ * - Transaction conflicts/deadlocks
+ * 
+ * No manual wrapping is needed - just use prisma.* normally and retries happen automatically.
+ * 
+ * See: docs/DATABASE_RETRY_IMPLEMENTATION.md for details
+ */
 
 // PrismaClient is attached to the `global` object in development to prevent
 // exhausting your database connection limit.
 // Learn more: https://pris.ly/d/help/next-js-best-practices
 
 const globalForPrisma = global as unknown as { 
-  prisma: PrismaClient;
+  prisma: ReturnType<typeof createPrismaClient>;
   handlersRegistered?: boolean;
 };
 
-// Create Prisma client with optimized configuration
+// Create Prisma client with optimized configuration and automatic retry logic
 function createPrismaClient() {
-  const client = new PrismaClient({
+  // Build connection URL with connection pool settings
+  // Pool timeout is configured via connection string query parameters
+  const databaseUrl = process.env.DATABASE_URL;
+  const poolTimeout = process.env.PRISMA_POOL_TIMEOUT || '20'; // 20 seconds (increased from default 10s)
+  const connectionLimit = process.env.PRISMA_CONNECTION_LIMIT || '30'; // Default Supabase Pro limit
+
+  // Append pool configuration if not already present in URL
+  // Check each parameter independently to avoid duplication
+  let connectionUrl = databaseUrl;
+  if (databaseUrl) {
+    const params: string[] = [];
+    
+    if (!databaseUrl.includes('pool_timeout=')) {
+      params.push(`pool_timeout=${poolTimeout}`);
+    }
+    
+    if (!databaseUrl.includes('connection_limit=')) {
+      params.push(`connection_limit=${connectionLimit}`);
+    }
+    
+    if (params.length > 0) {
+      const separator = databaseUrl.includes('?') ? '&' : '?';
+      connectionUrl = `${databaseUrl}${separator}${params.join('&')}`;
+    }
+  }
+
+  const baseClient = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: connectionUrl,
       },
     },
     // Optimized connection configuration
@@ -27,11 +69,10 @@ function createPrismaClient() {
     },
   });
 
-  // Add connection error middleware (if needed for older Prisma versions)
-  // Note: Prisma 5.x+ has built-in connection pooling improvements
-  if (process.env.NODE_ENV === 'development') {
-    client.$use(connectionErrorMiddleware);
-  }
+  // Apply automatic retry extension for connection error handling
+  // This replaces the deprecated $use middleware API from Prisma 4.x
+  // All database operations will automatically retry on connection failures
+  const client = baseClient.$extends(retryExtension);
 
   return client;
 }
@@ -39,6 +80,9 @@ function createPrismaClient() {
 export const prisma = globalForPrisma.prisma || createPrismaClient();
 
 // Enhanced utility function for retry logic on critical operations
+// NOTE: This is now redundant as the Prisma client has automatic retry built-in via extension.
+// Kept for backwards compatibility with existing code that explicitly uses it.
+// New code should use the prisma client directly - retries are automatic.
 export async function withRetry<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -99,17 +143,20 @@ export async function withRetry<T>(
 }
 
 // Utility function for database transactions with retry logic
+// NOTE: This is now redundant as the Prisma client has automatic retry built-in via extension.
+// Kept for backwards compatibility with existing code that explicitly uses it.
+// New code should use prisma.$transaction directly - retries are automatic.
 export async function withRetryTransaction<T>(
-  operation: (tx: PrismaClient) => Promise<T>,
+  operation: (tx: any) => Promise<T>,
   maxRetries: number = 2
 ): Promise<T> {
   return withRetry(async () => {
-    return prisma.$transaction(async (tx) => {
-      return operation(tx as PrismaClient);
+    return prisma.$transaction(async (tx: any) => {
+      return operation(tx);
     }, {
       maxWait: 5000, // 5 seconds max wait
       timeout: 15000, // 15 seconds timeout
-    });
+    }) as Promise<T>;
   }, maxRetries);
 }
 

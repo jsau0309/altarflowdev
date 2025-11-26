@@ -46,9 +46,11 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   const [showDonorModal, setShowDonorModal] = useState(false)
   const [activeTab, setActiveTab] = useState("all-donations")
   const [campaignsView, setCampaignsView] = useState<'list' | 'create' | { mode: 'edit', id: string }>('list')
-  const [donorSearchTerm] = useState("")
+  const [donorSearchTerm, setDonorSearchTerm] = useState("")
+  const [debouncedDonorSearchTerm, setDebouncedDonorSearchTerm] = useState("")
   const [donationSearchTerm, setDonationSearchTerm] = useState("")
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
+  const [donorSortOrder, setDonorSortOrder] = useState<'asc' | 'desc'>('asc')
   const [showEditDonorModal, setShowEditDonorModal] = useState(false)
   const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null)
   const [showDonationDetails, setShowDonationDetails] = useState(false)
@@ -95,6 +97,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
   const [donorsCurrentPage, setDonorsCurrentPage] = useState(1);
   const [donorsItemsPerPage, setDonorsItemsPerPage] = useState(10);
   const [donorsTotalItems, setDonorsTotalItems] = useState(0);
+  const [currentChurchId, setCurrentChurchId] = useState<string | undefined>(undefined); // Track current church ID
   const donorsTotalPages = Math.ceil(donorsTotalItems / donorsItemsPerPage);
   const { t } = useTranslation(['donations', 'common', 'expenses', 'members'])
 
@@ -104,11 +107,13 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
       const data = await getDonors({
         page: donorsCurrentPage,
         limit: donorsItemsPerPage,
-        query: donorSearchTerm,
+        query: debouncedDonorSearchTerm,
+        sortOrder: donorSortOrder,
       });
       if (data.donors) {
         setDonors(data.donors);
         setDonorsTotalItems(data.totalDonors);
+        setCurrentChurchId(data.currentChurchId); // Store the current church ID
       } else {
         setDonors([]);
         setDonorsTotalItems(0);
@@ -120,7 +125,7 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     } finally {
       setIsDonorsLoading(false);
     }
-  }, [donorsCurrentPage, donorsItemsPerPage, donorSearchTerm]);
+  }, [donorsCurrentPage, donorsItemsPerPage, debouncedDonorSearchTerm, donorSortOrder]);
 
   useEffect(() => {
     if (activeTab === 'donors') {
@@ -219,12 +224,24 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
     return () => clearTimeout(timer);
   }, [donationSearchTerm]);
 
-  // Reset to page 1 when debounced search term changes
+  // Debounce donor search term - wait 500ms after user stops typing
   useEffect(() => {
-    if (debouncedSearchTerm) {
-      setCurrentPage(1);
-    }
+    const timer = setTimeout(() => {
+      setDebouncedDonorSearchTerm(donorSearchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [donorSearchTerm]);
+
+  // Reset to page 1 when debounced search term changes (including when cleared)
+  useEffect(() => {
+    setCurrentPage(1);
   }, [debouncedSearchTerm])
+
+  // Reset donors page to 1 when debounced donor search term changes (including when cleared)
+  useEffect(() => {
+    setDonorsCurrentPage(1);
+  }, [debouncedDonorSearchTerm])
 
   // filteredDonors removed - donor filter removed
   // getDonorName removed - donor filter removed
@@ -1043,27 +1060,65 @@ export default function DonationsContent({ propDonationTypes }: DonationsContent
                 {t('donations:donorsContent.addDonorButton', 'Add Donor')}
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={t('donations:donorsContent.searchPlaceholder', 'Search donors')}
+                  value={donorSearchTerm}
+                  onChange={(e) => setDonorSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
               {isDonorsLoading ? (
                 <div className="flex justify-center items-center h-[500px]">
                   <LoaderOne />
                 </div>
               ) : (
                 <>
-                  <DonorsTable donors={donors} onEdit={handleEditDonorFromList} onViewDetails={(donorId: string) => {
-                    setSelectedDonorIdForDetails(donorId);
-                    setShowDonorDetails(true);
-                  }} />
-                  <div className="mt-4">
-                    <TablePagination
-                      currentPage={donorsCurrentPage}
-                      totalPages={donorsTotalPages}
-                      onPageChange={setDonorsCurrentPage}
-                      onItemsPerPageChange={setDonorsItemsPerPage}
-                      itemsPerPage={donorsItemsPerPage}
-                      totalItems={donorsTotalItems}
-                    />
-                  </div>
+                  {donors.length > 0 ? (
+                    <>
+                      <DonorsTable
+                        donors={donors}
+                        onEdit={handleEditDonorFromList}
+                        onViewDetails={(donorId: string) => {
+                          setSelectedDonorIdForDetails(donorId);
+                          setShowDonorDetails(true);
+                        }}
+                        sortOrder={donorSortOrder}
+                        onSortChange={setDonorSortOrder}
+                        currentChurchId={currentChurchId}
+                      />
+                      <div className="mt-4">
+                        <TablePagination
+                          currentPage={donorsCurrentPage}
+                          totalPages={donorsTotalPages}
+                          onPageChange={setDonorsCurrentPage}
+                          onItemsPerPageChange={setDonorsItemsPerPage}
+                          itemsPerPage={donorsItemsPerPage}
+                          totalItems={donorsTotalItems}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-center py-20">
+                      <div className="rounded-full bg-primary/10 p-4">
+                        <Users className="h-10 w-10 text-primary" />
+                      </div>
+                      <h3 className="mt-6 text-xl font-semibold">{t('donations:donorsContent.empty.title', 'No donors found')}</h3>
+                      <p className="mt-2 mb-6 text-sm text-muted-foreground">
+                        {donorSearchTerm
+                          ? t('donations:donorsContent.empty.adjustFilters', 'Try adjusting your search.')
+                          : t('donations:donorsContent.empty.addFirst', 'Add your first donor to get started.')}
+                      </p>
+                      <Button onClick={handleAddDonorClick}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        {t('donations:donorsContent.addDonorButton', 'Add Donor')}
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>
