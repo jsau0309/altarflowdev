@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import type { SentryContext } from '@/types/sentry';
 
 /**
  * UI Span Instrumentation Helpers
@@ -8,7 +9,7 @@ import * as Sentry from "@sentry/nextjs";
 // Helper for button click instrumentation
 export function instrumentButtonClick(
   buttonName: string,
-  metadata: Record<string, any> = {},
+  metadata: SentryContext = {},
   handler: () => void | Promise<void>
 ) {
   return () => {
@@ -34,9 +35,9 @@ export function instrumentButtonClick(
 }
 
 // Helper for form submission instrumentation
-export function instrumentFormSubmit<T>(
+export function instrumentFormSubmit<T extends Record<string, unknown>>(
   formName: string,
-  metadata: Record<string, any> = {},
+  metadata: SentryContext = {},
   handler: (data: T) => void | Promise<void>
 ) {
   return (data: T) => {
@@ -46,7 +47,7 @@ export function instrumentFormSubmit<T>(
         name: `${formName} Form Submit`,
         attributes: {
           'form.name': formName,
-          'form.fields': Object.keys(data as any).length,
+          'form.fields': Object.keys(data).length,
           ...metadata
         }
       },
@@ -124,7 +125,7 @@ export async function instrumentedFetch<T>(
 export function trackUserInteraction(
   action: string,
   category: string,
-  metadata: Record<string, any> = {}
+  metadata: SentryContext = {}
 ) {
   Sentry.addBreadcrumb({
     category: 'user',

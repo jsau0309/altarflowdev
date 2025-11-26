@@ -209,7 +209,7 @@ export async function updateFundraisingCampaign(clerkOrgId: string, id: string, 
       const key = issue.path[0] as keyof FieldErrors;
       if (key) fieldErrors[key] = issue.message;
     }
-    return { success: false as const, ...(fieldErrors && { fieldErrors }) } as any;
+    return { success: false as const, ...(fieldErrors && { fieldErrors }) };
   }
 
   // Sanitize inputs to prevent XSS
@@ -254,7 +254,7 @@ export async function deleteFundraisingCampaign(clerkOrgId: string, id: string):
   }
 
   // Use transaction for atomicity
-  await prisma.$transaction(async (tx: any) => {
+  await prisma.$transaction(async (tx) => {
     const hasTransactions = await tx.donationTransaction.count({
       where: {
         churchId,

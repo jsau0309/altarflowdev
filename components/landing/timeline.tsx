@@ -78,8 +78,7 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
     </div>
   )
 }
-
-const TimelineItem = ({ item, index }: { item: any; index: number }) => {
+const TimelineItem = ({ item, index }: { item: TimelineEntry; index: number }) => {
   const itemRef = useRef<HTMLDivElement>(null)
   const isInView = useInView(itemRef, { once: true, margin: "-100px" })
 

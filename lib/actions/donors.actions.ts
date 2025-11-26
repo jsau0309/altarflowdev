@@ -2,9 +2,8 @@
 
 import { prisma } from '@/lib/db';
 import { unstable_noStore as noStore, revalidatePath } from 'next/cache';
-import type { Prisma, Member as PrismaMember } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { DonorDetailsData, DonorFE } from '@/lib/types'; // Removed Member type as createDonor will now return Donor
-import { Donor } from '@prisma/client';
 import { DonorFilterItem } from './donations.actions';
 import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
 import { logger } from '@/lib/logger';
@@ -511,17 +510,22 @@ export async function createDonor(
     revalidatePath('/donations'); // Assuming donors are displayed under donations path
 
     return { success: true, data: donorFE };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Failed to create donor', { operation: 'donors.create.error' }, error instanceof Error ? error : new Error(String(error)));
     let errorMessage = "An unknown error occurred while creating the donor.";
-    if (error.code === 'P2002' && error.meta?.target) {
-      const target = error.meta.target as string[];
-      if (target.includes('email')) {
-        errorMessage = 'A donor with this email address already exists.';
-      } else if (target.includes('phone')) {
-        errorMessage = 'A donor with this phone number already exists.';
-      } else {
-        errorMessage = 'A donor with this information already exists (e.g., email or phone).';
+    
+    // Check if it's a Prisma error
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as { code: string; meta?: { target?: string[] } };
+      if (prismaError.code === 'P2002' && prismaError.meta?.target) {
+        const target = prismaError.meta.target;
+        if (target.includes('email')) {
+          errorMessage = 'A donor with this email address already exists.';
+        } else if (target.includes('phone')) {
+          errorMessage = 'A donor with this phone number already exists.';
+        } else {
+          errorMessage = 'A donor with this information already exists (e.g., email or phone).';
+        }
       }
     } else if (error instanceof Error) {
       errorMessage = error.message;
@@ -618,10 +622,10 @@ export async function getAllDonorsForManualDonation(): Promise<DonorFilterItem[]
 export async function updateDonorDetails(
   donorId: string,
   payload: UpdateDonorPayload
-): Promise<DonorDetailsData | null> {
+): Promise<{ success: boolean; data?: DonorDetailsData; error?: string }> {
   if (!donorId) {
     logger.error('Donor ID is required', { operation: 'donors.update_details.no_id' });
-    return null;
+    return { success: false, error: 'Donor ID is required.' };
   }
 
   try {
@@ -648,12 +652,16 @@ export async function updateDonorDetails(
     }
     
     // Prevent update if no actual data fields (excluding memberId if it was undefined) were provided
-    const { memberId, ...otherPayloadFields } = payload; // memberId is destructured here for the check below
+    const { memberId: _memberId, ...otherPayloadFields } = payload; // memberId is destructured here for the check below
     if (Object.keys(otherPayloadFields).length === 0 && payload.memberId === undefined) {
       // If only memberId was in payload and it was undefined, or payload was empty.
       // Fetch current donor data to return, as no update was performed.
       logger.debug('No fields to update for donor, fetching current details', { operation: 'donors.update_details.no_changes', donorId });
-      return getDonorDetails(donorId, undefined); // Will use auth to get churchId
+      const currentData = await getDonorDetails(donorId, undefined); // Will use auth to get churchId
+      if (!currentData) {
+        return { success: false, error: 'Donor not found.' };
+      }
+      return { success: true, data: currentData };
     }
 
     const updatedDonor = await prisma.donor.update({
@@ -661,28 +669,37 @@ export async function updateDonorDetails(
       data: dataToUpdate,
     });
 
-    revalidatePath('/donors'); 
-    revalidatePath(`/donors/${donorId}`); 
+    revalidatePath('/donors');
+    revalidatePath(`/donors/${donorId}`);
 
-    return getDonorDetails(updatedDonor.id, undefined); // Will use auth to get churchId
-
-  } catch (error: any) {
-    logger.error('Failed to update donor details', { operation: 'donors.update_details.error' }, error instanceof Error ? error : new Error(String(error)));
-    let errorMessage = "An unknown error occurred while updating donor.";
-    if (error.code === 'P2002' && error.meta?.target) { // Prisma unique constraint violation
-        const target = error.meta.target as string[];
-        if (target?.includes('email')) {
-            errorMessage = 'A donor with this email address already exists.';
-        } else if (target?.includes('phone')) {
-            errorMessage = 'A donor with this phone number already exists.';
-        } else {
-            errorMessage = `This update violates a unique constraint on field(s): ${target.join(', ')}.`;
-        }
-    } else if (error.code === 'P2025') { // Record to update not found
-        errorMessage = error.message || `Donor with ID ${donorId} not found.`;
-    } else if (error instanceof Error) {
-        errorMessage = error.message;
+    const updatedData = await getDonorDetails(updatedDonor.id, undefined); // Will use auth to get churchId
+    if (!updatedData) {
+      // This shouldn't happen since we just updated the donor, but handle it gracefully
+      return { success: false, error: 'Failed to retrieve updated donor details.' };
     }
-    return null;
+    return { success: true, data: updatedData };
+
+  } catch (error: unknown) {
+    logger.error('Failed to update donor details', { operation: 'donors.update_details.error' }, error instanceof Error ? error : new Error(String(error)));
+
+    // Check if it's a Prisma error and provide specific error messages
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as { code: string; meta?: { target?: string[] }; message?: string };
+      if (prismaError.code === 'P2002' && prismaError.meta?.target) { // Prisma unique constraint violation
+        const target = prismaError.meta.target;
+        if (target?.includes('email')) {
+          return { success: false, error: 'A donor with this email address already exists.' };
+        } else if (target?.includes('phone')) {
+          return { success: false, error: 'A donor with this phone number already exists.' };
+        }
+        return { success: false, error: 'A donor with this information already exists.' };
+      } else if (prismaError.code === 'P2025') { // Record to update not found
+        return { success: false, error: 'Donor not found. It may have been deleted.' };
+      }
+    }
+
+    // Generic error for unknown cases
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while updating the donor.';
+    return { success: false, error: errorMessage };
   }
 }

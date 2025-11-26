@@ -29,6 +29,7 @@ import {
   getDonationSummary,
   getExpenseSummary,
   getTransactionsForExport,
+  type ReportSummary,
 } from "@/lib/actions/reports.actions"
 
 interface GenerateReportModalProps {
@@ -110,8 +111,8 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
       }
 
       // Fetch data based on report type
-      let exportData: any[] = []
-      let summary: any = {}
+      let exportData: Awaited<ReturnType<typeof getTransactionsForExport>> = []
+      let summary: ReportSummary = { total: 0, average: 0 }
 
       if (reportType === "donations" || reportType === "expenses") {
         const type = reportType as 'donations' | 'expenses'

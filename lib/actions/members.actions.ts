@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from '@/lib/db';
-import { revalidatePath } from 'next/cache';
 import { auth } from '@clerk/nextjs/server';
 import { authorizeChurchAccess } from '@/lib/auth/authorize-church-access';
 import { logger } from '@/lib/logger';

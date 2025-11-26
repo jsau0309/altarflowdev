@@ -6,31 +6,31 @@ import { logger } from '@/lib/logger';
  * during traffic spikes.
  */
 
-interface CachedChurch {
-  data: any;
+interface CachedEntry<T> {
+  data: T;
   timestamp: number;
   ttl: number;
 }
 
 class LandingPageCache {
-  private cache: Map<string, CachedChurch> = new Map();
+  private cache: Map<string, CachedEntry<unknown>> = new Map();
   private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
 
   /**
    * Get church data from cache or fetch from database
    */
-  async getChurch(
+  async getChurch<T>(
     slug: string,
-    fetcher: () => Promise<any>,
+    fetcher: () => Promise<T>,
     ttl: number = this.DEFAULT_TTL
-  ): Promise<any> {
+  ): Promise<T | undefined> {
     const cached = this.cache.get(slug);
     const now = Date.now();
 
     // Return cached data if still valid
     if (cached && now - cached.timestamp < cached.ttl) {
       logger.debug(`[Cache HIT] Church slug: ${slug}`);
-      return cached.data;
+      return cached.data as T;
     }
 
     // Cache miss or expired - fetch from database

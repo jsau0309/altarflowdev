@@ -106,6 +106,7 @@ export function EditDonationDialog({ isOpen, onClose, onSuccess, donation }: Edi
   }, [isOpen, fetchDonors])
 
   const handleReasonTypeChange = (value: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Form field type is complex
     form.setValue("editReasonType", value as any)
     
     // Pre-fill reason based on type

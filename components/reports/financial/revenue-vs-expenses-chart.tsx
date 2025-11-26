@@ -4,7 +4,7 @@ import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTranslation } from 'react-i18next'
-import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip } from "recharts"
+import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip, TooltipProps } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
 import { ErrorBoundary } from "@/components/error-boundary"
 
@@ -32,7 +32,7 @@ const chartConfig = {
 }
 
 // Custom Tooltip Component following Recharts pattern
-function CustomTooltip({ payload, label, active }: any) {
+function CustomTooltip({ payload, label, active }: TooltipProps<number, string>) {
   if (active && payload && payload.length) {
     const formatCurrency = (value: number) => {
       return new Intl.NumberFormat("en-US", {
@@ -57,9 +57,9 @@ function CustomTooltip({ payload, label, active }: any) {
         <p className="label" style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px' }}>
           {label}
         </p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index: number) => (
           <p key={index} style={{ margin: '4px 0', fontSize: '13px', color: entry.color }}>
-            <span style={{ fontWeight: '500' }}>{entry.name}:</span> {formatCurrency(entry.value)}
+            <span style={{ fontWeight: '500' }}>{entry.name}:</span> {formatCurrency(entry.value as number)}
           </p>
         ))}
       </div>

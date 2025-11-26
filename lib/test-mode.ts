@@ -23,9 +23,14 @@ export function getTestAmount(originalAmount: number, isTest: boolean): number {
   return isTest ? 50 : originalAmount;
 }
 
-export function sanitizeTestData(data: any, isTest: boolean): any {
+interface TestableData {
+  metadata?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export function sanitizeTestData<T extends TestableData>(data: T, isTest: boolean): T {
   if (!isTest) return data;
-  
+
   // Add test flag to help identify test transactions
   return {
     ...data,

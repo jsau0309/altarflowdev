@@ -33,7 +33,7 @@ export function MembersContent() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      const processedData = data.map((member: any) => ({
+      const processedData = data.map((member: Member & { joinDate?: string | null }) => ({
         ...member,
         joinDate: member.joinDate ? new Date(member.joinDate) : null,
       }));

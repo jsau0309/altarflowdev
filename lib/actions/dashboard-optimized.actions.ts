@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import { auth } from "@clerk/nextjs/server";
-import { startOfWeek, startOfMonth, startOfYear, subMonths, endOfWeek, endOfMonth, endOfYear } from "date-fns";
+import { startOfWeek, startOfMonth, startOfYear, subMonths } from "date-fns";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { logger } from '@/lib/logger';
 
@@ -34,7 +34,6 @@ interface DashboardSummary {
 
 // Optimized version with single query approach
 export async function getDashboardSummaryOptimized(): Promise<DashboardSummary | null> {
-  const startTime = Date.now();
   const { orgId } = await auth();
   
   if (!orgId) {

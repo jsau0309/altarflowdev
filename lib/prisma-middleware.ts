@@ -16,12 +16,12 @@ import { logger } from '@/lib/logger';
 type LegacyMiddlewareParams = {
   model?: string;
   action: string;
-  args?: any;
+  args?: unknown;
   dataPath?: string[];
   runInTransaction?: boolean;
 };
 
-type LegacyNext = (params: LegacyMiddlewareParams) => Promise<any>;
+type LegacyNext = (params: LegacyMiddlewareParams) => Promise<unknown>;
 
 // Enhanced middleware to handle connection errors gracefully (DEPRECATED)
 export const connectionErrorMiddleware = async (params: LegacyMiddlewareParams, next: LegacyNext) => {

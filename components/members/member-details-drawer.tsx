@@ -193,13 +193,14 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
       });
       handleSaveSuccess(); // Call the original success handler
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Error updating member:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
-      const isUniqueConstraintError = error.message?.includes('constraint violation') || error.message?.includes('already exist');
+      const isUniqueConstraintError = errorMessage?.includes('constraint violation') || errorMessage?.includes('already exist');
       let toastTitle = t('members:edit.errorTitle', 'Error Updating Member');
-      let toastDescription = error.message || t('members:edit.errorMessage', 'Failed to update member details. Please try again.');
+      let toastDescription = errorMessage || t('members:edit.errorMessage', 'Failed to update member details. Please try again.');
 
-      if (isUniqueConstraintError && error.message?.toLowerCase().includes('email')) {
+      if (isUniqueConstraintError && errorMessage?.toLowerCase().includes('email')) {
         toastTitle = t('members:edit.emailConflictTitle', 'Email Exists');
         toastDescription = t('members:edit.emailConflictMessage', 'This email address is already associated with another member.');
       } else if (isUniqueConstraintError) {
@@ -244,10 +245,10 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
       onClose();
       onActionComplete();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting member:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
       toast.error(t('members:delete.errorTitle', 'Error Deleting Member'), {
-        description: error.message || t('members:delete.errorMessage', 'Failed to delete member. Please try again.')
+        description: error instanceof Error ? error.message : t('members:delete.errorMessage', 'Failed to delete member. Please try again.')
       });
       setConfirmDeleteOpen(false);
     } finally {
@@ -312,7 +313,7 @@ export function MemberDetailsDrawer({ member, open, onClose, onActionComplete }:
                       joinDate: member.joinDate,
                       joinDateType: typeof member.joinDate
                     });
-                    const joinDate = member.joinDate as any; // Type assertion 
+                    const joinDate = member.joinDate as unknown as Date; // Type assertion 
                     // Check if it looks like a Date object and is valid
                     if (joinDate && typeof joinDate.getTime === 'function' && !isNaN(joinDate.getTime())) {
                       // The 'joinDate' variable here is already confirmed to be a valid Date object

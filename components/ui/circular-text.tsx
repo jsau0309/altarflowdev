@@ -12,7 +12,7 @@ const getRotationTransition = (duration: number, from: number, loop = true) => (
   repeat: loop ? Number.POSITIVE_INFINITY : 0,
 })
 
-const getTransition = (duration: number, from: number) => ({
+const _getTransition = (duration: number, from: number) => ({
   rotate: getRotationTransition(duration, from),
   scale: {
     type: "spring",
@@ -31,7 +31,7 @@ interface CircularTextProps {
 const CircularText = ({ text, spinDuration = 20, className = "", size = 280 }: CircularTextProps) => {
   const letters = Array.from(text)
   const controls = useAnimation()
-  const [currentRotation, setCurrentRotation] = useState(0)
+  const [_currentRotation, _setCurrentRotation] = useState(0)
 
   useEffect(() => {
     // Start continuous rotation immediately

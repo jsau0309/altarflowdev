@@ -136,7 +136,7 @@ export default function DonationInfo({
       }
 
       return null;
-    } catch (error) {
+    } catch (_error) {
       return t('donations:donationInfo.phoneInvalidFormat', 'Please enter a valid phone number');
     }
   };

@@ -38,9 +38,9 @@ export interface CronJobConfig {
   timezone?: string;
 }
 
-export interface CronJobResult {
+export interface CronJobResult<T = unknown> {
   success: boolean;
-  data?: any;
+  data?: T;
   error?: Error;
   duration: number;
 }

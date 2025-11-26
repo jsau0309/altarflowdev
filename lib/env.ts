@@ -1,3 +1,10 @@
+/**
+ * Environment variable validation schemas and helpers
+ * This runs during app bootstrap before the logger is available.
+ */
+
+/* eslint-disable no-console */
+
 import { z } from 'zod';
 
 /**
@@ -88,7 +95,7 @@ export function validateServerEnv() {
     return serverEnvSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('❌ Invalid environment variables:');
+      console.error('Invalid environment variables:');
       error.errors.forEach((err) => {
         console.error(`   ${err.path.join('.')}: ${err.message}`);
       });
@@ -106,7 +113,7 @@ export function validateClientEnv() {
     return clientEnvSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('❌ Invalid client environment variables:');
+      console.error('Invalid client environment variables:');
       error.errors.forEach((err) => {
         console.error(`   ${err.path.join('.')}: ${err.message}`);
       });

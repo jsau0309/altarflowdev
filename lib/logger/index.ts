@@ -252,10 +252,13 @@ class Logger {
       : '';
 
     if (errorInfo) {
+      // eslint-disable-next-line no-console
       console[consoleMethod](prefix, message, contextStr, '\n', errorInfo);
     } else if (contextStr) {
+      // eslint-disable-next-line no-console
       console[consoleMethod](prefix, message, '\n', contextStr);
     } else {
+      // eslint-disable-next-line no-console
       console[consoleMethod](prefix, message);
     }
   }

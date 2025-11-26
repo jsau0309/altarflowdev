@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Edit2, Trash2, Save, XCircle, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit2, Trash2, Save, XCircle, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import LoaderOne from "@/components/ui/loader-one";
 import {
@@ -131,7 +131,7 @@ export function CategoriesSettings() {
       } else {
         throw new Error("Failed to add category");
       }
-    } catch (error) {
+    } catch {
       toast.error(t("settings:categories.failedToAddCategory", "Failed to add category"));
     }
   };
@@ -157,7 +157,7 @@ export function CategoriesSettings() {
       } else {
         throw new Error("Failed to update category");
       }
-    } catch (error) {
+    } catch {
       toast.error(t("settings:categories.failedToUpdateCategory", "Failed to update category"));
     }
   };
@@ -181,8 +181,8 @@ export function CategoriesSettings() {
           throw new Error(data.error || "Failed to delete category");
         }
       }
-    } catch (error: any) {
-      toast.error(error.message || t("settings:categories.failedToDeleteCategory", "Failed to delete category"));
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : t("settings:categories.failedToDeleteCategory", "Failed to delete category"));
     }
   };
 
@@ -263,7 +263,7 @@ export function CategoriesSettings() {
       } else {
         throw new Error("Failed to add payment method");
       }
-    } catch (error) {
+    } catch {
       toast.error(t("settings:categories.failedToAddPaymentMethod", "Failed to add donation method"));
     }
   };
@@ -289,7 +289,7 @@ export function CategoriesSettings() {
       } else {
         throw new Error("Failed to update payment method");
       }
-    } catch (error) {
+    } catch {
       toast.error(t("settings:categories.failedToUpdatePaymentMethod", "Failed to update donation method"));
     }
   };
@@ -313,8 +313,8 @@ export function CategoriesSettings() {
           throw new Error(data.error || "Failed to delete payment method");
         }
       }
-    } catch (error: any) {
-      toast.error(error.message || t("settings:categories.failedToDeletePaymentMethod", "Failed to delete donation method"));
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : t("settings:categories.failedToDeletePaymentMethod", "Failed to delete donation method"));
     }
   };
 

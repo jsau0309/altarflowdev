@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { AlertCircle, AlertTriangle, BanknoteIcon, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+import { Banknote, AlertCircle, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -34,16 +34,13 @@ type StripeConnectButtonProps = {
   accountData?: StripeAccount | null;
 };
 
-// Status types for button display states
-type EffectiveStatus = 'not_connected' | 'pending_verification' | 'connected';
-
-export function StripeConnectButton({ 
-  className = "", 
-  variant = "default",
+export function StripeConnectButton({
+  className = "",
+  variant: _variant = "default",
   size = "default",
   onConnectSuccess,
   churchId,
-  accountStatus = 'not_connected',
+  accountStatus: _accountStatus = 'not_connected',
   accountData = null
 }: StripeConnectButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +67,7 @@ export function StripeConnectButton({
       return {
         text: t('banking:connectWithStripe'),
         variant: 'default' as const,
-        icon: <BanknoteIcon className="h-4 w-4" />,
+        icon: <Banknote className="h-4 w-4" />,
         tooltip: t('banking:connectWithStripeTooltip'),
         actionType: 'createAccountLink' as const,
       };
@@ -155,7 +152,7 @@ export function StripeConnectButton({
     return {
       text: t('banking:connectWithStripe'),
       variant: 'default' as const,
-      icon: <BanknoteIcon className="h-4 w-4" />,
+      icon: <Banknote className="h-4 w-4" />,
       tooltip: t('banking:connectWithStripeTooltip'),
       actionType: 'createAccountLink' as const,
     };
@@ -247,7 +244,7 @@ export function StripeConnectButton({
       }
       
       let apiAction: 'createAccountLink' | 'createLoginLink';
-      let payload: any;
+      let payload: Record<string, string>;
 
       if (buttonConfig.actionType === 'createAccountLink') {
         apiAction = 'createAccountLink';
@@ -311,7 +308,7 @@ export function StripeConnectButton({
         <TooltipTrigger asChild>
           <Button
             className={cn("flex items-center gap-2", className)}
-            variant={buttonConfig.variant as any}
+            variant={buttonConfig.variant}
             size={size}
             onClick={handleMainAction}
             disabled={isLoading || buttonConfig.actionType === 'none'}

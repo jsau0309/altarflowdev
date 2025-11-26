@@ -32,7 +32,7 @@ export function EnhancedMemberDirectory({
   isLoading,
   error,
   filterStatus,
-  onFilterChange,
+  onFilterChange: _onFilterChange, // Available for parent-controlled filtering
   onActionComplete
 }: EnhancedMemberDirectoryProps) {
   const [searchTerm, setSearchTerm] = useState("")

@@ -52,8 +52,8 @@ export default function CampaignList({ onNew, onEdit }: CampaignListProps) {
       );
 
       setItems(sortedCampaigns);
-    } catch (e: any) {
-      setError(e.message || 'Failed to load campaigns');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load campaigns');
       setItems([]);
     } finally {
       setLoading(false);

@@ -2,7 +2,6 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { NewMemberFlowSettings } from "./flows/new-member-flow-settings"
-import { useState } from "react"
 import { useTranslation } from 'react-i18next'
 
 // Define the type for the church profile data
@@ -18,9 +17,9 @@ interface SettingsContentProps {
   initialChurchProfile: ChurchProfileData | null;
 }
 
-export function SettingsContent({ initialChurchProfile }: SettingsContentProps) {
+export function SettingsContent({ initialChurchProfile: _initialChurchProfile }: SettingsContentProps) {
   // Load necessary namespaces
-  const { i18n, t } = useTranslation(['flows', 'common']); 
+  const { t } = useTranslation(['flows', 'common']); 
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">

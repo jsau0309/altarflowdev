@@ -12,7 +12,6 @@ import { MonthlyBarChart } from "./monthly-bar-chart"
 import { CategoryPieChart } from "./category-pie-chart"
 import { exportToPDF } from "./export/pdf-exporter"
 import { exportToCSV } from "./export/csv-exporter"
-import LoaderOne from "@/components/ui/loader-one"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 import { FinancialAnalysisContent } from "./financial/financial-analysis-content"
@@ -111,6 +110,7 @@ export function ReportsPage() {
     average: 0,
     count: 0
   })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [transactions, setTransactions] = useState<any[]>([]) // For exports
   
   // Track if data has been loaded for current parameters
@@ -143,7 +143,7 @@ export function ReportsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, dateRange, organization, selectedDonationType, selectedExpenseCategory, lastFetchParams, lastActiveTab]) // fetchReportData intentionally excluded to prevent infinite loop
   
-  const fetchReportData = async (isTabChange: boolean = false) => {
+  const fetchReportData = async (_isTabChange: boolean = false) => {
     // Always show loading when fetching new data
     setIsLoading(true)
     setError(null)

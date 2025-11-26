@@ -120,15 +120,14 @@ export function DashboardContent() {
     setActiveModal(null);
   };
 
-  const handleDataRefresh = async (actionContext?: string) => {
-    const contextMessage = actionContext ? ` after ${actionContext}` : "";
+  const handleDataRefresh = async (_reason?: string) => {
     // Debug logging removed: refreshing dashboard data
     // setIsLoading(true); // Consider uncommenting if refresh is slow
     try {
       const data = await getDashboardSummaryOptimized();
       setDashboardData(data);
     } catch (error) {
-      console.error('Failed to refresh dashboard data${contextMessage}:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
+      console.error('Failed to refresh dashboard data:', { operation: 'ui.error' }, error instanceof Error ? error : new Error(String(error)));
     } finally {
       // setIsLoading(false); // Ensure this matches any setIsLoading(true) above
     }

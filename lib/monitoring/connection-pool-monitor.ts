@@ -132,7 +132,7 @@ export async function trackQuery<T>(
 
     // Log connection pool errors
     if (error instanceof Error) {
-      const errorCode = (error as any).code;
+      const errorCode = (error as Error & { code?: string }).code;
       if (errorCode === 'P2024' || errorCode === 'P1017') {
         logger.error('Connection pool error', {
           operation: 'database.pool_error',

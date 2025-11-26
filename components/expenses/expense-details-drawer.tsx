@@ -141,7 +141,7 @@ export function ExpenseDetailsDrawer({ expense, open, onClose, onEdit, onDelete,
           statusText: response.statusText,
           errorData
         });
-        alert(t('expenses:detailsDrawer.receiptRefreshError', `Error refreshing receipt: ${(errorData as any).error || response.statusText}`));
+        alert(t('expenses:detailsDrawer.receiptRefreshError', `Error refreshing receipt: ${(errorData as { error?: string }).error || response.statusText}`));
         return null;
       }
 

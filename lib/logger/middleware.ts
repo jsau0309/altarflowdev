@@ -141,7 +141,7 @@ export function withLogging<T extends NextResponse | Response>(
  * );
  * ```
  */
-export function withActionLogging<TArgs extends any[], TReturn>(
+export function withActionLogging<TArgs extends unknown[], TReturn>(
   operation: string,
   action: (...args: TArgs) => Promise<TReturn>
 ) {

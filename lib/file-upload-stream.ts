@@ -46,7 +46,6 @@ export async function streamFileUpload(
     const decoder = new TextDecoder();
     let headersParsed = false;
     let fileType = '';
-    let fileName = '';
 
     try {
       while (true) {
@@ -74,10 +73,11 @@ export async function streamFileUpload(
             new Uint8Array(chunks.flatMap(chunk => Array.from(chunk)).slice(0, 1024))
           );
           
-          // Extract filename
+          // Extract filename (used for early validation)
           const fileNameMatch = headerData.match(/filename="([^"]+)"/);
           if (fileNameMatch) {
-            fileName = fileNameMatch[1];
+            // Note: fileName stored for potential logging/debugging, not currently used
+            void fileNameMatch[1];
           }
           
           // Extract content-type

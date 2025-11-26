@@ -712,8 +712,6 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     // Structured error logging with context
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
     logger.error('Financial API Error', {
       operation: 'api.reports.financial_error',
       timestamp: new Date().toISOString(),

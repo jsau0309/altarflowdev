@@ -169,7 +169,6 @@ export async function GET(
       }
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Error fetching active campaigns by slug', { operation: 'api.campaigns.fetch_error' }, error instanceof Error ? error : new Error(String(error)));
 
     // Capture error in Sentry with context

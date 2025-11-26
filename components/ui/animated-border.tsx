@@ -10,11 +10,11 @@ interface AnimatedBorderProps {
   borderClassName?: string;
 }
 
-export function AnimatedBorder({ 
-  children, 
-  isAnimating, 
+export function AnimatedBorder({
+  children,
+  isAnimating,
   className,
-  borderClassName 
+  borderClassName: _borderClassName
 }: AnimatedBorderProps) {
   return (
     <div className={cn("relative", className)}>

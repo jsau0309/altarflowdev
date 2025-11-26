@@ -6,7 +6,6 @@ import { z } from 'zod'; // For input validation
 import * as Sentry from '@sentry/nextjs';
 import { withApiSpan, capturePaymentError } from '@/lib/sentry';
 import { logger } from '@/lib/logger';
-import { paymentLogger } from '@/lib/logger/domains/payment';
 import { hashChurchId } from '@/lib/logger/middleware';
 
 // Initialize Stripe with proper error handling
